@@ -48,8 +48,96 @@ Messaging infrastructure that enables asynchronous communication between microse
 ```
 
 ## Configuration
-- **Kafka**: High-throughput, distributed streaming
-- **RabbitMQ**: Reliable message queuing
-- **Partitioning**: By customer ID or order ID
-- **Retention**: 7 days for replay capability
-- **Replication**: 3 replicas for high availability
+
+### Kafka Configuration
+- **Cluster**: 3 Kafka brokers for high availability
+- **Partitioning**: By customer ID, order ID, or service type
+- **Retention**: 7 days for event replay capability
+- **Replication Factor**: 3 replicas for fault tolerance
+- **Compression**: LZ4 compression for better throughput
+
+### Topic Configuration
+```yaml
+topics:
+  order-events:
+    partitions: 12
+    replication_factor: 3
+    retention_ms: 604800000  # 7 days
+    
+  inventory-events:
+    partitions: 6
+    replication_factor: 3
+    retention_ms: 259200000  # 3 days
+    
+  customer-events:
+    partitions: 8
+    replication_factor: 3
+    retention_ms: 2592000000  # 30 days
+```
+
+### Consumer Groups
+```yaml
+consumer_groups:
+  order-processing:
+    services: [shipping-service, notification-service, warehouse-service]
+    
+  inventory-updates:
+    services: [catalog-service, search-service, pricing-service]
+    
+  customer-analytics:
+    services: [analytics-service, recommendation-service]
+```
+
+## Event Processing Patterns
+
+### Event Sourcing
+- **Complete Event History**: Store all state changes as events
+- **Event Replay**: Rebuild service state from events
+- **Audit Trail**: Complete audit log for compliance
+- **Temporal Queries**: Query system state at any point in time
+
+### CQRS (Command Query Responsibility Segregation)
+- **Command Side**: Handle write operations and emit events
+- **Query Side**: Build read models from events
+- **Eventual Consistency**: Read models eventually consistent with events
+- **Performance Optimization**: Optimized read models for queries
+
+### Saga Pattern
+- **Distributed Transactions**: Coordinate transactions across services
+- **Compensation**: Rollback operations if transaction fails
+- **State Management**: Track saga state and progress
+- **Error Handling**: Handle partial failures gracefully
+
+## Monitoring & Management
+
+### Event Bus Metrics
+```json
+{
+  "kafka_metrics": {
+    "messages_per_second": {
+      "type": "gauge",
+      "labels": ["topic", "partition"]
+    },
+    "consumer_lag": {
+      "type": "gauge", 
+      "labels": ["consumer_group", "topic", "partition"]
+    },
+    "broker_availability": {
+      "type": "gauge",
+      "labels": ["broker_id"]
+    }
+  }
+}
+```
+
+### Health Monitoring
+- **Broker Health**: Monitor Kafka broker availability
+- **Consumer Lag**: Track message processing delays
+- **Throughput**: Monitor message production and consumption rates
+- **Error Rates**: Track failed message processing
+
+### Management Tools
+- **Kafka Manager**: Web-based Kafka cluster management
+- **Schema Registry**: Manage event schema evolution
+- **Connect**: Integration with external systems
+- **Streams**: Real-time stream processing

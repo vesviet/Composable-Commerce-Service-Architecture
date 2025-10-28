@@ -111,13 +111,16 @@ Catalog Service makes parallel calls to:
 ├── Pricing Service (SKU + Warehouse based calculation)
 │   ├── → Promotion Service (applicable discounts)
 │   ├── → Customer Service (customer tier pricing)
-│   └── → Warehouse Service (warehouse pricing config)
+│   ├── → Warehouse Service (warehouse pricing config)
+│   └── → Loyalty & Rewards Service (loyalty discounts)
 │
 ├── Warehouse & Inventory Service (stock availability)
 │
 ├── Review Service (ratings and reviews)
 │
-└── Customer Service (customer context - if authenticated)
+├── Customer Service (customer context - if authenticated)
+│
+└── Analytics Service (product performance data for recommendations)
 
 All calls execute in parallel for optimal performance
 ```

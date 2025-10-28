@@ -16,17 +16,18 @@ Auth Service → Customer Service (user profile sync)
 Auth Service → Notification Service (security alerts)
 ```
 
-### 2. Catalog & Product Flow
-**Source:** Catalog Service  
-**Data:** Product info, attributes, categories, brands, warehouse mapping
+### 2. Catalog & CMS Flow
+**Source:** Catalog & CMS Service  
+**Data:** Product info, attributes, categories, brands, warehouse mapping, CMS content
 
 **Flow:**
 ```
-Catalog Service → Pricing Service (SKU & product attributes)
-Catalog Service → Search Service (product indexing)
-Catalog Service → Review Service (product validation)
-Catalog Service → Warehouse & Inventory (product mapping)
-Catalog Service → Promotion Service (product attributes for targeting)
+Catalog & CMS Service → Pricing Service (SKU & product attributes)
+Catalog & CMS Service → Search Service (product indexing + content)
+Catalog & CMS Service → Review Service (product validation)
+Catalog & CMS Service → Warehouse & Inventory (product mapping)
+Catalog & CMS Service → Promotion Service (product attributes for targeting)
+Catalog & CMS Service → Analytics Service (product performance data)
 ```
 
 ### 3. Pricing Flow (SKU + Warehouse Based Calculator)
@@ -35,10 +36,11 @@ Catalog Service → Promotion Service (product attributes for targeting)
 
 **Inputs:**
 ```
-Catalog Service → Pricing Service (SKU & product attributes)
+Catalog & CMS Service → Pricing Service (SKU & product attributes)
 Promotion Service → Pricing Service (discount rules per SKU + Warehouse)
 Customer Service → Pricing Service (customer tiers)
 Warehouse & Inventory → Pricing Service (warehouse-specific pricing config)
+Loyalty & Rewards Service → Pricing Service (loyalty discounts & tier pricing)
 ```
 
 **Outputs:**
@@ -54,15 +56,17 @@ Pricing Service → Cache Layer (price caching)
 
 **Inputs:**
 ```
-Catalog Service → Promotion Service (SKU, category, brand info)
+Catalog & CMS Service → Promotion Service (SKU, category, brand info)
 Warehouse & Inventory → Promotion Service (warehouse-specific rules)
 Customer Service → Promotion Service (customer segments)
+Loyalty & Rewards Service → Promotion Service (loyalty-based promotions)
 ```
 
 **Flow:**
 ```
 Promotion Service → Pricing Service (discount rules per SKU + Warehouse)
 Promotion Service → Search Service (promotional content)
+Promotion Service → Analytics Service (promotion performance data)
 ```
 
 ### 5. Inventory Flow
@@ -177,15 +181,87 @@ User Service → All Services (permission validation)
 User Service → Notification Service (admin notifications)
 ```
 
-### 13. Event-Driven Communication
+### 13. File Storage & Media Flow
+**Source:** File Storage/CDN Service  
+**Data:** Product images, videos, review media, documents
+
+**Flow:**
+```
+Catalog Service → File Storage/CDN (product media upload)
+Review Service → File Storage/CDN (review images/videos)
+File Storage/CDN → Cache Layer (media caching)
+File Storage/CDN → Frontend/API Gateway (content delivery)
+```
+
+### 14. Monitoring & Observability Flow
+**Source:** Monitoring & Logging Service  
+**Data:** System metrics, logs, alerts, performance data
+
+**Flow:**
+```
+All Services → Monitoring & Logging (metrics & logs)
+Monitoring & Logging → User Service (admin alerts)
+Monitoring & Logging → Notification Service (system alerts)
+Monitoring & Logging → Event Bus (monitoring events)
+```
+
+### 15. Analytics & Reporting Flow
+**Source:** Analytics & Reporting Service  
+**Data:** Business intelligence, metrics, reports, insights
+
+**Inputs:**
+```
+Order Service → Analytics Service (sales data, transaction details)
+Customer Service → Analytics Service (customer behavior, demographics)
+Catalog & CMS Service → Analytics Service (product performance, content engagement)
+Warehouse & Inventory → Analytics Service (inventory levels, turnover rates)
+Review Service → Analytics Service (ratings, sentiment analysis)
+Search Service → Analytics Service (search patterns, conversion rates)
+Loyalty & Rewards Service → Analytics Service (loyalty program performance)
+```
+
+**Flow:**
+```
+Analytics Service → User Service (dashboard access, reports)
+Analytics Service → Notification Service (automated reports, alerts)
+Analytics Service → Pricing Service (demand-based pricing insights)
+Analytics Service → Promotion Service (campaign optimization data)
+```
+
+### 16. Loyalty & Rewards Flow
+**Source:** Loyalty & Rewards Service  
+**Data:** Loyalty status, points, rewards, tier benefits
+
+**Inputs:**
+```
+Customer Service → Loyalty Service (customer profiles, registration data)
+Order Service → Loyalty Service (purchase behavior, transaction amounts)
+Payment Service → Loyalty Service (payment confirmations for points)
+```
+
+**Flow:**
+```
+Loyalty Service → Customer Service (loyalty status, tier information)
+Loyalty Service → Pricing Service (tier-based pricing, loyalty discounts)
+Loyalty Service → Promotion Service (loyalty-based promotions)
+Loyalty Service → Order Service (points redemption, tier benefits)
+Loyalty Service → Notification Service (tier changes, rewards available)
+```
+
+### 17. Event-Driven Communication
 **Source:** Event Bus  
 **Data:** Asynchronous events between services
 
 **Key Events:**
 ```
-Order Events → Inventory, Shipping, Notification Services
-Payment Events → Order, Customer, Notification Services
-Inventory Events → Product, Search, Pricing Services
-Customer Events → Auth, Promotion, Notification Services
-User Events → Auth, Notification Services
+Order Events → Inventory, Shipping, Notification, Customer, Analytics, Loyalty Services
+Payment Events → Order, Customer, Notification, User, Analytics, Loyalty Services
+Inventory Events → Catalog, Search, Pricing, Order, Analytics Services
+Customer Events → Auth, Promotion, Notification, User, Loyalty, Analytics Services
+User Events → Auth, Notification, Monitoring Services
+Catalog Events → Search, Pricing, Promotion, Cache, Analytics Services
+Review Events → Catalog, Search, Notification, Customer, Analytics Services
+Shipping Events → Order, Notification, Warehouse, Customer, Analytics Services
+Loyalty Events → Customer, Pricing, Promotion, Notification, Analytics Services
+Analytics Events → User, Notification, Pricing, Promotion Services
 ```

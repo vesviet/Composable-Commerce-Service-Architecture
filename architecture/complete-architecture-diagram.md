@@ -15,7 +15,7 @@ graph TB
     %% Application Services Layer
     subgraph "Application Services Layer"
         subgraph "Core Business Services"
-            PROD[Product Service]
+            CAT[Catalog & CMS Service]
             PRICE[Pricing Service]
             PROMO[Promotion Service]
             ORDER[Order Service]
@@ -24,6 +24,8 @@ graph TB
             CUST[Customer Service]
             REV[Review Service]
             INV[Warehouse & Inventory]
+            ANALYTICS[Analytics & Reporting Service]
+            LOYALTY[Loyalty & Rewards Service]
         end
     end
     
@@ -55,29 +57,45 @@ graph TB
     
     %% API Gateway to Services
     API --> AUTH
-    API --> PROD
+    API --> CAT
     API --> SEARCH
     API --> ORDER
     API --> CUST
     
     %% Core Service Interactions
-    PROD --> PRICE
+    CAT --> PRICE
     PROMO --> PRICE
     CUST --> PRICE
     INV --> PRICE
+    LOYALTY --> PRICE
     
     PRICE --> ORDER
     INV --> ORDER
     CUST --> ORDER
+    LOYALTY --> ORDER
     ORDER --> PAY
     ORDER --> SHIP
     ORDER --> REV
+    ORDER --> ANALYTICS
+    ORDER --> LOYALTY
     
     %% Search Service Inputs
-    PROD --> SEARCH
+    CAT --> SEARCH
     PRICE --> SEARCH
     REV --> SEARCH
     INV --> SEARCH
+    
+    %% Analytics Service Inputs
+    ORDER --> ANALYTICS
+    CUST --> ANALYTICS
+    CAT --> ANALYTICS
+    REV --> ANALYTICS
+    INV --> ANALYTICS
+    
+    %% Loyalty Service Interactions
+    CUST --> LOYALTY
+    ORDER --> LOYALTY
+    LOYALTY --> PROMO
     
     %% Event Bus Connections
     ORDER --> EB
@@ -101,15 +119,20 @@ graph TB
     CACHE --> REDIS
     
     %% Monitoring
-    MONITOR -.-> PROD
+    MONITOR -.-> CAT
     MONITOR -.-> ORDER
     MONITOR -.-> PAY
     MONITOR -.-> SHIP
+    MONITOR -.-> USER
     
     %% Cache Connections
     CACHE -.-> PRICE
-    CACHE -.-> PROD
+    CACHE -.-> CAT
     CACHE -.-> SEARCH
+    
+    %% Storage Connections
+    CAT --> STORAGE
+    REV --> STORAGE
     
     %% Storage
     PROD --> STORAGE

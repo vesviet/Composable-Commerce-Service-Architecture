@@ -45,7 +45,9 @@ sequenceDiagram
             %% Catalog Service internal async calls
             Cat->>Price: Calculate pricing for SKU + Warehouse
             Price->>Promo: Get applicable promotions
+            Price->>Loyalty: Get loyalty discounts
             Promo-->>Price: Promotion rules
+            Loyalty-->>Price: Tier-based discounts
             Price-->>Cat: Final pricing data
             
             Cat->>Inv: Check stock availability
@@ -88,6 +90,12 @@ sequenceDiagram
     Order->>Order: Create Order in Database
     Note over Order: Order Status: PENDING_PAYMENT<br/>Store complete product data<br/>from Catalog Service
     
+    %% Step 6.5: Check Loyalty Benefits
+    opt Customer has loyalty account
+        Order->>Loyalty: Check loyalty benefits and points
+        Loyalty-->>Order: Available points, tier benefits
+    end
+    
     %% Step 7: Process Payment
     Order->>Pay: POST /payments/process
     Pay->>Pay: Process with Payment Gateway
@@ -111,6 +119,16 @@ sequenceDiagram
         %% Step 11: Track Promotion Usage
         Order->>Promo: POST /promotions/track-usage
         Promo-->>Order: Usage Tracked
+        
+        %% Step 12: Award Loyalty Points
+        Order->>Loyalty: POST /loyalty/points/earn
+        Note over Loyalty: Award points based on:<br/>- Order amount<br/>- Customer tier multiplier<br/>- Product categories
+        Loyalty-->>Order: Points Awarded
+        
+        %% Step 13: Send Data to Analytics
+        Order->>Analytics: POST /analytics/events/order-created
+        Note over Analytics: Track order data for:<br/>- Sales analytics<br/>- Customer behavior<br/>- Product performance
+        Analytics-->>Order: Event Recorded
         
         %% Step 12: Publish Events
         Order->>EB: Publish "order.created" event

@@ -21,12 +21,16 @@ flowchart TD
     PROMO[Promotion Service] -->|Discount Rules| PRICE
     CUST -->|Customer Tier| PRICE
     INV[Warehouse & Inventory] -->|Stock Info| PRICE
+    LOYALTY[Loyalty & Rewards Service] -->|Loyalty Discounts| PRICE
     
     %% Order Processing
     PRICE -->|Final Price| ORDER[Order Service]
     INV -->|Availability| ORDER
+    LOYALTY -->|Points & Rewards| ORDER
     ORDER -->|Payment Request| PAY[Payment Service]
     PAY -->|Payment Status| ORDER
+    ORDER -->|Order Data| ANALYTICS[Analytics & Reporting Service]
+    ORDER -->|Points Earning| LOYALTY
     
     %% Fulfillment Flow
     ORDER -->|Order Created| SHIP[Shipping Service]
@@ -38,6 +42,12 @@ flowchart TD
     PRICE -->|Pricing Data| SEARCH
     REV[Review Service] -->|Ratings| SEARCH
     ORDER -->|Purchase Verification| REV
+    
+    %% Analytics Data Collection
+    CUST -->|Customer Data| ANALYTICS
+    CAT -->|Product Data| ANALYTICS
+    REV -->|Review Data| ANALYTICS
+    INV -->|Inventory Data| ANALYTICS
     
     %% Notifications
     ORDER -->|Order Updates| NOTIF[Notification Service]

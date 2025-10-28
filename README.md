@@ -33,9 +33,9 @@ This repository contains the comprehensive documentation and architecture design
 ```
 
 ### 📊 Service Count
-- **Application Services**: 9 core business services
+- **Application Services**: 11 core business services
 - **Infrastructure Services**: 8 supporting services
-- **Total**: 17 microservices
+- **Total**: 19 microservices
 
 ## 🚀 Key Features
 
@@ -66,7 +66,7 @@ docs/
 │   ├── event-flow-diagram.md           # Event flow diagrams
 │   └── complete-architecture-diagram.md # Comprehensive architecture
 ├── services/
-│   ├── catalog-service.md              # Product catalog management
+│   ├── catalog-cms-service.md          # Product catalog & CMS management
 │   ├── pricing-service.md              # SKU + Warehouse pricing
 │   ├── promotion-service.md            # Promotions and discounts
 │   ├── order-service.md                # Order processing
@@ -78,7 +78,9 @@ docs/
 │   ├── auth-service.md                 # Authentication & authorization
 │   ├── search-service.md               # Product search (Elasticsearch)
 │   ├── notification-service.md         # Multi-channel notifications
-│   └── warehouse-inventory-service.md  # Inventory management
+│   ├── warehouse-inventory-service.md  # Inventory management
+│   ├── analytics-reporting-service.md  # Business intelligence & analytics
+│   └── loyalty-rewards-service.md      # Loyalty programs & rewards
 ├── api-flows/
 │   ├── get-product-flow.md             # Product API data flow
 │   ├── place-order-flow.md             # Order placement flow
@@ -87,8 +89,21 @@ docs/
 │   ├── core-data-flow.md               # Core service data flows
 │   └── service-relationships.md        # Service dependencies
 ├── infrastructure/
+│   ├── api-gateway.md                  # API Gateway & BFF patterns
 │   ├── event-bus.md                    # Event Bus (Kafka/RabbitMQ)
-│   └── cache-layer.md                  # Cache Layer (Redis)
+│   ├── cache-layer.md                  # Cache Layer (Redis)
+│   ├── file-storage-cdn.md             # File Storage & CDN
+│   └── monitoring-logging.md           # Monitoring & Logging stack
+├── security/
+│   └── security-overview.md            # Security & compliance guide
+├── deployment/
+│   └── deployment-guide.md             # Kubernetes deployment guide
+├── testing/
+│   └── testing-strategy.md             # Comprehensive testing strategy
+├── performance/
+│   └── performance-guide.md            # Performance & scalability guide
+├── operations/
+│   └── troubleshooting-guide.md        # Operations & troubleshooting
 └── migration-plan.md                   # 16-week migration plan
 ```
 
@@ -96,9 +111,10 @@ docs/
 
 ### Business Logic Services
 
-#### 🛍️ **Catalog Service**
+#### 🛍️ **Catalog & CMS Service**
 - Product catalog, categories, and brands management
-- Product attributes and specifications
+- Content management system (pages, blogs, banners)
+- SEO content and multi-language support
 - No pricing logic (handled by Pricing Service)
 
 #### 💰 **Pricing Service**
@@ -142,6 +158,28 @@ docs/
 - Elasticsearch-powered product search
 - Real-time indexing and suggestions
 - Faceted search and filtering
+
+#### ⭐ **Review Service**
+- Product reviews and ratings management
+- Review moderation and approval workflow
+- Customer feedback collection
+
+#### 🏪 **Warehouse & Inventory Service**
+- Multi-warehouse inventory management
+- Real-time stock tracking and allocation
+- Warehouse-specific pricing and operations
+
+#### 📊 **Analytics & Reporting Service**
+- Business intelligence and data analytics
+- Real-time metrics and KPIs
+- Customer behavior analytics and reporting
+- Sales performance and forecasting
+
+#### 🎁 **Loyalty & Rewards Service**
+- Customer loyalty program management
+- Points accumulation and redemption system
+- Tier-based benefits and privileges
+- Reward catalog and campaign management
 
 ## 📈 Performance Improvements
 

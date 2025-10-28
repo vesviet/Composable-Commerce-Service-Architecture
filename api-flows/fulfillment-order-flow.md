@@ -109,6 +109,12 @@ sequenceDiagram
     EB->>Cust: fulfillment.delivered event
     Cust->>Cust: Update customer history<br/>Trigger review requests
     
+    EB->>Loyalty: fulfillment.delivered event
+    Loyalty->>Loyalty: Award delivery bonus points<br/>Update tier progress
+    
+    EB->>Analytics: fulfillment.delivered event
+    Analytics->>Analytics: Update delivery metrics<br/>Customer satisfaction data
+    
     EB->>Notif: fulfillment.delivered event
     Notif->>Notif: Send delivery confirmation
 ```
@@ -165,6 +171,17 @@ Customer Service:
 - Listen to fulfillment events
 - Update customer order history
 - Track customer delivery preferences
+
+Loyalty & Rewards Service:
+- Listen to fulfillment.delivered events
+- Award delivery bonus points
+- Update customer tier progress
+
+Analytics & Reporting Service:
+- Listen to all fulfillment events
+- Track delivery performance metrics
+- Update customer satisfaction analytics
+- Generate fulfillment reports
 ```
 
 ### 5. Warehouse Operations (Event-Driven)
@@ -494,6 +511,20 @@ Exception Detected → Shipping Service → Determine Resolution Strategy
 - **Publish**: customer.updated events
 - **Own Data**: Customer profiles, order history, preferences
 - **Update Logic**: Maintain customer order history from events
+
+### Loyalty & Rewards Service
+**Primary Role**: Loyalty program management
+- **Listen to**: fulfillment.delivered, order.completed events
+- **Publish**: loyalty.points_awarded, loyalty.tier_changed events
+- **Own Data**: Points balance, tier status, reward redemptions
+- **Update Logic**: Award points for successful deliveries and purchases
+
+### Analytics & Reporting Service
+**Primary Role**: Business intelligence and reporting
+- **Listen to**: All fulfillment, order, and customer events
+- **Publish**: analytics.report_generated events
+- **Own Data**: Metrics, reports, performance analytics
+- **Update Logic**: Aggregate data for real-time dashboards and reports
 
 ## Event-Driven Benefits
 

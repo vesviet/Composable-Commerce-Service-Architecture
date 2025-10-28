@@ -14,7 +14,7 @@ It supports future expansion to **Last Mile, First Mile, and Hub-based logistics
 ### 2️⃣ Application Services Layer
 Core business logic services:
 
-- **Catalog Service**: Manages product catalog, categories, and brands
+- **Catalog & CMS Service**: Manages product catalog, categories, brands, and content management
 - **Pricing Service**: Calculates final product prices based on SKU + Warehouse configuration
 - **Promotion Service**: Handles promotions and discount rules per SKU + Warehouse
 - **Warehouse & Inventory Service**: Manages warehouses and inventory
@@ -23,6 +23,8 @@ Core business logic services:
 - **Shipping Service**: Manages shipping and fulfillment
 - **Customer Service**: Manages customer information
 - **Review Service**: Manages product reviews and ratings
+- **Analytics & Reporting Service**: Provides business intelligence and data analytics
+- **Loyalty & Rewards Service**: Manages customer loyalty programs and rewards
 
 ### 3️⃣ Shared & Infrastructure Services
 Supporting ecosystem services:
