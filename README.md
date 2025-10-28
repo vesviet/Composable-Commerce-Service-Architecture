@@ -83,8 +83,9 @@ docs/
 │   └── loyalty-rewards-service.md      # Loyalty programs & rewards
 ├── api-flows/
 │   ├── get-product-flow.md             # Product API data flow
-│   ├── place-order-flow.md             # Order placement flow
-│   └── fulfillment-order-flow.md       # Order fulfillment flow
+│   ├── checkout-flow.md                # Complete checkout flow (cart to order)
+│   ├── fulfillment-order-flow.md       # Order fulfillment flow
+│   └── api-flows-validation.md         # Validation & gap analysis
 ├── data-flows/
 │   ├── core-data-flow.md               # Core service data flows
 │   └── service-relationships.md        # Service dependencies
@@ -287,8 +288,9 @@ docs/
 
 ### API Documentation
 - **Get Product Flow**: `api-flows/get-product-flow.md`
-- **Place Order Flow**: `api-flows/place-order-flow.md`
+- **Complete Checkout Flow**: `api-flows/checkout-flow.md`
 - **Fulfillment Flow**: `api-flows/fulfillment-order-flow.md`
+- **API Flows Validation**: `api-flows/api-flows-validation.md`
 
 ## 🤝 Contributing
 

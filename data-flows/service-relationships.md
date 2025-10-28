@@ -62,10 +62,11 @@ Customer → API Gateway → Search Service ← Catalog Service (product catalog
 
 #### 3. Inventory & Fulfillment Path
 ```
-Shipping Service → Warehouse Service → Product Service (availability updates)
+Shipping Service → Warehouse Service → Catalog & CMS Service (availability updates)
                                     → Pricing Service (stock-based pricing)
                                     → Search Service (availability indexing)
                                     → Order Service (stock status)
+                                    → Analytics Service (fulfillment metrics)
                                     → Event Bus (inventory events)
 ```
 
@@ -99,10 +100,31 @@ Order Service → Payment Service → External Payment Gateways
 
 #### 7. Content & Media Management Path
 ```
-Catalog Service → File Storage/CDN (product images, videos)
+Catalog & CMS Service → File Storage/CDN (product images, videos, CMS content)
 Review Service → File Storage/CDN (review images, videos)
                 → Cache Layer (media caching)
                 → Frontend/API Gateway (content delivery)
+```
+
+#### 8. Analytics & Business Intelligence Path
+```
+All Services → Analytics Service (business data, metrics, events)
+Analytics Service → User Service (dashboards, reports, insights)
+Analytics Service → Pricing Service (demand insights, optimization)
+Analytics Service → Promotion Service (campaign effectiveness, ROI)
+Analytics Service → Notification Service (automated reports, alerts)
+Analytics Service → Event Bus (analytics events)
+```
+
+#### 9. Loyalty & Customer Retention Path
+```
+Customer Service → Loyalty Service (customer profiles, registration)
+Order Service → Loyalty Service (purchase behavior, points earning)
+Payment Service → Loyalty Service (transaction confirmations)
+Loyalty Service → Pricing Service (tier-based discounts)
+Loyalty Service → Promotion Service (loyalty-based campaigns)
+Loyalty Service → Customer Service (tier status, benefits)
+Loyalty Service → Notification Service (tier changes, rewards)
 ```
 
 ### Event Propagation

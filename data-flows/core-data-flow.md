@@ -73,12 +73,21 @@ Promotion Service → Analytics Service (promotion performance data)
 **Source:** Warehouse & Inventory Service  
 **Data:** Real-time stock, reserved quantities, availability by location
 
-**Flow:**
+**Inputs:**
 ```
-Warehouse & Inventory → Order Service (stock reservation)
+Order Service → Warehouse & Inventory (stock reservations, order fulfillment)
+Shipping Service → Warehouse & Inventory (delivery confirmations, returns)
+Catalog & CMS Service → Warehouse & Inventory (product-warehouse mappings)
+```
+
+**Outputs:**
+```
+Warehouse & Inventory → Order Service (stock reservation confirmations)
 Warehouse & Inventory → Shipping Service (fulfillment availability)
-Warehouse & Inventory → Pricing Service (inventory-based pricing)
+Warehouse & Inventory → Pricing Service (inventory-based pricing adjustments)
 Warehouse & Inventory → Search Service (availability indexing)
+Warehouse & Inventory → Analytics Service (inventory analytics)
+Warehouse & Inventory → Event Bus (inventory events)
 ```
 
 ### 6. Order Flow (Central Orchestrator)
@@ -87,20 +96,25 @@ Warehouse & Inventory → Search Service (availability indexing)
 
 **Inputs:**
 ```
-Customer Service → Order Service (customer details)
-Pricing Service → Order Service (final pricing)
-Warehouse & Inventory → Order Service (stock availability)
-Payment Service → Order Service (payment confirmation)
+Customer Service → Order Service (customer details, billing/shipping addresses)
+Pricing Service → Order Service (final pricing with all discounts applied)
+Warehouse & Inventory → Order Service (stock availability and reservations)
+Payment Service → Order Service (payment confirmation and transaction details)
+Loyalty & Rewards Service → Order Service (points redemption, tier benefits)
+Auth Service → Order Service (user authentication and permissions)
 ```
 
 **Outputs:**
 ```
-Order Service → Shipping Service (fulfillment creation)
-Order Service → Payment Service (payment requests)
-Order Service → Notification Service (order updates)
-Order Service → Customer Service (order history)
-Order Service → Review Service (purchase verification)
-Order Service → Event Bus (order events)
+Order Service → Shipping Service (fulfillment creation and instructions)
+Order Service → Payment Service (payment processing requests)
+Order Service → Notification Service (order status updates and confirmations)
+Order Service → Customer Service (order history and purchase records)
+Order Service → Review Service (purchase verification for review eligibility)
+Order Service → Analytics Service (sales data and transaction analytics)
+Order Service → Loyalty & Rewards Service (points earning and tier progress)
+Order Service → Promotion Service (promotion usage tracking)
+Order Service → Event Bus (order lifecycle events)
 ```
 
 ### 7. Payment Flow
@@ -133,7 +147,7 @@ Shipping Service → Event Bus (shipping events)
 
 **Inputs:**
 ```
-Product Service → Search Service (product data)
+Catalog & CMS Service → Search Service (product data)
 Pricing Service → Search Service (pricing data)
 Review Service → Search Service (ratings data)
 Warehouse & Inventory → Search Service (availability data)
@@ -151,10 +165,11 @@ Search Service → Cache Layer (search caching)
 
 **Flow:**
 ```
-Review Service → Product Service (rating display)
+Review Service → Catalog & CMS Service (rating display)
 Review Service → Search Service (rating indexing)
 Review Service → Customer Service (review history)
 Review Service → Notification Service (review alerts)
+Review Service → Analytics Service (review analytics)
 ```
 
 ### 11. Customer Flow
@@ -211,21 +226,29 @@ Monitoring & Logging → Event Bus (monitoring events)
 
 **Inputs:**
 ```
-Order Service → Analytics Service (sales data, transaction details)
-Customer Service → Analytics Service (customer behavior, demographics)
-Catalog & CMS Service → Analytics Service (product performance, content engagement)
-Warehouse & Inventory → Analytics Service (inventory levels, turnover rates)
-Review Service → Analytics Service (ratings, sentiment analysis)
-Search Service → Analytics Service (search patterns, conversion rates)
-Loyalty & Rewards Service → Analytics Service (loyalty program performance)
+Order Service → Analytics Service (sales data, transaction details, order patterns)
+Customer Service → Analytics Service (customer behavior, demographics, lifecycle)
+Catalog & CMS Service → Analytics Service (product performance, content engagement, catalog metrics)
+Warehouse & Inventory → Analytics Service (inventory levels, turnover rates, stock optimization)
+Review Service → Analytics Service (ratings, sentiment analysis, review trends)
+Search Service → Analytics Service (search patterns, conversion rates, popular queries)
+Loyalty & Rewards Service → Analytics Service (loyalty program performance, tier distribution)
+Payment Service → Analytics Service (payment methods, transaction success rates)
+Shipping Service → Analytics Service (delivery performance, shipping costs, fulfillment metrics)
+Promotion Service → Analytics Service (campaign effectiveness, discount usage, ROI)
+Pricing Service → Analytics Service (pricing performance, elasticity, margin analysis)
 ```
 
-**Flow:**
+**Outputs:**
 ```
-Analytics Service → User Service (dashboard access, reports)
-Analytics Service → Notification Service (automated reports, alerts)
-Analytics Service → Pricing Service (demand-based pricing insights)
-Analytics Service → Promotion Service (campaign optimization data)
+Analytics Service → User Service (dashboard access, business reports, KPI metrics)
+Analytics Service → Notification Service (automated reports, performance alerts, anomaly detection)
+Analytics Service → Pricing Service (demand-based pricing insights, price optimization recommendations)
+Analytics Service → Promotion Service (campaign optimization data, effectiveness metrics, ROI analysis)
+Analytics Service → Customer Service (customer insights, segmentation data, behavior patterns)
+Analytics Service → Catalog & CMS Service (product performance insights, content optimization)
+Analytics Service → Warehouse & Inventory Service (inventory optimization recommendations, demand forecasting)
+Analytics Service → Event Bus (analytics events, report generation notifications)
 ```
 
 ### 16. Loyalty & Rewards Flow

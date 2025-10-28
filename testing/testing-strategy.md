@@ -186,8 +186,8 @@ describe('Complete Order Flow', () => {
     await page.click('[data-testid="payment-card"]');
     await page.fill('[data-testid="card-number"]', '4111111111111111');
     
-    // 7. Place order
-    await page.click('[data-testid="place-order"]');
+    // 7. Complete checkout
+    await page.click('[data-testid="complete-checkout"]');
     
     // 8. Verify order confirmation
     await expect(page.locator('[data-testid="order-confirmation"]'))

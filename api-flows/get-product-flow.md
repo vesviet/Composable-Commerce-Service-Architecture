@@ -179,7 +179,7 @@ API Gateway:
   },
   "pricing": {
     "basePrice": 299.99,
-    "finalPrice": 249.99,
+    "finalPrice": 224.99,
     "currency": "USD",
     "discounts": [
       {
@@ -187,6 +187,12 @@ API Gateway:
         "name": "Summer Sale",
         "amount": 50.00,
         "percentage": 16.67
+      },
+      {
+        "type": "loyalty_tier",
+        "name": "Gold Member Discount",
+        "amount": 25.00,
+        "percentage": 8.33
       }
     ],
     "warehouse": "US-WEST-01"
@@ -213,6 +219,16 @@ API Gateway:
       "2": 4,
       "1": 2
     }
+  },
+  "loyalty": {
+    "pointsEarnable": 225,
+    "tierMultiplier": 1.5,
+    "customerTier": "gold"
+  },
+  "recommendations": {
+    "relatedProducts": ["PROD-11111", "PROD-22222"],
+    "frequentlyBoughtTogether": ["PROD-33333"],
+    "viewedAlsoViewed": ["PROD-44444", "PROD-55555"]
   },
   "media": [
     {
