@@ -106,6 +106,20 @@ docs/
 ├── operations/
 │   └── troubleshooting-guide.md        # Operations & troubleshooting
 └── migration-plan.md                   # 16-week migration plan
+
+examples/
+├── generated-code-samples.md           # Generated code examples from docs
+├── infrastructure-examples/
+│   ├── kubernetes-manifests/           # K8s deployment examples
+│   ├── docker-compose/                 # Local development setup
+│   ├── terraform/                      # Infrastructure as Code
+│   ├── helm-charts/                    # Helm deployment charts
+│   └── monitoring-configs/             # Prometheus, Grafana configs
+└── implementation-samples/
+    ├── service-templates/              # Service boilerplate code
+    ├── api-clients/                    # Generated API client libraries
+    ├── event-schemas/                  # Event schema definitions
+    └── database-migrations/            # Database schema migrations
 ```
 
 ## 🔄 Core Services
