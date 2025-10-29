@@ -5,14 +5,14 @@ Ready-to-use service templates for different technology stacks, following micros
 
 ## Available Templates
 
-### 1. Node.js Service Template
-- **Framework**: Express.js with TypeScript
-- **Database**: PostgreSQL with Prisma ORM
-- **Messaging**: Kafka integration
-- **Caching**: Redis support
-- **Monitoring**: Prometheus metrics, structured logging
-- **Testing**: Jest with supertest
-- **Documentation**: OpenAPI/Swagger
+### 1. Go Service Template
+- **Framework**: Gin HTTP framework with Go 1.21+
+- **Database**: PostgreSQL with GORM
+- **Messaging**: Sarama Kafka client
+- **Caching**: go-redis
+- **Monitoring**: Prometheus client, structured logging
+- **Testing**: testify framework
+- **Documentation**: Swagger with gin-swagger
 
 ### 2. Java Service Template
 - **Framework**: Spring Boot 3.x
@@ -32,14 +32,33 @@ Ready-to-use service templates for different technology stacks, following micros
 - **Testing**: pytest with httpx
 - **Documentation**: FastAPI auto-generated docs
 
-### 4. Go Service Template
-- **Framework**: Gin HTTP framework
-- **Database**: PostgreSQL with GORM
-- **Messaging**: Sarama Kafka client
-- **Caching**: go-redis
-- **Monitoring**: Prometheus client, structured logging
-- **Testing**: testify framework
-- **Documentation**: Swagger with gin-swagger
+### 4. Node.js Service Template
+- **Framework**: Express.js with TypeScript
+- **Database**: PostgreSQL with Prisma ORM
+- **Messaging**: Kafka integration
+- **Caching**: Redis support
+- **Monitoring**: Prometheus metrics, structured logging
+- **Testing**: Jest with supertest
+- **Documentation**: OpenAPI/Swagger
+
+### 5. Flutter Mobile App Template
+- **Framework**: Flutter 3.x with Dart
+- **State Management**: Bloc/Cubit pattern
+- **HTTP Client**: Dio with interceptors
+- **Local Storage**: Hive/SQLite
+- **Authentication**: JWT token management
+- **Push Notifications**: Firebase Cloud Messaging
+- **Testing**: Widget and integration tests
+
+### 6. React Native Mobile App Template
+- **Framework**: React Native with TypeScript
+- **State Management**: Redux Toolkit
+- **HTTP Client**: Axios with interceptors
+- **Navigation**: React Navigation 6
+- **Local Storage**: AsyncStorage/SQLite
+- **Authentication**: JWT token management
+- **Push Notifications**: React Native Push Notification
+- **Testing**: Jest and Detox
 
 ## Template Structure
 

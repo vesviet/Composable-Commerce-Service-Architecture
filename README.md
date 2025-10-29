@@ -213,7 +213,9 @@ examples/
 ## 🛠️ Technology Stack
 
 ### Runtime & Frameworks
-- **Backend**: Node.js, Java Spring Boot, Python FastAPI
+- **Backend**: Go (Gin/Fiber), Java Spring Boot, Python FastAPI
+- **Frontend**: React.js, Vue.js, Angular
+- **Mobile**: Flutter, React Native
 - **Databases**: PostgreSQL, MongoDB (per service)
 - **Message Queue**: Apache Kafka, RabbitMQ
 - **Cache**: Redis Cluster

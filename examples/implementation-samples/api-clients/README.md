@@ -631,4 +631,149 @@ echo "Client generated for $SERVICE in $LANGUAGE"
 - **Java**: Reactive streams, Spring integration, metrics
 - **Go**: Context support, channels, goroutine-safe
 
-These API clients provide a consistent, reliable way to interact with the e-commerce microservices from any application or service.
+### Dart/Flutter Client
+
+### Installation
+```yaml
+dependencies:
+  ecommerce_api_client: ^1.0.0
+```
+
+### Usage Example
+```dart
+import 'package:ecommerce_api_client/ecommerce_api_client.dart';
+
+void main() async {
+  // Configure client
+  final config = ApiClientConfig(
+    baseUrl: 'https://api.ecommerce.com',
+    timeout: Duration(seconds: 30),
+    retries: 3,
+    auth: JwtAuth(token: 'your-jwt-token'),
+  );
+
+  // Initialize clients
+  final catalogClient = CatalogClient(config);
+  final orderClient = OrderClient(config);
+  final paymentClient = PaymentClient(config);
+
+  try {
+    // Get product
+    final product = await catalogClient.getProduct('prod-123');
+    print('Product: $product');
+
+    // Create order
+    final orderData = CreateOrderRequest(
+      customerId: 'cust-456',
+      items: [
+        OrderItem(
+          productId: 'prod-123',
+          quantity: 2,
+          price: 29.99,
+        ),
+      ],
+    );
+
+    final order = await orderClient.createOrder(orderData);
+    print('Order created: $order');
+
+    // Process payment
+    final paymentData = ProcessPaymentRequest(
+      orderId: order.id,
+      amount: 59.98,
+      paymentMethod: 'credit_card',
+      cardToken: 'card-token-123',
+    );
+
+    final result = await paymentClient.processPayment(paymentData);
+    print('Payment processed: $result');
+
+  } catch (e) {
+    print('Error: $e');
+  }
+}
+```
+
+### Dart Catalog Client Implementation
+```dart
+// lib/src/clients/catalog_client.dart
+import 'package:dio/dio.dart';
+import '../models/product.dart';
+import '../models/product_list_response.dart';
+import '../utils/base_client.dart';
+
+class CatalogClient extends BaseClient {
+  CatalogClient(super.config);
+
+  static const String _basePath = '/api/v1/products';
+
+  Future<ProductListResponse> getProducts({
+    int page = 1,
+    int limit = 10,
+    String? search,
+    String? category,
+  }) async {
+    final response = await get<Map<String, dynamic>>(
+      _basePath,
+      queryParameters: {
+        'page': page,
+        'limit': limit,
+        if (search != null) 'search': search,
+        if (category != null) 'category': category,
+      },
+    );
+
+    return ProductListResponse.fromJson(response);
+  }
+
+  Future<Product> getProduct(String id, {String? customerId}) async {
+    final response = await get<Map<String, dynamic>>(
+      '$_basePath/$id',
+      queryParameters: {
+        if (customerId != null) 'customer_id': customerId,
+      },
+    );
+
+    return Product.fromJson(response['data']);
+  }
+
+  Future<Product> createProduct(CreateProductRequest request) async {
+    final response = await post<Map<String, dynamic>>(
+      _basePath,
+      data: request.toJson(),
+    );
+
+    return Product.fromJson(response['data']);
+  }
+
+  Future<Product> updateProduct(String id, UpdateProductRequest request) async {
+    final response = await put<Map<String, dynamic>>(
+      '$_basePath/$id',
+      data: request.toJson(),
+    );
+
+    return Product.fromJson(response['data']);
+  }
+
+  Future<void> deleteProduct(String id) async {
+    await delete('$_basePath/$id');
+  }
+
+  Future<ProductListResponse> searchProducts(
+    String query, {
+    Map<String, dynamic>? filters,
+  }) async {
+    final response = await get<Map<String, dynamic>>(
+      '$_basePath/search',
+      queryParameters: {
+        'q': query,
+        if (filters != null) ...filters,
+      },
+    );
+
+    return ProductListResponse.fromJson(response);
+  }
+}
+```
+
+These API clients provide a consistent, reliable way to interact with the e-commerce microservices from any application or service, including mobile apps built with Flutter.
