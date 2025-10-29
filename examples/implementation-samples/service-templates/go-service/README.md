@@ -10,7 +10,7 @@ Production-ready Go microservice template based on **go-kratos/kratos** framewor
 - **Database**: PostgreSQL with GORM
 - **Service Discovery**: Consul with health checks
 - **Configuration**: Kratos Config with multiple sources (file, env, consul)
-- **Messaging**: Kafka with Kratos message queue integration
+- **Event-Driven Runtime**: Dapr with Redis pub/sub backend
 - **Caching**: Redis with Kratos cache abstraction
 - **Monitoring**: Prometheus + Jaeger tracing + Kratos metrics
 - **Logging**: Kratos structured logging with multiple outputs
@@ -361,10 +361,19 @@ data:
     dial_timeout: 1s
     read_timeout: 0.2s
     write_timeout: 0.2s
-  kafka:
-    brokers:
-      - localhost:9092
-    group_id: catalog-service-group
+
+dapr:
+  app_id: catalog-service
+  app_port: 8000
+  dapr_http_port: 3500
+  dapr_grpc_port: 50001
+  components_path: ./deployments/dapr
+  pubsub:
+    name: redis-pubsub
+    type: pubsub.redis
+  state_store:
+    name: redis-state
+    type: state.redis
 
 consul:
   address: localhost:8500
@@ -1286,133 +1295,395 @@ help:
 
 .DEFAULT_GOAL := help) run ./cmd/server
 
-docker-build:
-	docker build -t $(BINARY_NAME):$(VERSION) .
-
-docker-run:
-	docker run -p 8080:8080 $(BINARY_NAME):$(VERSION)
-
-migrate-up:
-	./scripts/migrate.sh up
-
-migrate-down:
-	./scripts/migrate.sh down
-
-migrate-status:
-	./scripts/migrate.sh status
-
-seed:
-	./scripts/seed.sh
-
-lint:
-	golangci-lint run
-
-format:
-	gofmt -s -w .
-	goimports -w .
-
-swagger:
-	swag init -g cmd/server/main.go -o api/swagger
-
-# Development helpers
-dev-setup: deps migrate-up seed
-
-dev-reset: migrate-down migrate-up seed
-
-# Docker compose helpers
-compose-up:
-	docker-compose up -d
-
-compose-down:
-	docker-compose down
-
-compose-logs:
-	docker-compose logs -f
-
-# Testing helpers
-test-unit:
-	$(GOTEST) -v ./internal/...
-
-test-integration:
-	$(GOTEST) -v ./tests/integration/...
-
-test-all: test-unit test-integration
-
-# Build for multiple platforms
-build-all: build build-linux
-
-# Release
-release: clean deps test build-all
-```
-
-### go.mod
+### 11. go.mod for Kratos
 ```go
 module github.com/ecommerce/my-catalog-service
 
 go 1.21
 
 require (
-    github.com/gin-gonic/gin v1.9.1
-    github.com/go-redis/redis/v8 v8.11.5
-    github.com/prometheus/client_golang v1.17.0
-    github.com/sirupsen/logrus v1.9.3
-    github.com/spf13/viper v1.17.0
-    github.com/stretchr/testify v1.8.4
-    github.com/swaggo/gin-swagger v1.6.0
-    github.com/swaggo/swag v1.16.2
+    github.com/go-kratos/kratos/v2 v2.7.2
+    github.com/go-kratos/kratos/contrib/registry/consul/v2 v2.0.0
+    github.com/google/wire v0.5.0
+    github.com/hashicorp/consul/api v1.25.1
+    google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b
+    google.golang.org/grpc v1.59.0
+    google.golang.org/protobuf v1.31.0
     gorm.io/driver/postgres v1.5.4
     gorm.io/gorm v1.25.5
+    github.com/go-redis/redis/v8 v8.11.5
     github.com/Shopify/sarama v1.41.2
-    github.com/golang-jwt/jwt/v5 v5.1.0
-    github.com/google/uuid v1.4.0
 )
 
 require (
-    // ... other dependencies
+    github.com/go-kratos/aegis v0.2.0 // indirect
+    github.com/go-playground/form/v4 v4.2.1 // indirect
+    github.com/golang/protobuf v1.5.3 // indirect
+    github.com/gorilla/mux v1.8.0 // indirect
+    github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+    github.com/hashicorp/go-rootcerts v1.0.2 // indirect
+    github.com/hashicorp/serf v0.10.1 // indirect
+    github.com/mitchellh/go-homedir v1.1.0 // indirect
+    golang.org/x/net v0.17.0 // indirect
+    golang.org/x/sys v0.13.0 // indirect
+    golang.org/x/text v0.13.0 // indirect
+    gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 ```
 
-### Dockerfile
-```dockerfile
-# Build stage
-FROM golang:1.21-alpine AS builder
+### 12. Docker Compose with Consul + Dapr
+```yaml
+# docker-compose.yml
+version: '3.8'
 
-WORKDIR /app
+services:
+  # Consul for service discovery and configuration
+  consul:
+    image: consul:1.16
+    container_name: consul
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    command: >
+      consul agent -server -bootstrap-expect=1 -datacenter=dc1 
+      -data-dir=/consul/data -node=consul-server -bind=0.0.0.0 
+      -client=0.0.0.0 -ui -log-level=INFO
+    volumes:
+      - consul_data:/consul/data
+      - ./deployments/consul:/consul/config
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    networks:
+      - microservices
 
-# Install dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: catalog_db
+      POSTGRES_USER: catalog_user
+      POSTGRES_PASSWORD: catalog_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - microservices
 
-# Copy go mod files
-COPY go.mod go.sum ./
-RUN go mod download
+  # Redis for Dapr Pub/Sub and State Store
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - microservices
 
-# Copy source code
-COPY . .
+  # Dapr Placement Service
+  dapr-placement:
+    image: daprio/dapr:1.12.0
+    container_name: dapr-placement
+    command: ["./placement", "-port", "50006"]
+    ports:
+      - "50006:50006"
+    networks:
+      - microservices
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o main ./cmd/server
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    networks:
+      - microservices
 
-# Final stage
-FROM scratch
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - microservices
 
-# Copy ca-certificates from builder
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+volumes:
+  consul_data:
+  postgres_data:
+  redis_data:
 
-# Copy timezone data
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
-
-# Copy the binary
-COPY --from=builder /app/main /main
-
-# Expose port
-EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD ["/main", "healthcheck"]
-
-# Run the binary
-ENTRYPOINT ["/main"]
+networks:
+  microservices:
+    driver: bridge
 ```
 
-This Go service template provides a complete, production-ready foundation for building microservices in the e-commerce platform with clean architecture, comprehensive error handling, monitoring, and all necessary integrations.
+### 13. Kratos Project Configuration (kratos.yaml)
+```yaml
+project:
+  name: catalog-service
+  version: v1.0.0
+  description: Catalog microservice with Kratos framework
+  
+server:
+  http:
+    addr: 0.0.0.0:8000
+    timeout: 1s
+  grpc:
+    addr: 0.0.0.0:9000
+    timeout: 1s
+
+registry:
+  consul:
+    address: localhost:8500
+    scheme: http
+
+dapr:
+  app_id: catalog-service
+  app_port: 8000
+  dapr_http_port: 3500
+  dapr_grpc_port: 50001
+
+trace:
+  jaeger:
+    endpoint: http://localhost:14268/api/traces
+
+metrics:
+  prometheus:
+    path: /metrics
+    addr: 0.0.0.0:9091
+```
+
+### 14. Dapr Components Configuration
+
+#### Pub/Sub Component (deployments/dapr/pubsub.yaml)
+```yaml
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: redis-pubsub
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: localhost:6379
+  - name: redisPassword
+    value: ""
+  - name: enableTLS
+    value: false
+scopes:
+- catalog-service
+- order-service
+- shipping-service
+- notification-service
+```
+
+#### State Store Component (deployments/dapr/statestore.yaml)
+```yaml
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: redis-state
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+  - name: redisHost
+    value: localhost:6379
+  - name: redisPassword
+    value: ""
+  - name: enableTLS
+    value: false
+  - name: keyPrefix
+    value: catalog-service
+scopes:
+- catalog-service
+```
+
+#### Service Invocation with Consul (deployments/dapr/consul-nameresolution.yaml)
+```yaml
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: consul-nameresolution
+spec:
+  type: nameresolution.consul
+  version: v1
+  metadata:
+  - name: client
+    value: "localhost:8500"
+  - name: datacenter
+    value: "dc1"
+  - name: scheme
+    value: "http"
+```
+
+### 15. Dapr Integration Examples
+
+#### Publishing Events
+```go
+// Publish order created event via Dapr
+func (s *OrderService) PublishOrderCreated(ctx context.Context, order *biz.Order) error {
+    event := OrderCreatedEvent{
+        OrderID:    order.ID,
+        CustomerID: order.CustomerID,
+        Amount:     order.TotalAmount,
+        CreatedAt:  time.Now(),
+    }
+    
+    eventData, _ := json.Marshal(event)
+    
+    // Publish via Dapr HTTP API
+    daprURL := fmt.Sprintf("http://localhost:3500/v1.0/publish/redis-pubsub/order.created")
+    
+    req, _ := http.NewRequestWithContext(ctx, "POST", daprURL, bytes.NewBuffer(eventData))
+    req.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{Timeout: 5 * time.Second}
+    resp, err := client.Do(req)
+    if err != nil {
+        return fmt.Errorf("failed to publish event: %w", err)
+    }
+    defer resp.Body.Close()
+    
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("failed to publish event, status: %d", resp.StatusCode)
+    }
+    
+    return nil
+}
+```
+
+#### Subscribing to Events
+```go
+// Subscribe to events via Dapr
+func (s *ShippingService) setupDaprSubscriptions() {
+    // Dapr will call this endpoint for subscriptions
+    http.HandleFunc("/dapr/subscribe", s.daprSubscribeHandler)
+    
+    // Handle order created events
+    http.HandleFunc("/order-created", s.handleOrderCreated)
+}
+
+func (s *ShippingService) daprSubscribeHandler(w http.ResponseWriter, r *http.Request) {
+    subscriptions := []map[string]interface{}{
+        {
+            "pubsubname": "redis-pubsub",
+            "topic":      "order.created",
+            "route":      "/order-created",
+        },
+    }
+    
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(subscriptions)
+}
+
+func (s *ShippingService) handleOrderCreated(w http.ResponseWriter, r *http.Request) {
+    var event OrderCreatedEvent
+    if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+    
+    // Process the order created event
+    if err := s.processOrderCreated(r.Context(), &event); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    
+    w.WriteHeader(http.StatusOK)
+}
+```
+
+#### Service Invocation via Dapr
+```go
+// Call another service via Dapr service invocation
+func (s *OrderService) CallPaymentService(ctx context.Context, req *PaymentRequest) (*PaymentResponse, error) {
+    reqData, _ := json.Marshal(req)
+    
+    // Call via Dapr service invocation
+    daprURL := "http://localhost:3500/v1.0/invoke/payment-service/method/process-payment"
+    
+    httpReq, _ := http.NewRequestWithContext(ctx, "POST", daprURL, bytes.NewBuffer(reqData))
+    httpReq.Header.Set("Content-Type", "application/json")
+    
+    client := &http.Client{Timeout: 30 * time.Second}
+    resp, err := client.Do(httpReq)
+    if err != nil {
+        return nil, fmt.Errorf("failed to call payment service: %w", err)
+    }
+    defer resp.Body.Close()
+    
+    var paymentResp PaymentResponse
+    if err := json.NewDecoder(resp.Body).Decode(&paymentResp); err != nil {
+        return nil, fmt.Errorf("failed to decode response: %w", err)
+    }
+    
+    return &paymentResp, nil
+}
+```
+
+## Kratos + Consul + Dapr Benefits
+
+### 1. **Cloud-Native Architecture**
+- Built-in service discovery with Consul
+- Distributed tracing with Jaeger
+- Metrics collection with Prometheus
+- Configuration management from multiple sources
+
+### 2. **Dual Protocol Support**
+- gRPC for high-performance service-to-service communication
+- HTTP/REST for external API access
+- Automatic OpenAPI documentation generation
+
+### 3. **Event-Driven Architecture (Dapr)**
+- Pub/Sub messaging with Redis backend
+- Reliable event delivery with at-least-once guarantees
+- Event sourcing and CQRS patterns
+- Multi-cloud portability
+
+### 4. **Production-Ready Features**
+- Structured logging with context
+- Circuit breaker and retry mechanisms (Dapr + Kratos)
+- Health checks and readiness probes
+- Graceful shutdown handling
+- State management with Dapr
+
+### 5. **Developer Experience**
+- Code generation from protobuf definitions
+- Dependency injection with Wire
+- Hot reload in development
+- Comprehensive testing framework
+- Dapr local development support
+
+### 6. **Consul Integration**
+- Service registration and discovery
+- Health check integration
+- Configuration management via Consul KV
+- Service permission matrix support
+
+### 7. **Dapr Integration**
+- Event-driven messaging via Redis pub/sub
+- Service invocation with built-in retry and circuit breaker
+- State management with Redis backend
+- External system bindings
+- Secrets management
+- Multi-cloud and hybrid cloud support
+
+### 8. **Operational Excellence**
+- Infrastructure abstraction via Dapr
+- Automatic service mesh capabilities
+- Built-in observability and monitoring
+- Simplified deployment and scaling
+- Vendor-neutral architecture
+
+This Kratos + Consul + Dapr template provides a comprehensive, modern, cloud-native foundation for building scalable, event-driven microservices with integrated service discovery, permission management, and portable runtime capabilities.
