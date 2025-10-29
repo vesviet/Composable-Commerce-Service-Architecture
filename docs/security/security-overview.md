@@ -1,27 +1,77 @@
-# Security Overview
+# Security Overview - Zero Trust Architecture
 
 ## Security Architecture
 
-### Defense in Depth Strategy
+### Zero Trust Defense Strategy
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Security Layers                          │
+│                Zero Trust Security Layers                   │
 ├─────────────────────────────────────────────────────────────┤
-│  1. Network Security (Firewalls, VPN, Network Segmentation)│
-│  2. Infrastructure Security (Container, K8s, Cloud)        │
-│  3. Application Security (Auth, Input Validation, HTTPS)   │
-│  4. Data Security (Encryption, Access Control, Backup)     │
-│  5. Monitoring & Response (SIEM, Incident Response)        │
+│  1. Identity & Access (Event-Driven Auth, Sub-50ms)        │
+│  2. Service-to-Service (Permission Matrix, Service Tokens) │
+│  3. Network Security (mTLS, Service Mesh, Segmentation)    │
+│  4. Application Security (Gateway, Input Validation)       │
+│  5. Data Security (Encryption, Access Control, Audit)      │
+│  6. Monitoring & Response (Real-time, ML-based Detection)  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Authentication & Authorization
+### Event-Driven Security Architecture
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    Event-Driven Security Flow                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+User/Customer Services ──events──▶ Auth Service ──cache──▶ Redis (Permissions)
+                                       │
+Client ──request──▶ API Gateway ──auth──▶ Auth Service (20-50ms authentication)
+                         │                      │
+                    Service Token         JWT + Full Permissions
+                    Generation                  │
+                         │                      ▼
+                         ▼               Client Response
+                   Microservices ◀──────────────┘
+                   (Zero Trust)
+```
+
+## Event-Driven Authentication & Authorization
+
+### High-Performance Authentication (20-50ms)
+- **Event-Driven Permission Sync**: Real-time updates from User/Customer services
+- **Redis Permission Cache**: 95%+ hit rate for sub-50ms authentication
+- **JWT with Full Permissions**: Complete user context in single token
+- **Fallback Mechanisms**: Graceful degradation when cache unavailable
 
 ### Multi-Factor Authentication (MFA)
-- **Admin Users**: Required MFA for all admin access
+- **Admin Users**: Required MFA with TOTP/SMS for all admin access
 - **Customer Accounts**: Optional MFA for enhanced security
-- **Service Accounts**: Certificate-based authentication
-- **API Access**: JWT tokens with short expiration
+- **Service Accounts**: Service token-based authentication
+- **API Access**: JWT tokens with RS256 signing and short expiration
+
+### Zero Trust Service-to-Service Security
+```yaml
+service_permissions:
+  # Example: Order Service permissions
+  order-service:
+    user-service:
+      permissions: [user:read, user:address:write]
+      endpoints:
+        - path: "/v1/user/profile"
+          methods: [GET]
+        - path: "/v1/user/addresses"
+          methods: [GET, POST, PUT]
+      denied_endpoints:
+        - path: "/v1/user/profile"
+          methods: [PUT, DELETE]
+      rate_limit: 800
+      
+    payment-service:
+      permissions: [payment:create, payment:read]
+      endpoints:
+        - path: "/v1/payments"
+          methods: [GET, POST]
+      rate_limit: 200
+```
 
 ### Role-Based Access Control (RBAC)
 ```yaml
@@ -29,6 +79,7 @@ roles:
   system_admin:
     permissions: ["*"]
     mfa_required: true
+    service_access: ["all"]
     
   service_owner:
     permissions: ["service:read", "service:write", "service:admin"]
@@ -38,10 +89,12 @@ roles:
   customer_support:
     permissions: ["customer:read", "order:read", "order:update"]
     mfa_required: false
+    service_access: ["user-service", "order-service"]
     
   readonly_analyst:
     permissions: ["*:read"]
     mfa_required: false
+    service_access: ["analytics-service", "reporting-service"]
 ```
 
 ## Data Protection

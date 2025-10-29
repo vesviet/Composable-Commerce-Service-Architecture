@@ -1,15 +1,27 @@
-# API Gateway & BFF (Backend for Frontend)
+# API Gateway - Config-Driven with Service Permission Matrix
 
 ## Description
-Centralized API Gateway that serves as the single entry point for all client requests, providing routing, authentication, rate limiting, and request/response transformation.
+High-performance, config-driven API Gateway that provides **centralized routing, authentication, and service-to-service security** with comprehensive permission management. Features sub-50ms authentication and granular service access control through event-driven architecture.
 
 ## Core Responsibilities
-- **Request Routing**: Route requests to appropriate microservices
-- **Authentication & Authorization**: Validate tokens and permissions
-- **Rate Limiting**: Protect services from abuse and overload
-- **Request/Response Transformation**: Adapt APIs for different clients
-- **Load Balancing**: Distribute requests across service instances
-- **Circuit Breaking**: Protect against cascading failures
+
+### High-Performance Routing & Security
+- **Config-driven routing** with zero-code service addition
+- **Sub-50ms JWT authentication** with Redis permission cache
+- **Service-to-service authentication** with scoped tokens
+- **Granular permission matrix** for endpoint-level control
+
+### Advanced Request Management
+- **Dynamic load balancing** with health checks and circuit breakers
+- **Intelligent rate limiting** per user, IP, and service
+- **Request/response transformation** with user context forwarding
+- **Comprehensive audit logging** for all service interactions
+
+### Event-Driven Architecture Integration
+- **Real-time permission sync** from Auth Service via events
+- **Automatic service token injection** for downstream calls
+- **Zero Trust security model** for inter-service communication
+- **Performance optimization** through multi-layer caching
 
 ## Architecture Components
 

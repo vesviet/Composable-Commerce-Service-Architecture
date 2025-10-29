@@ -1,515 +1,702 @@
-# Go Microservice Template
+# Go Kratos Microservice Template
 
 ## Overview
-Production-ready Go microservice template following the e-commerce platform architecture patterns with clean architecture principles.
+Production-ready Go microservice template based on **go-kratos/kratos** framework, following the e-commerce platform architecture patterns with clean architecture principles and integrated with Consul for service discovery and permission management.
 
 ## Tech Stack
 - **Runtime**: Go 1.21+
-- **Framework**: Gin HTTP framework
+- **Framework**: Kratos (go-kratos/kratos) - Cloud-native microservice framework
+- **Protocol**: gRPC + HTTP/REST dual protocol support
 - **Database**: PostgreSQL with GORM
-- **Messaging**: Sarama Kafka client
-- **Caching**: go-redis
-- **Monitoring**: Prometheus client, structured logging with logrus
-- **Testing**: testify framework
-- **Documentation**: Swagger with gin-swagger
-- **Configuration**: Viper for configuration management
+- **Service Discovery**: Consul with health checks
+- **Configuration**: Kratos Config with multiple sources (file, env, consul)
+- **Messaging**: Kafka with Kratos message queue integration
+- **Caching**: Redis with Kratos cache abstraction
+- **Monitoring**: Prometheus + Jaeger tracing + Kratos metrics
+- **Logging**: Kratos structured logging with multiple outputs
+- **Testing**: Kratos testing framework + testify
+- **Documentation**: Protobuf + OpenAPI generation
+- **Security**: Consul-based service permission matrix + JWT
 
-## Project Structure
+## Kratos Project Structure
 ```
-go-service/
+go-kratos-service/
 ├── cmd/
 │   └── server/                    # Application entry point
-│       └── main.go
+│       ├── main.go               # Main entry with Kratos app
+│       ├── wire.go               # Dependency injection with Wire
+│       └── wire_gen.go           # Generated Wire code
 ├── internal/                      # Private application code
-│   ├── config/                    # Configuration
-│   │   └── config.go
-│   ├── domain/                    # Domain models and interfaces
-│   │   ├── entities/
-│   │   │   ├── product.go
-│   │   │   └── user.go
-│   │   ├── repositories/
-│   │   │   └── product_repository.go
-│   │   └── services/
-│   │       └── product_service.go
-│   ├── infrastructure/            # External concerns
-│   │   ├── database/
-│   │   │   ├── postgres.go
-│   │   │   └── migrations/
-│   │   ├── cache/
-│   │   │   └── redis.go
-│   │   ├── messaging/
-│   │   │   ├── kafka_producer.go
-│   │   │   └── kafka_consumer.go
-│   │   └── monitoring/
-│   │       ├── metrics.go
-│   │       └── logger.go
-│   ├── interfaces/                # Interface adapters
-│   │   ├── http/                  # HTTP handlers
-│   │   │   ├── handlers/
-│   │   │   │   ├── product_handler.go
-│   │   │   │   └── health_handler.go
-│   │   │   ├── middleware/
-│   │   │   │   ├── auth.go
-│   │   │   │   ├── cors.go
-│   │   │   │   ├── logging.go
-│   │   │   │   └── metrics.go
-│   │   │   └── routes/
-│   │   │       └── routes.go
-│   │   └── events/                # Event handlers
-│   │       ├── product_events.go
-│   │       └── order_events.go
-│   ├── application/               # Application services
-│   │   ├── services/
-│   │   │   └── product_service.go
-│   │   └── dto/
-│   │       ├── product_dto.go
-│   │       └── response_dto.go
-│   └── repository/                # Repository implementations
-│       └── postgres/
-│           └── product_repository.go
-├── pkg/                           # Public library code
-│   ├── errors/
-│   │   └── errors.go
-│   ├── utils/
-│   │   ├── validator.go
-│   │   └── jwt.go
-│   └── constants/
-│       └── constants.go
-├── api/                           # API definitions
-│   └── swagger/
-│       └── docs.go
-├── scripts/                       # Utility scripts
-│   ├── migrate.sh
-│   ├── build.sh
-│   └── test.sh
-├── deployments/                   # Deployment configurations
+│   ├── conf/                     # Configuration definitions
+│   │   ├── conf.proto            # Configuration protobuf
+│   │   └── conf.pb.go            # Generated config
+│   ├── data/                     # Data access layer
+│   │   ├── data.go               # Data providers
+│   │   ├── product.go            # Product repository implementation
+│   │   └── consul.go             # Consul integration
+│   ├── biz/                      # Business logic layer
+│   │   ├── biz.go                # Business providers
+│   │   ├── product.go            # Product business logic
+│   │   └── consul_permission.go  # Consul permission logic
+│   ├── service/                  # Service layer (gRPC/HTTP handlers)
+│   │   ├── service.go            # Service providers
+│   │   ├── product.go            # Product service implementation
+│   │   └── health.go             # Health check service
+│   └── server/                   # Server configurations
+│       ├── server.go             # Server providers
+│       ├── grpc.go               # gRPC server setup
+│       ├── http.go               # HTTP server setup
+│       └── consul.go             # Consul registration
+├── api/                          # API definitions (protobuf)
+│   └── catalog/
+│       └── v1/
+│           ├── catalog.proto     # Service API definition
+│           ├── catalog.pb.go     # Generated Go code
+│           ├── catalog_grpc.pb.go # Generated gRPC code
+│           └── catalog_http.pb.go # Generated HTTP code
+├── third_party/                  # Third-party protobuf files
+│   ├── google/
+│   ├── validate/
+│   └── openapi/
+├── configs/                      # Configuration files
+│   ├── config.yaml              # Default configuration
+│   ├── config-dev.yaml          # Development config
+│   └── config-prod.yaml         # Production config
+├── pkg/                          # Public library code
+│   ├── consul/                   # Consul utilities
+│   │   ├── client.go
+│   │   ├── discovery.go
+│   │   └── permission.go
+│   ├── middleware/               # Custom middleware
+│   │   ├── auth.go
+│   │   ├── consul_auth.go
+│   │   └── tracing.go
+│   └── errors/                   # Error definitions
+│       └── errors.go
+├── scripts/                      # Utility scripts
+│   ├── generate.sh              # Protobuf generation
+│   ├── migrate.sh               # Database migrations
+│   └── consul-setup.sh          # Consul setup
+├── deployments/                  # Deployment configurations
 │   ├── docker/
-│   │   └── Dockerfile
-│   └── k8s/
-│       ├── deployment.yaml
-│       ├── service.yaml
-│       └── configmap.yaml
-├── tests/                         # Test files
+│   │   ├── Dockerfile
+│   │   └── docker-compose.yml
+│   ├── k8s/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── configmap.yaml
+│   │   └── consul-config.yaml
+│   └── consul/
+│       ├── service-config.json
+│       └── permissions.json
+├── test/                         # Test files
 │   ├── integration/
 │   ├── unit/
-│   └── fixtures/
-├── docs/                          # Documentation
+│   └── mocks/
+├── docs/                         # Documentation
+│   ├── api.md                   # API documentation
+│   └── consul-integration.md    # Consul integration guide
 ├── go.mod
 ├── go.sum
 ├── Makefile
-├── .env.example
-├── .gitignore
+├── kratos.yaml                   # Kratos project config
+├── buf.yaml                      # Buf configuration for protobuf
+├── buf.gen.yaml                  # Buf generation config
 └── README.md
 ```
 
 ## Quick Start
 
-### 1. Setup
+### 1. Prerequisites
 ```bash
-# Clone template
-cp -r go-service my-catalog-service
+# Install Kratos CLI
+go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
+
+# Install protobuf tools
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+go install github.com/go-kratos/kratos/cmd/protoc-gen-go-http/v2@latest
+
+# Install Wire for dependency injection
+go install github.com/google/wire/cmd/wire@latest
+```
+
+### 2. Create New Service
+```bash
+# Create from template
+kratos new my-catalog-service -r https://github.com/go-kratos/kratos-layout.git
+cd my-catalog-service
+
+# Or copy this template
+cp -r go-kratos-service my-catalog-service
 cd my-catalog-service
 
 # Initialize Go module
 go mod init github.com/ecommerce/my-catalog-service
-
-# Install dependencies
 go mod tidy
-
-# Copy environment file
-cp .env.example .env
 ```
 
-### 2. Database Setup
+### 3. Setup Infrastructure
 ```bash
-# Start PostgreSQL
-docker-compose up -d postgres
-
-# Run migrations
-make migrate-up
-
-# Seed data (optional)
-make seed
-```
-
-### 3. Start Development
-```bash
-# Start all dependencies
+# Start Consul, PostgreSQL, Redis, Kafka
 docker-compose up -d
 
-# Start in development mode
-make run-dev
+# Setup Consul permissions
+./scripts/consul-setup.sh
 
-# Service will be available at http://localhost:8080
+# Run database migrations
+make migrate-up
 ```
 
-## Core Files
+### 4. Generate Code
+```bash
+# Generate protobuf code
+make generate
 
-### Main Entry Point (cmd/server/main.go)
+# Generate Wire dependency injection
+make wire
+
+# Generate OpenAPI documentation
+make openapi
+```
+
+### 5. Start Development
+```bash
+# Start in development mode
+make run
+
+# Service will be available at:
+# - gRPC: localhost:9000
+# - HTTP: localhost:8000
+# - Health: localhost:8000/health
+# - Metrics: localhost:8000/metrics
+```
+
+## Core Components
+
+### 1. Main Entry Point (cmd/server/main.go)
 ```go
 package main
 
 import (
     "context"
-    "fmt"
-    "net/http"
+    "flag"
     "os"
-    "os/signal"
-    "syscall"
-    "time"
 
-    "github.com/ecommerce/my-catalog-service/internal/config"
-    "github.com/ecommerce/my-catalog-service/internal/infrastructure/database"
-    "github.com/ecommerce/my-catalog-service/internal/infrastructure/cache"
-    "github.com/ecommerce/my-catalog-service/internal/infrastructure/messaging"
-    "github.com/ecommerce/my-catalog-service/internal/infrastructure/monitoring"
-    "github.com/ecommerce/my-catalog-service/internal/interfaces/http/routes"
-    "github.com/gin-gonic/gin"
-    "github.com/sirupsen/logrus"
+    "github.com/go-kratos/kratos/v2"
+    "github.com/go-kratos/kratos/v2/config"
+    "github.com/go-kratos/kratos/v2/config/file"
+    "github.com/go-kratos/kratos/v2/config/env"
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v2/registry"
+    "github.com/go-kratos/kratos/v2/transport/grpc"
+    "github.com/go-kratos/kratos/v2/transport/http"
+
+    "github.com/ecommerce/my-catalog-service/internal/conf"
+    "github.com/ecommerce/my-catalog-service/pkg/consul"
 )
+
+var (
+    Name    string = "catalog-service"
+    Version string = "v1.0.0"
+    flagconf string
+    id, _   = os.Hostname()
+)
+
+func init() {
+    flag.StringVar(&flagconf, "conf", "../../configs", "config path")
+}
+
+func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, rr registry.Registrar) *kratos.App {
+    return kratos.New(
+        kratos.ID(id),
+        kratos.Name(Name),
+        kratos.Version(Version),
+        kratos.Logger(logger),
+        kratos.Server(gs, hs),
+        kratos.Registrar(rr),
+    )
+}
 
 func main() {
-    // Load configuration
-    cfg, err := config.Load()
-    if err != nil {
-        logrus.Fatalf("Failed to load configuration: %v", err)
-    }
-
-    // Initialize logger
-    logger := monitoring.NewLogger(cfg.Log.Level)
+    flag.Parse()
     
-    // Initialize database
-    db, err := database.NewPostgresConnection(cfg.Database)
+    // Initialize structured logger
+    logger := log.With(log.NewStdLogger(os.Stdout),
+        "ts", log.DefaultTimestamp,
+        "caller", log.DefaultCaller,
+        "service.id", id,
+        "service.name", Name,
+        "service.version", Version,
+    )
+
+    // Load configuration from multiple sources
+    c := config.New(
+        config.WithSource(
+            file.NewSource(flagconf),
+            env.NewSource("CATALOG_"),
+        ),
+    )
+    defer c.Close()
+
+    if err := c.Load(); err != nil {
+        panic(err)
+    }
+
+    var bc conf.Bootstrap
+    if err := c.Scan(&bc); err != nil {
+        panic(err)
+    }
+
+    // Initialize Consul registry with service discovery
+    consulClient, err := consul.NewClient(bc.Consul)
     if err != nil {
-        logger.Fatalf("Failed to connect to database: %v", err)
-    }
-    defer database.Close(db)
-
-    // Run migrations
-    if err := database.Migrate(db); err != nil {
-        logger.Fatalf("Failed to run migrations: %v", err)
+        panic(err)
     }
 
-    // Initialize Redis cache
-    redisClient, err := cache.NewRedisClient(cfg.Redis)
+    r := consul.NewRegistry(consulClient)
+
+    // Initialize application with Wire dependency injection
+    app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Consul, logger, r)
     if err != nil {
-        logger.Fatalf("Failed to connect to Redis: %v", err)
+        panic(err)
     }
-    defer redisClient.Close()
+    defer cleanup()
 
-    // Initialize Kafka
-    kafkaProducer, err := messaging.NewKafkaProducer(cfg.Kafka)
-    if err != nil {
-        logger.Fatalf("Failed to initialize Kafka producer: %v", err)
+    // Start application with graceful shutdown
+    if err := app.Run(); err != nil {
+        panic(err)
     }
-    defer kafkaProducer.Close()
-
-    kafkaConsumer, err := messaging.NewKafkaConsumer(cfg.Kafka)
-    if err != nil {
-        logger.Fatalf("Failed to initialize Kafka consumer: %v", err)
-    }
-    defer kafkaConsumer.Close()
-
-    // Initialize metrics
-    metrics := monitoring.NewMetrics()
-
-    // Setup Gin router
-    if cfg.Server.Mode == "production" {
-        gin.SetMode(gin.ReleaseMode)
-    }
-
-    router := gin.New()
-    
-    // Setup routes with dependencies
-    routes.SetupRoutes(router, &routes.Dependencies{
-        DB:            db,
-        Cache:         redisClient,
-        KafkaProducer: kafkaProducer,
-        Metrics:       metrics,
-        Logger:        logger,
-        Config:        cfg,
-    })
-
-    // Start Kafka consumers
-    go func() {
-        if err := kafkaConsumer.Start(context.Background()); err != nil {
-            logger.Errorf("Kafka consumer error: %v", err)
-        }
-    }()
-
-    // Start HTTP server
-    server := &http.Server{
-        Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
-        Handler:      router,
-        ReadTimeout:  time.Duration(cfg.Server.ReadTimeout) * time.Second,
-        WriteTimeout: time.Duration(cfg.Server.WriteTimeout) * time.Second,
-    }
-
-    // Start server in goroutine
-    go func() {
-        logger.Infof("Server starting on port %d", cfg.Server.Port)
-        if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-            logger.Fatalf("Server failed to start: %v", err)
-        }
-    }()
-
-    // Wait for interrupt signal to gracefully shutdown
-    quit := make(chan os.Signal, 1)
-    signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-    <-quit
-
-    logger.Info("Shutting down server...")
-
-    // Graceful shutdown with timeout
-    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-    defer cancel()
-
-    if err := server.Shutdown(ctx); err != nil {
-        logger.Errorf("Server forced to shutdown: %v", err)
-    }
-
-    logger.Info("Server exited")
 }
 ```
 
-### Configuration (internal/config/config.go)
-```go
-package config
+### 2. Configuration (internal/conf/conf.proto)
+```protobuf
+syntax = "proto3";
+package kratos.api;
 
-import (
-    "github.com/spf13/viper"
-)
+option go_package = "github.com/ecommerce/my-catalog-service/internal/conf;conf";
 
-type Config struct {
-    Server   ServerConfig   `mapstructure:"server"`
-    Database DatabaseConfig `mapstructure:"database"`
-    Redis    RedisConfig    `mapstructure:"redis"`
-    Kafka    KafkaConfig    `mapstructure:"kafka"`
-    Log      LogConfig      `mapstructure:"log"`
-    Auth     AuthConfig     `mapstructure:"auth"`
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+  Consul consul = 3;
+  Trace trace = 4;
 }
 
-type ServerConfig struct {
-    Port         int    `mapstructure:"port"`
-    Mode         string `mapstructure:"mode"`
-    ReadTimeout  int    `mapstructure:"read_timeout"`
-    WriteTimeout int    `mapstructure:"write_timeout"`
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
 }
 
-type DatabaseConfig struct {
-    Host     string `mapstructure:"host"`
-    Port     int    `mapstructure:"port"`
-    User     string `mapstructure:"user"`
-    Password string `mapstructure:"password"`
-    DBName   string `mapstructure:"dbname"`
-    SSLMode  string `mapstructure:"sslmode"`
+message Data {
+  message Database {
+    string driver = 1;
+    string source = 2;
+  }
+  message Redis {
+    string network = 1;
+    string addr = 2;
+    string password = 3;
+    int32 db = 4;
+    google.protobuf.Duration dial_timeout = 5;
+    google.protobuf.Duration read_timeout = 6;
+    google.protobuf.Duration write_timeout = 7;
+  }
+  message Kafka {
+    repeated string brokers = 1;
+    string group_id = 2;
+  }
+  Database database = 1;
+  Redis redis = 2;
+  Kafka kafka = 3;
 }
 
-type RedisConfig struct {
-    Host     string `mapstructure:"host"`
-    Port     int    `mapstructure:"port"`
-    Password string `mapstructure:"password"`
-    DB       int    `mapstructure:"db"`
+message Consul {
+  string address = 1;
+  string scheme = 2;
+  string datacenter = 3;
+  bool health_check = 4;
+  google.protobuf.Duration health_check_interval = 5;
+  google.protobuf.Duration health_check_timeout = 6;
+  bool deregister_critical_service_after = 7;
+  google.protobuf.Duration deregister_critical_service_after_duration = 8;
 }
 
-type KafkaConfig struct {
-    Brokers []string `mapstructure:"brokers"`
-    GroupID string   `mapstructure:"group_id"`
-}
-
-type LogConfig struct {
-    Level string `mapstructure:"level"`
-}
-
-type AuthConfig struct {
-    JWTSecret string `mapstructure:"jwt_secret"`
-}
-
-func Load() (*Config, error) {
-    viper.SetConfigName("config")
-    viper.SetConfigType("yaml")
-    viper.AddConfigPath(".")
-    viper.AddConfigPath("./configs")
-
-    // Set defaults
-    setDefaults()
-
-    // Read environment variables
-    viper.AutomaticEnv()
-
-    // Read config file
-    if err := viper.ReadInConfig(); err != nil {
-        if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-            return nil, err
-        }
-    }
-
-    var config Config
-    if err := viper.Unmarshal(&config); err != nil {
-        return nil, err
-    }
-
-    return &config, nil
-}
-
-func setDefaults() {
-    viper.SetDefault("server.port", 8080)
-    viper.SetDefault("server.mode", "debug")
-    viper.SetDefault("server.read_timeout", 30)
-    viper.SetDefault("server.write_timeout", 30)
-    
-    viper.SetDefault("database.host", "localhost")
-    viper.SetDefault("database.port", 5432)
-    viper.SetDefault("database.sslmode", "disable")
-    
-    viper.SetDefault("redis.host", "localhost")
-    viper.SetDefault("redis.port", 6379)
-    viper.SetDefault("redis.db", 0)
-    
-    viper.SetDefault("kafka.brokers", []string{"localhost:9092"})
-    viper.SetDefault("kafka.group_id", "catalog-service-group")
-    
-    viper.SetDefault("log.level", "info")
+message Trace {
+  string endpoint = 1;
 }
 ```
 
-### Product Entity (internal/domain/entities/product.go)
+### 3. Configuration File (configs/config.yaml)
+```yaml
+server:
+  http:
+    addr: 0.0.0.0:8000
+    timeout: 1s
+  grpc:
+    addr: 0.0.0.0:9000
+    timeout: 1s
+
+data:
+  database:
+    driver: postgres
+    source: postgres://user:password@localhost:5432/catalog_db?sslmode=disable
+  redis:
+    addr: localhost:6379
+    password: ""
+    db: 0
+    dial_timeout: 1s
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+  kafka:
+    brokers:
+      - localhost:9092
+    group_id: catalog-service-group
+
+consul:
+  address: localhost:8500
+  scheme: http
+  datacenter: dc1
+  health_check: true
+  health_check_interval: 10s
+  health_check_timeout: 3s
+  deregister_critical_service_after: true
+  deregister_critical_service_after_duration: 30s
+
+trace:
+  endpoint: http://localhost:14268/api/traces
+```
+
+### 4. API Definition (api/catalog/v1/catalog.proto)
+```protobuf
+syntax = "proto3";
+
+package api.catalog.v1;
+
+option go_package = "github.com/ecommerce/my-catalog-service/api/catalog/v1;v1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+// Catalog service definition
+service CatalogService {
+  // Get products with pagination and filtering
+  rpc GetProducts(GetProductsRequest) returns (GetProductsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/products"
+    };
+  }
+
+  // Get product by ID
+  rpc GetProduct(GetProductRequest) returns (Product) {
+    option (google.api.http) = {
+      get: "/api/v1/products/{id}"
+    };
+  }
+
+  // Create new product
+  rpc CreateProduct(CreateProductRequest) returns (Product) {
+    option (google.api.http) = {
+      post: "/api/v1/products"
+      body: "*"
+    };
+  }
+
+  // Update existing product
+  rpc UpdateProduct(UpdateProductRequest) returns (Product) {
+    option (google.api.http) = {
+      put: "/api/v1/products/{id}"
+      body: "*"
+    };
+  }
+
+  // Delete product
+  rpc DeleteProduct(DeleteProductRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/products/{id}"
+    };
+  }
+
+  // Health check
+  rpc Health(google.protobuf.Empty) returns (HealthResponse) {
+    option (google.api.http) = {
+      get: "/health"
+    };
+  }
+}
+
+// Product message
+message Product {
+  string id = 1;
+  string sku = 2 [(validate.rules).string.min_len = 1];
+  string name = 3 [(validate.rules).string.min_len = 1];
+  string description = 4;
+  string slug = 5;
+  string category_id = 6;
+  string brand_id = 7;
+  map<string, string> attributes = 8;
+  ProductStatus status = 9;
+  bool is_visible = 10;
+  bool is_featured = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+  string created_by = 14;
+  string updated_by = 15;
+  
+  // Relations
+  Category category = 16;
+  Brand brand = 17;
+  repeated Media media = 18;
+}
+
+// Product status enum
+enum ProductStatus {
+  PRODUCT_STATUS_UNSPECIFIED = 0;
+  PRODUCT_STATUS_DRAFT = 1;
+  PRODUCT_STATUS_ACTIVE = 2;
+  PRODUCT_STATUS_INACTIVE = 3;
+  PRODUCT_STATUS_DISCONTINUED = 4;
+}
+
+// Category message
+message Category {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string description = 4;
+  string parent_id = 5;
+  bool is_visible = 6;
+  int32 sort_order = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// Brand message
+message Brand {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string description = 4;
+  string logo_url = 5;
+  string website_url = 6;
+  bool is_active = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// Media message
+message Media {
+  string id = 1;
+  string product_id = 2;
+  MediaType type = 3;
+  string url = 4;
+  string alt_text = 5;
+  string title = 6;
+  int32 sort_order = 7;
+  bool is_primary = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+// Media type enum
+enum MediaType {
+  MEDIA_TYPE_UNSPECIFIED = 0;
+  MEDIA_TYPE_IMAGE = 1;
+  MEDIA_TYPE_VIDEO = 2;
+  MEDIA_TYPE_DOCUMENT = 3;
+}
+
+// Request/Response messages
+message GetProductsRequest {
+  int32 page = 1 [(validate.rules).int32.gte = 1];
+  int32 limit = 2 [(validate.rules).int32 = {gte: 1, lte: 100}];
+  string search = 3;
+  string category = 4;
+  string customer_id = 5; // For personalization
+}
+
+message GetProductsResponse {
+  repeated Product products = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  int32 total_pages = 5;
+}
+
+message GetProductRequest {
+  string id = 1 [(validate.rules).string.min_len = 1];
+  string customer_id = 2; // For personalization
+}
+
+message CreateProductRequest {
+  string sku = 1 [(validate.rules).string.min_len = 1];
+  string name = 2 [(validate.rules).string.min_len = 1];
+  string description = 3;
+  string category_id = 4 [(validate.rules).string.min_len = 1];
+  string brand_id = 5 [(validate.rules).string.min_len = 1];
+  map<string, string> attributes = 6;
+  ProductStatus status = 7;
+  bool is_visible = 8;
+  bool is_featured = 9;
+}
+
+message UpdateProductRequest {
+  string id = 1 [(validate.rules).string.min_len = 1];
+  string name = 2;
+  string description = 3;
+  string category_id = 4;
+  string brand_id = 5;
+  map<string, string> attributes = 6;
+  ProductStatus status = 7;
+  bool is_visible = 8;
+  bool is_featured = 9;
+}
+
+message DeleteProductRequest {
+  string id = 1 [(validate.rules).string.min_len = 1];
+}
+
+message HealthResponse {
+  string status = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  string service = 3;
+  string version = 4;
+  string uptime = 5;
+}
+```
+
+### 5. Wire Dependency Injection (cmd/server/wire.go)
 ```go
-package entities
+//go:build wireinject
+// +build wireinject
+
+package main
 
 import (
-    "time"
-    "gorm.io/gorm"
+    "github.com/go-kratos/kratos/v2"
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v2/registry"
+    "github.com/google/wire"
+
+    "github.com/ecommerce/my-catalog-service/internal/biz"
+    "github.com/ecommerce/my-catalog-service/internal/conf"
+    "github.com/ecommerce/my-catalog-service/internal/data"
+    "github.com/ecommerce/my-catalog-service/internal/server"
+    "github.com/ecommerce/my-catalog-service/internal/service"
 )
 
+// wireApp init kratos application.
+func wireApp(*conf.Server, *conf.Data, *conf.Consul, log.Logger, registry.Registrar) (*kratos.App, func(), error) {
+    panic(wire.Build(
+        server.ProviderSet,
+        data.ProviderSet,
+        biz.ProviderSet,
+        service.ProviderSet,
+        newApp,
+    ))
+}
+```
+
+### 6. Business Logic Layer (internal/biz/product.go)
+```go
+package biz
+
+import (
+    "context"
+    "github.com/go-kratos/kratos/v2/log"
+)
+
+// Product domain entity
 type Product struct {
-    ID          string         `json:"id" gorm:"primaryKey;type:varchar(255)"`
-    SKU         string         `json:"sku" gorm:"uniqueIndex;not null;type:varchar(100)"`
-    Name        string         `json:"name" gorm:"not null;type:varchar(255)"`
-    Description *string        `json:"description" gorm:"type:text"`
-    Slug        string         `json:"slug" gorm:"uniqueIndex;not null;type:varchar(255)"`
-    CategoryID  string         `json:"category_id" gorm:"not null;type:varchar(255)"`
-    BrandID     string         `json:"brand_id" gorm:"not null;type:varchar(255)"`
-    Attributes  ProductAttrs   `json:"attributes" gorm:"type:jsonb"`
-    Status      ProductStatus  `json:"status" gorm:"type:varchar(20);default:'DRAFT'"`
-    IsVisible   bool           `json:"is_visible" gorm:"default:false"`
-    IsFeatured  bool           `json:"is_featured" gorm:"default:false"`
-    CreatedAt   time.Time      `json:"created_at"`
-    UpdatedAt   time.Time      `json:"updated_at"`
-    DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
-    CreatedBy   string         `json:"created_by" gorm:"not null;type:varchar(255)"`
-    UpdatedBy   *string        `json:"updated_by" gorm:"type:varchar(255)"`
-    
-    // Relations
-    Category Category `json:"category" gorm:"foreignKey:CategoryID"`
-    Brand    Brand    `json:"brand" gorm:"foreignKey:BrandID"`
-    Media    []Media  `json:"media" gorm:"foreignKey:ProductID"`
+    ID          string
+    SKU         string
+    Name        string
+    Description string
+    CategoryID  string
+    BrandID     string
+    Status      ProductStatus
+    IsVisible   bool
+    IsFeatured  bool
+    // ... other fields
 }
 
-type ProductAttrs map[string]interface{}
-
-type ProductStatus string
+type ProductStatus int32
 
 const (
-    ProductStatusDraft        ProductStatus = "DRAFT"
-    ProductStatusActive       ProductStatus = "ACTIVE"
-    ProductStatusInactive     ProductStatus = "INACTIVE"
-    ProductStatusDiscontinued ProductStatus = "DISCONTINUED"
+    ProductStatusDraft ProductStatus = iota
+    ProductStatusActive
+    ProductStatusInactive
+    ProductStatusDiscontinued
 )
 
-type Category struct {
-    ID          string         `json:"id" gorm:"primaryKey;type:varchar(255)"`
-    Name        string         `json:"name" gorm:"not null;type:varchar(255)"`
-    Slug        string         `json:"slug" gorm:"uniqueIndex;not null;type:varchar(255)"`
-    Description *string        `json:"description" gorm:"type:text"`
-    ParentID    *string        `json:"parent_id" gorm:"type:varchar(255)"`
-    IsVisible   bool           `json:"is_visible" gorm:"default:true"`
-    SortOrder   int            `json:"sort_order" gorm:"default:0"`
-    CreatedAt   time.Time      `json:"created_at"`
-    UpdatedAt   time.Time      `json:"updated_at"`
-    DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
-    
-    // Relations
-    Parent   *Category  `json:"parent" gorm:"foreignKey:ParentID"`
-    Children []Category `json:"children" gorm:"foreignKey:ParentID"`
-    Products []Product  `json:"products" gorm:"foreignKey:CategoryID"`
+// ProductRepo interface for data access
+type ProductRepo interface {
+    Save(context.Context, *Product) (*Product, error)
+    Update(context.Context, *Product) (*Product, error)
+    FindByID(context.Context, string) (*Product, error)
+    ListProducts(context.Context, *ProductFilter) ([]*Product, int32, error)
+    Delete(context.Context, string) error
 }
 
-type Brand struct {
-    ID          string         `json:"id" gorm:"primaryKey;type:varchar(255)"`
-    Name        string         `json:"name" gorm:"uniqueIndex;not null;type:varchar(255)"`
-    Slug        string         `json:"slug" gorm:"uniqueIndex;not null;type:varchar(255)"`
-    Description *string        `json:"description" gorm:"type:text"`
-    LogoURL     *string        `json:"logo_url" gorm:"type:varchar(500)"`
-    WebsiteURL  *string        `json:"website_url" gorm:"type:varchar(500)"`
-    IsActive    bool           `json:"is_active" gorm:"default:true"`
-    CreatedAt   time.Time      `json:"created_at"`
-    UpdatedAt   time.Time      `json:"updated_at"`
-    DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
-    
-    // Relations
-    Products []Product `json:"products" gorm:"foreignKey:BrandID"`
+// ConsulPermissionRepo interface for permission management
+type ConsulPermissionRepo interface {
+    ValidateServiceCall(ctx context.Context, fromService, toService, method, path string) error
+    LoadServicePermissions(ctx context.Context, fromService, toService string) (*ServicePermission, error)
 }
 
-type Media struct {
-    ID        string    `json:"id" gorm:"primaryKey;type:varchar(255)"`
-    ProductID string    `json:"product_id" gorm:"not null;type:varchar(255)"`
-    Type      MediaType `json:"type" gorm:"type:varchar(20);not null"`
-    URL       string    `json:"url" gorm:"not null;type:varchar(500)"`
-    AltText   *string   `json:"alt_text" gorm:"type:varchar(255)"`
-    Title     *string   `json:"title" gorm:"type:varchar(255)"`
-    SortOrder int       `json:"sort_order" gorm:"default:0"`
-    IsPrimary bool      `json:"is_primary" gorm:"default:false"`
-    CreatedAt time.Time `json:"created_at"`
-    UpdatedAt time.Time `json:"updated_at"`
+// ProductUsecase business logic
+type ProductUsecase struct {
+    repo       ProductRepo
+    consulRepo ConsulPermissionRepo
+    log        *log.Helper
 }
 
-type MediaType string
-
-const (
-    MediaTypeImage    MediaType = "IMAGE"
-    MediaTypeVideo    MediaType = "VIDEO"
-    MediaTypeDocument MediaType = "DOCUMENT"
-)
-
-// BeforeCreate hook to generate ID
-func (p *Product) BeforeCreate(tx *gorm.DB) error {
-    if p.ID == "" {
-        p.ID = generateID()
+func NewProductUsecase(repo ProductRepo, consulRepo ConsulPermissionRepo, logger log.Logger) *ProductUsecase {
+    return &ProductUsecase{
+        repo:       repo,
+        consulRepo: consulRepo,
+        log:        log.NewHelper(logger),
     }
-    return nil
 }
 
-func (c *Category) BeforeCreate(tx *gorm.DB) error {
-    if c.ID == "" {
-        c.ID = generateID()
-    }
-    return nil
+func (uc *ProductUsecase) CreateProduct(ctx context.Context, p *Product) (*Product, error) {
+    uc.log.WithContext(ctx).Infof("Creating product: %s", p.Name)
+    return uc.repo.Save(ctx, p)
 }
 
-func (b *Brand) BeforeCreate(tx *gorm.DB) error {
-    if b.ID == "" {
-        b.ID = generateID()
-    }
-    return nil
+func (uc *ProductUsecase) GetProduct(ctx context.Context, id string) (*Product, error) {
+    return uc.repo.FindByID(ctx, id)
 }
 
-func (m *Media) BeforeCreate(tx *gorm.DB) error {
-    if m.ID == "" {
-        m.ID = generateID()
-    }
-    return nil
+func (uc *ProductUsecase) ListProducts(ctx context.Context, filter *ProductFilter) ([]*Product, int32, error) {
+    return uc.repo.ListProducts(ctx, filter)
 }
 
-// generateID generates a unique ID (implement your preferred ID generation)
-func generateID() string {
-    // Implementation depends on your ID generation strategy
-    // Could use UUID, ULID, or custom format
-    return "generated-id"
+func (uc *ProductUsecase) UpdateProduct(ctx context.Context, p *Product) (*Product, error) {
+    return uc.repo.Update(ctx, p)
+}
+
+func (uc *ProductUsecase) DeleteProduct(ctx context.Context, id string) error {
+    return uc.repo.Delete(ctx, id)
 }
 ```
 
-### Product Handler (internal/interfaces/http/handlers/product_handler.go)
+### 7. Service Layer (internal/service/product.go)
 ```go
 package handlers
 
@@ -584,427 +771,520 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
         return
     }
 
-    c.JSON(http.StatusOK, response)
+    
+    product := &biz.Product{
+        SKU:         req.Sku,
+        Name:        req.Name,
+        Description: req.Description,
+        CategoryID:  req.CategoryId,
+        BrandID:     req.BrandId,
+        Status:      biz.ProductStatus(req.Status),
+        IsVisible:   req.IsVisible,
+        IsFeatured:  req.IsFeatured,
+    }
+    
+    created, err := s.uc.CreateProduct(ctx, product)
+    if err != nil {
+        return nil, err
+    }
+    
+    return s.convertProductToPB(created), nil
 }
 
-// GetProduct godoc
-// @Summary Get product by ID
-// @Description Get product details by ID with optional customer context
-// @Tags products
-// @Accept json
-// @Produce json
-// @Param id path string true "Product ID"
-// @Param customer_id query string false "Customer ID for personalization"
-// @Success 200 {object} dto.ProductResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
-// @Router /api/v1/products/{id} [get]
-func (h *ProductHandler) GetProduct(c *gin.Context) {
-    productID := c.Param("id")
-    customerID := c.Query("customer_id")
-
-    if productID == "" {
-        c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-            Error:   "Bad request",
-            Message: "Product ID is required",
-        })
-        return
+func (s *ProductService) UpdateProduct(ctx context.Context, req *pb.UpdateProductRequest) (*pb.Product, error) {
+    s.log.WithContext(ctx).Infof("UpdateProduct: id=%s", req.Id)
+    
+    product := &biz.Product{
+        ID:          req.Id,
+        Name:        req.Name,
+        Description: req.Description,
+        CategoryID:  req.CategoryId,
+        BrandID:     req.BrandId,
+        Status:      biz.ProductStatus(req.Status),
+        IsVisible:   req.IsVisible,
+        IsFeatured:  req.IsFeatured,
     }
-
-    req := &dto.GetProductRequest{
-        ProductID:  productID,
-        CustomerID: customerID,
-    }
-
-    response, err := h.productService.GetProduct(c.Request.Context(), req)
+    
+    updated, err := s.uc.UpdateProduct(ctx, product)
     if err != nil {
-        if errors.IsNotFound(err) {
-            c.JSON(http.StatusNotFound, dto.ErrorResponse{
-                Error:   "Not found",
-                Message: "Product not found",
-            })
-            return
-        }
-
-        h.logger.WithError(err).Error("Failed to get product")
-        c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-            Error:   "Internal server error",
-            Message: "Failed to retrieve product",
-        })
-        return
+        return nil, err
     }
-
-    c.JSON(http.StatusOK, response)
+    
+    return s.convertProductToPB(updated), nil
 }
 
-// CreateProduct godoc
-// @Summary Create new product
-// @Description Create a new product
-// @Tags products
-// @Accept json
-// @Produce json
-// @Param product body dto.CreateProductRequest true "Product data"
-// @Success 201 {object} dto.ProductResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
-// @Router /api/v1/products [post]
-func (h *ProductHandler) CreateProduct(c *gin.Context) {
-    var req dto.CreateProductRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-            Error:   "Bad request",
-            Message: err.Error(),
-        })
-        return
-    }
-
-    // Get user ID from context (set by auth middleware)
-    userID, exists := c.Get("user_id")
-    if !exists {
-        c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
-            Error:   "Unauthorized",
-            Message: "User authentication required",
-        })
-        return
-    }
-
-    req.CreatedBy = userID.(string)
-
-    response, err := h.productService.CreateProduct(c.Request.Context(), &req)
+func (s *ProductService) DeleteProduct(ctx context.Context, req *pb.DeleteProductRequest) (*emptypb.Empty, error) {
+    s.log.WithContext(ctx).Infof("DeleteProduct: id=%s", req.Id)
+    
+    err := s.uc.DeleteProduct(ctx, req.Id)
     if err != nil {
-        if errors.IsValidation(err) {
-            c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-                Error:   "Validation error",
-                Message: err.Error(),
-            })
-            return
-        }
-
-        h.logger.WithError(err).Error("Failed to create product")
-        c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-            Error:   "Internal server error",
-            Message: "Failed to create product",
-        })
-        return
+        return nil, err
     }
-
-    c.JSON(http.StatusCreated, response)
+    
+    return &emptypb.Empty{}, nil
 }
 
-// UpdateProduct godoc
-// @Summary Update product
-// @Description Update an existing product
-// @Tags products
-// @Accept json
-// @Produce json
-// @Param id path string true "Product ID"
-// @Param product body dto.UpdateProductRequest true "Product data"
-// @Success 200 {object} dto.ProductResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
-// @Router /api/v1/products/{id} [put]
-func (h *ProductHandler) UpdateProduct(c *gin.Context) {
-    productID := c.Param("id")
-    if productID == "" {
-        c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-            Error:   "Bad request",
-            Message: "Product ID is required",
-        })
-        return
-    }
-
-    var req dto.UpdateProductRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-            Error:   "Bad request",
-            Message: err.Error(),
-        })
-        return
-    }
-
-    // Get user ID from context
-    userID, exists := c.Get("user_id")
-    if !exists {
-        c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
-            Error:   "Unauthorized",
-            Message: "User authentication required",
-        })
-        return
-    }
-
-    req.ProductID = productID
-    req.UpdatedBy = userID.(string)
-
-    response, err := h.productService.UpdateProduct(c.Request.Context(), &req)
-    if err != nil {
-        if errors.IsNotFound(err) {
-            c.JSON(http.StatusNotFound, dto.ErrorResponse{
-                Error:   "Not found",
-                Message: "Product not found",
-            })
-            return
-        }
-
-        if errors.IsValidation(err) {
-            c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-                Error:   "Validation error",
-                Message: err.Error(),
-            })
-            return
-        }
-
-        h.logger.WithError(err).Error("Failed to update product")
-        c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-            Error:   "Internal server error",
-            Message: "Failed to update product",
-        })
-        return
-    }
-
-    c.JSON(http.StatusOK, response)
+func (s *ProductService) Health(ctx context.Context, req *emptypb.Empty) (*pb.HealthResponse, error) {
+    return &pb.HealthResponse{
+        Status:  "healthy",
+        Service: "catalog-service",
+        Version: "v1.0.0",
+    }, nil
 }
 
-// DeleteProduct godoc
-// @Summary Delete product
-// @Description Delete a product by ID
-// @Tags products
-// @Accept json
-// @Produce json
-// @Param id path string true "Product ID"
-// @Success 204
-// @Failure 404 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
-// @Router /api/v1/products/{id} [delete]
-func (h *ProductHandler) DeleteProduct(c *gin.Context) {
-    productID := c.Param("id")
-    if productID == "" {
-        c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-            Error:   "Bad request",
-            Message: "Product ID is required",
-        })
-        return
+// Helper method to convert domain entity to protobuf message
+func (s *ProductService) convertProductToPB(p *biz.Product) *pb.Product {
+    return &pb.Product{
+        Id:          p.ID,
+        Sku:         p.SKU,
+        Name:        p.Name,
+        Description: p.Description,
+        CategoryId:  p.CategoryID,
+        BrandId:     p.BrandID,
+        Status:      pb.ProductStatus(p.Status),
+        IsVisible:   p.IsVisible,
+        IsFeatured:  p.IsFeatured,
+        // Add other fields as needed
     }
-
-    // Get user ID from context
-    userID, exists := c.Get("user_id")
-    if !exists {
-        c.JSON(http.StatusUnauthorized, dto.ErrorResponse{
-            Error:   "Unauthorized",
-            Message: "User authentication required",
-        })
-        return
-    }
-
-    req := &dto.DeleteProductRequest{
-        ProductID: productID,
-        DeletedBy: userID.(string),
-    }
-
-    err := h.productService.DeleteProduct(c.Request.Context(), req)
-    if err != nil {
-        if errors.IsNotFound(err) {
-            c.JSON(http.StatusNotFound, dto.ErrorResponse{
-                Error:   "Not found",
-                Message: "Product not found",
-            })
-            return
-        }
-
-        h.logger.WithError(err).Error("Failed to delete product")
-        c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-            Error:   "Internal server error",
-            Message: "Failed to delete product",
-        })
-        return
-    }
-
-    c.Status(http.StatusNoContent)
 }
 ```
 
-### Health Handler (internal/interfaces/http/handlers/health_handler.go)
+### 8. Data Layer with Consul Integration (internal/data/product.go)
 ```go
-package handlers
+package data
 
 import (
-    "net/http"
-    "time"
+    "context"
+    "fmt"
 
-    "github.com/ecommerce/my-catalog-service/internal/infrastructure/database"
-    "github.com/ecommerce/my-catalog-service/internal/infrastructure/cache"
-    "github.com/gin-gonic/gin"
-    "github.com/go-redis/redis/v8"
-    "github.com/prometheus/client_golang/prometheus/promhttp"
+    "github.com/go-kratos/kratos/v2/log"
+    "gorm.io/driver/postgres"
     "gorm.io/gorm"
+
+    "github.com/ecommerce/my-catalog-service/internal/biz"
+    "github.com/ecommerce/my-catalog-service/internal/conf"
+    "github.com/ecommerce/my-catalog-service/pkg/consul"
 )
 
-type HealthHandler struct {
-    db    *gorm.DB
-    redis *redis.Client
+// Data struct holds all data dependencies
+type Data struct {
+    db           *gorm.DB
+    consulClient *consul.Client
+    log          *log.Helper
 }
 
-func NewHealthHandler(db *gorm.DB, redis *redis.Client) *HealthHandler {
-    return &HealthHandler{
-        db:    db,
-        redis: redis,
-    }
-}
-
-type HealthResponse struct {
-    Status    string    `json:"status"`
-    Timestamp time.Time `json:"timestamp"`
-    Service   string    `json:"service"`
-    Version   string    `json:"version"`
-    Uptime    string    `json:"uptime"`
-}
-
-type ReadinessResponse struct {
-    Status string                 `json:"status"`
-    Checks map[string]CheckResult `json:"checks"`
-}
-
-type CheckResult struct {
-    Status  string `json:"status"`
-    Message string `json:"message,omitempty"`
-}
-
-var startTime = time.Now()
-
-// Health godoc
-// @Summary Health check
-// @Description Get service health status
-// @Tags health
-// @Produce json
-// @Success 200 {object} HealthResponse
-// @Router /health [get]
-func (h *HealthHandler) Health(c *gin.Context) {
-    uptime := time.Since(startTime)
+// NewData creates a new Data instance
+func NewData(c *conf.Data, consulConf *conf.Consul, logger log.Logger) (*Data, func(), error) {
+    helper := log.NewHelper(logger)
     
-    response := HealthResponse{
-        Status:    "healthy",
-        Timestamp: time.Now(),
-        Service:   "catalog-service",
-        Version:   "1.0.0", // This should come from build info
-        Uptime:    uptime.String(),
+    // Initialize database
+    db, err := gorm.Open(postgres.Open(c.Database.Source), &gorm.Config{})
+    if err != nil {
+        return nil, nil, fmt.Errorf("failed to connect database: %w", err)
     }
-
-    c.JSON(http.StatusOK, response)
+    
+    // Initialize Consul client
+    consulClient, err := consul.NewClient(consulConf)
+    if err != nil {
+        return nil, nil, fmt.Errorf("failed to connect consul: %w", err)
+    }
+    
+    // Auto migrate database schema
+    if err := db.AutoMigrate(&Product{}, &Category{}, &Brand{}, &Media{}); err != nil {
+        return nil, nil, fmt.Errorf("failed to migrate database: %w", err)
+    }
+    
+    d := &Data{
+        db:           db,
+        consulClient: consulClient,
+        log:          helper,
+    }
+    
+    cleanup := func() {
+        helper.Info("closing the data resources")
+        if sqlDB, err := db.DB(); err == nil {
+            sqlDB.Close()
+        }
+    }
+    
+    return d, cleanup, nil
 }
 
-// Ready godoc
-// @Summary Readiness check
-// @Description Check if service is ready to serve requests
-// @Tags health
-// @Produce json
-// @Success 200 {object} ReadinessResponse
-// @Failure 503 {object} ReadinessResponse
-// @Router /ready [get]
-func (h *HealthHandler) Ready(c *gin.Context) {
-    checks := make(map[string]CheckResult)
-    allReady := true
-
-    // Check database
-    if sqlDB, err := h.db.DB(); err != nil {
-        checks["database"] = CheckResult{
-            Status:  "unhealthy",
-            Message: "Failed to get database connection",
-        }
-        allReady = false
-    } else if err := sqlDB.Ping(); err != nil {
-        checks["database"] = CheckResult{
-            Status:  "unhealthy",
-            Message: "Database ping failed",
-        }
-        allReady = false
-    } else {
-        checks["database"] = CheckResult{Status: "healthy"}
-    }
-
-    // Check Redis
-    if err := h.redis.Ping(c.Request.Context()).Err(); err != nil {
-        checks["redis"] = CheckResult{
-            Status:  "unhealthy",
-            Message: "Redis ping failed",
-        }
-        allReady = false
-    } else {
-        checks["redis"] = CheckResult{Status: "healthy"}
-    }
-
-    status := "ready"
-    httpStatus := http.StatusOK
-    if !allReady {
-        status = "not ready"
-        httpStatus = http.StatusServiceUnavailable
-    }
-
-    response := ReadinessResponse{
-        Status: status,
-        Checks: checks,
-    }
-
-    c.JSON(httpStatus, response)
+// Product data model
+type Product struct {
+    ID          string `gorm:"primaryKey"`
+    SKU         string `gorm:"uniqueIndex;not null"`
+    Name        string `gorm:"not null"`
+    Description string
+    CategoryID  string
+    BrandID     string
+    Status      int32
+    IsVisible   bool
+    IsFeatured  bool
+    CreatedAt   int64
+    UpdatedAt   int64
+    CreatedBy   string
+    UpdatedBy   string
 }
 
-// Metrics godoc
-// @Summary Prometheus metrics
-// @Description Get Prometheus metrics
-// @Tags health
-// @Produce text/plain
-// @Success 200
-// @Router /metrics [get]
-func (h *HealthHandler) Metrics(c *gin.Context) {
-    promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+// ProductRepo implements biz.ProductRepo
+type productRepo struct {
+    data *Data
+    log  *log.Helper
+}
+
+func NewProductRepo(data *Data, logger log.Logger) biz.ProductRepo {
+    return &productRepo{
+        data: data,
+        log:  log.NewHelper(logger),
+    }
+}
+
+func (r *productRepo) Save(ctx context.Context, p *biz.Product) (*biz.Product, error) {
+    product := &Product{
+        SKU:         p.SKU,
+        Name:        p.Name,
+        Description: p.Description,
+        CategoryID:  p.CategoryID,
+        BrandID:     p.BrandID,
+        Status:      int32(p.Status),
+        IsVisible:   p.IsVisible,
+        IsFeatured:  p.IsFeatured,
+        CreatedBy:   p.CreatedBy,
+    }
+    
+    if err := r.data.db.WithContext(ctx).Create(product).Error; err != nil {
+        return nil, err
+    }
+    
+    return r.convertToBiz(product), nil
+}
+
+func (r *productRepo) Update(ctx context.Context, p *biz.Product) (*biz.Product, error) {
+    product := &Product{
+        ID:          p.ID,
+        Name:        p.Name,
+        Description: p.Description,
+        CategoryID:  p.CategoryID,
+        BrandID:     p.BrandID,
+        Status:      int32(p.Status),
+        IsVisible:   p.IsVisible,
+        IsFeatured:  p.IsFeatured,
+        UpdatedBy:   p.UpdatedBy,
+    }
+    
+    if err := r.data.db.WithContext(ctx).Save(product).Error; err != nil {
+        return nil, err
+    }
+    
+    return r.convertToBiz(product), nil
+}
+
+func (r *productRepo) FindByID(ctx context.Context, id string) (*biz.Product, error) {
+    var product Product
+    if err := r.data.db.WithContext(ctx).First(&product, "id = ?", id).Error; err != nil {
+        return nil, err
+    }
+    
+    return r.convertToBiz(&product), nil
+}
+
+func (r *productRepo) ListProducts(ctx context.Context, filter *biz.ProductFilter) ([]*biz.Product, int32, error) {
+    var products []Product
+    var total int64
+    
+    query := r.data.db.WithContext(ctx).Model(&Product{})
+    
+    // Apply filters
+    if filter.Search != "" {
+        query = query.Where("name ILIKE ? OR description ILIKE ?", 
+            "%"+filter.Search+"%", "%"+filter.Search+"%")
+    }
+    
+    if filter.Category != "" {
+        query = query.Where("category_id = ?", filter.Category)
+    }
+    
+    // Count total
+    if err := query.Count(&total).Error; err != nil {
+        return nil, 0, err
+    }
+    
+    // Apply pagination
+    offset := (filter.Page - 1) * filter.Limit
+    if err := query.Offset(int(offset)).Limit(int(filter.Limit)).Find(&products).Error; err != nil {
+        return nil, 0, err
+    }
+    
+    // Convert to business entities
+    bizProducts := make([]*biz.Product, len(products))
+    for i, p := range products {
+        bizProducts[i] = r.convertToBiz(&p)
+    }
+    
+    return bizProducts, int32(total), nil
+}
+
+func (r *productRepo) Delete(ctx context.Context, id string) error {
+    return r.data.db.WithContext(ctx).Delete(&Product{}, "id = ?", id).Error
+}
+
+func (r *productRepo) convertToBiz(p *Product) *biz.Product {
+    return &biz.Product{
+        ID:          p.ID,
+        SKU:         p.SKU,
+        Name:        p.Name,
+        Description: p.Description,
+        CategoryID:  p.CategoryID,
+        BrandID:     p.BrandID,
+        Status:      biz.ProductStatus(p.Status),
+        IsVisible:   p.IsVisible,
+        IsFeatured:  p.IsFeatured,
+        CreatedBy:   p.CreatedBy,
+        UpdatedBy:   p.UpdatedBy,
+    }
 }
 ```
 
-### Makefile
+### 9. Consul Integration (pkg/consul/client.go)
+```go
+package consul
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    "github.com/go-kratos/kratos/v2/registry"
+    "github.com/hashicorp/consul/api"
+    
+    "github.com/ecommerce/my-catalog-service/internal/conf"
+)
+
+// Client wraps Consul API client
+type Client struct {
+    client *api.Client
+    config *conf.Consul
+}
+
+// NewClient creates a new Consul client
+func NewClient(c *conf.Consul) (*Client, error) {
+    config := api.DefaultConfig()
+    config.Address = c.Address
+    config.Scheme = c.Scheme
+    config.Datacenter = c.Datacenter
+    
+    client, err := api.NewClient(config)
+    if err != nil {
+        return nil, err
+    }
+    
+    return &Client{
+        client: client,
+        config: c,
+    }, nil
+}
+
+// Registry creates a Consul registry for service discovery
+func NewRegistry(client *Client) registry.Registrar {
+    return &consulRegistry{
+        client: client,
+    }
+}
+
+type consulRegistry struct {
+    client *Client
+}
+
+func (r *consulRegistry) Register(ctx context.Context, si *registry.ServiceInstance) error {
+    return r.client.RegisterService(ctx, si)
+}
+
+func (r *consulRegistry) Deregister(ctx context.Context, si *registry.ServiceInstance) error {
+    return r.client.DeregisterService(ctx, si)
+}
+
+// RegisterService registers a service with Consul
+func (c *Client) RegisterService(ctx context.Context, si *registry.ServiceInstance) error {
+    registration := &api.AgentServiceRegistration{
+        ID:      si.ID,
+        Name:    si.Name,
+        Address: si.Endpoints[0], // Assuming first endpoint is the address
+        Port:    8000, // Extract port from endpoint
+        Tags:    []string{si.Version, "kratos", "microservice"},
+        Meta: map[string]string{
+            "version":     si.Version,
+            "framework":   "kratos",
+            "protocol":    "grpc+http",
+        },
+    }
+    
+    // Add health check if enabled
+    if c.config.HealthCheck {
+        registration.Check = &api.AgentServiceCheck{
+            HTTP:                           fmt.Sprintf("http://%s/health", registration.Address),
+            Interval:                       c.config.HealthCheckInterval.String(),
+            Timeout:                        c.config.HealthCheckTimeout.String(),
+            DeregisterCriticalServiceAfter: c.config.DeregisterCriticalServiceAfterDuration.String(),
+        }
+    }
+    
+    return c.client.Agent().ServiceRegister(registration)
+}
+
+// DeregisterService deregisters a service from Consul
+func (c *Client) DeregisterService(ctx context.Context, si *registry.ServiceInstance) error {
+    return c.client.Agent().ServiceDeregister(si.ID)
+}
+
+// LoadServicePermissions loads service permissions from Consul KV
+func (c *Client) LoadServicePermissions(ctx context.Context, fromService, toService string) (*ServicePermission, error) {
+    key := fmt.Sprintf("service-permissions/%s/%s", fromService, toService)
+    
+    kvPair, _, err := c.client.KV().Get(key, nil)
+    if err != nil {
+        return nil, err
+    }
+    
+    if kvPair == nil {
+        return nil, fmt.Errorf("no permissions found for %s -> %s", fromService, toService)
+    }
+    
+    var permission ServicePermission
+    if err := json.Unmarshal(kvPair.Value, &permission); err != nil {
+        return nil, err
+    }
+    
+    return &permission, nil
+}
+
+// ServicePermission represents service-to-service permissions
+type ServicePermission struct {
+    Permissions     []string       `json:"permissions"`
+    Endpoints       []EndpointRule `json:"endpoints"`
+    DeniedEndpoints []EndpointRule `json:"denied_endpoints"`
+    RateLimit       int            `json:"rate_limit"`
+    Timeout         string         `json:"timeout"`
+    RetryAttempts   int            `json:"retry_attempts"`
+    Description     string         `json:"description"`
+}
+
+type EndpointRule struct {
+    Path    string   `json:"path"`
+    Methods []string `json:"methods"`
+}
+```
+
+### 10. Kratos Makefile
 ```makefile
-# Go parameters
-GOCMD=go
-GOBUILD=$(GOCMD) build
-GOCLEAN=$(GOCMD) clean
-GOTEST=$(GOCMD) test
-GOGET=$(GOCMD) get
-GOMOD=$(GOCMD) mod
-BINARY_NAME=catalog-service
-BINARY_UNIX=$(BINARY_NAME)_unix
+GOPATH:=$(shell go env GOPATH)
+VERSION=$(shell git describe --tags --always)
+INTERNAL_PROTO_FILES=$(shell find internal -name *.proto)
+API_PROTO_FILES=$(shell find api -name *.proto)
 
-# Build info
-VERSION?=1.0.0
-BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
-GIT_COMMIT=$(shell git rev-parse --short HEAD)
-LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)"
+.PHONY: init
+# init env
+init:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	go install github.com/go-kratos/kratos/cmd/protoc-gen-go-http/v2@latest
+	go install github.com/go-kratos/kratos/cmd/protoc-gen-go-errors/v2@latest
+	go install github.com/go-kratos/kratos/cmd/protoc-gen-go-validate/v2@latest
+	go install github.com/envoyproxy/protoc-gen-validate@latest
+	go install github.com/google/wire/cmd/wire@latest
 
-.PHONY: all build clean test coverage deps run-dev docker-build docker-run migrate-up migrate-down seed
+.PHONY: config
+# generate internal proto
+config:
+	protoc --proto_path=./internal \
+	       --proto_path=./third_party \
+ 	       --go_out=paths=source_relative:./internal \
+	       $(INTERNAL_PROTO_FILES)
 
-all: test build
+.PHONY: api
+# generate api proto
+api:
+	protoc --proto_path=./api \
+	       --proto_path=./third_party \
+ 	       --go_out=paths=source_relative:./api \
+ 	       --go-http_out=paths=source_relative:./api \
+ 	       --go-grpc_out=paths=source_relative:./api \
+	       --openapi_out=fq_schema_naming=true,default_response=false:. \
+	       $(API_PROTO_FILES)
 
+.PHONY: generate
+# generate
+generate:
+	go mod tidy
+	go get github.com/google/wire/cmd/wire@latest
+	go generate ./...
+
+.PHONY: wire
+# generate wire
+wire:
+	cd cmd/server && wire
+
+.PHONY: build
+# build
 build:
-	$(GOBUILD) $(LDFLAGS) -o $(BINARY_NAME) -v ./cmd/server
+	mkdir -p bin/ && go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/ ./...
 
-build-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BINARY_UNIX) -v ./cmd/server
-
-clean:
-	$(GOCLEAN)
-	rm -f $(BINARY_NAME)
-	rm -f $(BINARY_UNIX)
-
+.PHONY: test
+# test
 test:
-	$(GOTEST) -v ./...
+	go test -v ./... -cover
 
-test-coverage:
-	$(GOTEST) -v -coverprofile=coverage.out ./...
-	$(GOCMD) tool cover -html=coverage.out -o coverage.html
+.PHONY: run
+# run
+run:
+	cd cmd/server && go run .
 
-deps:
-	$(GOMOD) download
-	$(GOMOD) tidy
+.PHONY: docker
+# docker
+docker:
+	docker build -t catalog-service:$(VERSION) .
 
-run-dev:
-	$(GOCMD) run ./cmd/server
+.PHONY: consul-setup
+# setup consul permissions
+consul-setup:
+	./scripts/consul-setup.sh
+
+.PHONY: migrate-up
+# migrate up
+migrate-up:
+	./scripts/migrate.sh up
+
+.PHONY: migrate-down  
+# migrate down
+migrate-down:
+	./scripts/migrate.sh down
+
+.PHONY: all
+# generate all
+all:
+	make api;
+	make config;
+	make generate;
+	make wire;
+
+# show help
+help:
+	@echo ''
+	@echo 'Usage:'
+	@echo ' make [target]'
+	@echo ''
+	@echo 'Targets:'
+	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
+	helpMessage = match(lastLine, /^# (.*)/); \
+		if (helpMessage) { \
+			helpCommand = substr($$1, 0, index($$1, ":")-1); \
+			helpMessage = substr(lastLine, RSTART + 2, RLENGTH); \
+			printf "\033[36m%-22s\033[0m %s\n", helpCommand,helpMessage; \
+		} \
+	} \
+	{ lastLine = $$0 }' $(MAKEFILE_LIST)
+
+.DEFAULT_GOAL := help) run ./cmd/server
 
 docker-build:
 	docker build -t $(BINARY_NAME):$(VERSION) .
