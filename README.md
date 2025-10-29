@@ -39,11 +39,13 @@ This repository contains the comprehensive documentation and architecture design
 
 ## 🚀 Key Features
 
-### Event-Driven Architecture
-- **Asynchronous Communication**: Services communicate via Event Bus (Kafka/RabbitMQ)
-- **Loose Coupling**: No direct service-to-service API calls
+### Event-Driven Architecture with Dapr
+- **Dapr Pub/Sub**: Portable pub/sub messaging with Redis Streams
+- **Service Invocation**: Dapr service-to-service communication
+- **State Management**: Dapr state store with Redis
+- **Loose Coupling**: No direct service-to-service dependencies
 - **Event Sourcing**: Complete audit trail and replay capability
-- **Resilient**: Services continue operating even if others fail
+- **Resilient**: Built-in retry, circuit breaker, and timeout policies
 
 ### SKU + Warehouse Based Operations
 - **Pricing**: Dynamic pricing based on SKU + Warehouse combination
@@ -217,16 +219,18 @@ examples/
 - **Frontend**: React.js, Vue.js, Angular
 - **Mobile**: Flutter, React Native
 - **Databases**: PostgreSQL, MongoDB (per service)
-- **Message Queue**: Apache Kafka, RabbitMQ
+- **Message Queue**: Dapr Pub/Sub with Redis Streams
 - **Cache**: Redis Cluster
 - **Search**: Elasticsearch
 
 ### Infrastructure
 - **Containers**: Docker
-- **Orchestration**: Kubernetes
-- **Service Mesh**: Istio, Linkerd
+- **Orchestration**: Kubernetes with Dapr
+- **Service Mesh**: Dapr service invocation and mTLS
 - **API Gateway**: Kong, AWS API Gateway
 - **Monitoring**: Prometheus, Grafana, ELK Stack
+- **State Management**: Dapr state store with Redis
+- **Pub/Sub**: Dapr pub/sub with Redis Streams
 
 ### Cloud & DevOps
 - **Cloud**: AWS, Azure, or GCP
@@ -254,8 +258,9 @@ examples/
 - Review Service
 
 #### **Phase 4: Integration & Go-Live (Weeks 13-16)**
-- Event Bus implementation (Kafka/RabbitMQ)
-- Cache Layer optimization (Redis)
+- Dapr runtime and components setup
+- Redis Streams for pub/sub messaging
+- Dapr state management integration
 - Monitoring & observability stack
 - End-to-end testing and deployment
 

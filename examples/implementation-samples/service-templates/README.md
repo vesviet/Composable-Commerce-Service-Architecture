@@ -8,7 +8,7 @@ Ready-to-use service templates for different technology stacks, following micros
 ### 1. Go Service Template
 - **Framework**: Gin HTTP framework with Go 1.21+
 - **Database**: PostgreSQL with GORM
-- **Messaging**: Sarama Kafka client
+- **Messaging**: Dapr Pub/Sub and Service Invocation
 - **Caching**: go-redis
 - **Monitoring**: Prometheus client, structured logging
 - **Testing**: testify framework
