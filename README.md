@@ -294,17 +294,54 @@ examples/
 - Cache system (Redis)
 - Monitoring stack (Prometheus, Grafana)
 
-### Quick Start
+### Quick Start Options
+
+#### 1. Local Development with Docker Compose
+```bash
+cd examples/infrastructure-examples/docker-compose
+./scripts/setup.sh
+docker-compose up -d
+```
+
+#### 2. Kubernetes Deployment with Helm
+```bash
+cd examples/infrastructure-examples/helm-charts
+./scripts/install.sh production ecommerce-prod
+```
+
+#### 3. Cloud Infrastructure with Terraform
+```bash
+cd examples/infrastructure-examples/terraform
+./scripts/init.sh production aws
+./scripts/deploy.sh production aws
+```
+
+### Documentation Flow
 1. **Review Architecture**: Start with `architecture/overview.md`
 2. **Understand Services**: Read individual service documentation in `services/`
-3. **Study Data Flows**: Review `data-flows/` for service interactions
-4. **Migration Planning**: Follow `migration-plan.md` for implementation
+3. **Study API Flows**: Review `api-flows/` for complete request flows
+4. **Check Examples**: Explore `examples/` for implementation samples
+5. **Migration Planning**: Follow `migration-plan.md` for implementation
 
 ### API Documentation
 - **Get Product Flow**: `api-flows/get-product-flow.md`
 - **Complete Checkout Flow**: `api-flows/checkout-flow.md`
 - **Fulfillment Flow**: `api-flows/fulfillment-order-flow.md`
 - **API Flows Validation**: `api-flows/api-flows-validation.md`
+
+### Implementation Examples
+- **Generated Code Samples**: `examples/generated-code-samples.md`
+- **Infrastructure Examples**:
+  - **Kubernetes Manifests**: `examples/infrastructure-examples/kubernetes-manifests/`
+  - **Docker Compose Setup**: `examples/infrastructure-examples/docker-compose/`
+  - **Terraform IaC**: `examples/infrastructure-examples/terraform/`
+  - **Helm Charts**: `examples/infrastructure-examples/helm-charts/`
+  - **Monitoring Configs**: `examples/infrastructure-examples/monitoring-configs/`
+- **Implementation Samples**:
+  - **Service Templates**: `examples/implementation-samples/service-templates/`
+  - **API Clients**: `examples/implementation-samples/api-clients/`
+  - **Event Schemas**: `examples/implementation-samples/event-schemas/`
+  - **Database Migrations**: `examples/implementation-samples/database-migrations/`
 
 ## 🤝 Contributing
 
