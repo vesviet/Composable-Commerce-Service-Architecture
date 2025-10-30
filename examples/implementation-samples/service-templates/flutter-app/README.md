@@ -1,16 +1,19 @@
-# Flutter Mobile App Template
+# Flutter Mobile App Template - Kratos + Consul + Dapr Integration
 
 ## Overview
-Production-ready Flutter mobile application template for the e-commerce platform with clean architecture, state management, and comprehensive features.
+Production-ready Flutter mobile application template for the e-commerce platform with clean architecture, state management, and comprehensive features. Integrated with **Kratos + Consul + Dapr** backend microservices architecture.
 
 ## Tech Stack
 - **Framework**: Flutter 3.16+ with Dart 3.2+
 - **State Management**: Bloc/Cubit pattern with flutter_bloc
 - **HTTP Client**: Dio with interceptors and retry logic
+- **Backend Integration**: Kratos gRPC/HTTP services via Consul discovery
+- **Real-time Communication**: WebSocket + Server-Sent Events
 - **Local Storage**: Hive for lightweight data, SQLite for complex data
 - **Navigation**: GoRouter for declarative routing
-- **Authentication**: JWT token management with secure storage
-- **Push Notifications**: Firebase Cloud Messaging
+- **Authentication**: JWT token management with Kratos Auth Service
+- **Push Notifications**: Firebase Cloud Messaging + Dapr bindings
+- **Service Discovery**: Consul integration for dynamic service discovery
 - **Dependency Injection**: get_it service locator
 - **Testing**: Widget tests, integration tests, and golden tests
 
@@ -347,21 +350,115 @@ class AppRouter {
 }
 ```
 
-### API Client (lib/core/network/api_client.dart)
+### Consul Service Discovery Client (lib/core/network/consul_client.dart)
+```dart
+import 'package:dio/dio.dart';
+import 'dart:math';
+
+class ConsulServiceDiscovery {
+  final Dio _dio;
+  final String consulUrl;
+  final Map<String, List<ServiceInstance>> _serviceCache = {};
+  final Map<String, DateTime> _cacheTimestamps = {};
+  final Duration cacheTTL = const Duration(minutes: 5);
+  
+  ConsulServiceDiscovery({
+    required this.consulUrl,
+  }) : _dio = Dio();
+  
+  Future<ServiceInstance> discoverService(String serviceName) async {
+    // Check cache first
+    if (_serviceCache.containsKey(serviceName) && 
+        _cacheTimestamps.containsKey(serviceName)) {
+      final cacheTime = _cacheTimestamps[serviceName]!;
+      if (DateTime.now().difference(cacheTime) < cacheTTL) {
+        final services = _serviceCache[serviceName]!;
+        if (services.isNotEmpty) {
+          // Simple round-robin selection
+          return services[Random().nextInt(services.length)];
+        }
+      }
+    }
+    
+    try {
+      final response = await _dio.get(
+        '$consulUrl/v1/health/service/$serviceName',
+        queryParameters: {'passing': 'true'},
+      );
+      
+      final List<dynamic> services = response.data;
+      if (services.isEmpty) {
+        throw Exception('Service $serviceName not found');
+      }
+      
+      final serviceInstances = services.map((service) {
+        final serviceData = service['Service'];
+        return ServiceInstance(
+          id: serviceData['ID'],
+          name: serviceData['Service'],
+          address: serviceData['Address'],
+          port: serviceData['Port'],
+          tags: List<String>.from(serviceData['Tags'] ?? []),
+          meta: Map<String, String>.from(serviceData['Meta'] ?? {}),
+        );
+      }).toList();
+      
+      // Update cache
+      _serviceCache[serviceName] = serviceInstances;
+      _cacheTimestamps[serviceName] = DateTime.now();
+      
+      // Return random instance
+      return serviceInstances[Random().nextInt(serviceInstances.length)];
+    } catch (e) {
+      throw Exception('Failed to discover service $serviceName: $e');
+    }
+  }
+}
+
+class ServiceInstance {
+  final String id;
+  final String name;
+  final String address;
+  final int port;
+  final List<String> tags;
+  final Map<String, String> meta;
+  
+  ServiceInstance({
+    required this.id,
+    required this.name,
+    required this.address,
+    required this.port,
+    required this.tags,
+    required this.meta,
+  });
+  
+  String get baseUrl => 'http://$address:$port';
+  String get version => meta['version'] ?? 'unknown';
+  List<String> get capabilities => meta['capabilities']?.split(',') ?? [];
+}
+```
+
+### Kratos-Integrated API Client (lib/core/network/api_client.dart)
 ```dart
 import 'package:dio/dio.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../constants/api_constants.dart';
+import 'consul_client.dart';
 import 'interceptors/auth_interceptor.dart';
+import 'interceptors/consul_interceptor.dart';
 import 'interceptors/retry_interceptor.dart';
 
 class ApiClient {
   late final Dio _dio;
+  late final ConsulServiceDiscovery _consulClient;
   
   ApiClient() {
+    _consulClient = ConsulServiceDiscovery(
+      consulUrl: ApiConstants.consulUrl,
+    );
+    
     _dio = Dio(BaseOptions(
-      baseUrl: ApiConstants.baseUrl,
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 30),
@@ -375,10 +472,13 @@ class ApiClient {
   }
   
   void _setupInterceptors() {
-    // Auth interceptor
+    // Consul service discovery interceptor
+    _dio.interceptors.add(ConsulInterceptor(_consulClient));
+    
+    // Auth interceptor for JWT tokens
     _dio.interceptors.add(AuthInterceptor());
     
-    // Retry interceptor
+    // Retry interceptor with exponential backoff
     _dio.interceptors.add(RetryInterceptor(_dio));
     
     // Logging interceptor (only in debug mode)
@@ -394,70 +494,148 @@ class ApiClient {
     }
   }
   
-  // GET request
-  Future<Response<T>> get<T>(
+  // Service-specific API calls
+  Future<Response<T>> callAuthService<T>(
     String path, {
-    Map<String, dynamic>? queryParameters,
-    Options? options,
-    CancelToken? cancelToken,
-  }) async {
-    return await _dio.get<T>(
-      path,
-      queryParameters: queryParameters,
-      options: options,
-      cancelToken: cancelToken,
-    );
-  }
-  
-  // POST request
-  Future<Response<T>> post<T>(
-    String path, {
+    String method = 'GET',
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
-    CancelToken? cancelToken,
   }) async {
-    return await _dio.post<T>(
+    return await _callService<T>(
+      'auth-service',
       path,
+      method: method,
       data: data,
       queryParameters: queryParameters,
       options: options,
-      cancelToken: cancelToken,
     );
   }
   
-  // PUT request
-  Future<Response<T>> put<T>(
+  Future<Response<T>> callCatalogService<T>(
     String path, {
+    String method = 'GET',
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
-    CancelToken? cancelToken,
   }) async {
-    return await _dio.put<T>(
+    return await _callService<T>(
+      'catalog-service',
       path,
+      method: method,
       data: data,
       queryParameters: queryParameters,
       options: options,
-      cancelToken: cancelToken,
     );
   }
   
-  // DELETE request
-  Future<Response<T>> delete<T>(
+  Future<Response<T>> callOrderService<T>(
     String path, {
+    String method = 'GET',
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Options? options,
-    CancelToken? cancelToken,
   }) async {
-    return await _dio.delete<T>(
+    return await _callService<T>(
+      'order-service',
       path,
+      method: method,
       data: data,
       queryParameters: queryParameters,
       options: options,
-      cancelToken: cancelToken,
     );
+  }
+  
+  Future<Response<T>> _callService<T>(
+    String serviceName,
+    String path, {
+    String method = 'GET',
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    // Add service name to options for Consul interceptor
+    final serviceOptions = (options ?? Options()).copyWith(
+      extra: {
+        ...?options?.extra,
+        'service_name': serviceName,
+      },
+    );
+    
+    switch (method.toUpperCase()) {
+      case 'GET':
+        return await _dio.get<T>(
+          path,
+          queryParameters: queryParameters,
+          options: serviceOptions,
+        );
+      case 'POST':
+        return await _dio.post<T>(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: serviceOptions,
+        );
+      case 'PUT':
+        return await _dio.put<T>(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: serviceOptions,
+        );
+      case 'DELETE':
+        return await _dio.delete<T>(
+          path,
+          data: data,
+          queryParameters: queryParameters,
+          options: serviceOptions,
+        );
+      default:
+        throw ArgumentError('Unsupported HTTP method: $method');
+    }
+  }
+}
+```
+
+### Consul Interceptor (lib/core/network/interceptors/consul_interceptor.dart)
+```dart
+import 'package:dio/dio.dart';
+import '../consul_client.dart';
+
+class ConsulInterceptor extends Interceptor {
+  final ConsulServiceDiscovery _consulClient;
+  
+  ConsulInterceptor(this._consulClient);
+  
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    try {
+      final serviceName = options.extra['service_name'] as String?;
+      
+      if (serviceName != null) {
+        // Discover service via Consul
+        final serviceInstance = await _consulClient.discoverService(serviceName);
+        
+        // Update base URL with discovered service
+        options.baseUrl = serviceInstance.baseUrl;
+        
+        // Add service metadata to headers
+        options.headers['X-Service-Version'] = serviceInstance.version;
+        options.headers['X-Service-Instance'] = serviceInstance.id;
+        
+        print('Calling $serviceName at ${serviceInstance.baseUrl}');
+      }
+      
+      handler.next(options);
+    } catch (e) {
+      handler.reject(
+        DioException(
+          requestOptions: options,
+          error: 'Service discovery failed: $e',
+          type: DioExceptionType.unknown,
+        ),
+      );
+    }
   }
 }
 ```
@@ -826,10 +1004,307 @@ Future<void> setupDependencyInjection() async {
 }
 ```
 
-### pubspec.yaml
+### Real-time Communication (lib/core/realtime/websocket_client.dart)
+```dart
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+class WebSocketClient {
+  WebSocket? _socket;
+  final String _url;
+  final Map<String, List<Function(dynamic)>> _listeners = {};
+  Timer? _heartbeatTimer;
+  Timer? _reconnectTimer;
+  int _reconnectAttempts = 0;
+  final int _maxReconnectAttempts = 5;
+  bool _isConnecting = false;
+  
+  WebSocketClient(this._url);
+  
+  Future<void> connect() async {
+    if (_isConnecting || _socket != null) return;
+    
+    _isConnecting = true;
+    
+    try {
+      _socket = await WebSocket.connect(_url);
+      _isConnecting = false;
+      _reconnectAttempts = 0;
+      
+      print('WebSocket connected to $_url');
+      
+      _socket!.listen(
+        _onMessage,
+        onError: _onError,
+        onDone: _onDisconnected,
+      );
+      
+      _startHeartbeat();
+    } catch (e) {
+      _isConnecting = false;
+      print('WebSocket connection failed: $e');
+      _scheduleReconnect();
+    }
+  }
+  
+  void _onMessage(dynamic message) {
+    try {
+      final data = jsonDecode(message);
+      final eventType = data['type'] as String?;
+      
+      if (eventType != null && _listeners.containsKey(eventType)) {
+        for (final listener in _listeners[eventType]!) {
+          listener(data);
+        }
+      }
+    } catch (e) {
+      print('Error parsing WebSocket message: $e');
+    }
+  }
+  
+  void _onError(error) {
+    print('WebSocket error: $error');
+  }
+  
+  void _onDisconnected() {
+    print('WebSocket disconnected');
+    _cleanup();
+    _scheduleReconnect();
+  }
+  
+  void _startHeartbeat() {
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (_socket != null) {
+        send('ping', {});
+      }
+    });
+  }
+  
+  void _scheduleReconnect() {
+    if (_reconnectAttempts >= _maxReconnectAttempts) {
+      print('Max reconnection attempts reached');
+      return;
+    }
+    
+    final delay = Duration(seconds: pow(2, _reconnectAttempts).toInt());
+    _reconnectTimer = Timer(delay, () {
+      _reconnectAttempts++;
+      connect();
+    });
+  }
+  
+  void _cleanup() {
+    _socket = null;
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
+  
+  void send(String type, Map<String, dynamic> data) {
+    if (_socket != null) {
+      final message = jsonEncode({
+        'type': type,
+        'data': data,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+      _socket!.add(message);
+    }
+  }
+  
+  void subscribe(String eventType, Function(dynamic) listener) {
+    if (!_listeners.containsKey(eventType)) {
+      _listeners[eventType] = [];
+    }
+    _listeners[eventType]!.add(listener);
+  }
+  
+  void unsubscribe(String eventType, Function(dynamic) listener) {
+    if (_listeners.containsKey(eventType)) {
+      _listeners[eventType]!.remove(listener);
+    }
+  }
+  
+  void disconnect() {
+    _reconnectTimer?.cancel();
+    _heartbeatTimer?.cancel();
+    _socket?.close();
+    _cleanup();
+    _listeners.clear();
+  }
+}
+```
+
+### Push Notification Service (lib/core/notifications/push_notification_service.dart)
+```dart
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+class PushNotificationService {
+  static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  static final FlutterLocalNotificationsPlugin _localNotifications = 
+      FlutterLocalNotificationsPlugin();
+  
+  static Future<void> initialize() async {
+    // Request permission
+    final settings = await _firebaseMessaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('User granted permission');
+    } else {
+      print('User declined or has not accepted permission');
+    }
+    
+    // Initialize local notifications
+    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosSettings = DarwinInitializationSettings();
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+    
+    await _localNotifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationTap,
+    );
+    
+    // Get FCM token
+    final token = await _firebaseMessaging.getToken();
+    print('FCM Token: $token');
+    
+    // Handle foreground messages
+    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+    
+    // Handle background messages
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    
+    // Handle notification taps when app is in background
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+    
+    // Handle notification tap when app is terminated
+    final initialMessage = await _firebaseMessaging.getInitialMessage();
+    if (initialMessage != null) {
+      _handleNotificationTap(initialMessage);
+    }
+  }
+  
+  static Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    print('Received foreground message: ${message.messageId}');
+    
+    // Show local notification
+    await _showLocalNotification(message);
+    
+    // Handle different message types
+    _handleMessageData(message);
+  }
+  
+  static Future<void> _showLocalNotification(RemoteMessage message) async {
+    const androidDetails = AndroidNotificationDetails(
+      'default_channel',
+      'Default Channel',
+      channelDescription: 'Default notification channel',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    
+    const iosDetails = DarwinNotificationDetails();
+    
+    const notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+    
+    await _localNotifications.show(
+      message.hashCode,
+      message.notification?.title,
+      message.notification?.body,
+      notificationDetails,
+      payload: jsonEncode(message.data),
+    );
+  }
+  
+  static void _handleMessageData(RemoteMessage message) {
+    final data = message.data;
+    
+    switch (data['type']) {
+      case 'order_status_update':
+        _handleOrderStatusUpdate(data);
+        break;
+      case 'promotion_available':
+        _handlePromotionNotification(data);
+        break;
+      case 'cart_reminder':
+        _handleCartReminder(data);
+        break;
+      default:
+        print('Unknown message type: ${data['type']}');
+    }
+  }
+  
+  static void _handleOrderStatusUpdate(Map<String, dynamic> data) {
+    final orderId = data['order_id'];
+    final status = data['status'];
+    
+    // Navigate to order details or update order state
+    print('Order $orderId status updated to $status');
+  }
+  
+  static void _handlePromotionNotification(Map<String, dynamic> data) {
+    final promotionId = data['promotion_id'];
+    final discount = data['discount'];
+    
+    // Navigate to promotion details
+    print('New promotion available: $discount% off');
+  }
+  
+  static void _handleCartReminder(Map<String, dynamic> data) {
+    final itemCount = data['item_count'];
+    
+    // Navigate to cart
+    print('You have $itemCount items in your cart');
+  }
+  
+  static void _handleNotificationTap(RemoteMessage message) {
+    print('Notification tapped: ${message.messageId}');
+    _handleMessageData(message);
+  }
+  
+  static void _onNotificationTap(NotificationResponse response) {
+    if (response.payload != null) {
+      final data = jsonDecode(response.payload!);
+      _handleMessageData(RemoteMessage(data: Map<String, String>.from(data)));
+    }
+  }
+  
+  static Future<String?> getToken() async {
+    return await _firebaseMessaging.getToken();
+  }
+  
+  static Future<void> subscribeToTopic(String topic) async {
+    await _firebaseMessaging.subscribeToTopic(topic);
+  }
+  
+  static Future<void> unsubscribeFromTopic(String topic) async {
+    await _firebaseMessaging.unsubscribeFromTopic(topic);
+  }
+}
+
+// Background message handler
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print('Handling background message: ${message.messageId}');
+  // Handle background message
+}
+```
+
+### pubspec.yaml (Updated with Kratos + Consul + Dapr dependencies)
 ```yaml
 name: ecommerce_app
-description: E-commerce mobile application built with Flutter
+description: E-commerce mobile application with Kratos + Consul + Dapr integration
 version: 1.0.0+1
 
 environment:
@@ -849,10 +1324,14 @@ dependencies:
   # Navigation
   go_router: ^12.1.3
 
-  # HTTP Client
+  # HTTP Client & Service Discovery
   dio: ^5.3.2
   pretty_dio_logger: ^1.3.1
   internet_connection_checker: ^1.0.0+1
+
+  # Real-time Communication
+  web_socket_channel: ^2.4.0
+  socket_io_client: ^2.0.3+1
 
   # Local Storage
   hive: ^2.2.3
@@ -878,11 +1357,15 @@ dependencies:
   share_plus: ^7.2.1
   image_picker: ^1.0.4
 
-  # Firebase
+  # Firebase & Push Notifications
   firebase_core: ^2.24.2
   firebase_messaging: ^14.7.9
   firebase_analytics: ^10.7.4
   firebase_crashlytics: ^3.4.8
+  flutter_local_notifications: ^16.3.0
+
+  # Performance & Monitoring
+  firebase_performance: ^0.9.3+6
 
   # Other
   permission_handler: ^11.0.1
