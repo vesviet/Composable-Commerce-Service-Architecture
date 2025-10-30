@@ -16,6 +16,7 @@
 - [2.1 Tổng Quan Hệ Thống](#21-tổng-quan-hệ-thống)
 - [2.2 Sơ Đồ Kiến Trúc](#22-sơ-đồ-kiến-trúc)
 - [2.3 Luồng Sự Kiện (Event Flow)](#23-luồng-sự-kiện-event-flow)
+- [2.4 4-Layer Architecture Benefits](#24-4-layer-architecture-benefits)
 
 ### [3. Các Service Chính](#3-các-service-chính)
 - [3.1 Application Services (11 services)](#31-application-services-11-services)
@@ -61,7 +62,7 @@
 
 **Nội dung chính**:
 - Mục tiêu migration: Scalability, Performance, Maintainability
-- Kiến trúc 3 lớp: Presentation → Application → Infrastructure
+- Kiến trúc 4 lớp: Presentation → Application → Infrastructure → Platform & Runtime
 - 19 microservices tổng cộng (11 Application + 8 Infrastructure)
 - Technology stack và migration timeline 16 tuần
 - Event-driven architecture với Dapr
@@ -71,24 +72,28 @@
 
 ---
 
-### 1.2 Kiến Trúc 3 Lớp
+### 1.2 Kiến Trúc 4 Lớp Cloud-Native
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Presentation Layer                       │
-│  Frontend/Storefront • Admin Dashboard • Mobile App        │
+│                🎨 Layer 1: Presentation Layer               │
+│  Frontend/Storefront • Admin Dashboard • Mobile Apps       │
 │                     API Gateway/BFF                        │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
-│                Application Services Layer                   │
+│            🏢 Layer 2: Application Services Layer           │
 │  Catalog • Pricing • Promotion • Order • Payment          │
 │  Shipping • Customer • Review • Warehouse & Inventory      │
-│  Analytics • Loyalty & Rewards                              │
+│  Analytics • Loyalty & Rewards (11 Business Services)      │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
-│              Infrastructure Services Layer                  │
-│  Auth • User • Search • Notification • Event Bus          │
-│  Cache • File Storage • Monitoring & Logging               │
+│           🔧 Layer 3: Infrastructure Services Layer         │
+│  Auth • User • Search • Notification (4 Services)         │
+└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│           ☁️ Layer 4: Platform & Runtime Layer              │
+│  Event Bus • Service Mesh • Cache • Storage • Monitoring   │
+│  Dapr Runtime • Consul Discovery • Observability Stack     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -111,7 +116,7 @@
 📄 **File**: [`docs/architecture/overview.md`](./docs/architecture/overview.md)
 
 **Nội dung**:
-- Chi tiết về 3-layer architecture
+- Chi tiết về 4-layer Cloud-Native architecture
 - Danh sách và mô tả các services
 - Design principles
 
@@ -144,6 +149,21 @@
 - Event sourcing và audit trail
 
 **Đọc khi**: Cần hiểu về event-driven communication giữa các services.
+
+---
+
+### 2.4 4-Layer Architecture Benefits
+
+📄 **File**: [`docs/architecture/4-layer-benefits.md`](./docs/architecture/4-layer-benefits.md)
+
+**Nội dung**:
+- Lợi ích của 4-Layer Cloud-Native architecture
+- So sánh với 3-Layer architecture
+- Scalability và maintainability benefits
+- Implementation và deployment strategies
+- Security và observability advantages
+
+**Đọc khi**: Cần hiểu tại sao chọn 4-Layer architecture và lợi ích của nó.
 
 ---
 
@@ -705,5 +725,59 @@ Nếu bạn tìm thấy thông tin không chính xác hoặc muốn thêm nội 
 
 ---
 
+## 🚨 System Status & Issues
+
+### Current Status: **NEEDS ATTENTION**
+
+📋 **Audit Report**: [`SYSTEM_AUDIT_REPORT.md`](./SYSTEM_AUDIT_REPORT.md)
+
+#### 🔴 Critical Issues Found:
+- **Service Documentation Incomplete**: Many services missing API endpoints, database schemas
+- ✅ **Architecture Consistency**: Standardized on 4-Layer Cloud-Native architecture
+- **Missing Implementation**: Service templates have structure but no actual code
+- **Event Schemas Undefined**: Event-driven architecture lacks concrete event definitions
+
+#### 🟡 Medium Priority Issues:
+- **Examples Incomplete**: Infrastructure examples need actual working code
+- **Cross-Service Integration**: Service communication patterns need clarification
+- **Testing Strategy**: Lacks concrete implementation examples
+
+#### ✅ What's Working Well:
+- **Documentation Structure**: Complete folder structure and navigation
+- **Migration Plan**: Clear 16-week timeline
+- **Architecture Vision**: Solid foundation with Dapr + Kratos + Consul
+
+### 🎯 Immediate Action Required:
+
+1. **Fix Architecture Consistency** (This Week)
+   - ✅ Standardized on 4-Layer Cloud-Native architecture
+   - Update all documents with consistent terminology
+   - Ensure Kratos + Consul integration is reflected everywhere
+
+2. **Complete Top 5 Service Docs** (Next Week)
+   - Add complete API specifications
+   - Define database schemas
+   - Add event schemas
+   - Include error handling
+
+3. **Create Working Examples** (Week 3-4)
+   - Implement actual service templates
+   - Generate API clients
+   - Create working infrastructure examples
+
+### 📊 Progress Tracking:
+
+| Component | Status | Priority | Owner | Due Date |
+|-----------|--------|----------|-------|----------|
+| Architecture Consistency | 🔴 Needs Fix | High | TBD | Week 1 |
+| Service Documentation | 🟡 Partial | High | TBD | Week 2 |
+| Code Templates | 🔴 Missing | Medium | TBD | Week 3 |
+| Infrastructure Examples | 🟡 Partial | Medium | TBD | Week 4 |
+| Event Schemas | 🔴 Missing | High | TBD | Week 2 |
+
+---
+
 **Happy Coding! 🚀**
+
+> **⚠️ Note**: Please review the [System Audit Report](./SYSTEM_AUDIT_REPORT.md) before starting development to understand current gaps and priorities.
 

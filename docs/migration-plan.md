@@ -15,7 +15,7 @@ This document outlines the comprehensive plan for migrating from Magento 2 monol
 
 ### Target Microservices Architecture
 - **19 total microservices** (11 Application + 8 Infrastructure) with clear boundaries
-- **3-layer architecture** (Presentation, Application, Infrastructure)
+- **4-layer Cloud-Native architecture** (Presentation, Application, Infrastructure, Platform & Runtime)
 - Event-driven communication with message bus
 - Independent deployment and scaling
 - Technology diversity support

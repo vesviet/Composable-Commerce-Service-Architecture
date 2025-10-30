@@ -1,534 +1,1189 @@
-# Kratos + Consul + Dapr Integration Architecture
+# Kratos + Consul Integration Patterns
 
-## Overview
-This document describes the integration of **go-kratos/kratos** framework with **Consul** and **Dapr** for building modern, cloud-native microservices with comprehensive service discovery, configuration management, event-driven communication, and security.
+> **Comprehensive guide for integrating go-kratos/kratos framework with Consul service discovery**  
+> **Target**: All microservices in Application and Infrastructure layers
 
-## Architecture Components
+---
 
-### 1. Kratos Framework Benefits
-- **Dual Protocol Support**: gRPC (internal) + HTTP/REST (external)
-- **Built-in Observability**: Prometheus metrics, Jaeger tracing, structured logging
-- **Configuration Management**: Multi-source config (file, env, Consul KV)
-- **Dependency Injection**: Wire-based compile-time DI
-- **Production Ready**: Graceful shutdown, health checks, circuit breakers
+## 🏗️ Integration Architecture
 
-### 2. Consul Integration Benefits
-- **Service Discovery**: Automatic registration and discovery
-- **Health Monitoring**: Integrated health checks and service catalog
-- **Configuration Management**: Dynamic config updates via Consul KV
-- **Service Permission Matrix**: Centralized service-to-service authorization
-- **Session Management**: Distributed coordination and locking
-
-### 3. Dapr Integration Benefits
-- **Event-Driven Messaging**: Pub/Sub with Redis backend
-- **State Management**: Distributed state store with Redis
-- **Service Invocation**: Reliable service-to-service calls
-- **External Bindings**: Integration with external systems
-- **Secrets Management**: Secure secret handling
-- **Multi-Cloud Portability**: Infrastructure abstraction
-
-## Service Architecture Pattern
-
-### Kratos Service Structure
-```
-service/
-├── cmd/server/
-│   ├── main.go              # Kratos app initialization
-│   ├── wire.go              # Dependency injection
-│   └── wire_gen.go          # Generated Wire code
-├── internal/
-│   ├── conf/                # Configuration (protobuf)
-│   ├── data/                # Data access layer
-│   ├── biz/                 # Business logic layer
-│   ├── service/             # Service layer (gRPC/HTTP)
-│   └── server/              # Server setup (gRPC/HTTP)
-├── api/                     # Protobuf API definitions
-├── configs/                 # Configuration files
-└── pkg/                     # Shared utilities
-```
-
-### Integration Points
-
-#### Consul Integration Points
-1. **Service Registration**: Automatic registration with health checks
-2. **Service Discovery**: Dynamic service location resolution
-3. **Configuration**: Runtime config updates via Consul KV
-4. **Permission Matrix**: Service-to-service authorization
-5. **Health Monitoring**: Service health and availability tracking
-
-#### Dapr Integration Points
-1. **Event Publishing**: Pub/Sub messaging via Dapr sidecar
-2. **Event Subscription**: Event handling with Dapr runtime
-3. **State Management**: Distributed state with Redis backend
-4. **Service Invocation**: Reliable service calls via Dapr
-5. **External Integration**: Bindings to external systems
-
-## Service Communication Flow
-
-### 1. Service Registration
+### Service Registration & Discovery Flow
 ```mermaid
 sequenceDiagram
-    participant Service as Kratos Service
-    participant Consul as Consul
-    participant HealthCheck as Health Check
+    participant S as Service (Kratos)
+    participant C as Consul Agent
+    participant CS as Consul Server
+    participant API as API Gateway
     
-    Service->>Consul: Register Service
-    Note over Service,Consul: Service ID, Name, Address, Port, Tags, Meta
-    Consul->>Service: Registration Confirmed
+    Note over S: Service Startup
+    S->>C: Register Service
+    C->>CS: Store Service Info
+    CS-->>C: Registration Confirmed
+    C-->>S: Registration Success
     
-    loop Every 10s
-        Consul->>HealthCheck: HTTP Health Check
-        HealthCheck-->>Consul: Health Status
-    end
+    Note over API: Service Discovery
+    API->>C: Discover Services
+    C->>CS: Query Service Catalog
+    CS-->>C: Return Service List
+    C-->>API: Available Services
     
-    Note over Consul: Service Available in Catalog
+    Note over S: Health Checks
+    C->>S: Health Check (HTTP/gRPC)
+    S-->>C: Health Status
+    C->>CS: Update Health Status
 ```
 
-### 2. Service Discovery + gRPC Call
-```mermaid
-sequenceDiagram
-    participant ServiceA as Service A (Kratos)
-    participant Consul as Consul
-    participant ServiceB as Service B (Kratos)
-    
-    ServiceA->>Consul: Discover Service B
-    Consul-->>ServiceA: Service B Location + Health Status
-    
-    ServiceA->>Consul: Load Permissions (A -> B)
-    Consul-->>ServiceA: Service Permissions
-    
-    ServiceA->>ServiceA: Generate Service Token
-    ServiceA->>ServiceB: gRPC Call + Service Token
-    
-    ServiceB->>ServiceB: Validate Service Token
-    ServiceB->>Consul: Verify Permissions
-    Consul-->>ServiceB: Permission Valid
-    
-    ServiceB-->>ServiceA: gRPC Response
+---
+
+## 🔧 Kratos Service Configuration
+
+### 1. Service Registration Configuration
+
+#### `configs/config.yaml`
+```yaml
+server:
+  http:
+    addr: 0.0.0.0:8001
+    timeout: 1s
+  grpc:
+    addr: 0.0.0.0:9001
+    timeout: 1s
+
+consul:
+  address: "consul:8500"
+  scheme: "http"
+  service:
+    name: "catalog-service"
+    version: "v1.0.0"
+    metadata:
+      layer: "application"
+      team: "catalog-team"
+      environment: "production"
+    tags:
+      - "catalog"
+      - "cms"
+      - "products"
+    health_check:
+      http: "http://catalog-service:8001/health"
+      interval: "10s"
+      timeout: "3s"
+      deregister_critical_service_after: "30s"
+
+data:
+  database:
+    driver: postgres
+    source: postgres://user:pass@postgres:5432/catalog_db?sslmode=disable
+  redis:
+    addr: redis:6379
+    password: ""
+    db: 0
 ```
 
-### 3. Configuration Updates
-```mermaid
-sequenceDiagram
-    participant Admin as Admin
-    participant Consul as Consul KV
-    participant Service as Kratos Service
-    
-    Admin->>Consul: Update Service Config
-    Consul->>Service: Config Change Notification (Watch)
-    Service->>Consul: Fetch New Config
-    Consul-->>Service: Updated Configuration
-    Service->>Service: Apply New Config (Hot Reload)
-```
+### 2. Kratos Service Implementation
 
-### 4. Dapr Event-Driven Communication
-```mermaid
-sequenceDiagram
-    participant OrderService as Order Service
-    participant DaprOrder as Dapr Sidecar (Order)
-    participant Redis as Redis Pub/Sub
-    participant DaprShipping as Dapr Sidecar (Shipping)
-    participant ShippingService as Shipping Service
-    
-    OrderService->>DaprOrder: Publish "order.created" event
-    DaprOrder->>Redis: Publish to topic "orders"
-    
-    Redis->>DaprShipping: Event notification
-    DaprShipping->>ShippingService: HTTP POST /dapr/subscribe
-    ShippingService->>ShippingService: Process order.created event
-    
-    ShippingService->>DaprShipping: Publish "shipment.created" event
-    DaprShipping->>Redis: Publish to topic "shipments"
-```
-
-### 5. Dapr Service Invocation
-```mermaid
-sequenceDiagram
-    participant OrderService as Order Service
-    participant DaprOrder as Dapr Sidecar (Order)
-    participant Consul as Consul
-    participant DaprPayment as Dapr Sidecar (Payment)
-    participant PaymentService as Payment Service
-    
-    OrderService->>DaprOrder: Invoke payment-service
-    DaprOrder->>Consul: Discover payment-service
-    Consul-->>DaprOrder: Service Location
-    DaprOrder->>DaprPayment: HTTP/gRPC call with retry
-    DaprPayment->>PaymentService: Forward request
-    PaymentService-->>DaprPayment: Response
-    DaprPayment-->>DaprOrder: Response with circuit breaker
-    DaprOrder-->>OrderService: Response
-```
-
-## Implementation Examples
-
-### 1. Service Registration (main.go)
+#### `internal/server/server.go`
 ```go
-func main() {
-    // Load configuration
-    c := config.New(
-        config.WithSource(
-            file.NewSource(flagconf),
-            env.NewSource("CATALOG_"),
-            consul.NewSource(consulClient, "service-config/catalog-service"),
-        ),
-    )
+package server
+
+import (
+    "context"
+    "fmt"
     
-    // Initialize Consul client
-    consulClient, err := consul.NewClient(bc.Consul)
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v2/middleware/recovery"
+    "github.com/go-kratos/kratos/v2/middleware/tracing"
+    "github.com/go-kratos/kratos/v2/transport/grpc"
+    "github.com/go-kratos/kratos/v2/transport/http"
+    "github.com/go-kratos/kratos/v2/registry"
+    
+    "github.com/go-kratos/kratos/contrib/registry/consul/v2"
+    consulAPI "github.com/hashicorp/consul/api"
+    
+    "your-project/internal/conf"
+    "your-project/internal/service"
+)
+
+// NewGRPCServer creates a gRPC server with Consul registration
+func NewGRPCServer(c *conf.Server, consul *conf.Consul, catalogService *service.CatalogService, logger log.Logger) *grpc.Server {
+    var opts = []grpc.ServerOption{
+        grpc.Middleware(
+            recovery.Recovery(),
+            tracing.Server(),
+        ),
+    }
+    
+    if c.Grpc.Network != "" {
+        opts = append(opts, grpc.Network(c.Grpc.Network))
+    }
+    if c.Grpc.Addr != "" {
+        opts = append(opts, grpc.Address(c.Grpc.Addr))
+    }
+    if c.Grpc.Timeout != nil {
+        opts = append(opts, grpc.Timeout(c.Grpc.Timeout.AsDuration()))
+    }
+    
+    srv := grpc.NewServer(opts...)
+    
+    // Register service handlers
+    v1.RegisterCatalogServer(srv, catalogService)
+    
+    return srv
+}
+
+// NewHTTPServer creates an HTTP server with health checks
+func NewHTTPServer(c *conf.Server, consul *conf.Consul, catalogService *service.CatalogService, logger log.Logger) *http.Server {
+    var opts = []http.ServerOption{
+        http.Middleware(
+            recovery.Recovery(),
+            tracing.Server(),
+        ),
+    }
+    
+    if c.Http.Network != "" {
+        opts = append(opts, http.Network(c.Http.Network))
+    }
+    if c.Http.Addr != "" {
+        opts = append(opts, http.Address(c.Http.Addr))
+    }
+    if c.Http.Timeout != nil {
+        opts = append(opts, http.Timeout(c.Http.Timeout.AsDuration()))
+    }
+    
+    srv := http.NewServer(opts...)
+    
+    // Register HTTP handlers
+    v1.RegisterCatalogHTTPServer(srv, catalogService)
+    
+    // Health check endpoint
+    srv.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte(`{"status":"healthy","service":"catalog-service","timestamp":"` + 
+            time.Now().Format(time.RFC3339) + `"}`))
+    })
+    
+    return srv
+}
+
+// NewConsulRegistry creates Consul service registry
+func NewConsulRegistry(c *conf.Consul) registry.Registrar {
+    consulConfig := consulAPI.DefaultConfig()
+    consulConfig.Address = c.Address
+    consulConfig.Scheme = c.Scheme
+    
+    consulClient, err := consulAPI.NewClient(consulConfig)
     if err != nil {
         panic(err)
     }
     
-    // Create registry
-    r := consul.NewRegistry(consulClient)
+    reg := consul.New(consulClient, consul.WithHealthCheck(true))
+    return reg
+}
+```
+
+#### `cmd/server/main.go`
+```go
+package main
+
+import (
+    "flag"
+    "os"
     
-    // Initialize Kratos app with Consul registry
-    app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Consul, logger, r)
+    "github.com/go-kratos/kratos/v2"
+    "github.com/go-kratos/kratos/v2/config"
+    "github.com/go-kratos/kratos/v2/config/file"
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v2/transport/grpc"
+    "github.com/go-kratos/kratos/v2/transport/http"
+    
+    "your-project/internal/conf"
+    "your-project/internal/server"
+    "your-project/internal/service"
+    "your-project/internal/data"
+)
+
+var (
+    Name     = "catalog-service"
+    Version  = "v1.0.0"
+    flagconf = flag.String("conf", "../../configs", "config path, eg: -conf config.yaml")
+)
+
+func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server, rr registry.Registrar) *kratos.App {
+    return kratos.New(
+        kratos.ID(Name),
+        kratos.Name(Name),
+        kratos.Version(Version),
+        kratos.Metadata(map[string]string{
+            "layer": "application",
+            "team": "catalog-team",
+        }),
+        kratos.Logger(logger),
+        kratos.Server(hs, gs),
+        kratos.Registrar(rr),
+    )
+}
+
+func main() {
+    flag.Parse()
+    
+    logger := log.With(log.NewStdLogger(os.Stdout),
+        "ts", log.DefaultTimestamp,
+        "caller", log.DefaultCaller,
+        "service.id", Name,
+        "service.name", Name,
+        "service.version", Version,
+    )
+    
+    // Load configuration
+    c := config.New(
+        config.WithSource(
+            file.NewSource(*flagconf),
+        ),
+    )
+    defer c.Close()
+    
+    if err := c.Load(); err != nil {
+        panic(err)
+    }
+    
+    var bc conf.Bootstrap
+    if err := c.Scan(&bc); err != nil {
+        panic(err)
+    }
+    
+    // Initialize data layer
+    dataData, cleanup, err := data.NewData(bc.Data, logger)
     if err != nil {
         panic(err)
     }
     defer cleanup()
     
-    // Start application
+    // Initialize service layer
+    catalogService := service.NewCatalogService(dataData, logger)
+    
+    // Initialize servers
+    httpServer := server.NewHTTPServer(bc.Server, bc.Consul, catalogService, logger)
+    grpcServer := server.NewGRPCServer(bc.Server, bc.Consul, catalogService, logger)
+    
+    // Initialize Consul registry
+    consulRegistry := server.NewConsulRegistry(bc.Consul)
+    
+    // Create and run application
+    app := newApp(logger, httpServer, grpcServer, consulRegistry)
+    
     if err := app.Run(); err != nil {
         panic(err)
     }
 }
 ```
 
-### 2. Service Discovery Client
+---
+
+## 🔗 Service-to-Service Communication Examples
+
+### 1. HTTP Client with Service Discovery
+
+#### `internal/data/pricing_client.go`
 ```go
-type ConsulServiceClient struct {
-    consulClient *consul.Client
-    registry     registry.Discovery
+package data
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "time"
+    
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v2/registry"
+    "github.com/go-kratos/kratos/v2/transport/http"
+    
+    "your-project/internal/biz"
+)
+
+type PricingClient struct {
+    client *http.Client
+    discovery registry.Discovery
+    logger *log.Helper
 }
 
-func (c *ConsulServiceClient) CallUserService(ctx context.Context, req *pb.GetUserRequest) (*pb.User, error) {
-    // Discover service
-    instances, err := c.registry.GetService(ctx, "user-service")
+func NewPricingClient(discovery registry.Discovery, logger log.Logger) biz.PricingRepo {
+    return &PricingClient{
+        client: &http.Client{
+            Timeout: 5 * time.Second,
+        },
+        discovery: discovery,
+        logger: log.NewHelper(logger),
+    }
+}
+
+func (p *PricingClient) GetProductPrice(ctx context.Context, productID, warehouseID string) (*biz.ProductPrice, error) {
+    // Discover pricing service
+    services, err := p.discovery.GetService(ctx, "pricing-service")
+    if err != nil {
+        return nil, fmt.Errorf("failed to discover pricing service: %w", err)
+    }
+    
+    if len(services) == 0 {
+        return nil, fmt.Errorf("no pricing service instances available")
+    }
+    
+    // Use first available instance (could implement load balancing)
+    instance := services[0]
+    baseURL := fmt.Sprintf("http://%s", instance.Endpoints[0])
+    
+    // Make HTTP request
+    url := fmt.Sprintf("%s/v1/pricing/products/%s/price?warehouseId=%s", 
+        baseURL, productID, warehouseID)
+    
+    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
     if err != nil {
         return nil, err
     }
     
-    // Load permissions from Consul KV
-    permissions, err := c.loadServicePermissions("catalog-service", "user-service")
+    // Add service-to-service headers
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("X-Service-Name", "catalog-service")
+    req.Header.Set("X-Service-Version", "v1.0.0")
+    
+    resp, err := p.client.Do(req)
     if err != nil {
+        return nil, fmt.Errorf("failed to call pricing service: %w", err)
+    }
+    defer resp.Body.Close()
+    
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("pricing service returned status %d", resp.StatusCode)
+    }
+    
+    var response struct {
+        Success bool `json:"success"`
+        Data    struct {
+            Pricing biz.ProductPrice `json:"pricing"`
+        } `json:"data"`
+    }
+    
+    if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
         return nil, err
     }
     
-    // Generate service token
-    token, err := c.generateServiceToken("catalog-service", "user-service", permissions)
-    if err != nil {
-        return nil, err
+    if !response.Success {
+        return nil, fmt.Errorf("pricing service returned error")
     }
     
-    // Create gRPC connection
+    p.logger.WithContext(ctx).Infof("Retrieved price for product %s: $%.2f", 
+        productID, response.Data.Pricing.FinalPrice)
+    
+    return &response.Data.Pricing, nil
+}
+```
+
+### 2. gRPC Client with Service Discovery
+
+#### `internal/data/inventory_client.go`
+```go
+package data
+
+import (
+    "context"
+    "fmt"
+    "time"
+    
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v2/registry"
+    "github.com/go-kratos/kratos/v2/transport/grpc"
+    "google.golang.org/grpc/metadata"
+    
+    inventoryv1 "your-project/api/inventory/v1"
+    "your-project/internal/biz"
+)
+
+type InventoryClient struct {
+    client inventoryv1.InventoryServiceClient
+    conn   *grpc.ClientConn
+    logger *log.Helper
+}
+
+func NewInventoryClient(discovery registry.Discovery, logger log.Logger) (biz.InventoryRepo, func(), error) {
+    // Create gRPC connection with service discovery
     conn, err := grpc.DialInsecure(
-        ctx,
-        grpc.WithEndpoint(instances[0].Endpoints[0]),
-        grpc.WithMiddleware(
-            middleware.Chain(
-                middleware.ServiceToken(token),
-                middleware.Tracing(),
-                middleware.Logging(),
-            ),
-        ),
+        context.Background(),
+        grpc.WithEndpoint("discovery:///warehouse-inventory-service"),
+        grpc.WithDiscovery(discovery),
+        grpc.WithTimeout(5*time.Second),
     )
     if err != nil {
-        return nil, err
-    }
-    defer conn.Close()
-    
-    // Make gRPC call
-    client := pb.NewUserServiceClient(conn)
-    return client.GetUser(ctx, req)
-}
-```
-
-### 3. Permission Validation Middleware
-```go
-func ServiceAuthMiddleware(consulClient *consul.Client) middleware.Middleware {
-    return func(handler middleware.Handler) middleware.Handler {
-        return func(ctx context.Context, req interface{}) (interface{}, error) {
-            // Extract service token from metadata
-            md, ok := metadata.FromIncomingContext(ctx)
-            if !ok {
-                return nil, errors.Unauthorized("MISSING_METADATA", "missing metadata")
-            }
-            
-            tokens := md.Get("x-service-token")
-            if len(tokens) == 0 {
-                return nil, errors.Unauthorized("MISSING_TOKEN", "missing service token")
-            }
-            
-            // Validate service token
-            claims, err := validateServiceToken(tokens[0])
-            if err != nil {
-                return nil, errors.Unauthorized("INVALID_TOKEN", err.Error())
-            }
-            
-            // Check permissions in Consul KV
-            method := getMethodFromContext(ctx)
-            path := getPathFromContext(ctx)
-            
-            if err := validateServicePermission(consulClient, claims.FromService, claims.ToService, method, path); err != nil {
-                return nil, errors.Forbidden("PERMISSION_DENIED", err.Error())
-            }
-            
-            // Add service context
-            ctx = context.WithValue(ctx, "calling_service", claims.FromService)
-            
-            return handler(ctx, req)
-        }
-    }
-}
-```
-
-## Configuration Management
-
-### 1. Multi-Source Configuration
-```yaml
-# configs/config.yaml
-server:
-  http:
-    addr: 0.0.0.0:8000
-  grpc:
-    addr: 0.0.0.0:9000
-
-consul:
-  address: localhost:8500
-  datacenter: dc1
-  health_check: true
-
-# Configuration can be overridden by:
-# 1. Environment variables (CATALOG_SERVER_HTTP_ADDR)
-# 2. Consul KV (service-config/catalog-service)
-```
-
-### 2. Consul KV Configuration
-```bash
-# Store service-specific config in Consul KV
-consul kv put service-config/catalog-service/database/max_connections "100"
-consul kv put service-config/catalog-service/cache/ttl "300s"
-consul kv put service-config/catalog-service/features/new_feature_enabled "true"
-```
-
-### 3. Dynamic Configuration Updates
-```go
-func (s *CatalogService) watchConfigUpdates() {
-    // Watch for configuration changes
-    watchParams := map[string]interface{}{
-        "type":   "keyprefix",
-        "prefix": "service-config/catalog-service/",
+        return nil, nil, err
     }
     
-    plan, err := consul.NewWatchPlan(watchParams)
-    if err != nil {
-        s.log.Error("Failed to create config watch plan", err)
-        return
-    }
+    client := inventoryv1.NewInventoryServiceClient(conn)
     
-    plan.Handler = func(idx uint64, data interface{}) {
-        if kvPairs, ok := data.(consul.KVPairs); ok {
-            s.updateConfiguration(kvPairs)
-        }
-    }
-    
-    go plan.Run(s.consulClient.Address())
-}
-```
-
-## Service Permission Matrix Integration
-
-### 1. Permission Storage in Consul KV
-```bash
-# Store service permissions
-consul kv put service-permissions/catalog-service/user-service '{
-  "permissions": ["user:read", "user:validate"],
-  "endpoints": [
-    {"path": "/api/v1/users/{id}", "methods": ["GET"]},
-    {"path": "/api/v1/users/validate", "methods": ["POST"]}
-  ],
-  "rate_limit": 1000,
-  "timeout": "30s",
-  "circuit_breaker": {
-    "failure_threshold": 5,
-    "recovery_timeout": "60s"
-  }
-}'
-```
-
-### 2. Permission Loading and Caching
-```go
-type PermissionManager struct {
-    consulClient *consul.Client
-    cache        map[string]*ServicePermission
-    cacheTTL     time.Duration
-    mutex        sync.RWMutex
-}
-
-func (pm *PermissionManager) GetServicePermissions(fromService, toService string) (*ServicePermission, error) {
-    key := fmt.Sprintf("%s->%s", fromService, toService)
-    
-    // Check cache first
-    pm.mutex.RLock()
-    if perm, exists := pm.cache[key]; exists {
-        pm.mutex.RUnlock()
-        return perm, nil
-    }
-    pm.mutex.RUnlock()
-    
-    // Load from Consul KV
-    consulKey := fmt.Sprintf("service-permissions/%s/%s", fromService, toService)
-    kvPair, _, err := pm.consulClient.KV().Get(consulKey, nil)
-    if err != nil {
-        return nil, err
-    }
-    
-    if kvPair == nil {
-        return nil, fmt.Errorf("no permissions found for %s -> %s", fromService, toService)
-    }
-    
-    var permission ServicePermission
-    if err := json.Unmarshal(kvPair.Value, &permission); err != nil {
-        return nil, err
-    }
-    
-    // Cache the permission
-    pm.mutex.Lock()
-    pm.cache[key] = &permission
-    pm.mutex.Unlock()
-    
-    return &permission, nil
-}
-```
-
-## Monitoring and Observability
-
-### 1. Kratos Built-in Metrics
-```go
-// Metrics are automatically collected for:
-// - HTTP request duration and count
-// - gRPC request duration and count
-// - Database query duration
-// - Cache hit/miss rates
-// - Service discovery latency
-```
-
-### 2. Consul Health Monitoring
-```go
-// Health check endpoint
-func (s *CatalogService) Health(ctx context.Context, req *emptypb.Empty) (*pb.HealthResponse, error) {
-    // Check database connectivity
-    if err := s.data.DB.Ping(); err != nil {
-        return &pb.HealthResponse{Status: "unhealthy", Message: "database unavailable"}, nil
-    }
-    
-    // Check Redis connectivity
-    if err := s.data.Redis.Ping(ctx).Err(); err != nil {
-        return &pb.HealthResponse{Status: "unhealthy", Message: "redis unavailable"}, nil
-    }
-    
-    // Check Consul connectivity
-    if _, err := s.consulClient.Agent().Self(); err != nil {
-        return &pb.HealthResponse{Status: "unhealthy", Message: "consul unavailable"}, nil
-    }
-    
-    return &pb.HealthResponse{
-        Status:    "healthy",
-        Timestamp: timestamppb.Now(),
-        Service:   "catalog-service",
-        Version:   "v1.0.0",
+    return &InventoryClient{
+        client: client,
+        conn:   conn,
+        logger: log.NewHelper(logger),
+    }, func() {
+        conn.Close()
     }, nil
 }
-```
 
-### 3. Distributed Tracing
-```go
-// Tracing is automatically enabled for:
-// - HTTP requests
-// - gRPC calls
-// - Database queries
-// - Redis operations
-// - Service-to-service calls
-// - Consul operations
-```
-
-## Deployment Considerations
-
-### 1. Kubernetes Integration
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: catalog-service
-spec:
-  template:
-    spec:
-      containers:
-      - name: catalog-service
-        image: catalog-service:v1.0.0
-        env:
-        - name: CATALOG_CONSUL_ADDRESS
-          value: "consul.consul.svc.cluster.local:8500"
-        ports:
-        - containerPort: 8000
-          name: http
-        - containerPort: 9000
-          name: grpc
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-```
-
-### 2. Service Mesh Integration
-```yaml
-# Optional: Consul Connect for automatic mTLS
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: consul-connect-config
-data:
-  config.hcl: |
-    connect {
-      enabled = true
+func (i *InventoryClient) CheckStock(ctx context.Context, productID, warehouseID string, quantity int32) (*biz.StockInfo, error) {
+    // Add service-to-service metadata
+    ctx = metadata.AppendToOutgoingContext(ctx,
+        "x-service-name", "catalog-service",
+        "x-service-version", "v1.0.0",
+        "x-request-id", generateRequestID(),
+    )
+    
+    req := &inventoryv1.CheckStockRequest{
+        ProductId:   productID,
+        WarehouseId: warehouseID,
+        Quantity:    quantity,
     }
     
-    ports {
-      grpc = 8502
+    resp, err := i.client.CheckStock(ctx, req)
+    if err != nil {
+        i.logger.WithContext(ctx).Errorf("Failed to check stock: %v", err)
+        return nil, fmt.Errorf("failed to check stock: %w", err)
     }
+    
+    stockInfo := &biz.StockInfo{
+        ProductID:   resp.ProductId,
+        WarehouseID: resp.WarehouseId,
+        Available:   resp.Available,
+        Reserved:    resp.Reserved,
+        InStock:     resp.InStock,
+    }
+    
+    i.logger.WithContext(ctx).Infof("Stock check for product %s: available=%d, in_stock=%t", 
+        productID, resp.Available, resp.InStock)
+    
+    return stockInfo, nil
+}
+
+func generateRequestID() string {
+    return fmt.Sprintf("req_%d", time.Now().UnixNano())
+}
 ```
 
-## Benefits Summary
+### 3. Circuit Breaker Pattern
 
-### 1. **Development Experience**
-- **Code Generation**: Protobuf-first API development
-- **Hot Reload**: Configuration updates without restart
-- **Type Safety**: Compile-time dependency injection
-- **Testing**: Built-in testing framework
+#### `internal/data/resilient_client.go`
+```go
+package data
 
-### 2. **Operational Excellence**
-- **Service Discovery**: Automatic service registration and discovery
-- **Health Monitoring**: Comprehensive health checks
-- **Configuration Management**: Centralized and dynamic configuration
-- **Observability**: Built-in metrics, tracing, and logging
+import (
+    "context"
+    "fmt"
+    "time"
+    
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/sony/gobreaker"
+)
 
-### 3. **Security**
-- **Zero Trust**: Service-to-service authentication and authorization
-- **Permission Matrix**: Centralized access control
-- **mTLS**: Optional automatic mutual TLS via Consul Connect
-- **Audit Trail**: Comprehensive security logging
+type ResilientClient struct {
+    client    *http.Client
+    breaker   *gobreaker.CircuitBreaker
+    logger    *log.Helper
+}
 
-### 4. **Performance**
-- **gRPC**: High-performance internal communication
-- **Connection Pooling**: Efficient resource utilization
-- **Caching**: Multi-level caching strategy
-- **Circuit Breaker**: Automatic failure isolation
+func NewResilientClient(serviceName string, logger log.Logger) *ResilientClient {
+    // Circuit breaker settings
+    settings := gobreaker.Settings{
+        Name:        serviceName,
+        MaxRequests: 3,
+        Interval:    10 * time.Second,
+        Timeout:     30 * time.Second,
+        ReadyToTrip: func(counts gobreaker.Counts) bool {
+            failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+            return counts.Requests >= 3 && failureRatio >= 0.6
+        },
+        OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+            log.NewHelper(logger).Infof("Circuit breaker %s changed from %s to %s", name, from, to)
+        },
+    }
+    
+    return &ResilientClient{
+        client: &http.Client{
+            Timeout: 5 * time.Second,
+        },
+        breaker: gobreaker.NewCircuitBreaker(settings),
+        logger:  log.NewHelper(logger),
+    }
+}
 
-This Kratos + Consul integration provides a modern, cloud-native foundation for building scalable, secure, and observable microservices.
+func (r *ResilientClient) CallService(ctx context.Context, url string) ([]byte, error) {
+    result, err := r.breaker.Execute(func() (interface{}, error) {
+        req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+        if err != nil {
+            return nil, err
+        }
+        
+        resp, err := r.client.Do(req)
+        if err != nil {
+            return nil, err
+        }
+        defer resp.Body.Close()
+        
+        if resp.StatusCode >= 500 {
+            return nil, fmt.Errorf("server error: %d", resp.StatusCode)
+        }
+        
+        body, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+            return nil, err
+        }
+        
+        return body, nil
+    })
+    
+    if err != nil {
+        r.logger.WithContext(ctx).Errorf("Service call failed: %v", err)
+        return nil, err
+    }
+    
+    return result.([]byte), nil
+}
+```
+
+---
+
+## 📨 Event Schemas for Remaining Services
+
+### 1. Promotion Service Events
+
+#### `examples/implementation-samples/event-schemas/promotion/promotion-created.json`
+```json
+{
+  "eventType": "PromotionCreated",
+  "version": "1.0",
+  "schema": {
+    "type": "object",
+    "required": ["promotionId", "name", "type", "rules", "effectiveFrom", "effectiveTo"],
+    "properties": {
+      "promotionId": {
+        "type": "string",
+        "description": "Unique promotion identifier"
+      },
+      "name": {
+        "type": "string",
+        "description": "Promotion name"
+      },
+      "type": {
+        "type": "string",
+        "enum": ["percentage", "fixed_amount", "buy_x_get_y", "free_shipping"],
+        "description": "Type of promotion"
+      },
+      "rules": {
+        "type": "object",
+        "properties": {
+          "conditions": {
+            "type": "object",
+            "properties": {
+              "minOrderAmount": {"type": "number"},
+              "productIds": {"type": "array", "items": {"type": "string"}},
+              "categoryIds": {"type": "array", "items": {"type": "string"}},
+              "warehouseIds": {"type": "array", "items": {"type": "string"}},
+              "customerTiers": {"type": "array", "items": {"type": "string"}}
+            }
+          },
+          "actions": {
+            "type": "object",
+            "properties": {
+              "discountValue": {"type": "number"},
+              "maxDiscountAmount": {"type": "number"},
+              "freeShipping": {"type": "boolean"}
+            }
+          }
+        }
+      },
+      "effectiveFrom": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "effectiveTo": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "status": {
+        "type": "string",
+        "enum": ["active", "inactive", "expired"]
+      },
+      "createdBy": {
+        "type": "string"
+      },
+      "createdAt": {
+        "type": "string",
+        "format": "date-time"
+      }
+    }
+  },
+  "example": {
+    "eventId": "evt_promo_123",
+    "eventType": "PromotionCreated",
+    "version": "1.0",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "source": "promotion-service",
+    "data": {
+      "promotionId": "promo_001",
+      "name": "Holiday Sale 20% Off",
+      "type": "percentage",
+      "rules": {
+        "conditions": {
+          "minOrderAmount": 100.00,
+          "categoryIds": ["cat_electronics"],
+          "warehouseIds": ["WH001", "WH002"]
+        },
+        "actions": {
+          "discountValue": 20,
+          "maxDiscountAmount": 200.00
+        }
+      },
+      "effectiveFrom": "2024-12-01T00:00:00Z",
+      "effectiveTo": "2024-12-31T23:59:59Z",
+      "status": "active",
+      "createdBy": "admin_user_123",
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+```
+
+#### `examples/implementation-samples/event-schemas/promotion/promotion-applied.json`
+```json
+{
+  "eventType": "PromotionApplied",
+  "version": "1.0",
+  "schema": {
+    "type": "object",
+    "required": ["promotionId", "orderId", "customerId", "discountAmount"],
+    "properties": {
+      "promotionId": {"type": "string"},
+      "orderId": {"type": "string"},
+      "customerId": {"type": "string"},
+      "discountAmount": {"type": "number"},
+      "originalAmount": {"type": "number"},
+      "finalAmount": {"type": "number"},
+      "appliedAt": {"type": "string", "format": "date-time"}
+    }
+  }
+}
+```
+
+### 2. Shipping Service Events
+
+#### `examples/implementation-samples/event-schemas/shipping/shipment-created.json`
+```json
+{
+  "eventType": "ShipmentCreated",
+  "version": "1.0",
+  "schema": {
+    "type": "object",
+    "required": ["shipmentId", "orderId", "fulfillmentEntity", "items"],
+    "properties": {
+      "shipmentId": {"type": "string"},
+      "orderId": {"type": "string"},
+      "fulfillmentEntity": {
+        "type": "object",
+        "properties": {
+          "type": {"type": "string", "enum": ["warehouse", "store", "dropship", "3pl"]},
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "address": {"type": "object"}
+        }
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "productId": {"type": "string"},
+            "sku": {"type": "string"},
+            "quantity": {"type": "integer"}
+          }
+        }
+      },
+      "carrier": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "service": {"type": "string"},
+          "trackingNumber": {"type": "string"}
+        }
+      },
+      "estimatedDelivery": {"type": "string", "format": "date-time"},
+      "createdAt": {"type": "string", "format": "date-time"}
+    }
+  }
+}
+```
+
+### 3. Customer Service Events
+
+#### `examples/implementation-samples/event-schemas/customer/customer-updated.json`
+```json
+{
+  "eventType": "CustomerUpdated",
+  "version": "1.0",
+  "schema": {
+    "type": "object",
+    "required": ["customerId", "changes"],
+    "properties": {
+      "customerId": {"type": "string"},
+      "changes": {
+        "type": "object",
+        "properties": {
+          "profile": {"type": "object"},
+          "tier": {"type": "string"},
+          "preferences": {"type": "object"},
+          "addresses": {"type": "array"}
+        }
+      },
+      "updatedBy": {"type": "string"},
+      "updatedAt": {"type": "string", "format": "date-time"}
+    }
+  }
+}
+```
+
+### 4. Review Service Events
+
+#### `examples/implementation-samples/event-schemas/review/review-submitted.json`
+```json
+{
+  "eventType": "ReviewSubmitted",
+  "version": "1.0",
+  "schema": {
+    "type": "object",
+    "required": ["reviewId", "productId", "customerId", "rating"],
+    "properties": {
+      "reviewId": {"type": "string"},
+      "productId": {"type": "string"},
+      "customerId": {"type": "string"},
+      "rating": {"type": "integer", "minimum": 1, "maximum": 5},
+      "title": {"type": "string"},
+      "content": {"type": "string"},
+      "status": {"type": "string", "enum": ["pending", "approved", "rejected"]},
+      "submittedAt": {"type": "string", "format": "date-time"}
+    }
+  }
+}
+```
+
+---
+
+## 🚨 Error Handling Patterns
+
+### 1. Standardized Error Response Format
+
+#### `internal/errors/errors.go`
+```go
+package errors
+
+import (
+    "fmt"
+    "net/http"
+    
+    "github.com/go-kratos/kratos/v2/errors"
+)
+
+// Standard error codes
+const (
+    // Client errors (4xx)
+    ErrorReasonBadRequest     = "BAD_REQUEST"
+    ErrorReasonUnauthorized   = "UNAUTHORIZED"
+    ErrorReasonForbidden      = "FORBIDDEN"
+    ErrorReasonNotFound       = "NOT_FOUND"
+    ErrorReasonConflict       = "CONFLICT"
+    ErrorReasonValidation     = "VALIDATION_ERROR"
+    ErrorReasonRateLimit      = "RATE_LIMITED"
+    
+    // Server errors (5xx)
+    ErrorReasonInternal       = "INTERNAL_ERROR"
+    ErrorReasonServiceUnavailable = "SERVICE_UNAVAILABLE"
+    ErrorReasonTimeout        = "TIMEOUT"
+    ErrorReasonDependencyFailed = "DEPENDENCY_FAILED"
+)
+
+// Error response structure
+type ErrorResponse struct {
+    Success bool                   `json:"success"`
+    Error   *ErrorDetail          `json:"error"`
+    Meta    map[string]interface{} `json:"meta,omitempty"`
+}
+
+type ErrorDetail struct {
+    Code    string                 `json:"code"`
+    Message string                 `json:"message"`
+    Details map[string]interface{} `json:"details,omitempty"`
+}
+
+// Standard error constructors
+func BadRequest(reason, message string) *errors.Error {
+    return errors.BadRequest(reason, message)
+}
+
+func NotFound(reason, message string) *errors.Error {
+    return errors.NotFound(reason, message)
+}
+
+func Internal(reason, message string) *errors.Error {
+    return errors.InternalServer(reason, message)
+}
+
+func ServiceUnavailable(reason, message string) *errors.Error {
+    return errors.ServiceUnavailable(reason, message)
+}
+
+// Validation error with field details
+func ValidationError(message string, fieldErrors map[string]string) *errors.Error {
+    err := errors.BadRequest(ErrorReasonValidation, message)
+    err = err.WithMetadata(map[string]interface{}{
+        "field_errors": fieldErrors,
+    })
+    return err
+}
+
+// Dependency service error
+func DependencyError(service, operation string, cause error) *errors.Error {
+    return errors.ServiceUnavailable(
+        ErrorReasonDependencyFailed,
+        fmt.Sprintf("Failed to call %s service for %s: %v", service, operation, cause),
+    ).WithMetadata(map[string]interface{}{
+        "dependency_service": service,
+        "operation": operation,
+        "cause": cause.Error(),
+    })
+}
+```
+
+### 2. Error Handling Middleware
+
+#### `internal/middleware/error_handler.go`
+```go
+package middleware
+
+import (
+    "context"
+    "encoding/json"
+    "net/http"
+    "time"
+    
+    "github.com/go-kratos/kratos/v2/errors"
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v2/middleware"
+    "github.com/go-kratos/kratos/v2/transport"
+    
+    apperrors "your-project/internal/errors"
+)
+
+func ErrorHandler(logger log.Logger) middleware.Middleware {
+    return func(handler middleware.Handler) middleware.Handler {
+        return func(ctx context.Context, req interface{}) (interface{}, error) {
+            reply, err := handler(ctx, req)
+            if err != nil {
+                // Log error with context
+                logError(ctx, err, logger)
+                
+                // Convert to standard error format
+                if tr, ok := transport.FromServerContext(ctx); ok {
+                    if tr.Kind() == transport.KindHTTP {
+                        return reply, handleHTTPError(err)
+                    }
+                }
+                
+                // Return gRPC error as-is
+                return reply, err
+            }
+            return reply, nil
+        }
+    }
+}
+
+func logError(ctx context.Context, err error, logger log.Logger) {
+    helper := log.NewHelper(logger)
+    
+    if se := errors.FromError(err); se != nil {
+        helper.WithContext(ctx).Errorw(
+            "msg", "Request failed",
+            "error", se.Message,
+            "code", se.Reason,
+            "status", se.Code,
+            "metadata", se.Metadata,
+        )
+    } else {
+        helper.WithContext(ctx).Errorw(
+            "msg", "Request failed",
+            "error", err.Error(),
+        )
+    }
+}
+
+func handleHTTPError(err error) error {
+    se := errors.FromError(err)
+    if se == nil {
+        // Unknown error, return as internal server error
+        return errors.InternalServer("INTERNAL_ERROR", "An unexpected error occurred")
+    }
+    
+    // Map Kratos error codes to HTTP status codes
+    var httpStatus int
+    switch se.Code {
+    case 400:
+        httpStatus = http.StatusBadRequest
+    case 401:
+        httpStatus = http.StatusUnauthorized
+    case 403:
+        httpStatus = http.StatusForbidden
+    case 404:
+        httpStatus = http.StatusNotFound
+    case 409:
+        httpStatus = http.StatusConflict
+    case 429:
+        httpStatus = http.StatusTooManyRequests
+    case 500:
+        httpStatus = http.StatusInternalServerError
+    case 503:
+        httpStatus = http.StatusServiceUnavailable
+    default:
+        httpStatus = http.StatusInternalServerError
+    }
+    
+    return errors.New(httpStatus, se.Reason, se.Message).WithMetadata(se.Metadata)
+}
+```
+
+### 3. Service-Specific Error Handling
+
+#### `internal/service/catalog_service.go`
+```go
+package service
+
+import (
+    "context"
+    "fmt"
+    
+    "github.com/go-kratos/kratos/v2/log"
+    
+    pb "your-project/api/catalog/v1"
+    "your-project/internal/biz"
+    apperrors "your-project/internal/errors"
+)
+
+type CatalogService struct {
+    pb.UnimplementedCatalogServer
+    
+    catalog biz.CatalogUsecase
+    logger  *log.Helper
+}
+
+func NewCatalogService(catalog biz.CatalogUsecase, logger log.Logger) *CatalogService {
+    return &CatalogService{
+        catalog: catalog,
+        logger:  log.NewHelper(logger),
+    }
+}
+
+func (s *CatalogService) GetProduct(ctx context.Context, req *pb.GetProductRequest) (*pb.GetProductReply, error) {
+    // Validate request
+    if req.ProductId == "" {
+        return nil, apperrors.ValidationError("Product ID is required", map[string]string{
+            "product_id": "This field is required",
+        })
+    }
+    
+    // Get product from business layer
+    product, err := s.catalog.GetProduct(ctx, req.ProductId)
+    if err != nil {
+        // Handle different types of business errors
+        switch {
+        case biz.IsNotFound(err):
+            return nil, apperrors.NotFound("PRODUCT_NOT_FOUND", 
+                fmt.Sprintf("Product with ID %s not found", req.ProductId))
+        case biz.IsValidationError(err):
+            return nil, apperrors.ValidationError(err.Error(), nil)
+        case biz.IsDependencyError(err):
+            return nil, apperrors.DependencyError("pricing-service", "get_price", err)
+        default:
+            s.logger.WithContext(ctx).Errorf("Failed to get product %s: %v", req.ProductId, err)
+            return nil, apperrors.Internal("INTERNAL_ERROR", "Failed to retrieve product")
+        }
+    }
+    
+    // Convert to protobuf response
+    return &pb.GetProductReply{
+        Product: convertToProductPB(product),
+    }, nil
+}
+
+func (s *CatalogService) CreateProduct(ctx context.Context, req *pb.CreateProductRequest) (*pb.CreateProductReply, error) {
+    // Validate request
+    if err := validateCreateProductRequest(req); err != nil {
+        return nil, err
+    }
+    
+    // Convert from protobuf
+    product := convertFromProductPB(req.Product)
+    
+    // Create product
+    createdProduct, err := s.catalog.CreateProduct(ctx, product)
+    if err != nil {
+        switch {
+        case biz.IsConflictError(err):
+            return nil, apperrors.Conflict("PRODUCT_EXISTS", 
+                fmt.Sprintf("Product with SKU %s already exists", req.Product.Sku))
+        case biz.IsValidationError(err):
+            return nil, apperrors.ValidationError(err.Error(), nil)
+        default:
+            s.logger.WithContext(ctx).Errorf("Failed to create product: %v", err)
+            return nil, apperrors.Internal("INTERNAL_ERROR", "Failed to create product")
+        }
+    }
+    
+    return &pb.CreateProductReply{
+        Product: convertToProductPB(createdProduct),
+    }, nil
+}
+
+func validateCreateProductRequest(req *pb.CreateProductRequest) error {
+    fieldErrors := make(map[string]string)
+    
+    if req.Product == nil {
+        return apperrors.BadRequest("BAD_REQUEST", "Product data is required")
+    }
+    
+    if req.Product.Sku == "" {
+        fieldErrors["sku"] = "SKU is required"
+    }
+    
+    if req.Product.Name == "" {
+        fieldErrors["name"] = "Product name is required"
+    }
+    
+    if req.Product.CategoryId == "" {
+        fieldErrors["category_id"] = "Category ID is required"
+    }
+    
+    if len(fieldErrors) > 0 {
+        return apperrors.ValidationError("Validation failed", fieldErrors)
+    }
+    
+    return nil
+}
+```
+
+### 4. Retry and Timeout Patterns
+
+#### `internal/data/resilient_repository.go`
+```go
+package data
+
+import (
+    "context"
+    "time"
+    
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/cenkalti/backoff/v4"
+    
+    "your-project/internal/biz"
+    apperrors "your-project/internal/errors"
+)
+
+type ResilientRepository struct {
+    repo   biz.ProductRepo
+    logger *log.Helper
+}
+
+func NewResilientRepository(repo biz.ProductRepo, logger log.Logger) biz.ProductRepo {
+    return &ResilientRepository{
+        repo:   repo,
+        logger: log.NewHelper(logger),
+    }
+}
+
+func (r *ResilientRepository) GetProduct(ctx context.Context, id string) (*biz.Product, error) {
+    var product *biz.Product
+    var err error
+    
+    // Exponential backoff configuration
+    backoffConfig := backoff.NewExponentialBackOff()
+    backoffConfig.InitialInterval = 100 * time.Millisecond
+    backoffConfig.MaxInterval = 2 * time.Second
+    backoffConfig.MaxElapsedTime = 10 * time.Second
+    
+    operation := func() error {
+        product, err = r.repo.GetProduct(ctx, id)
+        if err != nil {
+            // Don't retry on certain errors
+            if biz.IsNotFound(err) || biz.IsValidationError(err) {
+                return backoff.Permanent(err)
+            }
+            
+            r.logger.WithContext(ctx).Warnf("Retrying get product %s due to error: %v", id, err)
+            return err
+        }
+        return nil
+    }
+    
+    if err := backoff.Retry(operation, backoff.WithContext(backoffConfig, ctx)); err != nil {
+        r.logger.WithContext(ctx).Errorf("Failed to get product %s after retries: %v", id, err)
+        return nil, err
+    }
+    
+    return product, nil
+}
+
+func (r *ResilientRepository) CreateProduct(ctx context.Context, product *biz.Product) (*biz.Product, error) {
+    // Add timeout for create operations
+    ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+    defer cancel()
+    
+    createdProduct, err := r.repo.CreateProduct(ctx, product)
+    if err != nil {
+        if ctx.Err() == context.DeadlineExceeded {
+            return nil, apperrors.ServiceUnavailable("TIMEOUT", "Product creation timed out")
+        }
+        return nil, err
+    }
+    
+    return createdProduct, nil
+}
+```
+
+---
+
+## 📋 Integration Checklist
+
+### For Each Service Implementation:
+
+#### ✅ Kratos + Consul Integration
+- [ ] Add Consul configuration to `configs/config.yaml`
+- [ ] Implement service registration in `cmd/server/main.go`
+- [ ] Add health check endpoint
+- [ ] Configure service metadata and tags
+- [ ] Implement graceful shutdown
+
+#### ✅ Service-to-Service Communication
+- [ ] Implement HTTP client with service discovery
+- [ ] Implement gRPC client with service discovery
+- [ ] Add circuit breaker pattern
+- [ ] Add retry logic with exponential backoff
+- [ ] Add request/response logging
+
+#### ✅ Event Schema Definition
+- [ ] Define all published events with JSON Schema
+- [ ] Define all subscribed events
+- [ ] Add event versioning strategy
+- [ ] Implement event validation
+- [ ] Add event examples and documentation
+
+#### ✅ Error Handling
+- [ ] Implement standardized error responses
+- [ ] Add error handling middleware
+- [ ] Add service-specific error handling
+- [ ] Implement retry and timeout patterns
+- [ ] Add error logging and monitoring
+
+---
+
+This comprehensive integration guide provides the foundation for implementing Kratos + Consul integration, service-to-service communication, event schemas, and error handling patterns across all remaining services. Each service can follow these patterns while customizing for their specific business logic.

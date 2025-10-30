@@ -1,28 +1,20 @@
 # Complete Microservices Architecture Diagram - Kratos + Consul
 
-## System Architecture Overview with Kratos Framework and Consul Integration
+## 4-Layer Cloud-Native System Architecture with Kratos Framework and Consul Integration
 
 ```mermaid
 graph TB
-    %% Presentation Layer
-    subgraph "Presentation Layer"
-        UI[Frontend/Storefront]
-        ADMIN[Admin Dashboard]
-        MOBILE[Mobile App]
-        API[API Gateway/BFF<br/>Consul Discovery]
+    %% Layer 1: Presentation Layer
+    subgraph "🎨 Layer 1: Presentation Layer"
+        UI[Frontend/Storefront<br/>React/Vue/Angular]
+        ADMIN[Admin Dashboard<br/>Internal Management]
+        MOBILE[Mobile Apps<br/>iOS/Android Flutter]
+        API[API Gateway/BFF<br/>Kong + Consul Discovery]
     end
     
-    %% Consul Service Mesh Layer
-    subgraph "Consul Service Mesh & Discovery"
-        CONSUL[Consul Cluster]
-        CONSUL_KV[Consul KV Store<br/>Service Permissions]
-        CONSUL_HEALTH[Health Checks<br/>Service Catalog]
-        CONSUL_CONNECT[Consul Connect<br/>mTLS Optional]
-    end
-    
-    %% Application Services Layer (Kratos)
-    subgraph "Application Services Layer (Kratos Framework)"
-        subgraph "Core Business Services"
+    %% Layer 2: Application Services Layer
+    subgraph "🏢 Layer 2: Application Services Layer (Kratos Framework)"
+        subgraph "Business Logic Services (11 services)"
             CAT[Catalog & CMS Service<br/>gRPC:9001 HTTP:8001]
             PRICE[Pricing Service<br/>gRPC:9002 HTTP:8002]
             PROMO[Promotion Service<br/>gRPC:9003 HTTP:8003]
@@ -37,24 +29,45 @@ graph TB
         end
     end
     
-    %% Infrastructure Services Layer (Kratos)
-    subgraph "Infrastructure Services Layer (Kratos Framework)"
-        AUTH[Auth Service IAM<br/>gRPC:9000 HTTP:8000<br/>Consul Permission Matrix]
-        USER[User Service<br/>gRPC:9012 HTTP:8012]
-        SEARCH[Search Service<br/>gRPC:9013 HTTP:8013]
-        NOTIF[Notification Service<br/>gRPC:9014 HTTP:8014]
-        CACHE[Cache Layer<br/>Redis]
-        STORAGE[File Storage/CDN]
-        MONITOR[Monitoring & Logging<br/>Prometheus + Jaeger]
+    %% Layer 3: Infrastructure Services Layer
+    subgraph "🔧 Layer 3: Infrastructure Services Layer (Kratos Framework)"
+        subgraph "Infrastructure Services (4 services)"
+            AUTH[Auth Service IAM<br/>gRPC:9000 HTTP:8000<br/>JWT + Consul Permissions]
+            USER[User Service<br/>gRPC:9012 HTTP:8012]
+            SEARCH[Search Service<br/>gRPC:9013 HTTP:8013<br/>Elasticsearch]
+            NOTIF[Notification Service<br/>gRPC:9014 HTTP:8014<br/>Email/SMS/Push]
+        end
     end
     
-    %% Dapr Event-Driven Runtime Layer
-    subgraph "Dapr Event-Driven Runtime"
-        DAPR_PUBSUB[Dapr Pub/Sub<br/>Redis Backend]
-        DAPR_STATE[Dapr State Store<br/>Redis Backend]
-        DAPR_INVOKE[Dapr Service Invocation]
-        DAPR_BINDINGS[Dapr Bindings]
-        DAPR_SECRETS[Dapr Secrets]
+    %% Layer 4: Platform & Runtime Layer
+    subgraph "☁️ Layer 4: Platform & Runtime Layer (Cloud-Native Infrastructure)"
+        subgraph "Event-Driven Runtime (Dapr)"
+            DAPR_PUBSUB[Dapr Pub/Sub<br/>Redis Streams Backend]
+            DAPR_STATE[Dapr State Store<br/>Redis Backend]
+            DAPR_INVOKE[Dapr Service Invocation<br/>mTLS Communication]
+            DAPR_SECRETS[Dapr Secrets<br/>HashiCorp Vault]
+        end
+        
+        subgraph "Service Mesh & Discovery (Consul)"
+            CONSUL[Consul Cluster<br/>Service Discovery]
+            CONSUL_KV[Consul KV Store<br/>Configuration Management]
+            CONSUL_CONNECT[Consul Connect<br/>Service Mesh]
+            CONSUL_HEALTH[Consul Health Checks<br/>Service Catalog]
+        end
+        
+        subgraph "Data & Storage Layer"
+            CACHE[Redis Cluster<br/>Distributed Cache]
+            STORAGE[File Storage/CDN<br/>S3/MinIO + CloudFront]
+            QUEUES[Message Queues<br/>Redis Streams]
+            DATABASES[Databases<br/>PostgreSQL + MongoDB]
+        end
+        
+        subgraph "Observability & Operations"
+            PROMETHEUS[Prometheus<br/>Metrics Collection]
+            GRAFANA[Grafana<br/>Dashboards & Visualization]
+            JAEGER[Jaeger<br/>Distributed Tracing]
+            ELK[ELK Stack<br/>Centralized Logging]
+        end
     end
     
     %% External Systems

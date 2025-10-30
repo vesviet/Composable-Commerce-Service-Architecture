@@ -7,46 +7,62 @@ This version reflects the updated architecture with **go-kratos/kratos** framewo
 ## 4-Layer Cloud-Native Architecture
 
 ### 1️⃣ Presentation Layer
-- **Frontend (Storefront/Admin)**: User interfaces
+- **Frontend (Storefront/Admin)**: User interfaces built with React/Vue/Angular
+- **Mobile Apps**: iOS/Android applications with Flutter/React Native
 - **API Gateway/BFF**: Backend for Frontend, request routing with Consul service discovery
+- **Admin Dashboard**: Internal management interfaces
 
 ### 2️⃣ Application Services Layer (Kratos Framework)
 Core business logic services built with **go-kratos/kratos**:
 
+**Business Logic Services (11 services):**
 - **Catalog & CMS Service**: Manages product catalog, categories, brands, and content management
 - **Pricing Service**: Calculates final product prices based on SKU + Warehouse configuration
 - **Promotion Service**: Handles promotions and discount rules per SKU + Warehouse
-- **Warehouse & Inventory Service**: Manages warehouses and inventory
-- **Order Service**: Processes orders
+- **Order Service**: Processes orders and manages order lifecycle
 - **Payment Service**: Handles payment processing and transactions
-- **Shipping Service**: Manages shipping and fulfillment
-- **Customer Service**: Manages customer information
+- **Shipping Service**: Manages shipping and fulfillment entities
+- **Customer Service**: Manages customer information and profiles
 - **Review Service**: Manages product reviews and ratings
+- **Warehouse & Inventory Service**: Manages warehouses and inventory
 - **Analytics & Reporting Service**: Provides business intelligence and data analytics
 - **Loyalty & Rewards Service**: Manages customer loyalty programs and rewards
 
-### 3️⃣ Shared & Infrastructure Services (Kratos Framework)
-Supporting ecosystem services:
+### 3️⃣ Infrastructure Services Layer (Kratos Framework)
+Supporting ecosystem services built with **go-kratos/kratos**:
 
+**Infrastructure Services (4 services):**
 - **Auth Service (IAM)**: High-performance authentication and authorization with Consul permission matrix
 - **User Service**: Internal user management and permissions
-- **Notification Service**: Multi-channel notifications
-- **Search Service**: Fast product and content search
-- **Cache Layer**: Performance optimization with Redis
-- **File Storage/CDN**: Media and static content delivery
-- **Monitoring & Logging**: System observability with Prometheus + Jaeger
+- **Search Service**: Fast product and content search with Elasticsearch
+- **Notification Service**: Multi-channel notifications (Email, SMS, Push)
 
-### 4️⃣ Event-Driven Runtime Layer (Dapr)
-Portable event-driven runtime:
+### 4️⃣ Platform & Runtime Layer (Cloud-Native Infrastructure)
+Cloud-native platform components and runtime infrastructure:
 
-- **Dapr Pub/Sub**: Event-driven messaging with Redis backend
-- **Dapr State Store**: Distributed state management
-- **Dapr Service Invocation**: Service-to-service communication
-- **Dapr Bindings**: External system integration
-- **Dapr Secrets**: Secure secret management
+**Event-Driven Runtime (Dapr):**
+- **Event Bus (Dapr Pub/Sub)**: Event-driven messaging with Redis Streams backend
+- **State Management**: Dapr state store with Redis backend
+- **Service Invocation**: Dapr service-to-service communication with mTLS
+- **Secrets Management**: Dapr secrets with HashiCorp Vault integration
 
-### 5️⃣ Service Mesh & Discovery Layer (Consul)
-Cloud-native infrastructure services:
+**Service Mesh & Discovery (Consul):**
+- **Service Discovery**: Consul service registry and health checking
+- **Configuration Management**: Consul KV store for dynamic configuration
+- **Service Mesh**: Consul Connect for secure service communication
+- **Health Monitoring**: Consul health checks and service catalog
+
+**Data & Storage Layer:**
+- **Cache Layer**: Redis Cluster for performance optimization
+- **File Storage/CDN**: S3/MinIO + CloudFront for media and static content
+- **Message Queues**: Redis Streams for event streaming
+- **Databases**: PostgreSQL, MongoDB per service requirements
+
+**Observability & Operations:**
+- **Monitoring**: Prometheus metrics collection and alerting
+- **Logging**: Centralized logging with ELK Stack (Elasticsearch, Logstash, Kibana)
+- **Tracing**: Distributed tracing with Jaeger
+- **Dashboards**: Grafana dashboards for visualization
 
 - **Consul Service Discovery**: Automatic service registration and discovery
 - **Consul KV Store**: Centralized configuration and service permission matrix

@@ -13,24 +13,31 @@ This repository contains the comprehensive documentation and architecture design
 
 ## 🏗️ Target Architecture
 
-### 3-Layer Microservices Architecture
+### 4-Layer Cloud-Native Microservices Architecture
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Presentation Layer                       │
-│  Frontend/Storefront • Admin Dashboard • Mobile App        │
+│                🎨 Layer 1: Presentation Layer               │
+│  Frontend/Storefront • Admin Dashboard • Mobile Apps       │
 │                     API Gateway/BFF                        │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
-│                Application Services Layer                   │
+│            🏢 Layer 2: Application Services Layer           │
 │  Catalog • Pricing • Promotion • Order • Payment          │
 │  Shipping • Customer • Review • Warehouse & Inventory      │
+│  Analytics • Loyalty & Rewards (11 Business Services)      │
 └─────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
-│              Infrastructure Services Layer                  │
-│  Auth • User • Search • Notification • Event Bus          │
-│  Cache • File Storage • Monitoring & Logging               │
+│           🔧 Layer 3: Infrastructure Services Layer         │
+│  Auth • User • Search • Notification (4 Services)         │
+└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│           ☁️ Layer 4: Platform & Runtime Layer              │
+│  Event Bus • Service Mesh • Cache • Storage • Monitoring   │
+│  Dapr Runtime • Consul Discovery • Observability Stack     │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+> **✅ Architecture Status**: 4-Layer Cloud-Native Architecture standardized. See [Improvement Roadmap](./IMPROVEMENT_ROADMAP.md) for implementation progress.
 
 ### 📊 Service Count
 - **Application Services**: 11 core business services
@@ -394,6 +401,6 @@ This project documentation is licensed under the MIT License - see the [LICENSE]
 
 ---
 
-**Last Updated**: August 2024  
-**Version**: 1.0  
-**Status**: Architecture Design Complete
+**Last Updated**: October 2024  
+**Version**: 1.1  
+**Status**: Documentation In Progress - [See Improvement Roadmap](./IMPROVEMENT_ROADMAP.md)
