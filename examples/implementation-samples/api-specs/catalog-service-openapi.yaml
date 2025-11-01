@@ -1,0 +1,1158 @@
+openapi: 3.0.3
+info:
+  title: Catalog & CMS Service API
+  description: |
+    Microservice for managing product catalog, categories, brands, and content management.
+    
+    **Architecture**: Hybrid EAV + Flat Table for optimal performance with 100+ product attributes.
+    
+    ## Authentication
+    - **Type**: JWT Bearer Token
+    - **Required Scopes**: `catalog:read`, `catalog:write`, `cms:read`, `cms:write`
+    
+    ## Performance Targets
+    - Product Detail: < 50ms (cached)
+    - Product Search: < 100ms
+    - Bulk Operations: < 5s/1000 items
+    
+  version: 1.0.0
+  contact:
+    name: Catalog Service Team
+    email: catalog-team@company.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.domain.com/v1/catalog
+    description: Production server
+  - url: https://staging-api.domain.com/v1/catalog
+    description: Staging server
+  - url: http://localhost:8001/v1/catalog
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /products:
+    get:
+      summary: List products with filtering and pagination
+      description: |
+        Retrieve products using the hybrid architecture:
+        - **Tier 1**: Fast filtering on flat table attributes (brand, category, color, size)
+        - **Tier 2**: Advanced filtering on EAV attributes (warranty, origin, certifications)
+        - **Performance**: Uses materialized views and multi-layer caching
+      operationId: listProducts
+      tags:
+        - Products
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: search
+          in: query
+          description: Search in product name and description
+          schema:
+            type: string
+            maxLength: 200
+        - name: category_id
+          in: query
+          description: Filter by category ID (Tier 1 - Fast)
+          schema:
+            type: integer
+            format: int64
+        - name: brand_id
+          in: query
+          description: Filter by brand ID (Tier 1 - Fast)
+          schema:
+            type: integer
+            format: int64
+        - name: color
+          in: query
+          description: Filter by color (Tier 1 - Fast)
+          schema:
+            type: string
+            enum: [black, white, red, blue, green, yellow, gray, brown, pink, purple]
+        - name: size
+          in: query
+          description: Filter by size (Tier 1 - Fast)
+          schema:
+            type: string
+        - name: material
+          in: query
+          description: Filter by material (Tier 1 - Fast)
+          schema:
+            type: string
+        - name: gender
+          in: query
+          description: Filter by gender (Tier 1 - Fast)
+          schema:
+            type: string
+            enum: [male, female, unisex]
+        - name: min_weight
+          in: query
+          description: Minimum weight in kg (Tier 1 - Fast)
+          schema:
+            type: number
+            format: float
+        - name: max_weight
+          in: query
+          description: Maximum weight in kg (Tier 1 - Fast)
+          schema:
+            type: number
+            format: float
+        - name: warranty_months
+          in: query
+          description: Minimum warranty months (Tier 2 - EAV)
+          schema:
+            type: integer
+        - name: origin_country
+          in: query
+          description: Country of origin (Tier 2 - EAV)
+          schema:
+            type: string
+        - name: is_eco_friendly
+          in: query
+          description: Eco-friendly products only (Tier 2 - EAV)
+          schema:
+            type: boolean
+        - name: sort_by
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [name, created_at, updated_at, price, weight]
+            default: created_at
+        - name: sort_order
+          in: query
+          description: Sort direction
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      summary: Create a new product
+      description: |
+        Create a product with hybrid attribute storage:
+        - **Tier 1**: Core attributes stored in flat table for performance
+        - **Tier 2**: Flexible attributes stored in EAV system
+        - **Tier 3**: Display attributes stored as JSON
+      operationId: createProduct
+      tags:
+        - Products
+      security:
+        - BearerAuth: [catalog:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Product SKU already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /products/{productId}:
+    get:
+      summary: Get product details
+      description: |
+        Retrieve complete product information using multi-layer caching:
+        - **L1 Cache**: Hot products (< 10ms)
+        - **L2 Cache**: Warm products (< 50ms)
+        - **Database**: Cold products (< 200ms)
+      operationId: getProduct
+      tags:
+        - Products
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: integer
+            format: int64
+        - name: include_attributes
+          in: query
+          description: Include EAV attributes in response
+          schema:
+            type: boolean
+            default: true
+        - name: include_specifications
+          in: query
+          description: Include JSON specifications
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Product details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      summary: Update product
+      description: Update product with intelligent attribute routing to appropriate storage tier
+      operationId: updateProduct
+      tags:
+        - Products
+      security:
+        - BearerAuth: [catalog:write]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      summary: Delete product (soft delete)
+      operationId: deleteProduct
+      tags:
+        - Products
+      security:
+        - BearerAuth: [catalog:write]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Product deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /brands:
+    get:
+      summary: List brands
+      operationId: listBrands
+      tags:
+        - Brands
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, pending]
+        - name: country_code
+          in: query
+          schema:
+            type: string
+            pattern: '^[A-Z]{2}$'
+      responses:
+        '200':
+          description: Brands retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandListResponse'
+
+    post:
+      summary: Create brand
+      operationId: createBrand
+      tags:
+        - Brands
+      security:
+        - BearerAuth: [catalog:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBrandRequest'
+      responses:
+        '201':
+          description: Brand created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandResponse'
+
+  /categories:
+    get:
+      summary: Get category hierarchy
+      operationId: listCategories
+      tags:
+        - Categories
+      parameters:
+        - name: parent_id
+          in: query
+          description: Get children of specific category (null for root categories)
+          schema:
+            type: integer
+            format: int64
+        - name: level
+          in: query
+          description: Get categories at specific level
+          schema:
+            type: integer
+            minimum: 1
+        - name: include_products_count
+          in: query
+          description: Include product count for each category
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+
+  /attributes:
+    get:
+      summary: Get product attribute definitions
+      description: |
+        Retrieve attribute definitions for the EAV system.
+        Used for dynamic form generation and validation.
+      operationId: listAttributes
+      tags:
+        - Attributes
+      parameters:
+        - name: category_id
+          in: query
+          description: Get attributes for specific category
+          schema:
+            type: integer
+            format: int64
+        - name: is_searchable
+          in: query
+          description: Filter by searchable attributes
+          schema:
+            type: boolean
+        - name: is_filterable
+          in: query
+          description: Filter by filterable attributes
+          schema:
+            type: boolean
+        - name: data_type
+          in: query
+          description: Filter by data type
+          schema:
+            type: string
+            enum: [string, integer, decimal, boolean, date, text]
+      responses:
+        '200':
+          description: Attributes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeListResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Core Product Schemas
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 123
+        sku:
+          type: string
+          example: "LAPTOP-001"
+        name:
+          type: string
+          example: "Gaming Laptop Pro"
+        description:
+          type: string
+          example: "High-performance gaming laptop with RTX graphics"
+        
+        # Tier 1: Flat Table Attributes (Performance Critical)
+        brand:
+          $ref: '#/components/schemas/BrandSummary'
+        category:
+          $ref: '#/components/schemas/CategorySummary'
+        manufacturer:
+          $ref: '#/components/schemas/ManufacturerSummary'
+        color:
+          type: string
+          example: "Black"
+        size:
+          type: string
+          example: "17-inch"
+        material:
+          type: string
+          example: "Aluminum"
+        gender:
+          type: string
+          enum: [male, female, unisex]
+          example: "unisex"
+        age_group:
+          type: string
+          enum: [adult, teen, child, baby]
+          example: "adult"
+        weight:
+          type: number
+          format: float
+          example: 2.8
+        dimensions:
+          $ref: '#/components/schemas/Dimensions'
+        
+        # Tier 2: EAV Attributes (Searchable/Filterable)
+        attributes:
+          type: object
+          additionalProperties: true
+          example:
+            warranty_months: 24
+            origin_country: "Taiwan"
+            fabric_type: null
+            is_eco_friendly: false
+            is_waterproof: true
+            care_instructions: "Clean with dry cloth only"
+        
+        # Tier 3: JSON Attributes (Display Only)
+        specifications:
+          type: object
+          additionalProperties: true
+          example:
+            processor: "Intel Core i9-12900H"
+            graphics: "NVIDIA RTX 4080"
+            memory: "32GB DDR5"
+            storage: "1TB NVMe SSD"
+            display: "17.3\" 4K OLED"
+            model_number: "TL-GP-2024-001"
+        marketing_attributes:
+          type: object
+          additionalProperties: true
+          example:
+            selling_points: ["High Performance", "Gaming Ready", "Professional Grade"]
+            target_audience: "Gamers and Professionals"
+            key_features: ["RTX Graphics", "Fast SSD", "Premium Display"]
+        media:
+          $ref: '#/components/schemas/ProductMedia'
+        seo:
+          $ref: '#/components/schemas/SEOData'
+        
+        warehouse_id:
+          type: string
+          example: "WH001"
+        status:
+          type: string
+          enum: [active, inactive, draft]
+          example: "active"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProductSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sku:
+          type: string
+        name:
+          type: string
+        brand:
+          $ref: '#/components/schemas/BrandSummary'
+        category:
+          $ref: '#/components/schemas/CategorySummary'
+        color:
+          type: string
+        size:
+          type: string
+        weight:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [active, inactive, draft]
+
+    CreateProductRequest:
+      type: object
+      required:
+        - sku
+        - name
+        - brand_id
+        - category_id
+      properties:
+        sku:
+          type: string
+          maxLength: 100
+          pattern: '^[A-Z0-9-]+$'
+        name:
+          type: string
+          maxLength: 500
+        description:
+          type: string
+        brand_id:
+          type: integer
+          format: int64
+        category_id:
+          type: integer
+          format: int64
+        manufacturer_id:
+          type: integer
+          format: int64
+        
+        # Tier 1 attributes
+        color:
+          type: string
+          maxLength: 50
+        size:
+          type: string
+          maxLength: 50
+        material:
+          type: string
+          maxLength: 100
+        gender:
+          type: string
+          enum: [male, female, unisex]
+        age_group:
+          type: string
+          enum: [adult, teen, child, baby]
+        weight:
+          type: number
+          format: float
+          minimum: 0
+        dimensions:
+          $ref: '#/components/schemas/Dimensions'
+        
+        # Tier 2 attributes (EAV)
+        attributes:
+          type: object
+          additionalProperties: true
+        
+        # Tier 3 attributes (JSON)
+        specifications:
+          type: object
+          additionalProperties: true
+        marketing_attributes:
+          type: object
+          additionalProperties: true
+        media:
+          $ref: '#/components/schemas/ProductMedia'
+        seo:
+          $ref: '#/components/schemas/SEOData'
+        
+        warehouse_id:
+          type: string
+          maxLength: 50
+
+    UpdateProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 500
+        description:
+          type: string
+        color:
+          type: string
+          maxLength: 50
+        size:
+          type: string
+          maxLength: 50
+        material:
+          type: string
+          maxLength: 100
+        weight:
+          type: number
+          format: float
+          minimum: 0
+        dimensions:
+          $ref: '#/components/schemas/Dimensions'
+        attributes:
+          type: object
+          additionalProperties: true
+        specifications:
+          type: object
+          additionalProperties: true
+        marketing_attributes:
+          type: object
+          additionalProperties: true
+        media:
+          $ref: '#/components/schemas/ProductMedia'
+        seo:
+          $ref: '#/components/schemas/SEOData'
+        status:
+          type: string
+          enum: [active, inactive, draft]
+
+    # Supporting Schemas
+    Dimensions:
+      type: object
+      properties:
+        length:
+          type: number
+          format: float
+          minimum: 0
+        width:
+          type: number
+          format: float
+          minimum: 0
+        height:
+          type: number
+          format: float
+          minimum: 0
+      example:
+        length: 39.6
+        width: 26.2
+        height: 2.4
+
+    ProductMedia:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaItem'
+        videos:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaItem'
+
+    MediaItem:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        alt:
+          type: string
+        type:
+          type: string
+          enum: [primary, gallery, thumbnail]
+        order:
+          type: integer
+          minimum: 1
+
+    SEOData:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 500
+        keywords:
+          type: array
+          items:
+            type: string
+        slug:
+          type: string
+          maxLength: 100
+
+    # Brand Schemas
+    Brand:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+        name:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+        logo_url:
+          type: string
+          format: uri
+        website_url:
+          type: string
+          format: uri
+        slug:
+          type: string
+        country_code:
+          type: string
+          pattern: '^[A-Z]{2}$'
+        founded_year:
+          type: integer
+          minimum: 1800
+          maximum: 2030
+        status:
+          type: string
+          enum: [active, inactive, pending]
+        parent_brand_id:
+          type: integer
+          format: int64
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    BrandSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        slug:
+          type: string
+        logo_url:
+          type: string
+          format: uri
+
+    CreateBrandRequest:
+      type: object
+      required:
+        - code
+        - name
+      properties:
+        code:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[a-z0-9-]+$'
+        name:
+          type: string
+          minLength: 2
+          maxLength: 200
+        display_name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        logo_url:
+          type: string
+          format: uri
+        website_url:
+          type: string
+          format: uri
+        country_code:
+          type: string
+          pattern: '^[A-Z]{2}$'
+        founded_year:
+          type: integer
+          minimum: 1800
+          maximum: 2030
+        parent_brand_id:
+          type: integer
+          format: int64
+
+    # Category Schemas
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        parent_id:
+          type: integer
+          format: int64
+        level:
+          type: integer
+          minimum: 1
+        sort_order:
+          type: integer
+        image_url:
+          type: string
+          format: uri
+        icon_url:
+          type: string
+          format: uri
+        seo:
+          $ref: '#/components/schemas/SEOData'
+        status:
+          type: string
+          enum: [active, inactive, draft]
+        product_count:
+          type: integer
+          minimum: 0
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+
+    CategorySummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        slug:
+          type: string
+        breadcrumb:
+          type: array
+          items:
+            type: string
+
+    # Manufacturer Schemas
+    ManufacturerSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        country_code:
+          type: string
+          pattern: '^[A-Z]{2}$'
+
+    # Attribute Schemas
+    ProductAttribute:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+        name:
+          type: string
+        data_type:
+          type: string
+          enum: [string, integer, decimal, boolean, date, text]
+        input_type:
+          type: string
+          enum: [text, select, multiselect, textarea, date, checkbox]
+        is_searchable:
+          type: boolean
+        is_filterable:
+          type: boolean
+        is_required:
+          type: boolean
+        sort_order:
+          type: integer
+        validation_rules:
+          type: object
+          additionalProperties: true
+        category_id:
+          type: integer
+          format: int64
+
+    # Response Schemas
+    ProductListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            products:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductSummary'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ProductDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            product:
+              $ref: '#/components/schemas/Product'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    ProductResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            product:
+              $ref: '#/components/schemas/Product'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    BrandListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            brands:
+              type: array
+              items:
+                $ref: '#/components/schemas/Brand'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    BrandResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            brand:
+              $ref: '#/components/schemas/Brand'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    CategoryListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            categories:
+              type: array
+              items:
+                $ref: '#/components/schemas/Category'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    AttributeListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            attributes:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductAttribute'
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    # Common Schemas
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+        total_pages:
+          type: integer
+          minimum: 0
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+
+    ResponseMeta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          example: "req_abc123"
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+          example: "1.0"
+        performance:
+          type: object
+          properties:
+            query_time_ms:
+              type: integer
+              example: 45
+            cache_hit:
+              type: boolean
+              example: true
+            data_sources:
+              type: array
+              items:
+                type: string
+              example: ["cache", "materialized_view"]
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid request parameters"
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Unauthorized - Invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+tags:
+  - name: Products
+    description: Product catalog management with hybrid EAV + flat table architecture
+  - name: Brands
+    description: Brand master data management
+  - name: Categories
+    description: Category hierarchy management
+  - name: Attributes
+    description: Product attribute definitions for EAV system
