@@ -1,7 +1,8 @@
 # 📚 Microservices Architecture - Index & Navigation Guide
 
 > **Tài liệu hướng dẫn điều hướng toàn bộ kiến trúc microservices**  
-> **Migration từ Magento 2 sang kiến trúc microservices hiện đại**
+> **Migration từ Magento 2 sang kiến trúc microservices hiện đại**  
+> **🔄 Updated**: Index được cập nhật với cấu trúc file thực tế
 
 ---
 
@@ -17,6 +18,9 @@
 - [2.2 Sơ Đồ Kiến Trúc](#22-sơ-đồ-kiến-trúc)
 - [2.3 Luồng Sự Kiện (Event Flow)](#23-luồng-sự-kiện-event-flow)
 - [2.4 4-Layer Architecture Benefits](#24-4-layer-architecture-benefits)
+- [2.5 Frontend Architecture](#25-frontend-architecture)
+- [2.6 Kratos + Consul Integration](#26-kratos--consul-integration)
+- [2.7 Service Communication Patterns](#27-service-communication-patterns)
 
 ### [3. Các Service Chính](#3-các-service-chính)
 - [3.1 Application Services (11 services)](#31-application-services-11-services)
@@ -113,7 +117,7 @@
 
 ### 2.1 Tổng Quan Hệ Thống
 
-📄 **File**: [`docs/architecture/overview.md`](./docs/architecture/overview.md)
+📄 **File**: [`docs/docs/architecture/overview.md`](./docs/docs/architecture/overview.md)
 
 **Nội dung**:
 - Chi tiết về 4-layer Cloud-Native architecture
@@ -126,7 +130,7 @@
 
 ### 2.2 Sơ Đồ Kiến Trúc
 
-📄 **File**: [`docs/architecture/complete-architecture-diagram.md`](./docs/architecture/complete-architecture-diagram.md)
+📄 **File**: [`docs/docs/architecture/complete-architecture-diagram.md`](./docs/docs/architecture/complete-architecture-diagram.md)
 
 **Nội dung**:
 - Mermaid diagrams về system architecture
@@ -141,7 +145,7 @@
 
 ### 2.3 Luồng Sự Kiện (Event Flow)
 
-📄 **File**: [`docs/architecture/event-flow-diagram.md`](./docs/architecture/event-flow-diagram.md)
+📄 **File**: [`docs/docs/architecture/event-flow-diagram.md`](./docs/docs/architecture/event-flow-diagram.md)
 
 **Nội dung**:
 - Event flow diagrams
@@ -154,7 +158,7 @@
 
 ### 2.4 4-Layer Architecture Benefits
 
-📄 **File**: [`docs/architecture/4-layer-benefits.md`](./docs/architecture/4-layer-benefits.md)
+📄 **File**: [`docs/docs/architecture/4-layer-benefits.md`](./docs/docs/architecture/4-layer-benefits.md)
 
 **Nội dung**:
 - Lợi ích của 4-Layer Cloud-Native architecture
@@ -167,6 +171,48 @@
 
 ---
 
+### 2.5 Frontend Architecture
+
+📄 **File**: [`docs/docs/architecture/frontend-architecture.md`](./docs/docs/architecture/frontend-architecture.md)
+
+**Nội dung**:
+- Multi-platform frontend architecture (Web, Mobile, Admin)
+- Flutter mobile app integration
+- BFF (Backend for Frontend) patterns
+- Frontend-backend communication với Kratos + Consul + Dapr
+
+**Đọc khi**: Cần hiểu về frontend architecture và integration patterns.
+
+---
+
+### 2.6 Kratos + Consul Integration
+
+📄 **File**: [`docs/docs/architecture/kratos-consul-integration.md`](./docs/docs/architecture/kratos-consul-integration.md)
+
+**Nội dung**:
+- go-kratos/kratos framework integration với Consul service discovery
+- Service registration và discovery patterns
+- Configuration management
+- Health checks và monitoring
+
+**Đọc khi**: Cần implement services với Kratos framework và Consul integration.
+
+---
+
+### 2.7 Service Communication Patterns
+
+📄 **File**: [`docs/docs/architecture/service-communication-patterns.md`](./docs/docs/architecture/service-communication-patterns.md)
+
+**Nội dung**:
+- Synchronous và asynchronous communication patterns
+- gRPC, HTTP REST, và Event-driven communication
+- Circuit breakers và retry patterns
+- Service mesh integration
+
+**Đọc khi**: Cần hiểu về communication patterns giữa các services.
+
+---
+
 ## 3. Các Service Chính
 
 ### 3.1 Application Services (11 services)
@@ -174,57 +220,57 @@
 Các service xử lý business logic chính:
 
 #### 🛍️ **Catalog & CMS Service**
-📄 [`docs/services/catalog-cms-service.md`](./docs/services/catalog-cms-service.md)
+📄 [`docs/docs/services/catalog-cms-service.md`](./docs/docs/services/catalog-cms-service.md)
 - **Chức năng**: Product catalog, categories, brands, CMS (pages, blogs, banners)
 - **Đặc điểm**: SEO content, multi-language, không có pricing logic
 
 #### 💰 **Pricing Service**
-📄 [`docs/services/pricing-service.md`](./docs/services/pricing-service.md)
+📄 [`docs/docs/services/pricing-service.md`](./docs/docs/services/pricing-service.md)
 - **Chức năng**: Tính giá theo SKU + Warehouse
 - **Đặc điểm**: Dynamic pricing, promotions, customer tiers
 
 #### 🎟️ **Promotion Service**
-📄 [`docs/services/promotion-service.md`](./docs/services/promotion-service.md)
+📄 [`docs/docs/services/promotion-service.md`](./docs/docs/services/promotion-service.md)
 - **Chức năng**: Promotion rules theo SKU + Warehouse
 - **Đặc điểm**: Customer segment targeting, coupon management
 
 #### 📦 **Order Service**
-📄 [`docs/services/order-service.md`](./docs/services/order-service.md)
+📄 [`docs/docs/services/order-service.md`](./docs/docs/services/order-service.md)
 - **Chức năng**: Xử lý order lifecycle
 - **Đặc điểm**: Order status orchestration qua events
 
 #### 💳 **Payment Service**
-📄 [`docs/services/payment-service.md`](./docs/services/payment-service.md)
+📄 [`docs/docs/services/payment-service.md`](./docs/docs/services/payment-service.md)
 - **Chức năng**: Payment gateway integration
 - **Đặc điểm**: PCI compliance, refund handling
 
 #### 🚚 **Shipping Service**
-📄 [`docs/services/shipping-service.md`](./docs/services/shipping-service.md)
+📄 [`docs/docs/services/shipping-service.md`](./docs/docs/services/shipping-service.md)
 - **Chức năng**: Fulfillment entity, carrier integration
 - **Đặc điểm**: Last-mile, first-mile logistics
 
 #### 👥 **Customer Service**
-📄 [`docs/services/customer-service.md`](./docs/services/customer-service.md)
+📄 [`docs/docs/services/customer-service.md`](./docs/docs/services/customer-service.md)
 - **Chức năng**: Customer information management
 - **Đặc điểm**: Customer profiles, order history
 
 #### ⭐ **Review Service**
-📄 [`docs/services/review-service.md`](./docs/services/review-service.md)
+📄 [`docs/docs/services/review-service.md`](./docs/docs/services/review-service.md)
 - **Chức năng**: Product reviews và ratings
 - **Đặc điểm**: Review moderation workflow
 
 #### 🏪 **Warehouse & Inventory Service**
-📄 [`docs/services/warehouse-inventory-service.md`](./docs/services/warehouse-inventory-service.md)
+📄 [`docs/docs/services/warehouse-inventory-service.md`](./docs/docs/services/warehouse-inventory-service.md)
 - **Chức năng**: Multi-warehouse inventory management
 - **Đặc điểm**: Real-time stock tracking, warehouse-specific operations
 
 #### 📊 **Analytics & Reporting Service**
-📄 [`docs/services/analytics-reporting-service.md`](./docs/services/analytics-reporting-service.md)
+📄 [`docs/docs/services/analytics-reporting-service.md`](./docs/docs/services/analytics-reporting-service.md)
 - **Chức năng**: Business intelligence và data analytics
 - **Đặc điểm**: Real-time metrics, KPIs, customer behavior analytics
 
 #### 🎁 **Loyalty & Rewards Service**
-📄 [`docs/services/loyalty-rewards-service.md`](./docs/services/loyalty-rewards-service.md)
+📄 [`docs/docs/services/loyalty-rewards-service.md`](./docs/docs/services/loyalty-rewards-service.md)
 - **Chức năng**: Loyalty programs và rewards management
 - **Đặc điểm**: Points accumulation, tier-based benefits
 
@@ -235,22 +281,22 @@ Các service xử lý business logic chính:
 Các service hỗ trợ cho toàn hệ thống:
 
 #### 🔐 **Auth Service (IAM)**
-📄 [`docs/services/auth-service.md`](./docs/services/auth-service.md)
+📄 [`docs/docs/services/auth-service.md`](./docs/docs/services/auth-service.md)
 - **Chức năng**: Authentication và authorization
 - **Đặc điểm**: JWT tokens, OAuth2, SSO, MFA
 
 #### 👤 **User Service**
-📄 [`docs/services/user-service.md`](./docs/services/user-service.md)
+📄 [`docs/docs/services/user-service.md`](./docs/docs/services/user-service.md)
 - **Chức năng**: Internal user management (admins, staff)
 - **Đặc điểm**: RBAC, service ownership permissions
 
 #### 🔍 **Search Service**
-📄 [`docs/services/search-service.md`](./docs/services/search-service.md)
+📄 [`docs/docs/services/search-service.md`](./docs/docs/services/search-service.md)
 - **Chức năng**: Product search với Elasticsearch
 - **Đặc điểm**: Real-time indexing, faceted search
 
 #### 📢 **Notification Service**
-📄 [`docs/services/notification-service.md`](./docs/services/notification-service.md)
+📄 [`docs/docs/services/notification-service.md`](./docs/docs/services/notification-service.md)
 - **Chức năng**: Multi-channel notifications
 - **Đặc điểm**: Email, SMS, Push notifications
 
@@ -261,25 +307,25 @@ Các service hỗ trợ cho toàn hệ thống:
 ### 4.1 API Flows
 
 #### 📥 **Get Product Flow**
-📄 [`docs/api-flows/get-product-flow.md`](./docs/api-flows/get-product-flow.md)
+📄 [`docs/docs/api-flows/get-product-flow.md`](./docs/docs/api-flows/get-product-flow.md)
 - **Mô tả**: Luồng API lấy thông tin product đầy đủ
 - **Đặc điểm**: Orchestration pattern, < 200ms response time
 - **Services liên quan**: Catalog, Pricing, Review, Inventory
 
 #### 🛒 **Checkout Flow**
-📄 [`docs/api-flows/checkout-flow.md`](./docs/api-flows/checkout-flow.md)
+📄 [`docs/docs/api-flows/checkout-flow.md`](./docs/docs/api-flows/checkout-flow.md)
 - **Mô tả**: Luồng hoàn chỉnh từ cart đến order
 - **Đặc điểm**: Event-driven, < 2 seconds response time
 - **Services liên quan**: Order, Pricing, Payment, Inventory, Customer
 
 #### 📦 **Fulfillment Order Flow**
-📄 [`docs/api-flows/fulfillment-order-flow.md`](./docs/api-flows/fulfillment-order-flow.md)
+📄 [`docs/docs/api-flows/fulfillment-order-flow.md`](./docs/docs/api-flows/fulfillment-order-flow.md)
 - **Mô tả**: Luồng xử lý fulfillment sau khi order được tạo
 - **Đặc điểm**: Event-driven orchestration
 - **Services liên quan**: Shipping, Inventory, Notification, Order
 
 #### ✅ **API Flows Validation**
-📄 [`docs/api-flows/api-flows-validation.md`](./docs/api-flows/api-flows-validation.md)
+📄 [`docs/docs/api-flows/api-flows-validation.md`](./docs/docs/api-flows/api-flows-validation.md)
 - **Mô tả**: Validation và gap analysis của các API flows
 - **Đặc điểm**: Service coverage, missing integrations
 
@@ -288,12 +334,12 @@ Các service hỗ trợ cho toàn hệ thống:
 ### 4.2 Data Flows
 
 #### 🔄 **Core Data Flow**
-📄 [`docs/data-flows/core-data-flow.md`](./docs/data-flows/core-data-flow.md)
+📄 [`docs/docs/data-flows/core-data-flow.md`](./docs/docs/data-flows/core-data-flow.md)
 - **Mô tả**: Data flow giữa các core services
 - **Đặc điểm**: Event-driven data synchronization
 
 #### 🔗 **Service Relationships**
-📄 [`docs/data-flows/service-relationships.md`](./docs/data-flows/service-relationships.md)
+📄 [`docs/docs/data-flows/service-relationships.md`](./docs/docs/data-flows/service-relationships.md)
 - **Mô tả**: Dependencies và relationships giữa các services
 - **Đặc điểm**: Service interaction matrix
 
@@ -303,7 +349,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 5.1 API Gateway & BFF
 
-📄 [`docs/infrastructure/api-gateway.md`](./docs/infrastructure/api-gateway.md)
+📄 [`docs/docs/infrastructure/api-gateway.md`](./docs/docs/infrastructure/api-gateway.md)
 
 **Chức năng chính**:
 - Config-driven routing (zero-code service addition)
@@ -323,7 +369,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 5.2 Event Bus & Messaging
 
-📄 [`docs/infrastructure/event-bus.md`](./docs/infrastructure/event-bus.md)
+📄 [`docs/docs/infrastructure/event-bus.md`](./docs/docs/infrastructure/event-bus.md)
 
 **Chức năng**:
 - Dapr Pub/Sub với Redis Streams
@@ -337,7 +383,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 5.3 Cache Layer
 
-📄 [`docs/infrastructure/cache-layer.md`](./docs/infrastructure/cache-layer.md)
+📄 [`docs/docs/infrastructure/cache-layer.md`](./docs/docs/infrastructure/cache-layer.md)
 
 **Chức năng**:
 - Redis Cluster distributed cache
@@ -351,7 +397,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 5.4 File Storage & CDN
 
-📄 [`docs/infrastructure/file-storage-cdn.md`](./docs/infrastructure/file-storage-cdn.md)
+📄 [`docs/docs/infrastructure/file-storage-cdn.md`](./docs/docs/infrastructure/file-storage-cdn.md)
 
 **Chức năng**:
 - File storage (S3, MinIO)
@@ -365,7 +411,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 5.5 Monitoring & Logging
 
-📄 [`docs/infrastructure/monitoring-logging.md`](./docs/infrastructure/monitoring-logging.md)
+📄 [`docs/docs/infrastructure/monitoring-logging.md`](./docs/docs/infrastructure/monitoring-logging.md)
 
 **Chức năng**:
 - Prometheus metrics collection
@@ -381,7 +427,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 6.1 Security Overview
 
-📄 [`docs/security/security-overview.md`](./docs/security/security-overview.md)
+📄 [`docs/docs/security/security-overview.md`](./docs/docs/security/security-overview.md)
 
 **Nội dung chính**:
 - Zero Trust Architecture
@@ -397,7 +443,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 6.2 Service Permission Matrix
 
-📄 [`docs/security/service-permission-matrix.md`](./docs/security/service-permission-matrix.md)
+📄 [`docs/docs/security/service-permission-matrix.md`](./docs/docs/security/service-permission-matrix.md)
 
 **Nội dung**:
 - Matrix chi tiết về permissions của từng service
@@ -412,7 +458,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 7.1 Deployment Guide
 
-📄 [`docs/deployment/deployment-guide.md`](./docs/deployment/deployment-guide.md)
+📄 [`docs/docs/deployment/deployment-guide.md`](./docs/docs/deployment/deployment-guide.md)
 
 **Nội dung**:
 - Kubernetes deployment
@@ -424,15 +470,15 @@ Các service hỗ trợ cho toàn hệ thống:
 **Đọc khi**: Cần deploy services lên production.
 
 **Xem examples**: 
-- [`examples/infrastructure-examples/kubernetes-manifests/`](./examples/infrastructure-examples/kubernetes-manifests/)
-- [`examples/infrastructure-examples/helm-charts/`](./examples/infrastructure-examples/helm-charts/)
-- [`examples/infrastructure-examples/docker-compose/`](./examples/infrastructure-examples/docker-compose/)
+- [`docs/examples/infrastructure-examples/kubernetes-manifests/`](./docs/examples/infrastructure-examples/kubernetes-manifests/)
+- [`docs/examples/infrastructure-examples/helm-charts/`](./docs/examples/infrastructure-examples/helm-charts/)
+- [`docs/examples/infrastructure-examples/docker-compose/`](./docs/examples/infrastructure-examples/docker-compose/)
 
 ---
 
 ### 7.2 Performance Guide
 
-📄 [`docs/performance/performance-guide.md`](./docs/performance/performance-guide.md)
+📄 [`docs/docs/performance/performance-guide.md`](./docs/docs/performance/performance-guide.md)
 
 **Nội dung**:
 - Performance optimization strategies
@@ -447,7 +493,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 7.3 Troubleshooting Guide
 
-📄 [`docs/operations/troubleshooting-guide.md`](./docs/operations/troubleshooting-guide.md)
+📄 [`docs/docs/operations/troubleshooting-guide.md`](./docs/docs/operations/troubleshooting-guide.md)
 
 **Nội dung**:
 - Common issues và solutions
@@ -461,7 +507,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ### 7.4 Testing Strategy
 
-📄 [`docs/testing/testing-strategy.md`](./docs/testing/testing-strategy.md)
+📄 [`docs/docs/testing/testing-strategy.md`](./docs/docs/testing/testing-strategy.md)
 
 **Nội dung**:
 - Unit testing
@@ -476,7 +522,7 @@ Các service hỗ trợ cho toàn hệ thống:
 
 ## 8. Migration Plan
 
-📄 [`docs/migration-plan.md`](./docs/migration-plan.md)
+📄 [`docs/docs/migration-plan.md`](./docs/docs/migration-plan.md)
 
 **Nội dung**:
 - 16-week phased migration plan
@@ -496,56 +542,62 @@ Các service hỗ trợ cho toàn hệ thống:
 Code templates cho các service types:
 
 #### **Go Service Template**
-📄 [`examples/implementation-samples/service-templates/go-service/README.md`](./examples/implementation-samples/service-templates/go-service/README.md)
+📄 [`docs/examples/implementation-samples/service-templates/go-service/README.md`](./docs/examples/implementation-samples/service-templates/go-service/README.md)
 - Complete Go service template với Gin/Fiber
 - gRPC support
 - Database migrations
 - Event handling
 
 #### **Node.js Service Template**
-📄 [`examples/implementation-samples/service-templates/nodejs-service/README.md`](./examples/implementation-samples/service-templates/nodejs-service/README.md)
+📄 [`docs/examples/implementation-samples/service-templates/nodejs-service/README.md`](./docs/examples/implementation-samples/service-templates/nodejs-service/README.md)
 - Express/Fastify template
 - TypeScript support
 - Event-driven patterns
 
 #### **Flutter App Template**
-📄 [`examples/implementation-samples/service-templates/flutter-app/README.md`](./examples/implementation-samples/service-templates/flutter-app/README.md)
+📄 [`docs/examples/implementation-samples/service-templates/flutter-app/README.md`](./docs/examples/implementation-samples/service-templates/flutter-app/README.md)
 - Mobile app template
 - API client integration
 
+#### **Web App Template**
+📄 [`docs/examples/implementation-samples/service-templates/web-app/README.md`](./docs/examples/implementation-samples/service-templates/web-app/README.md)
+- React/Vue frontend template
+- TypeScript support
+- API integration patterns
+
 #### **Service Templates Overview**
-📄 [`examples/implementation-samples/service-templates/README.md`](./examples/implementation-samples/service-templates/README.md)
+📄 [`docs/examples/implementation-samples/service-templates/README.md`](./docs/examples/implementation-samples/service-templates/README.md)
 
 ---
 
 ### 9.2 Infrastructure Examples
 
 #### **Kubernetes Manifests**
-📄 [`examples/infrastructure-examples/kubernetes-manifests/README.md`](./examples/infrastructure-examples/kubernetes-manifests/README.md)
+📄 [`docs/examples/infrastructure-examples/kubernetes-manifests/README.md`](./docs/examples/infrastructure-examples/kubernetes-manifests/README.md)
 - K8s deployment manifests
 - Service definitions
 - ConfigMaps, Secrets
 
 #### **Docker Compose**
-📄 [`examples/infrastructure-examples/docker-compose/README.md`](./examples/infrastructure-examples/docker-compose/README.md)
+📄 [`docs/examples/infrastructure-examples/docker-compose/README.md`](./docs/examples/infrastructure-examples/docker-compose/README.md)
 - Local development setup
 - Service dependencies
 - Environment configuration
 
 #### **Terraform**
-📄 [`examples/infrastructure-examples/terraform/README.md`](./examples/infrastructure-examples/terraform/README.md)
+📄 [`docs/examples/infrastructure-examples/terraform/README.md`](./docs/examples/infrastructure-examples/terraform/README.md)
 - Infrastructure as Code
 - Cloud resource provisioning
 - Multi-cloud support
 
 #### **Helm Charts**
-📄 [`examples/infrastructure-examples/helm-charts/README.md`](./examples/infrastructure-examples/helm-charts/README.md)
+📄 [`docs/examples/infrastructure-examples/helm-charts/README.md`](./docs/examples/infrastructure-examples/helm-charts/README.md)
 - Helm deployment charts
 - Values configuration
 - Release management
 
 #### **Monitoring Configs**
-📄 [`examples/infrastructure-examples/monitoring-configs/README.md`](./examples/infrastructure-examples/monitoring-configs/README.md)
+📄 [`docs/examples/infrastructure-examples/monitoring-configs/README.md`](./docs/examples/infrastructure-examples/monitoring-configs/README.md)
 - Prometheus configs
 - Grafana dashboards
 - Alert rules
@@ -555,28 +607,28 @@ Code templates cho các service types:
 ### 9.3 Code Samples
 
 #### **Generated Code Samples**
-📄 [`examples/generated-code-samples.md`](./examples/generated-code-samples.md)
+📄 [`docs/examples/generated-code-samples.md`](./docs/examples/generated-code-samples.md)
 - Code examples từ documentation
 - API client samples
 - Event schema examples
 
 #### **API Clients**
-📄 [`examples/implementation-samples/api-clients/README.md`](./examples/implementation-samples/api-clients/README.md)
+📄 [`docs/examples/implementation-samples/api-clients/README.md`](./docs/examples/implementation-samples/api-clients/README.md)
 - Generated API client libraries
 - Multi-language support
 
 #### **Event Schemas**
-📄 [`examples/implementation-samples/event-schemas/README.md`](./examples/implementation-samples/event-schemas/README.md)
+📄 [`docs/examples/implementation-samples/event-schemas/README.md`](./docs/examples/implementation-samples/event-schemas/README.md)
 - Event schema definitions
 - Validation rules
 
 #### **Database Migrations**
-📄 [`examples/implementation-samples/database-migrations/README.md`](./examples/implementation-samples/database-migrations/README.md)
+📄 [`docs/examples/implementation-samples/database-migrations/README.md`](./docs/examples/implementation-samples/database-migrations/README.md)
 - Database schema migrations
 - Version control
 
 #### **Implementation Samples Overview**
-📄 [`examples/implementation-samples/README.md`](./examples/implementation-samples/README.md)
+📄 [`docs/examples/implementation-samples/README.md`](./docs/examples/implementation-samples/README.md)
 
 ---
 
@@ -586,42 +638,48 @@ Code templates cho các service types:
 
 #### Nếu bạn là **Architect/Team Lead**:
 1. Đọc [`README.md`](./README.md) để hiểu tổng quan
-2. Xem [`docs/architecture/overview.md`](./docs/architecture/overview.md)
-3. Xem [`docs/architecture/complete-architecture-diagram.md`](./docs/architecture/complete-architecture-diagram.md)
-4. Xem [`docs/migration-plan.md`](./docs/migration-plan.md)
+2. Xem [`docs/docs/architecture/overview.md`](./docs/docs/architecture/overview.md)
+3. Xem [`docs/docs/architecture/complete-architecture-diagram.md`](./docs/docs/architecture/complete-architecture-diagram.md)
+4. Xem [`docs/docs/migration-plan.md`](./docs/docs/migration-plan.md)
 
 #### Nếu bạn là **Developer**:
 1. Đọc [`README.md`](./README.md)
-2. Chọn service bạn sẽ làm trong [`docs/services/`](./docs/services/)
-3. Xem [`examples/implementation-samples/service-templates/`](./examples/implementation-samples/service-templates/)
-4. Xem [`docs/api-flows/`](./docs/api-flows/) để hiểu API flows
+2. Chọn service bạn sẽ làm trong [`docs/docs/services/`](./docs/docs/services/)
+3. Xem [`docs/examples/implementation-samples/service-templates/`](./docs/examples/implementation-samples/service-templates/)
+4. Xem [`docs/docs/api-flows/`](./docs/docs/api-flows/) để hiểu API flows
 
 #### Nếu bạn là **DevOps Engineer**:
-1. Đọc [`docs/deployment/deployment-guide.md`](./docs/deployment/deployment-guide.md)
-2. Xem [`examples/infrastructure-examples/`](./examples/infrastructure-examples/)
-3. Xem [`docs/infrastructure/`](./docs/infrastructure/)
+1. Đọc [`docs/docs/deployment/deployment-guide.md`](./docs/docs/deployment/deployment-guide.md)
+2. Xem [`docs/examples/infrastructure-examples/`](./docs/examples/infrastructure-examples/)
+3. Xem [`docs/docs/infrastructure/`](./docs/docs/infrastructure/)
 
 #### Nếu bạn là **Security Engineer**:
-1. Đọc [`docs/security/security-overview.md`](./docs/security/security-overview.md)
-2. Xem [`docs/security/service-permission-matrix.md`](./docs/security/service-permission-matrix.md)
-3. Xem [`docs/infrastructure/api-gateway.md`](./docs/infrastructure/api-gateway.md)
+1. Đọc [`docs/docs/security/security-overview.md`](./docs/docs/security/security-overview.md)
+2. Xem [`docs/docs/security/service-permission-matrix.md`](./docs/docs/security/service-permission-matrix.md)
+3. Xem [`docs/docs/infrastructure/api-gateway.md`](./docs/docs/infrastructure/api-gateway.md)
 
 ---
 
 ## 📊 Tổng Kết Cấu Trúc
 
 ```
-microservices_architecture/
+docs/
 ├── README.md                           # 📋 Tổng quan dự án
 ├── ARCHITECTURE_INDEX.md               # 📚 Tài liệu này
+├── MIGRATION_STATUS_REPORT.md          # 📊 Migration status
+├── MISSING_SERVICES_REPORT.md          # ⚠️ Missing services report
 │
-├── docs/
+├── docs/                               # 📁 Main documentation
 │   ├── architecture/                   # 🏗️ Kiến trúc tổng thể
 │   │   ├── overview.md
 │   │   ├── complete-architecture-diagram.md
-│   │   └── event-flow-diagram.md
+│   │   ├── event-flow-diagram.md
+│   │   ├── 4-layer-benefits.md
+│   │   ├── frontend-architecture.md
+│   │   ├── kratos-consul-integration.md
+│   │   └── service-communication-patterns.md
 │   │
-│   ├── services/                       # 🔧 19 Microservices
+│   ├── services/                       # 🔧 15 Microservices
 │   │   ├── catalog-cms-service.md
 │   │   ├── pricing-service.md
 │   │   ├── promotion-service.md
@@ -638,7 +696,7 @@ microservices_architecture/
 │   │   ├── search-service.md
 │   │   └── notification-service.md
 │   │
-│   ├── api-flows/                      # 🔄 Luồng API
+│   ├── api-flows/                      # � Luồnng API
 │   │   ├── get-product-flow.md
 │   │   ├── checkout-flow.md
 │   │   ├── fulfillment-order-flow.md
@@ -659,33 +717,40 @@ microservices_architecture/
 │   │   ├── security-overview.md
 │   │   └── service-permission-matrix.md
 │   │
-│   ├── deployment/                     # 🚀 Deployment
+│   ├── deployment/                     # � Deplaoyment
 │   │   └── deployment-guide.md
 │   │
 │   ├── performance/                    # ⚡ Performance
 │   │   └── performance-guide.md
 │   │
-│   ├── operations/                     # 🔧 Operations
+│   ├── operations/                     # � iOperations
 │   │   └── troubleshooting-guide.md
 │   │
 │   ├── testing/                        # 🧪 Testing
 │   │   └── testing-strategy.md
 │   │
-│   └── migration-plan.md              # 📅 Migration plan
+│   ├── migration-plan.md              # 📅 Migration plan
+│   └── SERVICE_DOCUMENTATION_TEMPLATE.md # 📝 Service template
 │
 └── examples/                           # 💻 Code examples
     ├── generated-code-samples.md
     ├── implementation-samples/
+    │   ├── README.md
     │   ├── service-templates/
-    │   ├── api-clients/
-    │   ├── event-schemas/
-    │   └── database-migrations/
+    │   │   ├── README.md
+    │   │   ├── go-service/README.md
+    │   │   ├── nodejs-service/README.md
+    │   │   ├── flutter-app/README.md
+    │   │   └── web-app/README.md
+    │   ├── api-clients/README.md
+    │   ├── event-schemas/README.md
+    │   └── database-migrations/README.md
     └── infrastructure-examples/
-        ├── kubernetes-manifests/
-        ├── docker-compose/
-        ├── terraform/
-        ├── helm-charts/
-        └── monitoring-configs/
+        ├── kubernetes-manifests/README.md
+        ├── docker-compose/README.md
+        ├── terraform/README.md
+        ├── helm-charts/README.md
+        └── monitoring-configs/README.md
 ```
 
 ---
@@ -694,16 +759,18 @@ microservices_architecture/
 
 ### Tôi cần tìm...
 
-- **Cách tạo một service mới?** → [`examples/implementation-samples/service-templates/`](./examples/implementation-samples/service-templates/)
-- **API flow của checkout?** → [`docs/api-flows/checkout-flow.md`](./docs/api-flows/checkout-flow.md)
-- **Cách deploy lên K8s?** → [`docs/deployment/deployment-guide.md`](./docs/deployment/deployment-guide.md)
-- **Security best practices?** → [`docs/security/security-overview.md`](./docs/security/security-overview.md)
-- **Performance optimization?** → [`docs/performance/performance-guide.md`](./docs/performance/performance-guide.md)
-- **Event schema examples?** → [`examples/implementation-samples/event-schemas/`](./examples/implementation-samples/event-schemas/)
-- **Service dependencies?** → [`docs/data-flows/service-relationships.md`](./docs/data-flows/service-relationships.md)
-- **Migration timeline?** → [`docs/migration-plan.md`](./docs/migration-plan.md)
-- **How to setup local dev?** → [`examples/infrastructure-examples/docker-compose/`](./examples/infrastructure-examples/docker-compose/)
-- **How Order Service works?** → [`docs/services/order-service.md`](./docs/services/order-service.md)
+- **Cách tạo một service mới?** → [`docs/examples/implementation-samples/service-templates/`](./docs/examples/implementation-samples/service-templates/)
+- **API flow của checkout?** → [`docs/docs/api-flows/checkout-flow.md`](./docs/docs/api-flows/checkout-flow.md)
+- **Cách deploy lên K8s?** → [`docs/docs/deployment/deployment-guide.md`](./docs/docs/deployment/deployment-guide.md)
+- **Security best practices?** → [`docs/docs/security/security-overview.md`](./docs/docs/security/security-overview.md)
+- **Performance optimization?** → [`docs/docs/performance/performance-guide.md`](./docs/docs/performance/performance-guide.md)
+- **Event schema examples?** → [`docs/examples/implementation-samples/event-schemas/`](./docs/examples/implementation-samples/event-schemas/)
+- **Service dependencies?** → [`docs/docs/data-flows/service-relationships.md`](./docs/docs/data-flows/service-relationships.md)
+- **Migration timeline?** → [`docs/docs/migration-plan.md`](./docs/docs/migration-plan.md)
+- **How to setup local dev?** → [`docs/examples/infrastructure-examples/docker-compose/`](./docs/examples/infrastructure-examples/docker-compose/)
+- **How Order Service works?** → [`docs/docs/services/order-service.md`](./docs/docs/services/order-service.md)
+- **Kratos + Consul integration?** → [`docs/docs/architecture/kratos-consul-integration.md`](./docs/docs/architecture/kratos-consul-integration.md)
+- **Frontend architecture?** → [`docs/docs/architecture/frontend-architecture.md`](./docs/docs/architecture/frontend-architecture.md)
 
 ---
 
