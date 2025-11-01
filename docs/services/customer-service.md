@@ -1,28 +1,37 @@
 # Customer Service
 
 > **Service Type**: Application Service (Business Logic)  
-> **Last Updated**: October 30, 2024  
-> **Status**: Complete Documentation
+> **Architecture**: Pure Microservice - Single Tenant  
+> **Last Updated**: November 1, 2024  
+> **Status**: Architecture Finalized - Ready for Implementation
 
 ---
 
 ## 📋 Service Overview
 
 ### Description
-Service that manages comprehensive customer information, profiles, preferences, and customer lifecycle management. Provides centralized customer data management with advanced segmentation, loyalty tracking, and personalization capabilities.
+Pure microservice that manages customer information, profiles, preferences, and lifecycle management. Built with single-tenant architecture for maximum performance and simplicity, focusing on core customer domain without multi-tenant complexity.
 
 ### Business Context
-The Customer Service serves as the single source of truth for all customer-related data, enabling personalized experiences across the e-commerce platform. It manages customer profiles, addresses, preferences, loyalty status, and provides customer segmentation for targeted marketing and promotions.
+The Customer Service serves as the single source of truth for customer-related data in our e-commerce platform. It provides high-performance customer management with clean domain boundaries, optimized for single-store operations with the flexibility to evolve to multi-tenant when needed.
 
 ### Key Responsibilities
-- Customer profile and account management
-- Address book and contact information management
-- Customer segmentation and tier management
-- Loyalty points and rewards tracking
-- Customer preferences and communication settings
-- Purchase history and behavior analytics
-- Customer lifecycle management
-- GDPR compliance and data privacy
+- **Core Customer Management**: Profile, authentication, and account lifecycle
+- **Address Management**: Customer address book with validation
+- **Preference Management**: Communication and privacy preferences
+- **Customer Segmentation**: Business logic for customer categorization
+- **Data Migration**: Legacy Magento customer data migration support
+- **Event Publishing**: Customer lifecycle events for other services
+
+### Architecture Decision
+**Selected: Option 3A - Pure Microservice Architecture (Single Tenant)**
+
+**Rationale:**
+- ✅ **Maximum Performance**: No multi-tenant overhead, optimized queries
+- ✅ **Simplicity First**: Clean domain model, straightforward business logic
+- ✅ **Fast Development**: Rapid time to market, easy testing and debugging
+- ✅ **Evolutionary**: Can add multi-tenancy later when business requires it
+- ✅ **Microservice Best Practices**: Domain-driven design, loose coupling
 
 ---
 
@@ -35,16 +44,17 @@ The Customer Service serves as the single source of truth for all customer-relat
 
 ### Technology Stack
 - **Framework**: go-kratos/kratos v2.7+
-- **Database**: PostgreSQL 15+ (customer profiles, addresses)
-- **Cache**: Redis 7+ (customer session cache, profile cache)
+- **Database**: PostgreSQL 15+ (optimized flat tables)
+- **Cache**: Redis 7+ (customer profiles, session data)
 - **Message Queue**: Dapr Pub/Sub with Redis Streams
-- **External APIs**: Order Service, Loyalty Service, Analytics Service
+- **Migration**: Legacy ID mapping for Magento compatibility
 
 ### Deployment
 - **Container**: Docker
 - **Orchestration**: Kubernetes with Dapr
 - **Service Discovery**: Consul
 - **Load Balancer**: Kubernetes Service + Ingress
+- **Scaling**: Horizontal auto-scaling based on CPU/memory
 
 ---
 
@@ -296,175 +306,161 @@ Content-Type: application/json
 
 ## 🗄️ Database Schema
 
-### Primary Database: PostgreSQL
+### Primary Database: PostgreSQL (Single Tenant - Optimized)
 
-#### customers
+#### customers (Core Entity)
 ```sql
 CREATE TABLE customers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    legacy_id INTEGER UNIQUE, -- For Magento migration mapping
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    
-    -- Profile information
     first_name VARCHAR(100),
     last_name VARCHAR(100),
-    date_of_birth DATE,
-    gender VARCHAR(10),
-    phone VARCHAR(20),
-    avatar_url VARCHAR(500),
-    
-    -- Account status
-    status VARCHAR(20) DEFAULT 'active',
+    customer_type VARCHAR(20) DEFAULT 'individual' CHECK (customer_type IN ('individual', 'business')),
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended', 'pending')),
     email_verified BOOLEAN DEFAULT FALSE,
-    phone_verified BOOLEAN DEFAULT FALSE,
-    
-    -- Preferences (JSONB for flexibility)
-    preferences JSONB DEFAULT '{}',
-    
-    -- Timestamps
-    registration_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    registration_source VARCHAR(50),
     last_login_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Indexes
-    INDEX idx_customers_email (email),
-    INDEX idx_customers_status (status),
-    INDEX idx_customers_registration (registration_date),
-    INDEX idx_customers_last_login (last_login_at),
-    
-    -- Constraints
-    CONSTRAINT chk_customers_status CHECK (status IN ('active', 'inactive', 'suspended', 'deleted')),
-    CONSTRAINT chk_customers_email CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+    deleted_at TIMESTAMP WITH TIME ZONE
 );
+
+-- Optimized indexes for single tenant
+CREATE INDEX idx_customers_email ON customers(email) WHERE deleted_at IS NULL;
+CREATE INDEX idx_customers_legacy_id ON customers(legacy_id) WHERE legacy_id IS NOT NULL;
+CREATE INDEX idx_customers_status ON customers(status) WHERE deleted_at IS NULL;
+CREATE INDEX idx_customers_type ON customers(customer_type);
+CREATE INDEX idx_customers_created_at ON customers(created_at);
 ```
 
-#### customer_addresses
+#### customer_profiles (Extended Data)
+```sql
+CREATE TABLE customer_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID UNIQUE REFERENCES customers(id) ON DELETE CASCADE,
+    phone VARCHAR(20),
+    date_of_birth DATE,
+    gender VARCHAR(20) CHECK (gender IN ('male', 'female', 'other', 'prefer_not_to_say')),
+    phone_verified BOOLEAN DEFAULT FALSE,
+    -- Flexible profile data as structured JSON
+    profile_data JSONB DEFAULT '{}',
+    -- Business metadata (Magento legacy data, etc.)
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_profiles_customer_id ON customer_profiles(customer_id);
+CREATE INDEX idx_profiles_phone ON customer_profiles(phone) WHERE phone IS NOT NULL;
+CREATE INDEX idx_profiles_data ON customer_profiles USING GIN(profile_data);
+```
+
+#### customer_preferences (Settings)
+```sql
+CREATE TABLE customer_preferences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID UNIQUE REFERENCES customers(id) ON DELETE CASCADE,
+    -- Communication preferences
+    email_marketing BOOLEAN DEFAULT TRUE,
+    sms_marketing BOOLEAN DEFAULT FALSE,
+    push_notifications BOOLEAN DEFAULT TRUE,
+    newsletter BOOLEAN DEFAULT TRUE,
+    -- Privacy preferences
+    data_sharing BOOLEAN DEFAULT FALSE,
+    analytics_tracking BOOLEAN DEFAULT TRUE,
+    cookie_consent BOOLEAN DEFAULT FALSE,
+    -- Notification preferences
+    order_updates BOOLEAN DEFAULT TRUE,
+    promotional_emails BOOLEAN DEFAULT TRUE,
+    -- Custom preferences as JSON
+    custom_preferences JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_preferences_customer_id ON customer_preferences(customer_id);
+CREATE INDEX idx_preferences_marketing ON customer_preferences(email_marketing, sms_marketing);
+```
+
+#### customer_addresses (Separate Domain)
 ```sql
 CREATE TABLE customer_addresses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    legacy_id INTEGER UNIQUE, -- For Magento migration
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    
-    -- Address type and status
-    type VARCHAR(20) NOT NULL DEFAULT 'shipping',
-    is_default BOOLEAN DEFAULT FALSE,
-    
-    -- Address information
+    type VARCHAR(20) DEFAULT 'shipping' CHECK (type IN ('shipping', 'billing', 'both')),
     first_name VARCHAR(100),
     last_name VARCHAR(100),
-    company VARCHAR(100),
-    street VARCHAR(255) NOT NULL,
-    street2 VARCHAR(255),
+    company VARCHAR(255),
+    address_line_1 VARCHAR(255) NOT NULL,
+    address_line_2 VARCHAR(255),
     city VARCHAR(100) NOT NULL,
-    state VARCHAR(50),
-    zip_code VARCHAR(20) NOT NULL,
-    country VARCHAR(2) NOT NULL DEFAULT 'US',
+    state_province VARCHAR(100),
+    postal_code VARCHAR(20),
+    country_code VARCHAR(2) NOT NULL,
     phone VARCHAR(20),
-    
-    -- Validation
-    is_validated BOOLEAN DEFAULT FALSE,
-    validation_data JSONB,
-    
+    is_default BOOLEAN DEFAULT FALSE,
+    is_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Indexes
-    INDEX idx_customer_addresses_customer (customer_id),
-    INDEX idx_customer_addresses_type (type),
-    INDEX idx_customer_addresses_default (is_default),
-    INDEX idx_customer_addresses_country (country),
-    
-    -- Constraints
-    CONSTRAINT chk_customer_addresses_type CHECK (type IN ('shipping', 'billing', 'both')),
-    CONSTRAINT chk_customer_addresses_country CHECK (LENGTH(country) = 2)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE INDEX idx_addresses_customer_id ON customer_addresses(customer_id);
+CREATE INDEX idx_addresses_legacy_id ON customer_addresses(legacy_id) WHERE legacy_id IS NOT NULL;
+CREATE INDEX idx_addresses_type ON customer_addresses(type);
+CREATE INDEX idx_addresses_default ON customer_addresses(is_default) WHERE is_default = TRUE;
+CREATE INDEX idx_addresses_country ON customer_addresses(country_code);
 ```
 
-#### customer_segments
+#### customer_segments (Business Logic)
 ```sql
 CREATE TABLE customer_segments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    
-    -- Segment information
-    tier VARCHAR(20) NOT NULL DEFAULT 'regular',
-    segment VARCHAR(50) NOT NULL DEFAULT 'new_customer',
-    loyalty_points INTEGER DEFAULT 0,
-    
-    -- Metrics
-    total_spent DECIMAL(12,2) DEFAULT 0,
-    order_count INTEGER DEFAULT 0,
-    average_order_value DECIMAL(10,2) DEFAULT 0,
-    last_order_date TIMESTAMP WITH TIME ZONE,
-    days_since_last_order INTEGER,
-    lifetime_value DECIMAL(12,2) DEFAULT 0,
-    
-    -- Qualifications (JSONB for flexibility)
-    qualifications JSONB DEFAULT '{}',
-    
-    -- Timestamps
-    tier_achieved_at TIMESTAMP WITH TIME ZONE,
-    segment_achieved_at TIMESTAMP WITH TIME ZONE,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Indexes
-    INDEX idx_customer_segments_customer (customer_id),
-    INDEX idx_customer_segments_tier (tier),
-    INDEX idx_customer_segments_segment (segment),
-    INDEX idx_customer_segments_total_spent (total_spent),
-    INDEX idx_customer_segments_order_count (order_count),
-    
-    -- Constraints
-    CONSTRAINT chk_customer_segments_tier CHECK (tier IN ('regular', 'premium', 'vip', 'enterprise')),
-    CONSTRAINT unique_customer_segment UNIQUE (customer_id)
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    rules JSONB NOT NULL, -- Segment rules as JSON
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-```
 
-#### customer_activities
-```sql
-CREATE TABLE customer_activities (
+CREATE TABLE customer_segment_memberships (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    segment_id UUID NOT NULL REFERENCES customer_segments(id) ON DELETE CASCADE,
+    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    assigned_by VARCHAR(50) DEFAULT 'system',
     
-    -- Activity details
-    activity_type VARCHAR(50) NOT NULL,
-    activity_data JSONB NOT NULL,
-    
-    -- Context
-    session_id VARCHAR(100),
-    ip_address INET,
-    user_agent TEXT,
-    
-    -- Timestamps
-    occurred_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Indexes
-    INDEX idx_customer_activities_customer (customer_id),
-    INDEX idx_customer_activities_type (activity_type),
-    INDEX idx_customer_activities_occurred (occurred_at),
-    INDEX idx_customer_activities_session (session_id),
-    
-    -- Partitioning by month for performance
-    PARTITION BY RANGE (occurred_at)
+    UNIQUE(customer_id, segment_id)
 );
+
+CREATE INDEX idx_segments_active ON customer_segments(is_active) WHERE is_active = TRUE;
+CREATE INDEX idx_segment_memberships_customer ON customer_segment_memberships(customer_id);
+CREATE INDEX idx_segment_memberships_segment ON customer_segment_memberships(segment_id);
 ```
 
-### Cache Schema (Redis)
+### Cache Schema (Redis) - Single Tenant Optimized
 ```
-# Customer profile cache
+# Customer profile cache (with related data)
 Key: customers:profile:{customer_id}
 TTL: 3600 seconds (1 hour)
-Value: JSON serialized customer profile
-
-# Customer segment cache
-Key: customers:segment:{customer_id}
-TTL: 1800 seconds (30 minutes)
-Value: JSON serialized segment data
+Value: JSON serialized customer with profile and preferences
 
 # Customer addresses cache
 Key: customers:addresses:{customer_id}
 TTL: 7200 seconds (2 hours)
 Value: JSON serialized address list
+
+# Customer segments cache
+Key: customers:segments:{customer_id}
+TTL: 1800 seconds (30 minutes)
+Value: JSON serialized segment memberships
+
+# Legacy ID mapping cache (for migration)
+Key: customers:legacy:{legacy_id}
+TTL: 86400 seconds (24 hours)
+Value: UUID customer_id
 
 # Customer session cache
 Key: customers:session:{session_id}
@@ -472,52 +468,142 @@ TTL: 1800 seconds (30 minutes)
 Value: Customer session data
 ```
 
-## 👥 Customer Segmentation Logic
+### Migration Support Tables
+```sql
+-- Optional: Separate mapping table for complex migration scenarios
+CREATE TABLE migration_id_mapping (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entity_type VARCHAR(50) NOT NULL, -- 'customer', 'address', etc.
+    legacy_id INTEGER NOT NULL,
+    new_id UUID NOT NULL,
+    magento_website_id INTEGER,
+    magento_store_id INTEGER,
+    migration_batch VARCHAR(50),
+    migrated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    UNIQUE(entity_type, legacy_id)
+);
 
-### Tier Calculation
+CREATE INDEX idx_mapping_legacy_id ON migration_id_mapping(entity_type, legacy_id);
+CREATE INDEX idx_mapping_new_id ON migration_id_mapping(new_id);
+CREATE INDEX idx_mapping_batch ON migration_id_mapping(migration_batch);
+```
+
+## 👥 Customer Segmentation Logic (Simplified)
+
+### Domain Models
 ```go
-type TierCalculator struct {
-    rules map[string]TierRule
+// Core customer domain model
+type Customer struct {
+    ID                 string                 `json:"id"`
+    LegacyID           *int                   `json:"legacy_id,omitempty"`
+    Email              string                 `json:"email"`
+    FirstName          string                 `json:"first_name"`
+    LastName           string                 `json:"last_name"`
+    CustomerType       string                 `json:"customer_type"`
+    Status             string                 `json:"status"`
+    EmailVerified      bool                   `json:"email_verified"`
+    RegistrationSource string                 `json:"registration_source"`
+    LastLoginAt        *time.Time             `json:"last_login_at,omitempty"`
+    CreatedAt          time.Time              `json:"created_at"`
+    UpdatedAt          time.Time              `json:"updated_at"`
+    
+    // Related data (loaded separately for performance)
+    Profile     *CustomerProfile     `json:"profile,omitempty"`
+    Preferences *CustomerPreferences `json:"preferences,omitempty"`
+    Addresses   []CustomerAddress    `json:"addresses,omitempty"`
+    Segments    []string             `json:"segments,omitempty"`
 }
 
-type TierRule struct {
-    MinTotalSpent    float64
-    MinOrderCount    int
-    MinAverageOrder  float64
-    MinLoyaltyPoints int
+type CustomerProfile struct {
+    CustomerID    string                 `json:"customer_id"`
+    Phone         *string                `json:"phone,omitempty"`
+    DateOfBirth   *time.Time             `json:"date_of_birth,omitempty"`
+    Gender        string                 `json:"gender"`
+    PhoneVerified bool                   `json:"phone_verified"`
+    ProfileData   map[string]interface{} `json:"profile_data"`
+    Metadata      map[string]interface{} `json:"metadata"`
 }
 
-var TierRules = map[string]TierRule{
-    "regular": {
-        MinTotalSpent: 0,
-        MinOrderCount: 0,
-    },
-    "premium": {
-        MinTotalSpent: 1000,
-        MinOrderCount: 5,
-        MinAverageOrder: 100,
-    },
-    "vip": {
-        MinTotalSpent: 10000,
-        MinOrderCount: 20,
-        MinAverageOrder: 200,
-        MinLoyaltyPoints: 5000,
-    },
-    "enterprise": {
-        MinTotalSpent: 50000,
-        MinOrderCount: 100,
-        MinAverageOrder: 500,
-    },
+type CustomerPreferences struct {
+    CustomerID         string                 `json:"customer_id"`
+    EmailMarketing     bool                   `json:"email_marketing"`
+    SmsMarketing       bool                   `json:"sms_marketing"`
+    PushNotifications  bool                   `json:"push_notifications"`
+    Newsletter         bool                   `json:"newsletter"`
+    DataSharing        bool                   `json:"data_sharing"`
+    AnalyticsTracking  bool                   `json:"analytics_tracking"`
+    CustomPreferences  map[string]interface{} `json:"custom_preferences"`
 }
 ```
 
-### Segment Types
-- **new_customer**: < 30 days since registration, < 2 orders
-- **regular_customer**: 30+ days, 2+ orders, < $1000 total spent
-- **high_value**: $200+ average order value
-- **frequent_buyer**: 10+ orders in last 6 months
-- **at_risk**: No orders in last 90 days
-- **churned**: No orders in last 180 days
+### Simple Service Layer
+```go
+type CustomerService struct {
+    customerRepo    CustomerRepository
+    profileRepo     CustomerProfileRepository
+    preferencesRepo CustomerPreferencesRepository
+    addressRepo     CustomerAddressRepository
+    segmentRepo     CustomerSegmentRepository
+    logger          log.Logger
+}
+
+func (s *CustomerService) GetCustomer(ctx context.Context, customerID string) (*Customer, error) {
+    return s.customerRepo.GetByID(ctx, customerID)
+}
+
+func (s *CustomerService) GetCustomerWithDetails(ctx context.Context, customerID string) (*Customer, error) {
+    customer, err := s.customerRepo.GetByID(ctx, customerID)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get customer: %w", err)
+    }
+    
+    // Load related data in parallel
+    g, ctx := errgroup.WithContext(ctx)
+    
+    var profile *CustomerProfile
+    var preferences *CustomerPreferences
+    var addresses []CustomerAddress
+    var segments []string
+    
+    g.Go(func() error {
+        profile, _ = s.profileRepo.GetByCustomerID(ctx, customerID)
+        return nil
+    })
+    
+    g.Go(func() error {
+        preferences, _ = s.preferencesRepo.GetByCustomerID(ctx, customerID)
+        return nil
+    })
+    
+    g.Go(func() error {
+        addresses, _ = s.addressRepo.GetByCustomerID(ctx, customerID)
+        return nil
+    })
+    
+    g.Go(func() error {
+        segments, _ = s.segmentRepo.GetCustomerSegments(ctx, customerID)
+        return nil
+    })
+    
+    g.Wait()
+    
+    // Attach related data
+    customer.Profile = profile
+    customer.Preferences = preferences
+    customer.Addresses = addresses
+    customer.Segments = segments
+    
+    return customer, nil
+}
+```
+
+### Default Segment Types (Simplified)
+- **all-customers**: Universal segment for all registered customers
+- **new-customers**: Customers registered in the last 30 days
+- **regular-customers**: Standard customer segment (migrated from Magento "General" group)
+- **wholesale-customers**: B2B customers (migrated from Magento "Wholesale" group)
+- **vip-customers**: High-value customers (based on order history)
 
 ## 📨 Event Schemas
 
@@ -604,31 +690,48 @@ var TierRules = map[string]TierRule{
 
 ## ⚙️ Configuration
 
-### Environment Variables
+### Environment Variables (Single Tenant)
 ```bash
 # Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/customers_db
 DATABASE_MAX_CONNECTIONS=25
+DATABASE_IDLE_CONNECTIONS=5
 
 # Redis Cache
 REDIS_URL=redis://localhost:6379
 REDIS_TTL_PROFILE=3600
-REDIS_TTL_SEGMENT=1800
+REDIS_TTL_ADDRESSES=7200
+REDIS_TTL_SEGMENTS=1800
+REDIS_TTL_LEGACY_MAPPING=86400
 
 # Service Discovery
 CONSUL_URL=http://localhost:8500
 SERVICE_NAME=customer-service
 SERVICE_PORT=8007
+HEALTH_CHECK_INTERVAL=10s
 
-# External Services
-ORDER_SERVICE_URL=http://order-service:8004
-LOYALTY_SERVICE_URL=http://loyalty-service:8011
+# Migration Support
+MAGENTO_DB_URL=mysql://user:pass@localhost:3306/magento2
+MIGRATION_BATCH_SIZE=1000
+MIGRATION_WORKERS=4
 
 # Customer Configuration
-DEFAULT_TIER=regular
-SEGMENT_UPDATE_INTERVAL=3600
+DEFAULT_CUSTOMER_TYPE=individual
+DEFAULT_STATUS=pending
+EMAIL_VERIFICATION_REQUIRED=true
+PHONE_VERIFICATION_REQUIRED=false
+MAX_ADDRESSES_PER_CUSTOMER=10
+
+# Security
 PASSWORD_MIN_LENGTH=8
 SESSION_TIMEOUT=1800
+JWT_SECRET=your-jwt-secret
+BCRYPT_COST=12
+
+# Performance
+CACHE_ENABLED=true
+PARALLEL_LOADING=true
+MAX_CONCURRENT_REQUESTS=1000
 ```
 
 ## 🚨 Error Handling
@@ -645,23 +748,77 @@ SESSION_TIMEOUT=1800
 
 ## ⚡ Performance & SLAs
 
-### Performance Targets
+### Performance Targets (Single Tenant Optimized)
 - **Response Time**: 
-  - P50: < 50ms
-  - P95: < 200ms
-  - P99: < 500ms
-- **Throughput**: 1500 requests/second
+  - P50: < 30ms (improved with flat tables)
+  - P95: < 100ms (no EAV overhead)
+  - P99: < 200ms (optimized queries)
+- **Throughput**: 2000+ requests/second (single tenant performance)
 - **Availability**: 99.9% uptime
-- **Cache Hit Ratio**: > 80%
+- **Cache Hit Ratio**: > 90% (simplified caching strategy)
 
 ### Scaling Strategy
-- **Horizontal Scaling**: Auto-scale based on request volume
-- **Database**: Read replicas for customer lookups
-- **Cache**: Redis cluster for session and profile data
-- **Load Balancing**: Consistent hashing for session affinity
+- **Horizontal Scaling**: Stateless service, easy auto-scaling
+- **Database**: Optimized indexes, read replicas for heavy read operations
+- **Cache**: Redis for customer profiles and session data
+- **Load Balancing**: Round-robin (no session affinity needed)
+- **Migration**: Parallel processing for Magento data migration
+
+## 🔄 Migration Support
+
+### Legacy ID Mapping
+- **Purpose**: Maintain compatibility with Magento entity IDs
+- **Implementation**: `legacy_id` fields in core tables
+- **Benefits**: Easy data sync, API compatibility, rollback support
+
+### Migration Utilities
+```go
+// Get customer by Magento entity_id
+func (s *CustomerService) GetCustomerByLegacyID(ctx context.Context, legacyID int) (*Customer, error) {
+    return s.customerRepo.GetByLegacyID(ctx, legacyID)
+}
+
+// Support both UUID and legacy ID in APIs
+func (s *CustomerService) GetCustomerByIDOrLegacy(ctx context.Context, identifier string) (*Customer, error) {
+    // Try UUID first
+    if uuid, err := uuid.Parse(identifier); err == nil {
+        return s.GetCustomer(ctx, uuid.String())
+    }
+    
+    // Try legacy ID
+    if legacyID, err := strconv.Atoi(identifier); err == nil {
+        return s.GetCustomerByLegacyID(ctx, legacyID)
+    }
+    
+    return nil, ErrInvalidCustomerID
+}
+```
+
+## 🚀 Future Evolution Path
+
+### Phase 1: Single Tenant Core (Current)
+- ✅ Core customer CRUD operations
+- ✅ Profile and preferences management
+- ✅ Address management
+- ✅ Basic segmentation
+- ✅ Magento migration support
+
+### Phase 2: Enhanced Features
+- [ ] Advanced customer analytics
+- [ ] Real-time segmentation updates
+- [ ] Customer journey tracking
+- [ ] Advanced preference management
+
+### Phase 3: Multi-tenant Support (If Needed)
+- [ ] Add `tenant_id` fields to existing tables
+- [ ] Tenant-aware service layer
+- [ ] Tenant configuration management
+- [ ] Multi-store customer management
 
 ---
 
-**Document Status**: Complete  
-**Next Review Date**: November 30, 2024  
-**Service Owner**: Customer Experience Team
+**Document Status**: Architecture Finalized - Ready for Implementation  
+**Architecture**: Pure Microservice - Single Tenant  
+**Next Review Date**: December 1, 2024  
+**Service Owner**: Customer Experience Team  
+**Technical Lead**: Backend Development Team

@@ -1,4 +1,6 @@
-# Magento 2 to Microservices Migration
+# 📚 Magento 2 to Microservices Migration Documentation
+
+> **📖 Quick Navigation**: See [Documentation Index](./INDEX.md) for complete documentation structure
 
 ## 📋 Project Overview
 
