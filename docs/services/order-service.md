@@ -1,13 +1,13 @@
-# Order Service
+# Order & Cart Service
 
 ## Description
-Service that processes orders from creation to completion.
+Unified service that manages shopping cart operations and processes orders from creation to completion. This service handles both cart management and order lifecycle in a single, cohesive system.
 
 ## Outbound Data
-- Order data and order details
-- Payment reference
-- Fulfillment instructions
-- Order status updates
+- **Cart Data**: Shopping cart contents, totals, session management
+- **Order Data**: Order details, payment references, fulfillment instructions
+- **Status Updates**: Cart changes, order status transitions
+- **Checkout Data**: Cart-to-order conversion information
 
 ## Consumers (Services that use this data)
 
@@ -32,12 +32,56 @@ Service that processes orders from creation to completion.
 - **Data Received**: Promotion usage, discount applications
 
 ## Data Sources
-- **Product Service**: Product validation and pricing
-- **Promotion Service**: Discount rules and applications
-- **Warehouse & Inventory**: Stock availability
-- **Customer Service**: Customer details and shipping info
+- **Product Service**: Product validation, pricing, and cart item details
+- **Promotion Service**: Discount rules and applications for cart/orders
+- **Warehouse & Inventory**: Stock availability and reservations
+- **Customer Service**: Customer details, addresses, and preferences
+- **Pricing Service**: Dynamic pricing for cart calculations
 
-## 🔄 Order Workflow Diagrams
+## 🔄 Cart & Order Workflow Diagrams
+
+### Shopping Cart Flow
+```mermaid
+sequenceDiagram
+    participant C as Customer
+    participant API as API Gateway
+    participant Cart as Cart Service
+    participant Prod as Product Service
+    participant Inv as Inventory Service
+    participant Cache as Cache Layer
+
+    %% Add to Cart
+    C->>API: POST /cart/items
+    API->>Prod: Validate Product
+    Prod-->>API: Product Details
+    API->>Inv: Check Stock
+    Inv-->>API: Stock Available
+    API->>Cart: Add Item to Cart
+    Cart->>Cache: Update Cart Cache
+    Cart-->>API: Cart Updated
+    API-->>C: Item Added Successfully
+
+    %% Get Cart
+    C->>API: GET /cart
+    API->>Cache: Get Cached Cart
+    alt Cache Hit
+        Cache-->>API: Cart Data
+    else Cache Miss
+        API->>Cart: Get Cart from DB
+        Cart-->>API: Cart Data
+        API->>Cache: Cache Cart Data
+    end
+    API-->>C: Cart Contents
+
+    %% Checkout
+    C->>API: POST /cart/checkout
+    API->>Cart: Convert Cart to Order
+    Cart->>Cart: Validate All Items
+    Cart->>Cart: Create Order from Cart
+    Cart->>Cart: Clear Cart
+    Cart-->>API: Order Created
+    API-->>C: Order Confirmation
+```
 
 ### Order State Machine
 ```mermaid
@@ -185,6 +229,208 @@ Local: http://localhost:8003/v1/orders
 - **Type**: JWT Bearer Token
 - **Required Scopes**: `orders:read`, `orders:write`, `orders:admin`
 - **Rate Limiting**: 500 requests/minute per user
+
+### Shopping Cart APIs
+
+#### POST /cart/items
+**Purpose**: Add item to shopping cart
+
+**Request**:
+```http
+POST /v1/cart/items
+Authorization: Bearer {jwt_token}
+Content-Type: application/json
+
+{
+  "productId": "prod_123",
+  "productSku": "LAPTOP-001",
+  "quantity": 1,
+  "warehouseId": "WH001",
+  "sessionId": "cart_session_456",
+  "metadata": {
+    "source": "product_page"
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "item": {
+      "id": "cart_item_789",
+      "productId": "prod_123",
+      "productSku": "LAPTOP-001",
+      "productName": "Gaming Laptop Pro",
+      "quantity": 1,
+      "unitPrice": 1169.99,
+      "totalPrice": 1169.99,
+      "inStock": true,
+      "addedAt": "2024-01-15T10:30:00Z"
+    },
+    "cart": {
+      "sessionId": "cart_session_456",
+      "itemCount": 3,
+      "totalEstimate": 1459.97,
+      "currency": "USD"
+    }
+  }
+}
+```
+
+#### GET /cart
+**Purpose**: Get cart contents
+
+**Request**:
+```http
+GET /v1/cart?sessionId=cart_session_456
+Authorization: Bearer {jwt_token}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "cart": {
+      "sessionId": "cart_session_456",
+      "userId": "user_123",
+      "items": [
+        {
+          "id": "cart_item_789",
+          "productId": "prod_123",
+          "productSku": "LAPTOP-001",
+          "productName": "Gaming Laptop Pro",
+          "quantity": 1,
+          "unitPrice": 1169.99,
+          "totalPrice": 1169.99,
+          "inStock": true,
+          "warehouseId": "WH001"
+        }
+      ],
+      "totals": {
+        "subtotal": 1169.99,
+        "discountTotal": 0.00,
+        "taxEstimate": 93.60,
+        "shippingEstimate": 15.99,
+        "totalEstimate": 1279.58,
+        "itemCount": 1,
+        "currency": "USD"
+      },
+      "expiresAt": "2024-01-16T10:30:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+```
+
+#### PUT /cart/items/{itemId}
+**Purpose**: Update cart item quantity
+
+**Request**:
+```http
+PUT /v1/cart/items/cart_item_789
+Authorization: Bearer {jwt_token}
+Content-Type: application/json
+
+{
+  "quantity": 2
+}
+```
+
+#### DELETE /cart/items/{itemId}
+**Purpose**: Remove item from cart
+
+**Request**:
+```http
+DELETE /v1/cart/items/cart_item_789
+Authorization: Bearer {jwt_token}
+```
+
+#### POST /cart/checkout
+**Purpose**: Convert cart to order
+
+**Request**:
+```http
+POST /v1/cart/checkout
+Authorization: Bearer {jwt_token}
+Content-Type: application/json
+
+{
+  "sessionId": "cart_session_456",
+  "shippingAddress": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "street": "123 Main St",
+    "city": "New York",
+    "state": "NY",
+    "zipCode": "10001",
+    "country": "US"
+  },
+  "paymentMethod": "credit_card",
+  "promotionCodes": ["SAVE20"],
+  "notes": "Please handle with care"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "order_789",
+      "orderNumber": "ORD-2024-001234",
+      "status": "pending",
+      "customerId": "cust_456",
+      "totalAmount": 1279.58,
+      "currency": "USD",
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+```
+
+#### GET /cart/summary
+**Purpose**: Get cart summary for header display
+
+**Request**:
+```http
+GET /v1/cart/summary?sessionId=cart_session_456
+Authorization: Bearer {jwt_token}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "itemCount": 3,
+    "totalEstimate": 1459.97,
+    "currency": "USD",
+    "hasItems": true
+  }
+}
+```
+
+#### POST /cart/merge
+**Purpose**: Merge guest cart with user cart after login
+
+**Request**:
+```http
+POST /v1/cart/merge
+Authorization: Bearer {jwt_token}
+Content-Type: application/json
+
+{
+  "guestSessionId": "guest_cart_123",
+  "guestToken": "guest_token_456",
+  "userId": "user_789",
+  "userSessionId": "user_cart_456",
+  "strategy": "MERGE_STRATEGY_MERGE"
+}
+```
 
 ### Order Management APIs
 
@@ -415,6 +661,61 @@ Authorization: Bearer {admin_jwt_token}
 
 ### Primary Database: PostgreSQL
 
+#### cart_sessions
+```sql
+CREATE TABLE cart_sessions (
+    id BIGSERIAL PRIMARY KEY,
+    session_id VARCHAR(100) UNIQUE NOT NULL,
+    user_id BIGINT,
+    guest_token VARCHAR(100),
+    expires_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Indexes
+    INDEX idx_cart_sessions_session_id (session_id),
+    INDEX idx_cart_sessions_user_id (user_id),
+    INDEX idx_cart_sessions_guest_token (guest_token),
+    INDEX idx_cart_sessions_expires_at (expires_at)
+);
+```
+
+#### cart_items
+```sql
+CREATE TABLE cart_items (
+    id BIGSERIAL PRIMARY KEY,
+    session_id VARCHAR(100) NOT NULL,
+    product_id BIGINT NOT NULL,
+    product_sku VARCHAR(100) NOT NULL,
+    product_name VARCHAR(255),
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price DECIMAL(10,2),
+    total_price DECIMAL(12,2),
+    discount_amount DECIMAL(10,2) DEFAULT 0.00,
+    warehouse_id BIGINT,
+    in_stock BOOLEAN DEFAULT true,
+    metadata JSONB DEFAULT '{}',
+    added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign key constraint
+    CONSTRAINT fk_cart_items_session_id 
+        FOREIGN KEY (session_id) 
+        REFERENCES cart_sessions(session_id) 
+        ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_cart_items_session_id (session_id),
+    INDEX idx_cart_items_product_id (product_id),
+    INDEX idx_cart_items_product_sku (product_sku),
+    INDEX idx_cart_items_warehouse_id (warehouse_id),
+    
+    -- Unique constraint to prevent duplicate products in same cart
+    UNIQUE INDEX idx_cart_items_unique_product_warehouse (session_id, product_id, warehouse_id)
+);
+```
+
 #### orders
 ```sql
 CREATE TABLE orders (
@@ -540,6 +841,26 @@ CREATE TABLE order_events (
 
 ### Cache Schema (Redis)
 ```
+# Cart cache
+Key: cart:session:{session_id}
+TTL: 1800 seconds (30 minutes)
+Value: JSON serialized cart data
+
+# Cart summary cache
+Key: cart:summary:{session_id}
+TTL: 300 seconds (5 minutes)
+Value: Cart item count and total
+
+# User cart mapping
+Key: cart:user:{user_id}
+TTL: 3600 seconds (1 hour)
+Value: Active cart session ID
+
+# Guest cart mapping
+Key: cart:guest:{guest_token}
+TTL: 3600 seconds (1 hour)
+Value: Active cart session ID
+
 # Order cache
 Key: orders:order:{order_id}
 TTL: 1800 seconds (30 minutes)
@@ -564,6 +885,60 @@ Value: Order IDs pending processing
 ## 📨 Event Schemas
 
 ### Published Events
+
+#### CartItemAdded
+**Topic**: `orders.cart.item_added`
+**Version**: 1.0
+
+```json
+{
+  "eventId": "evt_cart_123",
+  "eventType": "CartItemAdded",
+  "version": "1.0",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "source": "order-service",
+  "data": {
+    "sessionId": "cart_session_456",
+    "userId": "user_123",
+    "productId": "prod_123",
+    "productSku": "LAPTOP-001",
+    "quantity": 1,
+    "unitPrice": 1169.99,
+    "warehouseId": "WH001"
+  }
+}
+```
+
+#### CartUpdated
+**Topic**: `orders.cart.updated`
+**Version**: 1.0
+
+#### CartCleared
+**Topic**: `orders.cart.cleared`
+**Version**: 1.0
+
+#### CartCheckedOut
+**Topic**: `orders.cart.checked_out`
+**Version**: 1.0
+
+```json
+{
+  "eventId": "evt_checkout_124",
+  "eventType": "CartCheckedOut",
+  "version": "1.0",
+  "timestamp": "2024-01-15T10:35:00Z",
+  "source": "order-service",
+  "data": {
+    "sessionId": "cart_session_456",
+    "userId": "user_123",
+    "orderId": "order_789",
+    "orderNumber": "ORD-2024-001234",
+    "itemCount": 3,
+    "totalAmount": 1279.58,
+    "currency": "USD"
+  }
+}
+```
 
 #### OrderCreated
 **Topic**: `orders.order.created`
@@ -691,10 +1066,13 @@ RETURNED → REFUNDED (refund processed)
 - Connection pooling for high concurrency
 
 ### Caching Strategy
-- Cache order details for 30 minutes
-- Cache customer order lists for 5 minutes
-- Cache order status for 10 minutes
-- Invalidate cache on order updates
+- **Cart Data**: Cache cart contents for 30 minutes, invalidate on updates
+- **Cart Summary**: Cache cart totals for 5 minutes for header display
+- **User/Guest Mapping**: Cache session mappings for 1 hour
+- **Order Details**: Cache order details for 30 minutes
+- **Customer Orders**: Cache order lists for 5 minutes
+- **Order Status**: Cache status for 10 minutes
+- **Auto-cleanup**: Expired carts cleaned up daily
 
 ### Event Processing
 - Asynchronous event publishing

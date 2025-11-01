@@ -1,392 +1,582 @@
-# Go Kratos Microservice Template
+# Go Microservice Template (Based on Catalog Service)
 
 ## Overview
-Production-ready Go microservice template based on **go-kratos/kratos** framework, following the e-commerce platform architecture patterns with clean architecture principles and integrated with Consul for service discovery and permission management.
+Production-ready Go microservice template based on the **actual catalog service implementation**, following the e-commerce platform architecture patterns with clean architecture principles and integrated with common shared libraries.
 
 ## Tech Stack
 - **Runtime**: Go 1.21+
-- **Framework**: Kratos (go-kratos/kratos) - Cloud-native microservice framework
-- **Protocol**: gRPC + HTTP/REST dual protocol support
+- **Framework**: Gin (HTTP) + gRPC for dual protocol support
 - **Database**: PostgreSQL with GORM
-- **Service Discovery**: Consul with health checks
-- **Configuration**: Kratos Config with multiple sources (file, env, consul)
-- **Event-Driven Runtime**: Dapr with Redis pub/sub backend
-- **Caching**: Redis with Kratos cache abstraction
-- **Monitoring**: Prometheus + Jaeger tracing + Kratos metrics
-- **Logging**: Kratos structured logging with multiple outputs
-- **Testing**: Kratos testing framework + testify
+- **Cache**: Redis with custom cache manager
+- **Configuration**: Environment-based config with shared common package
+- **Logging**: Logrus with structured logging
+- **Authentication**: JWT with middleware
+- **Migrations**: Goose for database migrations
 - **Documentation**: Protobuf + OpenAPI generation
-- **Security**: Consul-based service permission matrix + JWT
+- **Testing**: Standard Go testing + testify
 
-## Kratos Project Structure
+## Actual Project Structure (Based on Catalog Service)
 ```
-go-kratos-service/
-├── cmd/
-│   └── server/                    # Application entry point
-│       ├── main.go               # Main entry with Kratos app
-│       ├── wire.go               # Dependency injection with Wire
-│       └── wire_gen.go           # Generated Wire code
-├── internal/                      # Private application code
-│   ├── conf/                     # Configuration definitions
-│   │   ├── conf.proto            # Configuration protobuf
-│   │   └── conf.pb.go            # Generated config
-│   ├── data/                     # Data access layer
-│   │   ├── data.go               # Data providers
-│   │   ├── product.go            # Product repository implementation
-│   │   └── consul.go             # Consul integration
-│   ├── biz/                      # Business logic layer
-│   │   ├── biz.go                # Business providers
-│   │   ├── product.go            # Product business logic
-│   │   └── consul_permission.go  # Consul permission logic
-│   ├── service/                  # Service layer (gRPC/HTTP handlers)
-│   │   ├── service.go            # Service providers
-│   │   ├── product.go            # Product service implementation
-│   │   └── health.go             # Health check service
-│   └── server/                   # Server configurations
-│       ├── server.go             # Server providers
-│       ├── grpc.go               # gRPC server setup
-│       ├── http.go               # HTTP server setup
-│       └── consul.go             # Consul registration
-├── api/                          # API definitions (protobuf)
+my-service/
+├── cmd/                          # Application entry points
+│   ├── my-service/              # Main service binary
+│   │   └── main.go              # Main entry with Gin + gRPC
+│   └── migrate/                 # Migration binary
+│       └── main.go              # Database migration tool
+├── internal/                     # Private application code
+│   ├── biz/                     # Business logic layer
+│   │   ├── product.go           # Product business logic
+│   │   └── category.go          # Category business logic
+│   ├── conf/                    # Configuration definitions
+│   │   └── config.go            # Configuration structs
+│   ├── config/                  # Configuration loading
+│   │   └── config.go            # Config loading utilities
+│   ├── consumer/                # Event consumers
+│   │   ├── provider.go          # Consumer dependency injection
+│   │   ├── interfaces.go        # Consumer interfaces
+│   │   ├── sample.go            # Sample consumer implementation
+│   │   └── message.go           # Message types
+│   ├── data/                    # Data access layer
+│   │   └── eventbus/            # Event bus implementation
+│   │       ├── client.go        # Dapr eventbus client
+│   │       └── task_consumer.go # Task event consumer
+│   ├── handlers/                # HTTP/gRPC handlers
+│   │   ├── product.go           # Product HTTP handlers
+│   │   ├── category.go          # Category HTTP handlers
+│   │   └── grpc_handlers.go     # gRPC handlers
+│   ├── middleware/              # Custom middleware
+│   │   ├── auth.go              # JWT authentication
+│   │   ├── cors.go              # CORS middleware
+│   │   └── logging.go           # Request logging
+│   ├── models/                  # Database models
+│   │   ├── product.go           # Product model
+│   │   ├── category.go          # Category model
+│   │   └── brand.go             # Brand model
+│   ├── observer/                # Observer pattern for internal events
+│   │   ├── observer.go          # Observer manager
+│   │   └── event/               # Event definitions
+│   │       └── task_created.go  # Task created event
+│   ├── repository/              # Repository layer
+│   │   ├── product.go           # Product repository
+│   │   ├── category.go          # Category repository
+│   │   └── interfaces.go        # Repository interfaces
+│   ├── server/                  # Server configurations
+│   │   ├── http.go              # HTTP server setup
+│   │   └── grpc.go              # gRPC server setup
+│   ├── service/                 # Service layer
+│   │   ├── product.go           # Product service
+│   │   └── category.go          # Category service
+│   └── util/                    # Utility packages
+│       └── observer/            # Observer utilities
+│           └── manager.go       # Event manager
+├── api/                         # API definitions (protobuf)
 │   └── catalog/
 │       └── v1/
-│           ├── catalog.proto     # Service API definition
-│           ├── catalog.pb.go     # Generated Go code
-│           ├── catalog_grpc.pb.go # Generated gRPC code
-│           └── catalog_http.pb.go # Generated HTTP code
-├── third_party/                  # Third-party protobuf files
-│   ├── google/
-│   ├── validate/
-│   └── openapi/
-├── configs/                      # Configuration files
-│   ├── config.yaml              # Default configuration
-│   ├── config-dev.yaml          # Development config
-│   └── config-prod.yaml         # Production config
-├── pkg/                          # Public library code
-│   ├── consul/                   # Consul utilities
-│   │   ├── client.go
-│   │   ├── discovery.go
-│   │   └── permission.go
-│   ├── middleware/               # Custom middleware
-│   │   ├── auth.go
-│   │   ├── consul_auth.go
-│   │   └── tracing.go
-│   └── errors/                   # Error definitions
-│       └── errors.go
-├── scripts/                      # Utility scripts
-│   ├── generate.sh              # Protobuf generation
-│   ├── migrate.sh               # Database migrations
-│   └── consul-setup.sh          # Consul setup
-├── deployments/                  # Deployment configurations
-│   ├── docker/
-│   │   ├── Dockerfile
-│   │   └── docker-compose.yml
-│   ├── k8s/
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   ├── configmap.yaml
-│   │   └── consul-config.yaml
-│   └── consul/
-│       ├── service-config.json
-│       └── permissions.json
-├── test/                         # Test files
-│   ├── integration/
-│   ├── unit/
-│   └── mocks/
-├── docs/                         # Documentation
-│   ├── api.md                   # API documentation
-│   └── consul-integration.md    # Consul integration guide
-├── go.mod
-├── go.sum
-├── Makefile
-├── kratos.yaml                   # Kratos project config
-├── buf.yaml                      # Buf configuration for protobuf
-├── buf.gen.yaml                  # Buf generation config
-└── README.md
+│           ├── product.proto    # Product service definition
+│           ├── category.proto   # Category service definition
+│           ├── brand.proto      # Brand service definition
+│           ├── cms.proto        # CMS service definition
+│           ├── common.proto     # Common types
+│           └── catalog.proto    # Main catalog service
+├── configs/                     # Configuration files
+│   ├── config.yaml             # Default configuration
+│   ├── config-dev.yaml         # Development config
+│   └── config-docker.yaml      # Docker config
+├── migrations/                  # Database migrations
+│   ├── 001_create_products_table.up.sql
+│   ├── 001_create_products_table.down.sql
+│   ├── 002_create_categories_table.up.sql
+│   ├── 002_create_categories_table.down.sql
+│   └── README.md
+├── scripts/                     # Utility scripts
+│   └── run-migrations.sh       # Migration runner script
+├── deployments/                 # Deployment configurations
+│   └── kubernetes/
+│       ├── deployment.yaml
+│       ├── service.yaml
+│       └── configmap.yaml
+├── go.mod                       # Go module definition
+├── go.sum                       # Go module checksums
+├── Makefile                     # Build and development commands
+├── Dockerfile                   # Docker image definition
+├── docker-compose.yml           # Local development setup
+└── README.md                    # Service documentation
 ```
 
 ## Quick Start
 
 ### 1. Prerequisites
 ```bash
-# Install Kratos CLI
-go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
-
 # Install protobuf tools
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-go install github.com/go-kratos/kratos/cmd/protoc-gen-go-http/v2@latest
 
-# Install Wire for dependency injection
-go install github.com/google/wire/cmd/wire@latest
+# Install migration tool
+go install github.com/pressly/goose/v3/cmd/goose@latest
 ```
 
 ### 2. Create New Service
 ```bash
-# Create from template
-kratos new my-catalog-service -r https://github.com/go-kratos/kratos-layout.git
-cd my-catalog-service
-
-# Or copy this template
-cp -r go-kratos-service my-catalog-service
-cd my-catalog-service
+# Copy this template
+cp -r go-service-template my-new-service
+cd my-new-service
 
 # Initialize Go module
-go mod init github.com/ecommerce/my-catalog-service
+go mod init my-new-service
 go mod tidy
+
+# Update import paths in all files
+find . -name "*.go" -exec sed -i 's/catalog/my-new-service/g' {} \;
 ```
 
-### 3. Setup Infrastructure
+### 3. Setup Common Package
 ```bash
-# Start Consul, PostgreSQL, Redis, Kafka
+# Create common package (shared across services)
+mkdir -p ../common
+cd ../common
+
+# Initialize common module
+go mod init common
+
+# Create shared utilities, config, middleware, etc.
+# (See common package structure below)
+```
+
+### 4. Setup Infrastructure
+```bash
+# Start PostgreSQL and Redis
 docker-compose up -d
 
-# Setup Consul permissions
-./scripts/consul-setup.sh
-
 # Run database migrations
-make migrate-up
+make migrate-up DATABASE_URL="postgres://user:pass@localhost:5432/myservice_db?sslmode=disable"
 ```
 
-### 4. Generate Code
+### 5. Generate Code
 ```bash
 # Generate protobuf code
-make generate
+make api
 
-# Generate Wire dependency injection
-make wire
-
-# Generate OpenAPI documentation
-make openapi
+# Build the service
+make build
 ```
 
-### 5. Start Development
+### 6. Start Development
 ```bash
 # Start in development mode
 make run
 
 # Service will be available at:
-# - gRPC: localhost:9000
-# - HTTP: localhost:8000
-# - Health: localhost:8000/health
-# - Metrics: localhost:8000/metrics
+# - HTTP: localhost:8001 (or your configured port)
+# - gRPC: localhost:9001 (or your configured port)
+# - Health: localhost:8001/health
 ```
 
 ## Core Components
 
-### 1. Main Entry Point (cmd/server/main.go)
+### 1. Main Entry Point (cmd/my-service/main.go)
 ```go
 package main
 
 import (
     "context"
-    "flag"
+    "fmt"
+    "log"
+    "net"
+    "net/http"
     "os"
+    "os/signal"
+    "syscall"
+    "time"
 
-    "github.com/go-kratos/kratos/v2"
-    "github.com/go-kratos/kratos/v2/config"
-    "github.com/go-kratos/kratos/v2/config/file"
-    "github.com/go-kratos/kratos/v2/config/env"
-    "github.com/go-kratos/kratos/v2/log"
-    "github.com/go-kratos/kratos/v2/registry"
-    "github.com/go-kratos/kratos/v2/transport/grpc"
-    "github.com/go-kratos/kratos/v2/transport/http"
+    "github.com/gin-gonic/gin"
+    "github.com/joho/godotenv"
+    _ "github.com/lib/pq"
+    "github.com/sirupsen/logrus"
+    "google.golang.org/grpc"
+    "gorm.io/gorm"
 
-    "github.com/ecommerce/my-catalog-service/internal/conf"
-    "github.com/ecommerce/my-catalog-service/pkg/consul"
+    "my-service/internal/handlers"
+    "my-service/internal/models"
+    "my-service/internal/repository"
+    "my-service/internal/service"
+    pb "my-service/api/myservice/v1"
+    
+    "common/config"
+    "common/middleware"
+    commonModels "common/models"
+    "common/utils"
 )
-
-var (
-    Name    string = "catalog-service"
-    Version string = "v1.0.0"
-    flagconf string
-    id, _   = os.Hostname()
-)
-
-func init() {
-    flag.StringVar(&flagconf, "conf", "../../configs", "config path")
-}
-
-func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, rr registry.Registrar) *kratos.App {
-    return kratos.New(
-        kratos.ID(id),
-        kratos.Name(Name),
-        kratos.Version(Version),
-        kratos.Logger(logger),
-        kratos.Server(gs, hs),
-        kratos.Registrar(rr),
-    )
-}
 
 func main() {
-    flag.Parse()
+    // Load environment variables
+    if err := godotenv.Load(); err != nil {
+        logrus.Warn("No .env file found")
+    }
+
+    // Load configuration
+    baseConfig := config.LoadBaseConfig("my-service", "8001", "9001")
+    dbConfig := config.LoadDatabaseConfig("my-service")
+    redisConfig := config.LoadRedisConfig()
+    jwtConfig := config.LoadJWTConfig()
+
+    // Setup logger
+    logger := utils.SetupLoggerFromEnv("my-service")
+
+    // Connect to database
+    db, err := utils.ConnectDB(dbConfig)
+    if err != nil {
+        logger.Fatalf("Failed to connect to database: %v", err)
+    }
+
+    // Auto-migrate models
+    if err := autoMigrate(db); err != nil {
+        logger.Fatalf("Failed to auto-migrate: %v", err)
+    }
+
+    // Connect to Redis
+    rdb, err := utils.ConnectRedis(redisConfig)
+    if err != nil {
+        logger.Fatalf("Failed to connect to Redis: %v", err)
+    }
+
+    // Initialize cache manager
+    cache := utils.NewCacheManager(rdb, "my-service")
+
+    // Initialize repositories
+    productRepo := repository.NewProductRepository(db, cache)
+    categoryRepo := repository.NewCategoryRepository(db, cache)
+
+    // Initialize services
+    productService := service.NewProductService(productRepo, categoryRepo)
+    categoryService := service.NewCategoryService(categoryRepo)
+
+    // Initialize handlers
+    productHandler := handlers.NewProductHandler(productService)
+    categoryHandler := handlers.NewCategoryHandler(categoryService)
+
+    // Setup HTTP server
+    router := setupHTTPRouter(baseConfig, jwtConfig, productHandler, categoryHandler)
+    httpServer := &http.Server{
+        Addr:    fmt.Sprintf(":%s", baseConfig.HTTPPort),
+        Handler: router,
+    }
+
+    // Setup gRPC server
+    grpcServer := setupGRPCServer(productService, categoryService)
+    grpcListener, err := net.Listen("tcp", fmt.Sprintf(":%s", baseConfig.GRPCPort))
+    if err != nil {
+        logger.Fatalf("Failed to listen on gRPC port: %v", err)
+    }
+
+    // Start servers
+    go func() {
+        logger.Infof("Starting HTTP server on port %s", baseConfig.HTTPPort)
+        if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+            logger.Fatalf("HTTP server failed: %v", err)
+        }
+    }()
+
+    go func() {
+        logger.Infof("Starting gRPC server on port %s", baseConfig.GRPCPort)
+        if err := grpcServer.Serve(grpcListener); err != nil {
+            logger.Fatalf("gRPC server failed: %v", err)
+        }
+    }()
+
+    // Wait for interrupt signal
+    quit := make(chan os.Signal, 1)
+    signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+    <-quit
+
+    logger.Info("Shutting down servers...")
+
+    // Graceful shutdown
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+
+    if err := httpServer.Shutdown(ctx); err != nil {
+        logger.Errorf("HTTP server shutdown error: %v", err)
+    }
+
+    grpcServer.GracefulStop()
+    logger.Info("Servers stopped")
+}
+
+func autoMigrate(db *gorm.DB) error {
+    // Create extensions
+    if err := utils.CreateExtensions(db); err != nil {
+        return fmt.Errorf("failed to create extensions: %w", err)
+    }
+
+    // Auto-migrate models
+    return utils.AutoMigrate(db,
+        &models.Category{},
+        &models.Brand{},
+        &models.Product{},
+    )
+}
+
+func setupHTTPRouter(baseConfig *config.BaseConfig, jwtConfig *config.JWTConfig, productHandler *handlers.ProductHandler, categoryHandler *handlers.CategoryHandler) *gin.Engine {
+    if baseConfig.Environment == "production" {
+        gin.SetMode(gin.ReleaseMode)
+    }
+
+    router := gin.New()
+    router.Use(middleware.RequestID())
+    router.Use(middleware.Logging())
+    router.Use(middleware.Recovery())
+    router.Use(middleware.CORS())
+
+    // Health check
+    router.GET("/health", func(c *gin.Context) {
+        c.JSON(http.StatusOK, commonModels.NewAPIResponse(gin.H{
+            "status":    "healthy",
+            "service":   "my-service",
+            "timestamp": time.Now().UTC(),
+        }))
+    })
+
+    // Auth middleware configuration
+    authConfig := &middleware.AuthConfig{
+        JWTSecret: jwtConfig.Secret,
+        SkipPaths: []string{"/health", "/v1/products", "/v1/categories"},
+    }
+
+    // API routes
+    v1 := router.Group("/v1")
+    {
+        // Product routes
+        products := v1.Group("/products")
+        {
+            products.GET("", productHandler.GetProducts)
+            products.GET("/:id", productHandler.GetProduct)
+            
+            // Protected routes
+            protected := products.Group("")
+            protected.Use(middleware.Auth(authConfig))
+            {
+                protected.POST("", productHandler.CreateProduct)
+                protected.PUT("/:id", productHandler.UpdateProduct)
+                protected.DELETE("/:id", productHandler.DeleteProduct)
+            }
+        }
+
+        // Category routes
+        categories := v1.Group("/categories")
+        {
+            categories.GET("", categoryHandler.GetCategories)
+            categories.GET("/:id", categoryHandler.GetCategory)
+            
+            // Protected routes
+            protected := categories.Group("")
+            protected.Use(middleware.Auth(authConfig))
+            {
+                protected.POST("", categoryHandler.CreateCategory)
+                protected.PUT("/:id", categoryHandler.UpdateCategory)
+                protected.DELETE("/:id", categoryHandler.DeleteCategory)
+            }
+        }
+    }
+
+    return router
+}
+
+func setupGRPCServer(productService *service.ProductService, categoryService *service.CategoryService) *grpc.Server {
+    server := grpc.NewServer()
     
-    // Initialize structured logger
-    logger := log.With(log.NewStdLogger(os.Stdout),
-        "ts", log.DefaultTimestamp,
-        "caller", log.DefaultCaller,
-        "service.id", id,
-        "service.name", Name,
-        "service.version", Version,
-    )
+    // Register gRPC services
+    pb.RegisterProductServiceServer(server, handlers.NewProductGRPCHandler(productService))
+    pb.RegisterCategoryServiceServer(server, handlers.NewCategoryGRPCHandler(categoryService))
 
-    // Load configuration from multiple sources
-    c := config.New(
-        config.WithSource(
-            file.NewSource(flagconf),
-            env.NewSource("CATALOG_"),
-        ),
-    )
-    defer c.Close()
-
-    if err := c.Load(); err != nil {
-        panic(err)
-    }
-
-    var bc conf.Bootstrap
-    if err := c.Scan(&bc); err != nil {
-        panic(err)
-    }
-
-    // Initialize Consul registry with service discovery
-    consulClient, err := consul.NewClient(bc.Consul)
-    if err != nil {
-        panic(err)
-    }
-
-    r := consul.NewRegistry(consulClient)
-
-    // Initialize application with Wire dependency injection
-    app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Consul, logger, r)
-    if err != nil {
-        panic(err)
-    }
-    defer cleanup()
-
-    // Start application with graceful shutdown
-    if err := app.Run(); err != nil {
-        panic(err)
-    }
+    return server
 }
 ```
 
-### 2. Configuration (internal/conf/conf.proto)
-```protobuf
-syntax = "proto3";
-package kratos.api;
+### 2. Common Package Structure (../common/)
+```
+common/
+├── config/                       # Shared configuration
+│   ├── base.go                  # Base service config
+│   ├── database.go              # Database config
+│   ├── redis.go                 # Redis config
+│   └── jwt.go                   # JWT config
+├── middleware/                   # Shared middleware
+│   ├── auth.go                  # JWT authentication
+│   ├── cors.go                  # CORS middleware
+│   ├── logging.go               # Request logging
+│   ├── recovery.go              # Panic recovery
+│   └── request_id.go            # Request ID middleware
+├── models/                       # Shared models
+│   ├── response.go              # API response models
+│   ├── pagination.go            # Pagination models
+│   └── error.go                 # Error models
+├── utils/                        # Shared utilities
+│   ├── database.go              # Database utilities
+│   ├── redis.go                 # Redis utilities
+│   ├── logger.go                # Logger setup
+│   ├── cache.go                 # Cache manager
+│   └── validation.go            # Validation utilities
+└── go.mod                        # Common module
+```
 
-option go_package = "github.com/ecommerce/my-catalog-service/internal/conf;conf";
+#### Common Config Example (common/config/base.go)
+```go
+package config
 
-import "google/protobuf/duration.proto";
+import (
+    "os"
+    "strconv"
+)
 
-message Bootstrap {
-  Server server = 1;
-  Data data = 2;
-  Consul consul = 3;
-  Trace trace = 4;
+type BaseConfig struct {
+    ServiceName string
+    HTTPPort    string
+    GRPCPort    string
+    Environment string
+    LogLevel    string
 }
 
-message Server {
-  message HTTP {
-    string network = 1;
-    string addr = 2;
-    google.protobuf.Duration timeout = 3;
-  }
-  message GRPC {
-    string network = 1;
-    string addr = 2;
-    google.protobuf.Duration timeout = 3;
-  }
-  HTTP http = 1;
-  GRPC grpc = 2;
+func LoadBaseConfig(serviceName, defaultHTTPPort, defaultGRPCPort string) *BaseConfig {
+    return &BaseConfig{
+        ServiceName: serviceName,
+        HTTPPort:    getEnv("HTTP_PORT", defaultHTTPPort),
+        GRPCPort:    getEnv("GRPC_PORT", defaultGRPCPort),
+        Environment: getEnv("ENVIRONMENT", "development"),
+        LogLevel:    getEnv("LOG_LEVEL", "info"),
+    }
 }
 
-message Data {
-  message Database {
-    string driver = 1;
-    string source = 2;
-  }
-  message Redis {
-    string network = 1;
-    string addr = 2;
-    string password = 3;
-    int32 db = 4;
-    google.protobuf.Duration dial_timeout = 5;
-    google.protobuf.Duration read_timeout = 6;
-    google.protobuf.Duration write_timeout = 7;
-  }
-  message Kafka {
-    repeated string brokers = 1;
-    string group_id = 2;
-  }
-  Database database = 1;
-  Redis redis = 2;
-  Kafka kafka = 3;
+type DatabaseConfig struct {
+    Host     string
+    Port     int
+    User     string
+    Password string
+    DBName   string
+    SSLMode  string
 }
 
-message Consul {
-  string address = 1;
-  string scheme = 2;
-  string datacenter = 3;
-  bool health_check = 4;
-  google.protobuf.Duration health_check_interval = 5;
-  google.protobuf.Duration health_check_timeout = 6;
-  bool deregister_critical_service_after = 7;
-  google.protobuf.Duration deregister_critical_service_after_duration = 8;
+func LoadDatabaseConfig(serviceName string) *DatabaseConfig {
+    port, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
+    
+    return &DatabaseConfig{
+        Host:     getEnv("DB_HOST", "localhost"),
+        Port:     port,
+        User:     getEnv("DB_USER", "postgres"),
+        Password: getEnv("DB_PASSWORD", "postgres"),
+        DBName:   getEnv("DB_NAME", serviceName+"_db"),
+        SSLMode:  getEnv("DB_SSLMODE", "disable"),
+    }
 }
 
-message Trace {
-  string endpoint = 1;
+func getEnv(key, defaultValue string) string {
+    if value := os.Getenv(key); value != "" {
+        return value
+    }
+    return defaultValue
 }
 ```
 
-### 3. Configuration File (configs/config.yaml)
+### 3. Configuration Files (configs/)
+#### configs/config.yaml (Development)
 ```yaml
+# Service Configuration
+service:
+  name: "my-service"
+  version: "v1.0.0"
+  environment: "development"
+
+# Server Configuration
 server:
   http:
-    addr: 0.0.0.0:8000
-    timeout: 1s
+    port: 8001
+    timeout: 30s
   grpc:
-    addr: 0.0.0.0:9000
-    timeout: 1s
+    port: 9001
+    timeout: 30s
 
-data:
-  database:
-    driver: postgres
-    source: postgres://user:password@localhost:5432/catalog_db?sslmode=disable
-  redis:
-    addr: localhost:6379
-    password: ""
-    db: 0
-    dial_timeout: 1s
-    read_timeout: 0.2s
-    write_timeout: 0.2s
+# Database Configuration
+database:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "myservice_db"
+  sslmode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
 
-dapr:
-  app_id: catalog-service
-  app_port: 8000
-  dapr_http_port: 3500
-  dapr_grpc_port: 50001
-  components_path: ./deployments/dapr
-  pubsub:
-    name: redis-pubsub
-    type: pubsub.redis
-  state_store:
-    name: redis-state
-    type: state.redis
+# Redis Configuration
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 5
 
-consul:
-  address: localhost:8500
-  scheme: http
-  datacenter: dc1
-  health_check: true
-  health_check_interval: 10s
-  health_check_timeout: 3s
-  deregister_critical_service_after: true
-  deregister_critical_service_after_duration: 30s
+# JWT Configuration
+jwt:
+  secret: "your-jwt-secret-key"
+  expires_in: "24h"
+  issuer: "my-service"
 
-trace:
-  endpoint: http://localhost:14268/api/traces
+# Logging Configuration
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+```
+
+#### configs/config-docker.yaml (Docker)
+```yaml
+# Service Configuration
+service:
+  name: "my-service"
+  version: "v1.0.0"
+  environment: "docker"
+
+# Server Configuration
+server:
+  http:
+    port: 8001
+    timeout: 30s
+  grpc:
+    port: 9001
+    timeout: 30s
+
+# Database Configuration (Docker services)
+database:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "myservice_db"
+  sslmode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
+
+# Redis Configuration (Docker services)
+redis:
+  host: "redis"
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 5
+
+# JWT Configuration
+jwt:
+  secret: "your-jwt-secret-key"
+  expires_in: "24h"
+  issuer: "my-service"
+
+# Logging Configuration
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
 ```
 
 ### 4. API Definition (api/catalog/v1/catalog.proto)
@@ -1184,7 +1374,7 @@ type EndpointRule struct {
 }
 ```
 
-### 10. Kratos Makefile
+### 4. Makefile (Based on Catalog Service)
 ```makefile
 GOPATH:=$(shell go env GOPATH)
 VERSION=$(shell git describe --tags --always)
@@ -1295,134 +1485,141 @@ help:
 
 .DEFAULT_GOAL := help) run ./cmd/server
 
-### 11. go.mod for Kratos
+### 5. go.mod (Based on Catalog Service)
 ```go
-module github.com/ecommerce/my-catalog-service
+module my-service
 
 go 1.21
 
 require (
-    github.com/go-kratos/kratos/v2 v2.7.2
-    github.com/go-kratos/kratos/contrib/registry/consul/v2 v2.0.0
-    github.com/google/wire v0.5.0
-    github.com/hashicorp/consul/api v1.25.1
-    google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b
-    google.golang.org/grpc v1.59.0
+    github.com/gin-gonic/gin v1.9.1
+    github.com/lib/pq v1.10.9
+    github.com/pressly/goose/v3 v3.15.0
+    github.com/redis/go-redis/v9 v9.0.5
+    github.com/google/uuid v1.3.0
+    github.com/joho/godotenv v1.4.0
+    github.com/golang-jwt/jwt/v5 v5.0.0
+    github.com/sirupsen/logrus v1.9.3
+    google.golang.org/grpc v1.57.0
     google.golang.org/protobuf v1.31.0
-    gorm.io/driver/postgres v1.5.4
     gorm.io/gorm v1.25.5
-    github.com/go-redis/redis/v8 v8.11.5
-    github.com/Shopify/sarama v1.41.2
+    gorm.io/driver/postgres v1.5.4
+    common v0.0.0
 )
 
+replace common => ../common
+
 require (
-    github.com/go-kratos/aegis v0.2.0 // indirect
-    github.com/go-playground/form/v4 v4.2.1 // indirect
-    github.com/golang/protobuf v1.5.3 // indirect
-    github.com/gorilla/mux v1.8.0 // indirect
-    github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-    github.com/hashicorp/go-rootcerts v1.0.2 // indirect
-    github.com/hashicorp/serf v0.10.1 // indirect
-    github.com/mitchellh/go-homedir v1.1.0 // indirect
-    golang.org/x/net v0.17.0 // indirect
-    golang.org/x/sys v0.13.0 // indirect
-    golang.org/x/text v0.13.0 // indirect
-    gopkg.in/yaml.v3 v3.0.1 // indirect
+    github.com/bytedance/sonic v1.9.1 // indirect
+    github.com/cespare/xxhash/v2 v2.2.0 // indirect
+    github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+    github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+    github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+    github.com/gin-contrib/sse v0.1.0 // indirect
+    github.com/go-playground/locales v0.14.1 // indirect
+    github.com/go-playground/universal-translator v0.18.1 // indirect
+    github.com/go-playground/validator/v10 v10.14.0 // indirect
+    github.com/goccy/go-json v0.10.2 // indirect
+    github.com/hashicorp/errwrap v1.1.0 // indirect
+    github.com/hashicorp/go-multierror v1.1.1 // indirect
+    github.com/json-iterator/go v1.1.12 // indirect
+    github.com/klauspost/cpuid/v2 v2.2.4 // indirect
+    github.com/leodido/go-urn v1.2.4 // indirect
+    github.com/mattn/go-isatty v0.0.19 // indirect
+    github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+    github.com/modern-go/reflect2 v1.0.2 // indirect
+    github.com/pelletier/go-toml/v2 v2.0.8 // indirect
+    github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+    github.com/ugorji/go/codec v1.2.11 // indirect
+    go.uber.org/atomic v1.7.0 // indirect
+    golang.org/x/arch v0.3.0 // indirect
+    golang.org/x/crypto v0.11.0 // indirect
+    golang.org/x/net v0.12.0 // indirect
+    golang.org/x/sys v0.10.0 // indirect
+    golang.org/x/text v0.11.0 // indirect
+    google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect
 )
 ```
 
-### 12. Docker Compose with Consul + Dapr
+### 6. Docker Compose (Development Setup)
 ```yaml
 # docker-compose.yml
 version: '3.8'
 
 services:
-  # Consul for service discovery and configuration
-  consul:
-    image: consul:1.16
-    container_name: consul
-    ports:
-      - "8500:8500"
-      - "8600:8600/udp"
-    command: >
-      consul agent -server -bootstrap-expect=1 -datacenter=dc1 
-      -data-dir=/consul/data -node=consul-server -bind=0.0.0.0 
-      -client=0.0.0.0 -ui -log-level=INFO
-    volumes:
-      - consul_data:/consul/data
-      - ./deployments/consul:/consul/config
-    environment:
-      - CONSUL_BIND_INTERFACE=eth0
-    networks:
-      - microservices
-
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: postgres
+    container_name: my-service-postgres
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: catalog_db
-      POSTGRES_USER: catalog_user
-      POSTGRES_PASSWORD: catalog_pass
+      POSTGRES_DB: myservice_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
-      - microservices
+      - my-service-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Redis for Dapr Pub/Sub and State Store
+  # Redis for caching
   redis:
     image: redis:7-alpine
-    container_name: redis
+    container_name: my-service-redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - microservices
+      - my-service-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Dapr Placement Service
-  dapr-placement:
-    image: daprio/dapr:1.12.0
-    container_name: dapr-placement
-    command: ["./placement", "-port", "50006"]
+  # My Service
+  my-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my-service-app
     ports:
-      - "50006:50006"
-    networks:
-      - microservices
-
-  # Jaeger for distributed tracing
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: jaeger
-    ports:
-      - "16686:16686"
-      - "14268:14268"
+      - "8001:8001"  # HTTP
+      - "9001:9001"  # gRPC
     environment:
-      COLLECTOR_OTLP_ENABLED: true
+      - ENVIRONMENT=docker
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=myservice_db
+      - DB_SSLMODE=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your-jwt-secret-key
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
-      - microservices
-
-  # Prometheus for metrics
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    networks:
-      - microservices
+      - my-service-network
+    restart: unless-stopped
 
 volumes:
-  consul_data:
   postgres_data:
   redis_data:
 
 networks:
-  microservices:
+  my-service-network:
     driver: bridge
 ```
 
@@ -1632,58 +1829,679 @@ func (s *OrderService) CallPaymentService(ctx context.Context, req *PaymentReque
 }
 ```
 
-## Kratos + Consul + Dapr Benefits
+### Consumer Monitoring & Observability
 
-### 1. **Cloud-Native Architecture**
-- Built-in service discovery with Consul
-- Distributed tracing with Jaeger
-- Metrics collection with Prometheus
-- Configuration management from multiple sources
+#### Consumer Metrics (internal/consumer/metrics.go)
+```go
+package consumer
+
+import (
+    "context"
+    "time"
+    
+    "github.com/prometheus/client_golang/prometheus"
+    "github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+    consumerMessagesTotal = promauto.NewCounterVec(
+        prometheus.CounterOpts{
+            Name: "consumer_messages_total",
+            Help: "Total number of messages processed by consumer",
+        },
+        []string{"consumer", "topic", "status"},
+    )
+    
+    consumerProcessingDuration = promauto.NewHistogramVec(
+        prometheus.HistogramOpts{
+            Name: "consumer_processing_duration_seconds",
+            Help: "Time spent processing messages",
+        },
+        []string{"consumer", "topic"},
+    )
+)
+
+func RecordMessageProcessed(consumer, topic, status string) {
+    consumerMessagesTotal.WithLabelValues(consumer, topic, status).Inc()
+}
+
+func RecordProcessingDuration(consumer, topic string, duration time.Duration) {
+    consumerProcessingDuration.WithLabelValues(consumer, topic).Observe(duration.Seconds())
+}
+```
+
+#### Consumer Health Checks
+```go
+// Add to main HTTP router
+router.GET("/health/consumers", func(c *gin.Context) {
+    status := gin.H{
+        "consumers": gin.H{
+            "sample_consumer": "healthy",
+            "task_consumer":   "healthy",
+        },
+        "eventbus": gin.H{
+            "status":      "connected",
+            "last_ping":   time.Now().UTC(),
+        },
+    }
+    c.JSON(http.StatusOK, status)
+})
+```
+
+### Error Handling & Retry Mechanisms
+
+#### Consumer Error Handler (internal/consumer/error_handler.go)
+```go
+package consumer
+
+import (
+    "context"
+    "fmt"
+    "time"
+    
+    "github.com/go-kratos/kratos/v2/log"
+)
+
+type ErrorHandler struct {
+    maxRetries    int
+    retryInterval time.Duration
+    log           *log.Helper
+}
+
+func NewErrorHandler(maxRetries int, retryInterval time.Duration, logger log.Logger) *ErrorHandler {
+    return &ErrorHandler{
+        maxRetries:    maxRetries,
+        retryInterval: retryInterval,
+        log:           log.NewHelper(logger),
+    }
+}
+
+func (h *ErrorHandler) HandleWithRetry(ctx context.Context, fn func() error) error {
+    var lastErr error
+    
+    for attempt := 0; attempt <= h.maxRetries; attempt++ {
+        if err := fn(); err != nil {
+            lastErr = err
+            h.log.WithContext(ctx).Warnf("Attempt %d failed: %v", attempt+1, err)
+            
+            if attempt < h.maxRetries {
+                select {
+                case <-ctx.Done():
+                    return ctx.Err()
+                case <-time.After(h.retryInterval * time.Duration(attempt+1)):
+                    continue
+                }
+            }
+        } else {
+            return nil
+        }
+    }
+    
+    return fmt.Errorf("failed after %d attempts: %w", h.maxRetries+1, lastErr)
+}
+```
+
+### Consumer Graceful Shutdown
+
+#### Shutdown Manager (internal/consumer/shutdown.go)
+```go
+package consumer
+
+import (
+    "context"
+    "sync"
+    "time"
+    
+    "github.com/go-kratos/kratos/v2/log"
+)
+
+type ShutdownManager struct {
+    consumers []Consumer
+    timeout   time.Duration
+    log       *log.Helper
+}
+
+func NewShutdownManager(timeout time.Duration, logger log.Logger) *ShutdownManager {
+    return &ShutdownManager{
+        timeout: timeout,
+        log:     log.NewHelper(logger),
+    }
+}
+
+func (sm *ShutdownManager) RegisterConsumer(consumer Consumer) {
+    sm.consumers = append(sm.consumers, consumer)
+}
+
+func (sm *ShutdownManager) Shutdown(ctx context.Context) error {
+    sm.log.Info("Starting graceful shutdown of consumers...")
+    
+    ctx, cancel := context.WithTimeout(ctx, sm.timeout)
+    defer cancel()
+    
+    var wg sync.WaitGroup
+    errChan := make(chan error, len(sm.consumers))
+    
+    for _, consumer := range sm.consumers {
+        wg.Add(1)
+        go func(c Consumer) {
+            defer wg.Done()
+            if err := c.Stop(ctx); err != nil {
+                errChan <- err
+            }
+        }(consumer)
+    }
+    
+    wg.Wait()
+    close(errChan)
+    
+    // Check for errors
+    for err := range errChan {
+        if err != nil {
+            sm.log.Errorf("Consumer shutdown error: %v", err)
+            return err
+        }
+    }
+    
+    sm.log.Info("All consumers shut down successfully")
+    return nil
+}
+```
+
+## Template Benefits (Based on Real Implementation)
+
+### 1. **Production-Ready Architecture**
+- Clean architecture with separation of concerns
+- Repository pattern for data access
+- Service layer for business logic
+- Handler layer for HTTP/gRPC endpoints
 
 ### 2. **Dual Protocol Support**
-- gRPC for high-performance service-to-service communication
-- HTTP/REST for external API access
-- Automatic OpenAPI documentation generation
+- Gin for high-performance HTTP/REST APIs
+- gRPC for service-to-service communication
+- Shared business logic between protocols
 
-### 3. **Event-Driven Architecture (Dapr)**
-- Pub/Sub messaging with Redis backend
-- Reliable event delivery with at-least-once guarantees
-- Event sourcing and CQRS patterns
-- Multi-cloud portability
+### 3. **Shared Common Package**
+- Reusable configuration management
+- Standardized middleware (auth, logging, CORS)
+- Common utilities and models
+- Consistent error handling
 
-### 4. **Production-Ready Features**
-- Structured logging with context
-- Circuit breaker and retry mechanisms (Dapr + Kratos)
-- Health checks and readiness probes
+### 4. **Database Management**
+- GORM for ORM with PostgreSQL
+- Goose for database migrations
+- Connection pooling and optimization
+- Auto-migration support
+
+### 5. **Caching & Performance**
+- Redis integration with cache manager
+- Configurable cache TTL
+- Cache invalidation strategies
+- Performance monitoring
+
+### 6. **Security Features**
+- JWT authentication middleware
+- CORS protection
+- Request ID tracking
+- Input validation
+
+### 7. **Developer Experience**
+- Environment-based configuration
+- Structured logging with Logrus
 - Graceful shutdown handling
-- State management with Dapr
+- Comprehensive Makefile
+- Docker support
 
-### 5. **Developer Experience**
-- Code generation from protobuf definitions
-- Dependency injection with Wire
-- Hot reload in development
-- Comprehensive testing framework
-- Dapr local development support
+### 8. **Testing & Quality**
+- Standard Go testing framework
+- Test coverage reporting
+- Integration test support
+- Linting and code quality
 
-### 6. **Consul Integration**
-- Service registration and discovery
-- Health check integration
-- Configuration management via Consul KV
-- Service permission matrix support
+### 9. **Deployment Ready**
+- Docker containerization
+- Docker Compose for local development
+- Kubernetes deployment manifests
+- Health check endpoints
 
-### 7. **Dapr Integration**
-- Event-driven messaging via Redis pub/sub
-- Service invocation with built-in retry and circuit breaker
-- State management with Redis backend
-- External system bindings
-- Secrets management
-- Multi-cloud and hybrid cloud support
+### 10. **Event-Driven Architecture**
+- Dapr integration for pub/sub messaging
+- Consumer pattern implementation
+- Event sourcing capabilities
+- Observer pattern for internal events
+- Retry mechanisms and error handling
+- Dead letter queue support
 
-### 8. **Operational Excellence**
-- Infrastructure abstraction via Dapr
-- Automatic service mesh capabilities
-- Built-in observability and monitoring
-- Simplified deployment and scaling
-- Vendor-neutral architecture
+### 11. **Monitoring & Observability**
+- Structured logging
+- Health check endpoints
+- Request/response logging
+- Consumer metrics and monitoring
+- Event processing observability
+- Error tracking and alerting
 
-This Kratos + Consul + Dapr template provides a comprehensive, modern, cloud-native foundation for building scalable, event-driven microservices with integrated service discovery, permission management, and portable runtime capabilities.
+## Key Differences from Kratos Template
+
+### **Simplified Architecture**
+- Uses Gin instead of Kratos framework
+- Direct dependency injection (no Wire)
+- Environment-based configuration
+- Shared common package approach
+
+### **Event-Driven Architecture**
+- Complete consumer implementation patterns
+- Dapr integration for microservices communication
+- Observer pattern for internal event handling
+- Retry mechanisms and error handling
+- Graceful shutdown and monitoring
+
+### **Real-World Patterns**
+- Based on actual production services (catalog-service and shop-main)
+- Proven patterns and structures
+
+type Message struct {
+    Data []byte
+}
+
+func (c *client) makeHandler(topicPubsub string, handler ConsumeFn) common.TopicEventHandler {
+    return func(ctx context.Context, e *common.TopicEvent) (retry bool, err error) {
+        c.log.WithContext(ctx).Infof("Received event - PubSub: %s, Topic: %s", e.PubsubName, e.Topic)
+        
+        if e.PubsubName != topicPubsub {
+            return false, nil
+        }
+        
+        payload, ok := e.Data.(map[string]interface{})
+        if !ok {
+            return false, errors.New("cannot decode payload")
+        }
+        
+        var msg Message
+        msg.Data, err = json.Marshal(payload["data"])
+        if err != nil {
+            return false, errors.Wrap(err, "cannot marshal payload")
+        }
+
+        if err = handler(ctx, msg); err != nil {
+            c.log.WithContext(ctx).Errorf("Handler error - PubSub: %s, Topic: %s, Error: %v", 
+                e.PubsubName, e.Topic, err)
+            return true, err // Retry on error
+        }
+        
+        return false, nil
+    }
+}
+```
+
+### Task Consumer Example (internal/data/eventbus/task_consumer.go)
+```go
+package eventbus
+
+import (
+    "bytes"
+    "context"
+    "encoding/json"
+    "fmt"
+
+    "gitlab.com/vigo-tech/shop/config"
+    "gitlab.com/vigo-tech/shop/internal/biz/task"
+    "gitlab.com/vigo-tech/shop/internal/consumer"
+)
+
+type TaskConsumer struct {
+    Client
+    config config.Eventbus
+    uc     *task.TaskUsecase
+}
+
+func NewTaskConsumer(client Client, config *config.Data, uc *task.TaskUsecase) *TaskConsumer {
+    return &TaskConsumer{
+        Client: client,
+        config: config.Eventbus,
+        uc:     uc,
+    }
+}
+
+func (c *TaskConsumer) Start(ctx context.Context) error {
+    return c.AddConsumer(
+        c.config.Topic.TaskCreated,
+        c.config.DefaultPubsub,
+        c.HandleTaskCreated,
+    )
+}
+
+func (c *TaskConsumer) HandleTaskCreated(ctx context.Context, e Message) error {
+    var msg consumer.TaskCreatedMessage
+    if err := json.NewDecoder(bytes.NewReader(e.Data)).Decode(&msg); err != nil {
+        return fmt.Errorf("failed to decode task created event: %w", err)
+    }
+    
+    return c.uc.ProcessTask(ctx, task.ProcessTaskInput{
+        TaskID:     msg.TaskID,
+        TaskType:   msg.TaskType,
+        InputParam: msg.InputParam,
+    })
+}
+```
+
+### Observer Pattern for Internal Events (internal/util/observer/manager.go)
+```go
+package observer
+
+import (
+    "context"
+    "reflect"
+
+    "github.com/pkg/errors"
+)
+
+type Trigger interface {
+    Trigger(ctx context.Context, eventName string, data interface{}) error
+}
+
+type Manager interface {
+    Trigger
+    Subscribe(eventName string, subscribers ...Subscriber)
+}
+
+type Subscriber interface {
+    Handle(context.Context, interface{}) error
+}
+
+type manager struct {
+    eventSubscribers map[string][]Subscriber
+}
+
+func NewManager() Manager {
+    return &manager{
+        eventSubscribers: make(map[string][]Subscriber),
+    }
+}
+
+func (m *manager) Subscribe(eventName string, subscribers ...Subscriber) {
+    m.eventSubscribers[eventName] = append(m.eventSubscribers[eventName], subscribers...)
+}
+
+func (m *manager) Trigger(ctx context.Context, eventName string, data interface{}) error {
+    for _, sub := range m.eventSubscribers[eventName] {
+        if err := sub.Handle(ctx, data); err != nil {
+            return errors.Wrapf(err, "error from subscriber: %s", getStructName(sub))
+        }
+    }
+    return nil
+}
+
+func getStructName(myvar interface{}) string {
+    if t := reflect.TypeOf(myvar); t.Kind() == reflect.Ptr {
+        return "*" + t.Elem().Name()
+    }
+    return t.Name()
+}
+```
+
+### Consumer Integration in Main Application
+
+#### Updated Wire Setup (cmd/my-service/wire.go)
+```go
+//go:build wireinject
+// +build wireinject
+
+package main
+
+import (
+    "my-service/internal/biz"
+    "my-service/internal/consumer"
+    "my-service/internal/data"
+    "my-service/internal/observer"
+    "my-service/internal/server"
+    "my-service/internal/service"
+    "my-service/internal/util"
+
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/google/wire"
+)
+
+func wireApp(*config.Server, *config.Data, *config.Registry, log.Logger) (*appLauncher, func(), error) {
+    panic(wire.Build(
+        server.ProviderSet,
+        util.ProviderSet,
+        data.ProviderSet,
+        biz.ProviderSet,
+        service.ProviderSet,
+        consumer.ProviderSet,    // Add consumer providers
+        observer.ProviderSet,
+        newApp,
+        wire.Struct(new(appLauncher), "*"),
+    ))
+}
+```
+
+#### Application Launcher with Consumer Support (cmd/my-service/launcher.go)
+```go
+package main
+
+import (
+    "context"
+    "sync"
+    
+    "github.com/go-kratos/kratos/v2"
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/spf13/cobra"
+    
+    "my-service/internal/consumer"
+    "my-service/internal/data/eventbus"
+    "my-service/internal/observer"
+)
+
+type appLauncher struct {
+    httpApp         *kratos.App
+    obManager       observer.Manager
+    sampleConsumer  *consumer.SampleConsumer
+    taskConsumer    *eventbus.TaskConsumer
+    eventbusClient  eventbus.Client
+    log             *log.Helper
+}
+
+func (app *appLauncher) Run() error {
+    return createRootCommand(app).Execute()
+}
+
+func createRootCommand(app *appLauncher) *cobra.Command {
+    rootCommand := &cobra.Command{
+        Use:   "my-service",
+        Short: "My Microservice with Event Consumers",
+        RunE: func(cmd *cobra.Command, args []string) error {
+            return app.startApplication()
+        },
+    }
+    return rootCommand
+}
+
+func (app *appLauncher) startApplication() error {
+    ctx := context.Background()
+    var wg sync.WaitGroup
+    
+    // Start consumers
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        if err := app.startConsumers(ctx); err != nil {
+            app.log.Errorf("Failed to start consumers: %v", err)
+        }
+    }()
+    
+    // Start HTTP/gRPC server
+    wg.Add(1)
+    go func() {
+        defer wg.Done()
+        if err := app.httpApp.Run(); err != nil {
+            app.log.Errorf("Failed to start HTTP app: %v", err)
+        }
+    }()
+    
+    wg.Wait()
+    return nil
+}
+
+func (app *appLauncher) startConsumers(ctx context.Context) error {
+    app.log.Info("Starting event consumers...")
+    
+    // Start sample consumer
+    if err := app.sampleConsumer.Start(ctx); err != nil {
+        return fmt.Errorf("failed to start sample consumer: %w", err)
+    }
+    
+    // Start task consumer
+    if err := app.taskConsumer.Start(ctx); err != nil {
+        return fmt.Errorf("failed to start task consumer: %w", err)
+    }
+    
+    // Start eventbus client (Dapr)
+    if err := app.eventbusClient.Start(); err != nil {
+        return fmt.Errorf("failed to start eventbus client: %w", err)
+    }
+    
+    app.log.Info("All consumers started successfully")
+    return nil
+}
+```
+
+### Consumer Configuration
+
+#### Updated Configuration (configs/config.yaml)
+```yaml
+# Service Configuration
+service:
+  name: "my-service"
+  version: "v1.0.0"
+  environment: "development"
+
+# Server Configuration
+server:
+  http:
+    port: 8001
+    timeout: 30s
+  grpc:
+    port: 9001
+    timeout: 30s
+
+# Database Configuration
+database:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "myservice_db"
+  sslmode: "disable"
+
+# Redis Configuration
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+
+# Event Bus Configuration
+eventbus:
+  enabled: true
+  default_pubsub: "redis-pubsub"
+  topics:
+    sample_created: "sample.created"
+    task_created: "task.created"
+    product_updated: "product.updated"
+  retry_policy:
+    max_attempts: 3
+    backoff_interval: "5s"
+    max_backoff: "30s"
+
+# Consumer Configuration
+consumers:
+  enabled: true
+  concurrent_handlers: 10
+  timeout: "30s"
+  dead_letter_queue: "dlq-topic"
+
+# JWT Configuration
+jwt:
+  secret: "your-jwt-secret-key"
+  expires_in: "24h"
+  issuer: "my-service"
+```
+
+### Consumer Testing
+
+#### Consumer Unit Tests (internal/consumer/sample_test.go)
+```go
+package consumer
+
+import (
+    "context"
+    "testing"
+    
+    "github.com/go-kratos/kratos/v2/log"
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/mock"
+)
+
+type MockSubscriber struct {
+    mock.Mock
+}
+
+func (m *MockSubscriber) Subscribe(ctx context.Context, topic string, handler func(context.Context, []byte) error) error {
+    args := m.Called(ctx, topic, handler)
+    return args.Error(0)
+}
+
+func TestSampleConsumer_HandleSampleCreated(t *testing.T) {
+    // Setup
+    mockSubscriber := new(MockSubscriber)
+    logger := log.NewStdLogger(os.Stdout)
+    consumer := NewSampleConsumer(mockSubscriber, logger)
+    
+    // Test data
+    payload := []byte(`{
+        "id": "test-123",
+        "type": "sample.created",
+        "source": "test-service",
+        "timestamp": "2023-01-01T00:00:00Z",
+        "value": "test-value"
+    }`)
+    
+    // Execute
+    err := consumer.HandleSampleCreated(context.Background(), payload)
+    
+    // Assert
+    assert.NoError(t, err)
+}
+
+func TestSampleConsumer_Start(t *testing.T) {
+    // Setup
+    mockSubscriber := new(MockSubscriber)
+    logger := log.NewStdLogger(os.Stdout)
+    consumer := NewSampleConsumer(mockSubscriber, logger)
+    
+    // Mock expectations
+    mockSubscriber.On("Subscribe", mock.Anything, "sample.created", mock.Anything).Return(nil)
+    
+    // Execute
+    err := consumer.Start(context.Background())
+    
+    // Assert
+    assert.NoError(t, err)
+    mockSubscriber.AssertExpectations(t)
+}
+```
+
+### 15. Dapr Integration Examples
+
+#### Publishing Events
+- Battle-tested configurations
+- Practical middleware implementations
+
+### **Easier to Understand**
+- Less abstraction layers
+- Clear separation of concerns
+- Standard Go patterns
+- Minimal boilerplate
+- Well-documented consumer examples
+
+This template provides a practical, production-ready foundation for building microservices with complete event-driven architecture based on real-world implementation patterns used in the e-commerce platform.
