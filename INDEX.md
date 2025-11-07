@@ -38,6 +38,16 @@
 - [📊 Analytics & Reporting Service](./docs/services/analytics-reporting-service.md) - Business intelligence
 - [🎁 Loyalty & Rewards Service](./docs/services/loyalty-rewards-service.md) - Loyalty programs
 
+## 🎨 Frontend Applications
+
+### Web Storefront (Customer-Facing)
+- [📱 Frontend Overview](./docs/frontend/README.md) - Frontend applications overview
+- [🌐 Web Storefront Documentation](./docs/frontend/web-storefront.md) - Complete Next.js web app documentation
+- [🚀 Quick Start Guide](./docs/frontend/QUICK_START_GUIDE.md) - Get started in 15 minutes
+
+### Mobile App (Planned)
+- 📱 Mobile App Documentation - Coming Q1 2025
+
 ## 🔄 API Flows & Integration
 
 ### Core API Flows
@@ -119,7 +129,13 @@
 
 ## 🚀 Quick Navigation
 
-### For Developers
+### For Frontend Developers
+1. **Quick Start**: [Frontend Quick Start](./docs/frontend/QUICK_START_GUIDE.md)
+2. **Web Storefront**: [Web Documentation](./docs/frontend/web-storefront.md)
+3. **API Integration**: [API Flows](./docs/api-flows/)
+4. **Components**: [UI Components](./docs/frontend/web-storefront.md#ui-components-library)
+
+### For Backend Developers
 1. **Getting Started**: [Architecture Overview](./docs/architecture/overview.md)
 2. **Service Development**: [Service Templates](./examples/implementation-samples/service-templates/)
 3. **API Integration**: [API Flows](./docs/api-flows/)
