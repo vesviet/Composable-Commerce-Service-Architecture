@@ -1,5 +1,14 @@
 # 📚 Documentation Index
 
+## �️ Quick Access
+
+### Essential Documents
+- **[📊 Project Progress Report](./PROJECT_PROGRESS_REPORT.md)** ⭐⭐⭐ - **Complete project status (75% complete)**
+- **[🏗️ Infrastructure AWS EKS Guide](./INFRASTRUCTURE_AWS_EKS_GUIDE_ENHANCED.md)** ⭐⭐⭐ - AWS deployment with cost optimization
+- **[📦 Stock System Complete Guide](./STOCK_SYSTEM_COMPLETE_GUIDE.md)** ⭐⭐⭐ - Stock sync implementation (9.5/10)
+
+---
+
 ## 🏗️ Architecture Documentation
 
 ### Core Architecture
