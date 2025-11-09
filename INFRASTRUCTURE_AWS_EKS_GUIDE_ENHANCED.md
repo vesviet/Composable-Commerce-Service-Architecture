@@ -11,14 +11,15 @@
 
 1. [Overview](#overview)
 2. [AWS EKS Architecture](#aws-eks-architecture)
-3. [Cost Analysis](#cost-analysis)
-4. [Kubernetes Configuration](#kubernetes-configuration)
-5. [Auto-Scaling (Enhanced)](#auto-scaling-enhanced)
-6. [Disaster Recovery Plan](#disaster-recovery-plan)
-7. [Cost Optimization Strategies](#cost-optimization-strategies)
-8. [Deployment](#deployment)
-9. [Monitoring](#monitoring)
-10. [Quick Reference](#quick-reference)
+3. [Traffic Flow & Conversion Analysis](#traffic-flow--conversion-analysis) ⭐ NEW
+4. [Cost Analysis](#cost-analysis)
+5. [Kubernetes Configuration](#kubernetes-configuration)
+6. [Auto-Scaling (Enhanced)](#auto-scaling-enhanced)
+7. [Disaster Recovery Plan](#disaster-recovery-plan)
+8. [Cost Optimization Strategies](#cost-optimization-strategies)
+9. [Deployment](#deployment)
+10. [Monitoring](#monitoring)
+11. [Quick Reference](#quick-reference)
 
 ---
 
@@ -118,6 +119,155 @@ External Services:
 └──────────────────────────────────────────────────────────┘
 ```
 
+---
+
+## 🔄 Traffic Flow & Conversion Analysis
+
+### Conversion Funnel: Visitors to Orders
+
+**Industry Standard E-commerce Conversion Rate: 2.5%**
+
+```
+To achieve 1 order, you need approximately 40 visitors
+
+Detailed Funnel:
+100 Visitors
+    ↓ (40% browse products)
+40 Product Browsers
+    ↓ (25% add to cart)
+10 Cart Additions
+    ↓ (30% proceed to checkout)
+3 Checkout Started
+    ↓ (83% complete purchase)
+2.5 Orders Completed
+
+Conversion Rate: 2.5%
+```
+
+### Traffic Requirements by Order Volume
+
+| Orders/Day | Visitors/Day | Monthly Visitors | Peak Hour | API Requests/Day |
+|------------|--------------|------------------|-----------|------------------|
+| **1,000** | 40,000 | 1,200,000 | 5,000 | 147,200 |
+| **3,000** | 120,000 | 3,600,000 | 15,000 | 441,600 |
+| **5,000** | 200,000 | 6,000,000 | 25,000 | 736,000 |
+| **10,000** | 400,000 | 12,000,000 | 50,000 | 1,472,000 |
+
+**Key Insight:** For every 1 order, expect ~40 visitors and ~30 API requests
+
+### Complete Request Flow (Per Order)
+
+```
+User Journey: Landing → Product → Cart → Checkout → Order
+
+1. Landing Page (3 requests)
+   ├─ GET /
+   ├─ GET /api/v1/catalog/featured
+   └─ GET /api/v1/catalog/categories
+
+2. Product Search (2 requests)
+   ├─ GET /api/v1/search/products
+   └─ GET /api/v1/catalog/products
+
+3. Product Detail - 3 products viewed (12 requests)
+   ├─ GET /api/v1/catalog/products/{id} × 3
+   ├─ GET /api/v1/pricing/calculate × 3
+   ├─ GET /api/v1/warehouse/stock/{sku} × 3
+   └─ GET /api/v1/catalog/reviews/{id} × 3
+
+4. Add to Cart (3 requests)
+   ├─ POST /api/v1/order/cart/items
+   ├─ GET /api/v1/order/cart
+   └─ GET /api/v1/pricing/calculate-bulk
+
+5. Checkout (4 requests)
+   ├─ GET /api/v1/customer/addresses
+   ├─ POST /api/v1/order/checkout/validate
+   ├─ GET /api/v1/shipping/calculate
+   └─ GET /api/v1/pricing/final-price
+
+6. Order Creation (4 requests)
+   ├─ POST /api/v1/order/create
+   ├─ POST /api/v1/warehouse/reserve
+   ├─ POST /api/v1/payment/process
+   └─ POST /api/v1/notification/send
+
+Total: ~30 API requests per order
+```
+
+### Backend Service Load (Per Order)
+
+```
+Internal Service Calls:
+├─ Gateway: 30 requests (from frontend)
+├─ Catalog: 8 calls → 12 DB queries, 15 cache hits
+├─ Pricing: 6 calls → 8 DB queries, 10 cache hits
+├─ Warehouse: 4 calls → 6 DB queries, 5 cache hits
+├─ Order: 5 calls → 10 DB queries
+├─ Customer: 2 calls → 4 DB queries, 3 cache hits
+├─ Payment: 2 calls → 3 DB queries, 1 external API
+└─ Notification: 1 call → 1 external API
+
+Total per Order:
+- 28 internal service calls
+- 43 database queries
+- 33 cache operations
+- 2 external API calls
+```
+
+### Infrastructure Load by Scale
+
+#### 1,000 Orders/Day
+```
+Daily Visitors: 40,000
+Peak Hour: 5,000 visitors
+API Requests: 147,200/day (307/minute peak)
+Database Queries: 43,000/day
+Cache Operations: 33,000/day
+
+Required Infrastructure:
+- 2 × t3.medium (app nodes)
+- 1 × t3.small (worker)
+- db.t3.large (RDS)
+- cache.t3.medium (Redis)
+
+Cost: $576/month ($0.58/order)
+```
+
+#### 10,000 Orders/Day
+```
+Daily Visitors: 400,000
+Peak Hour: 50,000 visitors
+API Requests: 1,472,000/day (3,067/minute peak)
+Database Queries: 430,000/day
+Cache Operations: 330,000/day
+
+Required Infrastructure:
+- 6 × t3.large (app nodes)
+- 3 × t3.medium (workers)
+- db.r5.xlarge + 2 replicas (RDS)
+- 2 × cache.r5.large (Redis cluster)
+
+Cost: $2,025/month ($0.20/order)
+```
+
+### Optimization Impact
+
+**Improve Conversion Rate: 2.5% → 3.5%**
+- Same traffic = 40% more orders
+- 40,000 visitors = 1,400 orders (vs 1,000)
+- Cost per order: $0.41 (vs $0.58)
+
+**Reduce API Calls: 30 → 20 per order**
+- 33% less infrastructure load
+- Cost savings: ~$150/month
+
+**Better Caching: 60% → 90% hit rate**
+- 50% less database load
+- Faster response times
+- Better user experience
+
+> 📊 **Detailed Analysis:** See `docs/TRAFFIC_FLOW_AND_CONVERSION_ANALYSIS.md` for complete breakdown
 
 ---
 
