@@ -790,5 +790,5 @@ CREATE UNIQUE INDEX idx_order_payments_unique_successful
 
 - [Order Service Logic](./ORDER_SERVICE_LOGIC.md)
 - [Cart Service Logic](./CART_SERVICE_LOGIC.md)
-- [Database Migration Guide](../MIGRATION_SCRIPT.md)
+- [Common Helpers Implementation Guide](COMMON_HELPERS_IMPLEMENTATION_GUIDE.md) - For migration patterns
 

@@ -48,9 +48,10 @@
 - ✅ `LOYALTY_REWARDS_IMPLEMENTATION_CHECKLIST.md` - Loyalty service (in progress)
 
 ### Implementation Guides (Keep - Reference)
-- ✅ `CLIENT_TYPE_IMPLEMENTATION_GUIDE.md` - Client type guide
 - ✅ `COMMON_HELPERS_IMPLEMENTATION_GUIDE.md` - Common helpers guide
 - ✅ `MULTI_DOMAIN_REFACTOR_GUIDE.md` - Multi-domain refactor guide
+
+**Note**: Client type guide is now in `../architecture/CLIENT_TYPE_IDENTIFICATION.md`
 
 ### Data Structure Reviews (Keep - Reference)
 - ✅ `CART_ORDER_DATA_STRUCTURE_REVIEW.md` - Data structure review

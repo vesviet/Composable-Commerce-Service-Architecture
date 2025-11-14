@@ -232,9 +232,8 @@ curl -X GET http://localhost:8080/admin/customers \
 ## 📚 DOCUMENTATION
 
 **Full Documentation**:
-- `docs/architecture/CLIENT_TYPE_IDENTIFICATION.md` - Complete guide
-- `docs/implementation/CLIENT_TYPE_IMPLEMENTATION_GUIDE.md` - Step-by-step
-- `docs/CLIENT_TYPE_QUICK_REFERENCE.md` - This file
+- `docs/architecture/CLIENT_TYPE_IDENTIFICATION.md` - Complete guide (includes implementation steps)
+- `docs/CLIENT_TYPE_QUICK_REFERENCE.md` - This file (quick reference)
 
 **Key Concepts**:
 1. JWT token contains `client_type` field
@@ -324,8 +323,7 @@ Admin → Gateway (validate admin token) → Order Service (check admin) → Ret
 ## 📞 SUPPORT
 
 **Questions?**
-- Check full documentation: `docs/architecture/CLIENT_TYPE_IDENTIFICATION.md`
-- Check implementation guide: `docs/implementation/CLIENT_TYPE_IMPLEMENTATION_GUIDE.md`
+- Check full documentation: `docs/architecture/CLIENT_TYPE_IDENTIFICATION.md` (includes implementation guide)
 - Review code examples in documentation
 
 **Issues?**

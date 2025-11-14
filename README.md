@@ -26,8 +26,8 @@ Implementation guides and checklists.
 | Document | Description | Status |
 |----------|-------------|--------|
 | [Auth Implementation Checklist](implementation/AUTH_IMPLEMENTATION_CHECKLIST.md) | 4-week implementation plan with tasks | ✅ Active |
-| [Migration Script](implementation/MIGRATION_SCRIPT.md) | Step-by-step migration guide | ✅ Active |
 | [Common Helpers Guide](implementation/COMMON_HELPERS_IMPLEMENTATION_GUIDE.md) | Reusable helper implementations | ✅ Active |
+| [Docs Status Update](implementation/DOCS_STATUS_UPDATE.md) | Documentation status tracking | ✅ Active |
 
 ---
 
@@ -74,7 +74,7 @@ Reference documents kept for historical context.
 
 1. **Patterns**: Check [reviews/REUSABLE_PATTERNS_ANALYSIS.md](reviews/REUSABLE_PATTERNS_ANALYSIS.md)
 2. **Duplicates**: Review [reviews/DUPLICATE_CODE_REVIEW.md](reviews/DUPLICATE_CODE_REVIEW.md)
-3. **Migration**: Follow [implementation/MIGRATION_SCRIPT.md](implementation/MIGRATION_SCRIPT.md)
+3. **Common Helpers**: Follow [implementation/COMMON_HELPERS_IMPLEMENTATION_GUIDE.md](implementation/COMMON_HELPERS_IMPLEMENTATION_GUIDE.md)
 
 ---
 
