@@ -334,6 +334,249 @@ http.Middleware(
 | **Dependencies** | Many external services | Few dependencies |
 | **Versioning** | Multi-version support | Simple versioning |
 
+## Admin BFF (Backend for Frontend) Pattern
+
+### Overview
+
+The Admin BFF pattern provides a unified API gateway for admin dashboard requests. All admin requests go through `/admin/v1/*` endpoints, which are routed to the appropriate microservices with admin-specific middleware (authentication, audit logging, rate limiting).
+
+### Route Pattern
+
+**Admin Request Format:**
+```
+/admin/v1/{service-resource}/{action}
+```
+
+**Service Endpoint Format:**
+```
+/api/v1/{service}/{resource}/{action}
+```
+
+### Why Use `/api/v1/*` Pattern?
+
+1. **BFF là API Gateway thu nhỏ**: Dùng `/api/` để phân tách rõ ràng namespace cho REST API
+2. **Ngăn chặn route conflict**: Nếu frontend/static content deploy chung domain, `/api/` giữ route API tách biệt
+3. **Chuẩn hóa versioning**: `/api/v1/catalog`, `/api/v2/catalog` rõ ràng hơn `/v1/catalog`
+4. **Best practice của BFF**: Hầu hết BFF implementations dùng `/api/` prefix
+
+**Namespace Separation:**
+- `/api/*` → REST API endpoints
+- `/ws/*` → WebSocket endpoints
+- `/auth/*` → Login SSO, OAuth callbacks
+- `/internal/*` → Internal routes
+- `/metrics/*` → Prometheus metrics
+
+### Service Mapping Examples
+
+| Admin Route | Service Route | Service Name |
+|-------------|---------------|--------------|
+| `/admin/v1/products` | `/api/v1/catalog/products` | `catalog` |
+| `/admin/v1/orders` | `/api/v1/orders` | `order` |
+| `/admin/v1/pricing/discounts` | `/api/v1/pricing/discounts` | `pricing` |
+| `/admin/v1/users` | `/api/v1/users` | `user` |
+| `/admin/v1/warehouses` | `/api/v1/warehouses` | `warehouse` |
+
+### Implementation Steps for New Services
+
+#### Step 1: Update Service Proto
+
+Define endpoints using `/api/v1/{service-name}/*` pattern:
+
+```protobuf
+service OrderService {
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/orders"  // ✅ Correct pattern
+    };
+  }
+  
+  // ✅ Use: /api/v1/orders
+  // ❌ Avoid: /v1/orders (missing /api/ prefix)
+}
+```
+
+**Pattern Rules:**
+- ✅ Use `/api/v1/{service-resource}/*` for all endpoints
+- ✅ Follow BFF best practice: `/api/v1/catalog/products`
+- ✅ Keep service name in path: `/api/v1/pricing/discounts`, `/api/v1/orders`
+- ✅ Clear namespace separation: `/api/` for REST API, `/ws/` for WebSocket, etc.
+
+#### Step 2: Regenerate Proto Code
+
+```bash
+cd /home/tuananh/microservices/{service-name}
+make api
+```
+
+#### Step 3: Update Gateway Routing
+
+Add service mapping in `gateway/internal/router/kratos_router.go`:
+
+```go
+func (rm *RouteManager) handleBFFAdminInternal(w http.ResponseWriter, r *http.Request, path string) {
+    // ... existing code ...
+    
+    // Determine service name from path
+    switch serviceName {
+    case "catalog":
+        // /admin/v1/products -> /api/v1/catalog/products
+        if strings.HasPrefix(remainingPath, "cms/") {
+            targetPath = "/api/v1/" + remainingPath
+        } else if strings.HasPrefix(remainingPath, "catalog/") {
+            targetPath = "/api/v1/" + remainingPath
+        } else {
+            targetPath = "/api/v1/catalog/" + remainingPath
+        }
+    case "order":
+        // /admin/v1/orders -> /api/v1/orders
+        targetPath = "/api/v1/" + remainingPath
+    case "pricing":
+        // /admin/v1/pricing/* -> /api/v1/pricing/*
+        targetPath = "/api/v1/" + remainingPath
+    case "your-service":
+        // /admin/v1/your-resource -> /api/v1/your-service/your-resource
+        targetPath = "/api/v1/" + remainingPath  // or "/api/v1/your-service/" + remainingPath
+    default:
+        // Default: /admin/v1/* -> /api/v1/*
+        targetPath = "/api/v1/" + remainingPath
+    }
+}
+```
+
+**Service Name Detection:**
+
+The gateway determines service name from the first path segment after `/admin/v1/`:
+
+```go
+// Extract service name from path
+// /admin/v1/orders -> serviceName = "orders" -> maps to "order" service
+// /admin/v1/products -> serviceName = "products" -> maps to "catalog" service
+// /admin/v1/pricing/discounts -> serviceName = "pricing" -> maps to "pricing" service
+
+parts := strings.Split(strings.TrimPrefix(path, "/admin/v1/"), "/")
+firstSegment := parts[0]
+
+switch firstSegment {
+case "products", "categories", "brands", "attributes", "catalog", "cms":
+    serviceName = "catalog"
+case "orders", "order":
+    serviceName = "order"
+case "pricing":
+    serviceName = "pricing"
+case "users", "user":
+    serviceName = "user"
+case "warehouses", "warehouse", "inventory":
+    serviceName = "warehouse"
+case "your-resource":
+    serviceName = "your-service"
+}
+```
+
+#### Step 4: Gateway Features
+
+The Admin BFF handler automatically provides:
+
+1. **Authentication**: Validates admin JWT tokens
+2. **Audit Logging**: Logs all admin actions
+3. **Rate Limiting**: Protects against abuse
+4. **Context Headers**: Forwards `X-User-ID`, `X-Client-Type`, etc.
+5. **CORS Handling**: Proper CORS headers for admin dashboard
+
+**Context Headers Forwarding:**
+```go
+// Gateway automatically forwards these headers:
+// - X-User-ID: Admin user ID
+// - X-Client-Type: "admin"
+// - X-MD-*: Metadata headers
+// - Authorization: Bearer token
+rm.copyContextHeadersKratos(r, proxyReq)
+```
+
+#### Step 5: Query Parameter Handling
+
+Query parameters are automatically forwarded. For special cases, add transformation:
+
+```go
+if serviceName == "catalog" {
+    // Transform query params if needed
+    // Example: page -> page, perPage -> limit
+}
+```
+
+#### Step 6: Testing
+
+Test the routing:
+
+```bash
+# Test admin BFF endpoint
+curl 'http://localhost:8080/admin/v1/orders?page=1&page_size=10' \
+  -H 'Authorization: Bearer {admin_token}'
+
+# Should route to: order service at /api/v1/orders
+```
+
+### Complete Example: Adding a New Service
+
+**Example: Adding "Notification" Service**
+
+1. **Update Proto** (`notification/api/notification/v1/notification.proto`):
+```protobuf
+service NotificationService {
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/notifications"  // ✅ Use /api/v1/notifications
+    };
+  }
+}
+```
+
+2. **Regenerate Code**:
+```bash
+cd /home/tuananh/microservices/notification
+make api
+```
+
+3. **Update Gateway** (`gateway/internal/router/kratos_router.go`):
+```go
+// In service name detection
+case "notifications", "notification":
+    serviceName = "notification"
+
+// In target path mapping
+case "notification":
+    // /admin/v1/notifications -> /api/v1/notifications
+    targetPath = "/api/v1/" + remainingPath
+```
+
+4. **Test**:
+```bash
+curl 'http://localhost:8080/admin/v1/notifications?page=1' \
+  -H 'Authorization: Bearer {admin_token}'
+```
+
+### Best Practices
+
+1. **Consistent Path Pattern**: Always use `/api/v1/{service-resource}/*` in proto
+2. **Namespace Separation**: Use `/api/` prefix for REST API, `/ws/` for WebSocket, etc.
+3. **Service Name Mapping**: Map admin path to service name clearly
+4. **No Query Transformation**: Forward query params as-is unless special case
+5. **Context Headers**: Always forward context headers for service-to-service calls
+6. **Error Handling**: Gateway handles errors consistently
+7. **Logging**: Add debug logging for troubleshooting
+
+### Migration Checklist
+
+When migrating a service to Admin BFF pattern:
+
+- [ ] Update proto endpoints to `/api/v1/{service}/*` pattern
+- [ ] Regenerate proto code (`make api`)
+- [ ] Update gateway routing logic to map to `/api/v1/*`
+- [ ] Add service name detection mapping
+- [ ] Add target path mapping
+- [ ] Test admin BFF endpoint
+- [ ] Update frontend API client to use `/admin/v1/*`
+- [ ] Update documentation
+
 ## Conclusion
 
 Both services follow the same pattern:
@@ -342,5 +585,6 @@ Both services follow the same pattern:
 3. **Centralized registration** - Register all routes in http.go
 4. **Middleware support** - Recovery, logging, tracing
 5. **OpenAPI integration** - Automatically generate API documentation
+6. **Admin BFF pattern** - Unified admin API gateway with consistent routing
 
 This pattern ensures consistency, type safety and easy maintenance for the entire team.

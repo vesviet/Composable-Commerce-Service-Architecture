@@ -23,12 +23,17 @@
   service ProductService {
       rpc CreateProduct(CreateProductRequest) returns (Product) {
           option (google.api.http) = {
-              post: "/v1/products"
+              post: "/api/v1/products"  // ✅ Use /api/v1/* pattern
               body: "*"
           };
       };
   }
   ```
+  
+  **Pattern Rules:**
+  - ✅ Use `/api/v1/{service-resource}/*` for all endpoints
+  - ✅ BFF best practice: `/api/` prefix for REST API namespace separation
+  - ✅ Clear versioning: `/api/v1/catalog`, `/api/v2/catalog`
 - [ ] **Define request/response messages**
 - [ ] **Validate proto syntax**: `protoc --proto_path=./api --dry-run api/v1/service/service.proto`
 

@@ -11,9 +11,10 @@
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Implementation](#implementation)
-4. [Operations](#operations)
-5. [Performance](#performance)
-6. [Troubleshooting](#troubleshooting)
+4. [Order Service Integration](#order-service-integration)
+5. [Operations](#operations)
+6. [Performance](#performance)
+7. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -70,6 +71,8 @@
 
 ### System Flow
 
+#### Stock Sync Flow (Warehouse → Catalog)
+
 ```
 ┌──────────────────┐
 │   WAREHOUSE      │
@@ -107,6 +110,43 @@
 Total Latency: <100ms
 ```
 
+#### Order Stock Management Flow
+
+```
+┌──────────────────┐
+│   ORDER          │
+│   Service        │
+└────────┬─────────┘
+         │
+         │ 1. Check Stock
+         │    (Add to Cart / Create Order)
+         ▼
+┌──────────────────┐
+│  WAREHOUSE       │
+│  Service         │
+│  - CheckStock()  │
+│  - ReserveStock()│
+└────────┬─────────┘
+         │
+         │ 2. Stock Reservation
+         │    (15 min expiry)
+         ▼
+┌──────────────────┐
+│  Transaction     │
+│  (Order Creation) │
+└────────┬─────────┘
+         │
+         │ 3a. Success → Confirm Reservation
+         │ 3b. Failure → Release Reservation
+         ▼
+┌──────────────────┐
+│  WAREHOUSE       │
+│  Service         │
+│  - ConfirmReservation()│
+│  - ReleaseReservation()│
+└──────────────────┘
+```
+
 ### Components
 
 **Warehouse Service:**
@@ -114,18 +154,30 @@ Total Latency: <100ms
 - Event publishing
 - Transaction tracking
 - Inventory operations
+- Stock reservations (15 min expiry)
+- Reservation confirmation/release
 
 **Catalog Service:**
 - Event consumption
 - Cache management
 - Stock aggregation
 - Product queries
+- Real-time stock display
+
+**Order Service:**
+- Stock availability checks (before cart add)
+- Stock reservations (during checkout, 15 min expiry)
+- Reservation confirmation (after order creation)
+- Reservation release (on cancellation/failure)
+- Transaction management with rollback
+- Circuit breaker for resilience
 
 **Infrastructure:**
 - Dapr PubSub (Redis)
 - Redis Cache (6GB)
 - PostgreSQL (Primary + Replica)
 - Prometheus (Monitoring)
+- Circuit Breaker (resilience)
 
 ---
 
@@ -260,6 +312,303 @@ func worker() {
     }
 }
 ```
+
+---
+
+## 🛒 Order Service Integration
+
+### Overview
+
+Order Service integrates with Warehouse Service to manage stock during the order lifecycle:
+- **Stock Check**: Validates availability before adding to cart
+- **Stock Reservation**: Reserves stock during checkout (15 min expiry)
+- **Reservation Confirmation**: Confirms reservation after successful order creation
+- **Reservation Release**: Releases stock on order cancellation or payment failure
+
+### Stock Check Flow
+
+**When:** Adding item to cart, creating order
+
+**Implementation:**
+```go
+// order/internal/client/warehouse_client.go
+func (c *httpWarehouseClient) CheckStock(
+    ctx context.Context, 
+    productID string, 
+    warehouseID string, 
+    quantity int32,
+) error {
+    // GET /v1/inventory?product_id={id}&warehouse_id={id}
+    // Returns: quantityAvailable, quantityReserved
+    // Validates: (available - reserved) >= quantity
+}
+```
+
+**Usage in Cart:**
+```go
+// order/internal/biz/cart.go
+// Parallel stock check with pricing
+eg.Go(func() error {
+    if req.WarehouseID != nil && *req.WarehouseID != "" {
+        err = uc.warehouseInventoryService.CheckStock(
+            egCtx, product.ID, *req.WarehouseID, req.Quantity,
+        )
+    }
+    return err
+})
+```
+
+**Error Handling:**
+- Returns `ErrInsufficientStock` if stock unavailable
+- Circuit breaker protects against warehouse service failures
+- No fallback - stock check is required
+
+### Stock Reservation Flow
+
+**When:** During checkout (cart → order)
+
+**Transaction Flow:**
+```
+1. Start Transaction
+2. Reserve Stock (all items)
+   - If any reservation fails → Release all → Rollback
+3. Create Order
+   - If order creation fails → Release all → Rollback
+4. Clear Cart
+   - If cart clear fails → Release all → Rollback
+5. Commit Transaction
+6. Confirm Reservations (outside transaction)
+```
+
+**Implementation:**
+```go
+// order/internal/biz/cart.go - CheckoutFromCart()
+err = uc.transactionManager.WithTransaction(ctx, func(txCtx context.Context) error {
+    // Step 1: Reserve stock for all items
+    reservations := make([]*StockReservation, 0, len(cart.Items))
+    for _, item := range cart.Items {
+        reservation, err := uc.warehouseInventoryService.ReserveStock(
+            txCtx, item.ProductID, warehouseID, item.Quantity,
+        )
+        if err != nil {
+            // Release all previous reservations
+            uc.releaseReservations(txCtx, reservations)
+            return err
+        }
+        reservations = append(reservations, reservation)
+        // Store reservation ID in order item
+        orderItem.ReservationID = &reservation.ID
+    }
+    
+    // Step 2: Create order (within transaction)
+    createdOrder, err := uc.orderRepo.Create(txCtx, modelOrder)
+    if err != nil {
+        uc.releaseReservations(txCtx, reservations)
+        return err
+    }
+    
+    // Step 3: Clear cart (within transaction)
+    if err := uc.cartRepo.DeleteItemsBySessionID(txCtx, req.SessionID); err != nil {
+        uc.releaseReservations(txCtx, reservations)
+        return err
+    }
+    
+    return nil
+})
+
+// Step 4: Confirm reservations (outside transaction)
+for _, reservation := range reservations {
+    if confirmErr := uc.warehouseInventoryService.ConfirmReservation(
+        ctx, reservation.ID,
+    ); confirmErr != nil {
+        // Log warning - reservation will expire automatically after 15 min
+        uc.log.Warnf("Failed to confirm reservation %d: %v", reservation.ID, confirmErr)
+    }
+}
+```
+
+**Reservation Details:**
+- **Expiry**: 15 minutes (automatic release if not confirmed)
+- **API**: `POST /v1/inventory/reserve`
+- **Request**: `{product_id, warehouse_id, quantity}`
+- **Response**: `{reservation: {id, product_id, warehouse_id, quantity, expires_at}}`
+
+**Error Handling:**
+- **Rollback Strategy**: If any step fails, all reservations are released
+- **Idempotency**: Reservation release is safe to retry
+- **Reservation Expiry**: Unconfirmed reservations expire after 15 minutes
+
+### Reservation Confirmation
+
+**When:** After successful order creation
+
+**Purpose:** Convert temporary reservation to permanent allocation
+
+**Implementation:**
+```go
+// order/internal/client/warehouse_client.go
+func (c *httpWarehouseClient) ConfirmReservation(
+    ctx context.Context, 
+    reservationID int64,
+) error {
+    // POST /v1/inventory/reservations/{id}/confirm
+    // Marks reservation as confirmed
+    // Stock is permanently allocated to order
+}
+```
+
+**Important Notes:**
+- Confirmation happens **outside transaction** (after commit)
+- If confirmation fails, reservation expires automatically (15 min)
+- Order creation succeeds even if confirmation fails (eventual consistency)
+
+### Reservation Release
+
+**When:** Order cancellation, payment failure, order creation failure
+
+**Scenarios:**
+1. **Order Cancellation**: Customer cancels order
+2. **Payment Failure**: Payment service fails → Order cancelled → Stock released
+3. **Transaction Rollback**: Order creation fails → All reservations released
+
+**Implementation:**
+```go
+// order/internal/biz/order.go - CancelOrder()
+// Release stock reservations
+for _, item := range order.Items {
+    if item.ReservationID != nil {
+        uc.warehouseInventoryService.ReleaseReservation(ctx, *item.ReservationID)
+    }
+}
+
+// order/internal/service/event_handler.go - HandlePaymentFailed()
+// Cancel order and release inventory
+if event.OrderID > 0 {
+    _, err := h.orderUc.CancelOrder(ctx, &biz.CancelOrderRequest{
+        OrderID: event.OrderID,
+        Reason:  fmt.Sprintf("Payment failed: %s", event.FailureReason),
+    })
+}
+```
+
+**API:**
+```go
+// order/internal/client/warehouse_client.go
+func (c *httpWarehouseClient) ReleaseReservation(
+    ctx context.Context, 
+    reservationID int64,
+) error {
+    // POST /v1/inventory/reservations/{id}/release
+    // Releases reservation, stock becomes available again
+}
+```
+
+**Error Handling:**
+- Release is idempotent (safe to retry)
+- Logs warning if release fails (stock will expire automatically)
+- Does not block order cancellation
+
+### Order Service Stock APIs
+
+**Warehouse Client Interface:**
+```go
+// order/internal/client/warehouse_client.go
+type WarehouseClient interface {
+    // Check if stock is available
+    CheckStock(ctx context.Context, productID string, warehouseID string, quantity int32) error
+    
+    // Reserve stock for order (15 min expiry)
+    ReserveStock(ctx context.Context, productID string, warehouseID string, quantity int32) (*StockReservation, error)
+    
+    // Confirm reservation (after order creation)
+    ConfirmReservation(ctx context.Context, reservationID int64) error
+    
+    // Release reservation (on cancellation/failure)
+    ReleaseReservation(ctx context.Context, reservationID int64) error
+}
+```
+
+**Stock Reservation Model:**
+```go
+type StockReservation struct {
+    ID          int64     // Reservation ID
+    ProductID   string    // Product UUID
+    WarehouseID string    // Warehouse UUID
+    Quantity    int32     // Reserved quantity
+    ExpiresAt   time.Time // Expiry time (15 min from creation)
+}
+```
+
+### Transaction Management
+
+**Pattern:** Two-Phase Approach
+
+**Phase 1: Transaction (Atomic)**
+- Reserve stock
+- Create order
+- Clear cart
+- **All or nothing** - rollback releases all reservations
+
+**Phase 2: Post-Commit (Best Effort)**
+- Confirm reservations
+- Publish events
+- Send notifications
+- **Failure doesn't affect order** - eventual consistency
+
+**Benefits:**
+- **Consistency**: Order and reservations are atomic
+- **Resilience**: Confirmation failures don't block orders
+- **Performance**: Non-blocking post-commit operations
+
+### Error Handling & Resilience
+
+**Circuit Breaker:**
+- Protects against warehouse service failures
+- Prevents cascade failures
+- Automatic recovery after timeout
+
+**Retry Strategy:**
+- Reservation release: Idempotent, safe to retry
+- Reservation confirmation: Best effort, expiry fallback
+
+**Fallback Mechanisms:**
+- **Reservation Expiry**: Unconfirmed reservations expire after 15 min
+- **Noop Client**: Graceful degradation if warehouse service unavailable
+- **Logging**: All failures logged for monitoring
+
+### Integration Points
+
+**Order → Warehouse Communication:**
+- **Protocol**: HTTP REST
+- **Base URL**: Configurable via `warehouse.base_url`
+- **Timeout**: 30 seconds (Dapr default)
+- **Circuit Breaker**: Enabled by default
+
+**Event Flow:**
+```
+Order Created → Publish order.created event
+Order Cancelled → Publish order.cancelled event
+Payment Failed → Publish payment.failed → Cancel Order → Release Stock
+```
+
+**Key Files:**
+```
+order/internal/client/warehouse_client.go    - Warehouse client
+order/internal/biz/cart.go                   - Cart checkout logic
+order/internal/biz/order.go                  - Order management
+order/internal/biz/cancellation/cancellation.go - Cancellation logic
+order/internal/service/event_handler.go      - Event handlers
+```
+
+### Best Practices
+
+1. **Always check stock** before adding to cart
+2. **Reserve stock** within transaction during checkout
+3. **Confirm reservations** after successful order creation
+4. **Release reservations** on any failure or cancellation
+5. **Use circuit breaker** for resilience
+6. **Log all stock operations** for debugging
+7. **Handle expiry gracefully** (15 min automatic release)
 
 ---
 
@@ -633,6 +982,13 @@ warehouse/internal/data/postgres/inventory.go
 # Workers
 catalog/internal/worker/cron/stock_sync.go
 warehouse/internal/worker/cron/stock_change_detector.go
+
+# Order Service Integration
+order/internal/client/warehouse_client.go          - Warehouse client
+order/internal/biz/cart.go                        - Cart checkout (reservations)
+order/internal/biz/order.go                      - Order management
+order/internal/biz/cancellation/cancellation.go   - Cancellation (release)
+order/internal/service/event_handler.go          - Event handlers
 ```
 
 ### API Endpoints
@@ -649,6 +1005,22 @@ GET  /v1/inventory/product/{id}      - Product inventory
 GET  /v1/products/{id}               - Product with stock
 GET  /v1/products                    - List products with stock
 POST /events/stock-updated           - Event handler
+```
+
+**Order:**
+```
+POST /api/v1/cart/add                - Add to cart (checks stock)
+POST /api/v1/cart/checkout           - Checkout (reserves stock)
+POST /api/v1/orders                  - Create order (reserves stock)
+POST /api/v1/orders/{id}/cancel      - Cancel order (releases stock)
+```
+
+**Warehouse (Order Integration):**
+```
+GET  /v1/inventory?product_id={id}&warehouse_id={id}  - Check stock
+POST /v1/inventory/reserve                            - Reserve stock
+POST /v1/inventory/reservations/{id}/confirm          - Confirm reservation
+POST /v1/inventory/reservations/{id}/release          - Release reservation
 ```
 
 ---
@@ -686,7 +1058,26 @@ POST /events/stock-updated           - Event handler
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** November 9, 2024  
+**Document Version:** 2.0  
+**Last Updated:** November 12, 2024  
 **Status:** Production Ready  
 **Maintained By:** Development Team
+
+---
+
+## 📝 Changelog
+
+### Version 2.0 (November 12, 2024)
+- ✅ Added Order Service integration section
+- ✅ Documented stock reservation flow
+- ✅ Documented reservation confirmation/release
+- ✅ Added transaction management details
+- ✅ Added error handling and resilience patterns
+- ✅ Updated architecture diagrams
+- ✅ Added order service API endpoints
+
+### Version 1.0 (November 9, 2024)
+- ✅ Initial documentation
+- ✅ Event-driven sync implementation
+- ✅ Cache optimization
+- ✅ Performance benchmarks
