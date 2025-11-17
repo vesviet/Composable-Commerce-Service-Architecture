@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.company.com/schemas/events/customer.created/v1.0.0",
+  "title": "Customer Created Event",
+  "description": "Event published when a new customer is registered",
+  "type": "object",
+  "required": ["eventType", "customerId", "email", "timestamp"],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "const": "customer.created",
+      "description": "Event type identifier"
+    },
+    "customerId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique customer identifier"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Customer email address"
+    },
+    "firstName": {
+      "type": "string",
+      "description": "Customer first name"
+    },
+    "lastName": {
+      "type": "string",
+      "description": "Customer last name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Customer phone number"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["WEB", "MOBILE", "API", "ADMIN"],
+      "description": "Registration source"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when customer was created"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
+

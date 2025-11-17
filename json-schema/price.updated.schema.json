@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.company.com/schemas/events/price.updated/v1.0.0",
+  "title": "Price Updated Event",
+  "description": "Event published when product price is updated",
+  "type": "object",
+  "required": ["eventType", "productId", "price", "timestamp"],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "pricing.price.updated",
+        "pricing.warehouse_price.updated",
+        "pricing.sku_price.updated",
+        "pricing.price.bulk_updated"
+      ],
+      "description": "Event type identifier"
+    },
+    "productId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Product identifier"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Product SKU (required for SKU-level pricing)"
+    },
+    "warehouseId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Warehouse identifier (required for warehouse-specific pricing)"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "New price value"
+    },
+    "previousPrice": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Previous price value"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "default": "USD",
+      "description": "ISO 4217 currency code"
+    },
+    "priceType": {
+      "type": "string",
+      "enum": ["PRODUCT", "SKU", "WAREHOUSE", "SKU_WAREHOUSE"],
+      "description": "Type of price update"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when price was updated"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
+

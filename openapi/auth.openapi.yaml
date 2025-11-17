@@ -1,0 +1,366 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: AuthService API
+    version: 0.0.1
+paths:
+    /api/v1/auth/health:
+        get:
+            tags:
+                - AuthService
+            description: Health & Monitoring
+            operationId: AuthService_HealthCheck
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.HealthCheckReply'
+    /api/v1/auth/sessions:
+        post:
+            tags:
+                - AuthService
+            description: Session Operations
+            operationId: AuthService_CreateSession
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.auth.v1.CreateSessionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.CreateSessionReply'
+    /api/v1/auth/sessions/user/{userId}:
+        get:
+            tags:
+                - AuthService
+            operationId: AuthService_GetUserSessions
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.GetUserSessionsReply'
+    /api/v1/auth/sessions/user/{userId}/revoke:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_RevokeUserSessions
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.auth.v1.RevokeUserSessionsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.RevokeUserSessionsReply'
+    /api/v1/auth/sessions/{sessionId}:
+        get:
+            tags:
+                - AuthService
+            operationId: AuthService_GetSession
+            parameters:
+                - name: sessionId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.GetSessionReply'
+        delete:
+            tags:
+                - AuthService
+            operationId: AuthService_RevokeSession
+            parameters:
+                - name: sessionId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.RevokeSessionReply'
+    /api/v1/auth/tokens/generate:
+        post:
+            tags:
+                - AuthService
+            description: Token Operations
+            operationId: AuthService_GenerateToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.auth.v1.GenerateTokenRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.GenerateTokenReply'
+    /api/v1/auth/tokens/refresh:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_RefreshToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.auth.v1.RefreshTokenRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.RefreshTokenReply'
+    /api/v1/auth/tokens/revoke:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_RevokeToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.auth.v1.RevokeTokenRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.RevokeTokenReply'
+    /api/v1/auth/tokens/validate:
+        post:
+            tags:
+                - AuthService
+            operationId: AuthService_ValidateToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.auth.v1.ValidateTokenRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.auth.v1.ValidateTokenReply'
+components:
+    schemas:
+        api.auth.v1.CreateSessionReply:
+            type: object
+            properties:
+                sessionId:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+        api.auth.v1.CreateSessionRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                userType:
+                    type: string
+                deviceInfo:
+                    type: string
+                ipAddress:
+                    type: string
+        api.auth.v1.GenerateTokenReply:
+            type: object
+            properties:
+                accessToken:
+                    type: string
+                refreshToken:
+                    type: string
+                sessionId:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+        api.auth.v1.GenerateTokenRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                userType:
+                    type: string
+                claims:
+                    type: object
+                    additionalProperties:
+                        type: string
+                deviceInfo:
+                    type: string
+                ipAddress:
+                    type: string
+            description: Generate Token (called by User/Customer Service after successful login)
+        api.auth.v1.GetSessionReply:
+            type: object
+            properties:
+                session:
+                    $ref: '#/components/schemas/api.auth.v1.Session'
+        api.auth.v1.GetUserSessionsReply:
+            type: object
+            properties:
+                sessions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.auth.v1.Session'
+        api.auth.v1.HealthCheckReply:
+            type: object
+            properties:
+                timestamp:
+                    type: string
+                    format: date-time
+                status:
+                    type: string
+                version:
+                    type: string
+                details:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.auth.v1.RefreshTokenReply:
+            type: object
+            properties:
+                accessToken:
+                    type: string
+                refreshToken:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+        api.auth.v1.RefreshTokenRequest:
+            type: object
+            properties:
+                refreshToken:
+                    type: string
+            description: Refresh Token
+        api.auth.v1.RevokeSessionReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.auth.v1.RevokeTokenReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.auth.v1.RevokeTokenRequest:
+            type: object
+            properties:
+                token:
+                    type: string
+            description: Revoke Token
+        api.auth.v1.RevokeUserSessionsReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                sessionsRevoked:
+                    type: integer
+                    format: int32
+                message:
+                    type: string
+        api.auth.v1.RevokeUserSessionsRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                reason:
+                    type: string
+        api.auth.v1.Session:
+            type: object
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+                userType:
+                    type: string
+                deviceInfo:
+                    type: string
+                ipAddress:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                lastAccessed:
+                    type: string
+                    format: date-time
+                isActive:
+                    type: boolean
+            description: Session model
+        api.auth.v1.ValidateTokenReply:
+            type: object
+            properties:
+                valid:
+                    type: boolean
+                userId:
+                    type: string
+                userType:
+                    type: string
+                sessionId:
+                    type: string
+                claims:
+                    type: object
+                    additionalProperties:
+                        type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+        api.auth.v1.ValidateTokenRequest:
+            type: object
+            properties:
+                token:
+                    type: string
+            description: Validate Token (called by Gateway or services)
+tags:
+    - name: AuthService

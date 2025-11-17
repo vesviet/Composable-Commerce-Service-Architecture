@@ -1,0 +1,2738 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /api/v1/catalog/attributes:
+        get:
+            tags:
+                - ProductAttributeService
+            description: Attribute Definition Management
+            operationId: ProductAttributeService_ListAttributeDefinitions
+            parameters:
+                - name: code
+                  in: query
+                  schema:
+                    type: string
+                - name: keyword
+                  in: query
+                  schema:
+                    type: string
+                - name: categoryId
+                  in: query
+                  schema:
+                    type: string
+                - name: dataType
+                  in: query
+                  schema:
+                    type: string
+                - name: isSearchable
+                  in: query
+                  schema:
+                    type: boolean
+                - name: isFilterable
+                  in: query
+                  schema:
+                    type: boolean
+                - name: isRequired
+                  in: query
+                  schema:
+                    type: boolean
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: orderBy
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.ListAttributeDefinitionsReply'
+        post:
+            tags:
+                - ProductAttributeService
+            operationId: ProductAttributeService_CreateAttributeDefinition
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.product.v1.CreateAttributeDefinitionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.CreateAttributeDefinitionReply'
+    /api/v1/catalog/attributes/code/{code}:
+        get:
+            tags:
+                - ProductAttributeService
+            operationId: ProductAttributeService_GetAttributeDefinitionByCode
+            parameters:
+                - name: code
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.GetAttributeDefinitionReply'
+    /api/v1/catalog/attributes/{id}:
+        get:
+            tags:
+                - ProductAttributeService
+            operationId: ProductAttributeService_GetAttributeDefinition
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.GetAttributeDefinitionReply'
+        put:
+            tags:
+                - ProductAttributeService
+            operationId: ProductAttributeService_UpdateAttributeDefinition
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.product.v1.UpdateAttributeDefinitionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.UpdateAttributeDefinitionReply'
+        delete:
+            tags:
+                - ProductAttributeService
+            operationId: ProductAttributeService_DeleteAttributeDefinition
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.DeleteAttributeDefinitionReply'
+    /api/v1/catalog/brands:
+        get:
+            tags:
+                - BrandService
+            operationId: BrandService_ListBrands
+            parameters:
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.brand.v1.ListBrandsReply'
+        post:
+            tags:
+                - BrandService
+            operationId: BrandService_CreateBrand
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.brand.v1.CreateBrandRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.brand.v1.CreateBrandReply'
+    /api/v1/catalog/brands/slug/{slug}:
+        get:
+            tags:
+                - BrandService
+            operationId: BrandService_GetBrandBySlug
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.brand.v1.GetBrandBySlugReply'
+    /api/v1/catalog/brands/{id}:
+        get:
+            tags:
+                - BrandService
+            operationId: BrandService_GetBrand
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.brand.v1.GetBrandReply'
+        put:
+            tags:
+                - BrandService
+            operationId: BrandService_UpdateBrand
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.brand.v1.UpdateBrandRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.brand.v1.UpdateBrandReply'
+        delete:
+            tags:
+                - BrandService
+            operationId: BrandService_DeleteBrand
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.brand.v1.DeleteBrandReply'
+    /api/v1/catalog/bulk/export:
+        post:
+            tags:
+                - CatalogService
+            operationId: CatalogService_BulkExport
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.catalog.v1.BulkExportRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.catalog.v1.BulkExportReply'
+    /api/v1/catalog/bulk/import:
+        post:
+            tags:
+                - CatalogService
+            description: Bulk operations across multiple domains
+            operationId: CatalogService_BulkImport
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.catalog.v1.BulkImportRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.catalog.v1.BulkImportReply'
+    /api/v1/catalog/categories:
+        get:
+            tags:
+                - CategoryService
+            operationId: CategoryService_ListCategories
+            parameters:
+                - name: parentId
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: level
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.category.v1.ListCategoriesReply'
+        post:
+            tags:
+                - CategoryService
+            operationId: CategoryService_CreateCategory
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.category.v1.CreateCategoryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.category.v1.CreateCategoryReply'
+    /api/v1/catalog/categories/tree:
+        get:
+            tags:
+                - CategoryService
+            description: GetCategoryTree must be registered before GetCategory to ensure /tree route matches before /{id}
+            operationId: CategoryService_GetCategoryTree
+            parameters:
+                - name: maxDepth
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.category.v1.GetCategoryTreeReply'
+    /api/v1/catalog/categories/{id}:
+        get:
+            tags:
+                - CategoryService
+            operationId: CategoryService_GetCategory
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.category.v1.GetCategoryReply'
+        put:
+            tags:
+                - CategoryService
+            operationId: CategoryService_UpdateCategory
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.category.v1.UpdateCategoryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.category.v1.UpdateCategoryReply'
+        delete:
+            tags:
+                - CategoryService
+            operationId: CategoryService_DeleteCategory
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.category.v1.DeleteCategoryReply'
+    /api/v1/catalog/health:
+        get:
+            tags:
+                - CatalogService
+            description: Health check
+            operationId: CatalogService_HealthCheck
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.catalog.v1.HealthCheckReply'
+    /api/v1/catalog/info:
+        get:
+            tags:
+                - CatalogService
+            description: Service information
+            operationId: CatalogService_GetServiceInfo
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.catalog.v1.GetServiceInfoReply'
+    /api/v1/catalog/manufacturers:
+        get:
+            tags:
+                - ManufacturerService
+            operationId: ManufacturerService_ListManufacturers
+            parameters:
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: verificationStatus
+                  in: query
+                  schema:
+                    type: string
+                - name: countryCode
+                  in: query
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.manufacturer.v1.ListManufacturersReply'
+        post:
+            tags:
+                - ManufacturerService
+            operationId: ManufacturerService_CreateManufacturer
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.manufacturer.v1.CreateManufacturerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.manufacturer.v1.CreateManufacturerReply'
+    /api/v1/catalog/manufacturers/code/{code}:
+        get:
+            tags:
+                - ManufacturerService
+            operationId: ManufacturerService_GetManufacturerByCode
+            parameters:
+                - name: code
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.manufacturer.v1.GetManufacturerByCodeReply'
+    /api/v1/catalog/manufacturers/{id}:
+        get:
+            tags:
+                - ManufacturerService
+            operationId: ManufacturerService_GetManufacturer
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.manufacturer.v1.GetManufacturerReply'
+        put:
+            tags:
+                - ManufacturerService
+            operationId: ManufacturerService_UpdateManufacturer
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.manufacturer.v1.UpdateManufacturerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.manufacturer.v1.UpdateManufacturerReply'
+        delete:
+            tags:
+                - ManufacturerService
+            operationId: ManufacturerService_DeleteManufacturer
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.manufacturer.v1.DeleteManufacturerReply'
+    /api/v1/catalog/products:
+        get:
+            tags:
+                - ProductService
+            operationId: ProductService_ListProducts
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: category
+                  in: query
+                  schema:
+                    type: string
+                - name: brand
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+                - name: manufacturer
+                  in: query
+                  schema:
+                    type: string
+                - name: skus
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: color
+                  in: query
+                  description: 'Tier 1: Hot Attribute Filters'
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: size
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: material
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: gender
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: ageGroup
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: minWeight
+                  in: query
+                  schema:
+                    type: number
+                    format: double
+                - name: maxWeight
+                  in: query
+                  schema:
+                    type: number
+                    format: double
+                - name: featured
+                  in: query
+                  description: Featured products filter (sort by sort_order DESC, limit results)
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.ListProductsReply'
+        post:
+            tags:
+                - ProductService
+            operationId: ProductService_CreateProduct
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.product.v1.CreateProductRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.CreateProductReply'
+    /api/v1/catalog/products/category/{categoryId}:
+        get:
+            tags:
+                - ProductService
+            operationId: ProductService_GetProductsByCategory
+            parameters:
+                - name: categoryId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.GetProductsByCategoryReply'
+    /api/v1/catalog/products/filter-by-attributes:
+        post:
+            tags:
+                - ProductAttributeService
+            description: Filter Products by EAV Attributes
+            operationId: ProductAttributeService_FilterProductsByAttributes
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.product.v1.FilterProductsByAttributesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.FilterProductsByAttributesReply'
+    /api/v1/catalog/products/search:
+        get:
+            tags:
+                - ProductService
+            operationId: ProductService_SearchProducts
+            parameters:
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: category
+                  in: query
+                  schema:
+                    type: string
+                - name: brand
+                  in: query
+                  schema:
+                    type: string
+                - name: color
+                  in: query
+                  description: 'Tier 1: Hot Attribute Filters'
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: size
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: material
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: gender
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: ageGroup
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: minWeight
+                  in: query
+                  schema:
+                    type: number
+                    format: double
+                - name: maxWeight
+                  in: query
+                  schema:
+                    type: number
+                    format: double
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.SearchProductsReply'
+    /api/v1/catalog/products/sku/{sku}:
+        get:
+            tags:
+                - ProductService
+            description: Specific routes must be defined before generic {id} routes to ensure correct matching
+            operationId: ProductService_GetProductBySKU
+            parameters:
+                - name: sku
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.GetProductReply'
+    /api/v1/catalog/products/{id}:
+        get:
+            tags:
+                - ProductService
+            operationId: ProductService_GetProduct
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.GetProductReply'
+        put:
+            tags:
+                - ProductService
+            operationId: ProductService_UpdateProduct
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.product.v1.UpdateProductRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.UpdateProductReply'
+        delete:
+            tags:
+                - ProductService
+            operationId: ProductService_DeleteProduct
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.DeleteProductReply'
+    /api/v1/catalog/products/{productId}/attributes:
+        get:
+            tags:
+                - ProductAttributeService
+            description: Product Attribute Values Management
+            operationId: ProductAttributeService_GetProductAttributes
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.GetProductAttributesReply'
+        post:
+            tags:
+                - ProductAttributeService
+            operationId: ProductAttributeService_SetProductAttributes
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.product.v1.SetProductAttributesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.SetProductAttributesReply'
+        delete:
+            tags:
+                - ProductAttributeService
+            operationId: ProductAttributeService_DeleteProductAttributes
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.DeleteProductAttributesReply'
+    /api/v1/catalog/products/{productId}/attributes/{attributeId}:
+        delete:
+            tags:
+                - ProductAttributeService
+            operationId: ProductAttributeService_DeleteProductAttribute
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: attributeId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.product.v1.DeleteProductAttributeReply'
+    /api/v1/catalog/search:
+        get:
+            tags:
+                - CatalogService
+            description: Cross-domain search
+            operationId: CatalogService_GlobalSearch
+            parameters:
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+                - name: types
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.catalog.v1.GlobalSearchReply'
+    /api/v1/cms/banners:
+        get:
+            tags:
+                - CMSService
+            operationId: CMSService_ListBanners
+            parameters:
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: placement
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.ListBannersReply'
+        post:
+            tags:
+                - CMSService
+            operationId: CMSService_CreateBanner
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.cms.v1.CreateBannerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.CreateBannerReply'
+    /api/v1/cms/banners/active:
+        get:
+            tags:
+                - CMSService
+            operationId: CMSService_GetActiveBanners
+            parameters:
+                - name: placement
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.GetActiveBannersReply'
+    /api/v1/cms/banners/{id}:
+        get:
+            tags:
+                - CMSService
+            description: Banner Management
+            operationId: CMSService_GetBanner
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.GetBannerReply'
+        put:
+            tags:
+                - CMSService
+            operationId: CMSService_UpdateBanner
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.cms.v1.UpdateBannerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.UpdateBannerReply'
+        delete:
+            tags:
+                - CMSService
+            operationId: CMSService_DeleteBanner
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.DeleteBannerReply'
+    /api/v1/cms/blogs:
+        get:
+            tags:
+                - CMSService
+            operationId: CMSService_ListBlogs
+            parameters:
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+                - name: tags
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.ListBlogsReply'
+        post:
+            tags:
+                - CMSService
+            operationId: CMSService_CreateBlog
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.cms.v1.CreateBlogRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.CreateBlogReply'
+    /api/v1/cms/blogs/{id}:
+        put:
+            tags:
+                - CMSService
+            operationId: CMSService_UpdateBlog
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.cms.v1.UpdateBlogRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.UpdateBlogReply'
+        delete:
+            tags:
+                - CMSService
+            operationId: CMSService_DeleteBlog
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.DeleteBlogReply'
+    /api/v1/cms/blogs/{slug}:
+        get:
+            tags:
+                - CMSService
+            description: Blog Management
+            operationId: CMSService_GetBlog
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.GetBlogReply'
+    /api/v1/cms/pages:
+        get:
+            tags:
+                - CMSService
+            operationId: CMSService_ListPages
+            parameters:
+                - name: type
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.ListPagesReply'
+        post:
+            tags:
+                - CMSService
+            operationId: CMSService_CreatePage
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.cms.v1.CreatePageRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.CreatePageReply'
+    /api/v1/cms/pages/{id}:
+        put:
+            tags:
+                - CMSService
+            operationId: CMSService_UpdatePage
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.cms.v1.UpdatePageRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.UpdatePageReply'
+        delete:
+            tags:
+                - CMSService
+            operationId: CMSService_DeletePage
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.DeletePageReply'
+    /api/v1/cms/pages/{slug}:
+        get:
+            tags:
+                - CMSService
+            description: Page Management
+            operationId: CMSService_GetPage
+            parameters:
+                - name: slug
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.GetPageReply'
+    /api/v1/cms/seo:
+        get:
+            tags:
+                - CMSService
+            description: SEO Management
+            operationId: CMSService_GetSEOData
+            parameters:
+                - name: path
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.cms.v1.GetSEODataReply'
+components:
+    schemas:
+        api.brand.v1.Brand:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                slug:
+                    type: string
+                description:
+                    type: string
+                logoUrl:
+                    type: string
+                websiteUrl:
+                    type: string
+                seo:
+                    type: object
+                status:
+                    type: string
+                productCount:
+                    type: integer
+                    format: int32
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Brand Messages
+        api.brand.v1.CreateBrandReply:
+            type: object
+            properties:
+                brand:
+                    $ref: '#/components/schemas/api.brand.v1.Brand'
+        api.brand.v1.CreateBrandRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                slug:
+                    type: string
+                description:
+                    type: string
+                logoUrl:
+                    type: string
+                websiteUrl:
+                    type: string
+                seo:
+                    type: object
+                status:
+                    type: string
+        api.brand.v1.DeleteBrandReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.brand.v1.GetBrandBySlugReply:
+            type: object
+            properties:
+                brand:
+                    $ref: '#/components/schemas/api.brand.v1.Brand'
+        api.brand.v1.GetBrandReply:
+            type: object
+            properties:
+                brand:
+                    $ref: '#/components/schemas/api.brand.v1.Brand'
+        api.brand.v1.ListBrandsReply:
+            type: object
+            properties:
+                brands:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.brand.v1.Brand'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.brand.v1.UpdateBrandReply:
+            type: object
+            properties:
+                brand:
+                    $ref: '#/components/schemas/api.brand.v1.Brand'
+        api.brand.v1.UpdateBrandRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                slug:
+                    type: string
+                description:
+                    type: string
+                logoUrl:
+                    type: string
+                websiteUrl:
+                    type: string
+                seo:
+                    type: object
+                status:
+                    type: string
+        api.catalog.v1.BulkExportFilter:
+            type: object
+            properties:
+                productIds:
+                    type: array
+                    items:
+                        type: string
+                categoryIds:
+                    type: array
+                    items:
+                        type: string
+                brandIds:
+                    type: array
+                    items:
+                        type: string
+                status:
+                    type: string
+                createdAfter:
+                    type: string
+                    format: date-time
+                createdBefore:
+                    type: string
+                    format: date-time
+        api.catalog.v1.BulkExportReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                data:
+                    type: string
+                    format: bytes
+                downloadUrl:
+                    type: string
+                totalRecords:
+                    type: integer
+                    format: int32
+                jobId:
+                    type: string
+        api.catalog.v1.BulkExportRequest:
+            type: object
+            properties:
+                format:
+                    type: string
+                filter:
+                    $ref: '#/components/schemas/api.catalog.v1.BulkExportFilter'
+                fieldsToExport:
+                    type: array
+                    items:
+                        type: string
+        api.catalog.v1.BulkImportError:
+            type: object
+            properties:
+                rowNumber:
+                    type: integer
+                    format: int32
+                field:
+                    type: string
+                errorMessage:
+                    type: string
+                recordData:
+                    type: string
+        api.catalog.v1.BulkImportOptions:
+            type: object
+            properties:
+                skipDuplicates:
+                    type: boolean
+                updateExisting:
+                    type: boolean
+                validateOnly:
+                    type: boolean
+                fieldsToImport:
+                    type: array
+                    items:
+                        type: string
+        api.catalog.v1.BulkImportReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                totalRecords:
+                    type: integer
+                    format: int32
+                importedRecords:
+                    type: integer
+                    format: int32
+                skippedRecords:
+                    type: integer
+                    format: int32
+                failedRecords:
+                    type: integer
+                    format: int32
+                errors:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.catalog.v1.BulkImportError'
+                jobId:
+                    type: string
+        api.catalog.v1.BulkImportRequest:
+            type: object
+            properties:
+                format:
+                    type: string
+                data:
+                    type: string
+                    format: bytes
+                options:
+                    $ref: '#/components/schemas/api.catalog.v1.BulkImportOptions'
+            description: Bulk operations messages
+        api.catalog.v1.FacetValue:
+            type: object
+            properties:
+                value:
+                    type: string
+                count:
+                    type: integer
+                    format: int32
+                selected:
+                    type: boolean
+        api.catalog.v1.GetServiceInfoReply:
+            type: object
+            properties:
+                name:
+                    type: string
+                version:
+                    type: string
+                description:
+                    type: string
+                capabilities:
+                    type: array
+                    items:
+                        type: string
+                metrics:
+                    $ref: '#/components/schemas/api.catalog.v1.ServiceMetrics'
+        api.catalog.v1.GlobalSearchReply:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.catalog.v1.SearchResult'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+                facets:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.catalog.v1.SearchFacet'
+                totalResults:
+                    type: integer
+                    format: int32
+                searchTimeMs:
+                    type: number
+                    format: float
+        api.catalog.v1.HealthCheckReply:
+            type: object
+            properties:
+                status:
+                    type: string
+                service:
+                    type: string
+                version:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+                dependencies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.catalog.v1.ServiceStatus'
+        api.catalog.v1.SearchFacet:
+            type: object
+            properties:
+                field:
+                    type: string
+                values:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.catalog.v1.FacetValue'
+        api.catalog.v1.SearchResult:
+            type: object
+            properties:
+                id:
+                    type: string
+                type:
+                    type: string
+                title:
+                    type: string
+                description:
+                    type: string
+                url:
+                    type: string
+                relevanceScore:
+                    type: number
+                    format: float
+                metadata:
+                    type: object
+                highlights:
+                    type: array
+                    items:
+                        type: string
+        api.catalog.v1.ServiceMetrics:
+            type: object
+            properties:
+                totalProducts:
+                    type: string
+                totalCategories:
+                    type: string
+                totalBrands:
+                    type: string
+                totalCmsPages:
+                    type: string
+                lastUpdated:
+                    type: string
+                    format: date-time
+        api.catalog.v1.ServiceStatus:
+            type: object
+            properties:
+                name:
+                    type: string
+                status:
+                    type: string
+                message:
+                    type: string
+        api.category.v1.Category:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                slug:
+                    type: string
+                description:
+                    type: string
+                parentId:
+                    type: string
+                level:
+                    type: integer
+                    format: int32
+                sortOrder:
+                    type: integer
+                    format: int32
+                imageUrl:
+                    type: string
+                seo:
+                    type: object
+                status:
+                    type: string
+                productCount:
+                    type: integer
+                    format: int32
+                children:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.category.v1.Category'
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Category Messages
+        api.category.v1.CreateCategoryReply:
+            type: object
+            properties:
+                category:
+                    $ref: '#/components/schemas/api.category.v1.Category'
+        api.category.v1.CreateCategoryRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                slug:
+                    type: string
+                description:
+                    type: string
+                parentId:
+                    type: string
+                sortOrder:
+                    type: integer
+                    format: int32
+                imageUrl:
+                    type: string
+                seo:
+                    type: object
+                status:
+                    type: string
+        api.category.v1.DeleteCategoryReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.category.v1.GetCategoryReply:
+            type: object
+            properties:
+                category:
+                    $ref: '#/components/schemas/api.category.v1.Category'
+        api.category.v1.GetCategoryTreeReply:
+            type: object
+            properties:
+                categories:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.category.v1.Category'
+        api.category.v1.ListCategoriesReply:
+            type: object
+            properties:
+                categories:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.category.v1.Category'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.category.v1.UpdateCategoryReply:
+            type: object
+            properties:
+                category:
+                    $ref: '#/components/schemas/api.category.v1.Category'
+        api.category.v1.UpdateCategoryRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                slug:
+                    type: string
+                description:
+                    type: string
+                parentId:
+                    type: string
+                sortOrder:
+                    type: integer
+                    format: int32
+                imageUrl:
+                    type: string
+                seo:
+                    type: object
+                status:
+                    type: string
+        api.cms.v1.CMSPage:
+            type: object
+            properties:
+                id:
+                    type: string
+                title:
+                    type: string
+                slug:
+                    type: string
+                content:
+                    type: string
+                excerpt:
+                    type: string
+                type:
+                    type: string
+                template:
+                    type: string
+                seo:
+                    type: object
+                metaData:
+                    type: object
+                status:
+                    type: string
+                publishedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                createdBy:
+                    type: string
+                updatedBy:
+                    type: string
+            description: CMS Page Messages
+        api.cms.v1.CreateBannerReply:
+            type: object
+            properties:
+                banner:
+                    $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.CreateBannerRequest:
+            type: object
+            properties:
+                title:
+                    type: string
+                slug:
+                    type: string
+                content:
+                    type: string
+                template:
+                    type: string
+                metaData:
+                    type: object
+                status:
+                    type: string
+        api.cms.v1.CreateBlogReply:
+            type: object
+            properties:
+                blog:
+                    $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.CreateBlogRequest:
+            type: object
+            properties:
+                title:
+                    type: string
+                slug:
+                    type: string
+                content:
+                    type: string
+                excerpt:
+                    type: string
+                template:
+                    type: string
+                seo:
+                    type: object
+                metaData:
+                    type: object
+                status:
+                    type: string
+                tags:
+                    type: array
+                    items:
+                        type: string
+        api.cms.v1.CreatePageReply:
+            type: object
+            properties:
+                page:
+                    $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.CreatePageRequest:
+            type: object
+            properties:
+                title:
+                    type: string
+                slug:
+                    type: string
+                content:
+                    type: string
+                excerpt:
+                    type: string
+                type:
+                    type: string
+                template:
+                    type: string
+                seo:
+                    type: object
+                metaData:
+                    type: object
+                status:
+                    type: string
+        api.cms.v1.DeleteBannerReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.cms.v1.DeleteBlogReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.cms.v1.DeletePageReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.cms.v1.GetActiveBannersReply:
+            type: object
+            properties:
+                banners:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.GetBannerReply:
+            type: object
+            properties:
+                banner:
+                    $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.GetBlogReply:
+            type: object
+            properties:
+                blog:
+                    $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.GetPageReply:
+            type: object
+            properties:
+                page:
+                    $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.GetSEODataReply:
+            type: object
+            properties:
+                seo:
+                    $ref: '#/components/schemas/api.cms.v1.SEOData'
+        api.cms.v1.ListBannersReply:
+            type: object
+            properties:
+                banners:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.cms.v1.CMSPage'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.cms.v1.ListBlogsReply:
+            type: object
+            properties:
+                blogs:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.cms.v1.CMSPage'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.cms.v1.ListPagesReply:
+            type: object
+            properties:
+                pages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.cms.v1.CMSPage'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.cms.v1.SEOData:
+            type: object
+            properties:
+                title:
+                    type: string
+                description:
+                    type: string
+                keywords:
+                    type: array
+                    items:
+                        type: string
+                ogTitle:
+                    type: string
+                ogDescription:
+                    type: string
+                ogImage:
+                    type: string
+                canonicalUrl:
+                    type: string
+                additionalMeta:
+                    type: object
+        api.cms.v1.UpdateBannerReply:
+            type: object
+            properties:
+                banner:
+                    $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.UpdateBannerRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                title:
+                    type: string
+                slug:
+                    type: string
+                content:
+                    type: string
+                template:
+                    type: string
+                metaData:
+                    type: object
+                status:
+                    type: string
+        api.cms.v1.UpdateBlogReply:
+            type: object
+            properties:
+                blog:
+                    $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.UpdateBlogRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                title:
+                    type: string
+                slug:
+                    type: string
+                content:
+                    type: string
+                excerpt:
+                    type: string
+                template:
+                    type: string
+                seo:
+                    type: object
+                metaData:
+                    type: object
+                status:
+                    type: string
+                tags:
+                    type: array
+                    items:
+                        type: string
+        api.cms.v1.UpdatePageReply:
+            type: object
+            properties:
+                page:
+                    $ref: '#/components/schemas/api.cms.v1.CMSPage'
+        api.cms.v1.UpdatePageRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                title:
+                    type: string
+                slug:
+                    type: string
+                content:
+                    type: string
+                excerpt:
+                    type: string
+                type:
+                    type: string
+                template:
+                    type: string
+                seo:
+                    type: object
+                metaData:
+                    type: object
+                status:
+                    type: string
+        api.common.v1.Pagination:
+            type: object
+            properties:
+                page:
+                    type: integer
+                    format: int32
+                limit:
+                    type: integer
+                    format: int32
+                total:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+                hasNext:
+                    type: boolean
+                hasPrev:
+                    type: boolean
+            description: Pagination for list responses
+        api.manufacturer.v1.CreateManufacturerReply:
+            type: object
+            properties:
+                manufacturer:
+                    $ref: '#/components/schemas/api.manufacturer.v1.Manufacturer'
+        api.manufacturer.v1.CreateManufacturerRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+                name:
+                    type: string
+                displayName:
+                    type: string
+                description:
+                    type: string
+                email:
+                    type: string
+                phone:
+                    type: string
+                websiteUrl:
+                    type: string
+                countryCode:
+                    type: string
+                certifications:
+                    type: object
+                productionCapacity:
+                    type: object
+                specializations:
+                    type: object
+                status:
+                    type: string
+                verificationStatus:
+                    type: string
+        api.manufacturer.v1.DeleteManufacturerReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.manufacturer.v1.GetManufacturerByCodeReply:
+            type: object
+            properties:
+                manufacturer:
+                    $ref: '#/components/schemas/api.manufacturer.v1.Manufacturer'
+        api.manufacturer.v1.GetManufacturerReply:
+            type: object
+            properties:
+                manufacturer:
+                    $ref: '#/components/schemas/api.manufacturer.v1.Manufacturer'
+        api.manufacturer.v1.ListManufacturersReply:
+            type: object
+            properties:
+                manufacturers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.manufacturer.v1.Manufacturer'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.manufacturer.v1.Manufacturer:
+            type: object
+            properties:
+                id:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                displayName:
+                    type: string
+                description:
+                    type: string
+                email:
+                    type: string
+                    description: Contact & Address
+                phone:
+                    type: string
+                websiteUrl:
+                    type: string
+                countryCode:
+                    type: string
+                certifications:
+                    type: object
+                    description: Business Info
+                productionCapacity:
+                    type: object
+                specializations:
+                    type: object
+                status:
+                    type: string
+                    description: Status
+                verificationStatus:
+                    type: string
+                createdAt:
+                    type: string
+                    description: Metadata
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                productCount:
+                    type: integer
+                    description: Computed
+                    format: int32
+            description: Manufacturer Messages
+        api.manufacturer.v1.UpdateManufacturerReply:
+            type: object
+            properties:
+                manufacturer:
+                    $ref: '#/components/schemas/api.manufacturer.v1.Manufacturer'
+        api.manufacturer.v1.UpdateManufacturerRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                displayName:
+                    type: string
+                description:
+                    type: string
+                email:
+                    type: string
+                phone:
+                    type: string
+                websiteUrl:
+                    type: string
+                countryCode:
+                    type: string
+                certifications:
+                    type: object
+                productionCapacity:
+                    type: object
+                specializations:
+                    type: object
+                status:
+                    type: string
+                verificationStatus:
+                    type: string
+        api.product.v1.AttributeFilter:
+            type: object
+            properties:
+                attributeId:
+                    type: string
+                attributeCode:
+                    type: string
+                operator:
+                    type: string
+                value:
+                    $ref: '#/components/schemas/google.protobuf.Value'
+                values:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/google.protobuf.Value'
+            description: Filter Products by Attributes
+        api.product.v1.CreateAttributeDefinitionReply:
+            type: object
+            properties:
+                attribute:
+                    $ref: '#/components/schemas/api.product.v1.ProductAttributeDefinition'
+        api.product.v1.CreateAttributeDefinitionRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+                name:
+                    type: string
+                dataType:
+                    type: string
+                inputType:
+                    type: string
+                isSearchable:
+                    type: boolean
+                isFilterable:
+                    type: boolean
+                isRequired:
+                    type: boolean
+                sortOrder:
+                    type: integer
+                    format: int32
+                validationRules:
+                    type: object
+                categoryId:
+                    type: string
+        api.product.v1.CreateProductReply:
+            type: object
+            properties:
+                product:
+                    $ref: '#/components/schemas/api.product.v1.Product'
+        api.product.v1.CreateProductRequest:
+            type: object
+            properties:
+                sku:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                longDescription:
+                    type: string
+                categoryId:
+                    type: string
+                brandId:
+                    type: string
+                manufacturerId:
+                    type: string
+                specifications:
+                    type: object
+                attributes:
+                    type: object
+                media:
+                    type: object
+                seo:
+                    type: object
+                status:
+                    type: string
+                color:
+                    type: string
+                    description: 'Tier 1: Hot Attributes'
+                size:
+                    type: string
+                material:
+                    type: string
+                gender:
+                    type: string
+                ageGroup:
+                    type: string
+                weight:
+                    type: number
+                    format: double
+                length:
+                    type: number
+                    format: double
+                width:
+                    type: number
+                    format: double
+                height:
+                    type: number
+                    format: double
+        api.product.v1.DeleteAttributeDefinitionReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.product.v1.DeleteProductAttributeReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.product.v1.DeleteProductAttributesReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.product.v1.DeleteProductReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.product.v1.FilterProductsByAttributesReply:
+            type: object
+            properties:
+                productIds:
+                    type: array
+                    items:
+                        type: string
+        api.product.v1.FilterProductsByAttributesRequest:
+            type: object
+            properties:
+                filters:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.product.v1.AttributeFilter'
+        api.product.v1.GetAttributeDefinitionReply:
+            type: object
+            properties:
+                attribute:
+                    $ref: '#/components/schemas/api.product.v1.ProductAttributeDefinition'
+        api.product.v1.GetProductAttributesReply:
+            type: object
+            properties:
+                attributes:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.product.v1.ProductAttributeValue'
+        api.product.v1.GetProductReply:
+            type: object
+            properties:
+                product:
+                    $ref: '#/components/schemas/api.product.v1.Product'
+        api.product.v1.GetProductsByCategoryReply:
+            type: object
+            properties:
+                products:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.product.v1.Product'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.product.v1.ListAttributeDefinitionsReply:
+            type: object
+            properties:
+                attributes:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.product.v1.ProductAttributeDefinition'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.product.v1.ListProductsReply:
+            type: object
+            properties:
+                products:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.product.v1.Product'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.product.v1.Product:
+            type: object
+            properties:
+                id:
+                    type: string
+                sku:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                longDescription:
+                    type: string
+                categoryId:
+                    type: string
+                brandId:
+                    type: string
+                manufacturerId:
+                    type: string
+                specifications:
+                    type: object
+                attributes:
+                    type: object
+                media:
+                    type: object
+                seo:
+                    type: object
+                status:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                createdBy:
+                    type: string
+                updatedBy:
+                    type: string
+                stock:
+                    type: string
+                    description: Stock information (from Warehouse service cache)
+                stockStatus:
+                    type: string
+                price:
+                    type: number
+                    description: Price information (from Pricing service cache)
+                    format: double
+                basePrice:
+                    type: number
+                    format: double
+                salePrice:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                color:
+                    type: string
+                    description: 'Tier 1: Hot Attributes (Performance Critical - Flat Table)'
+                size:
+                    type: string
+                material:
+                    type: string
+                gender:
+                    type: string
+                ageGroup:
+                    type: string
+                weight:
+                    type: number
+                    format: double
+                length:
+                    type: number
+                    format: double
+                width:
+                    type: number
+                    format: double
+                height:
+                    type: number
+                    format: double
+            description: Product Messages
+        api.product.v1.ProductAttributeDefinition:
+            type: object
+            properties:
+                id:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                dataType:
+                    type: string
+                inputType:
+                    type: string
+                isSearchable:
+                    type: boolean
+                isFilterable:
+                    type: boolean
+                isRequired:
+                    type: boolean
+                sortOrder:
+                    type: integer
+                    format: int32
+                validationRules:
+                    type: object
+                categoryId:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Attribute Definition Messages
+        api.product.v1.ProductAttributeValue:
+            type: object
+            properties:
+                attributeId:
+                    type: string
+                attributeCode:
+                    type: string
+                attributeName:
+                    type: string
+                dataType:
+                    type: string
+                inputType:
+                    type: string
+                value:
+                    $ref: '#/components/schemas/google.protobuf.Value'
+                validationRules:
+                    type: object
+            description: Attribute Value Messages
+        api.product.v1.SearchProductsReply:
+            type: object
+            properties:
+                products:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.product.v1.Product'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+                totalResults:
+                    type: integer
+                    format: int32
+        api.product.v1.SetProductAttributeValueInput:
+            type: object
+            properties:
+                attributeId:
+                    type: string
+                value:
+                    $ref: '#/components/schemas/google.protobuf.Value'
+        api.product.v1.SetProductAttributesReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                attributes:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.product.v1.ProductAttributeValue'
+        api.product.v1.SetProductAttributesRequest:
+            type: object
+            properties:
+                productId:
+                    type: string
+                values:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.product.v1.SetProductAttributeValueInput'
+        api.product.v1.UpdateAttributeDefinitionReply:
+            type: object
+            properties:
+                attribute:
+                    $ref: '#/components/schemas/api.product.v1.ProductAttributeDefinition'
+        api.product.v1.UpdateAttributeDefinitionRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                dataType:
+                    type: string
+                inputType:
+                    type: string
+                isSearchable:
+                    type: boolean
+                isFilterable:
+                    type: boolean
+                isRequired:
+                    type: boolean
+                sortOrder:
+                    type: integer
+                    format: int32
+                validationRules:
+                    type: object
+                categoryId:
+                    type: string
+        api.product.v1.UpdateProductReply:
+            type: object
+            properties:
+                product:
+                    $ref: '#/components/schemas/api.product.v1.Product'
+        api.product.v1.UpdateProductRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                longDescription:
+                    type: string
+                categoryId:
+                    type: string
+                brandId:
+                    type: string
+                manufacturerId:
+                    type: string
+                specifications:
+                    type: object
+                attributes:
+                    type: object
+                media:
+                    type: object
+                seo:
+                    type: object
+                status:
+                    type: string
+                color:
+                    type: string
+                    description: 'Tier 1: Hot Attributes'
+                size:
+                    type: string
+                material:
+                    type: string
+                gender:
+                    type: string
+                ageGroup:
+                    type: string
+                weight:
+                    type: number
+                    format: double
+                length:
+                    type: number
+                    format: double
+                width:
+                    type: number
+                    format: double
+                height:
+                    type: number
+                    format: double
+        google.protobuf.Value:
+            description: Represents a dynamically typed value which can be either null, a number, a string, a boolean, a recursive struct value, or a list of values.
+tags:
+    - name: BrandService
+      description: Brand Service
+    - name: CMSService
+      description: CMS Service
+    - name: CatalogService
+      description: |-
+        Main Catalog Service - Aggregates all sub-services
+         This service acts as a unified gateway for all catalog operations
+    - name: CategoryService
+      description: Category Service
+    - name: ManufacturerService
+      description: Manufacturer Service
+    - name: ProductAttributeService
+      description: Product Attribute Service (EAV System - Tier 2)
+    - name: ProductService
+      description: Product Service

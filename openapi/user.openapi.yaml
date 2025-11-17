@@ -1,0 +1,857 @@
+openapi: 3.0.3
+info:
+  title: UserService API
+  description: User service definition
+  version: 0.0.1
+  contact:
+    name: User Service Team
+    email: user-team@company.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+paths:
+  /api/v1/roles:
+    get:
+      tags:
+      - UserService
+      description: List roles
+      operationId: UserService_ListRoles
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.ListRolesResponse'
+    post:
+      tags:
+      - UserService
+      description: Create new role
+      operationId: UserService_CreateRole
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.user.v1.CreateRoleRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.Role'
+  /api/v1/roles/{id}:
+    put:
+      tags:
+      - UserService
+      description: Update role permissions
+      operationId: UserService_UpdateRole
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.user.v1.UpdateRoleRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.Role'
+    delete:
+      tags:
+      - UserService
+      description: Delete role
+      operationId: UserService_DeleteRole
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content: {}
+  /api/v1/services/{serviceId}/users:
+    get:
+      tags:
+      - UserService
+      description: Get users with access to service
+      operationId: UserService_GetServiceUsers
+      parameters:
+      - name: serviceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: pagination.page
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: pagination.limit
+        in: query
+        schema:
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.GetServiceUsersResponse'
+  /api/v1/users:
+    get:
+      tags:
+      - UserService
+      description: List users with filters
+      operationId: UserService_ListUsers
+      parameters:
+      - name: pagination.page
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: pagination.limit
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: search
+        in: query
+        schema:
+          type: string
+      - name: department
+        in: query
+        schema:
+          type: string
+      - name: status
+        in: query
+        schema:
+          type: integer
+          format: enum
+      - name: role
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.ListUsersResponse'
+    post:
+      tags:
+      - UserService
+      description: Create new internal user
+      operationId: UserService_CreateUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.user.v1.CreateUserRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.User'
+  /api/v1/users/login:
+    post:
+      tags:
+      - UserService
+      description: Admin login (Public - for admin panel)
+      operationId: UserService_AdminLogin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.user.v1.AdminLoginRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.AdminLoginResponse'
+  /api/v1/users/validate-access:
+    post:
+      tags:
+      - UserService
+      description: Validate user access to service/operation
+      operationId: UserService_ValidateAccess
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.user.v1.ValidateAccessRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.ValidateAccessResponse'
+  /api/v1/users/{id}:
+    get:
+      tags:
+      - UserService
+      description: Get user by ID
+      operationId: UserService_GetUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.User'
+    put:
+      tags:
+      - UserService
+      description: Update user information
+      operationId: UserService_UpdateUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.user.v1.UpdateUserRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.User'
+    delete:
+      tags:
+      - UserService
+      description: Delete/Deactivate user
+      operationId: UserService_DeleteUser
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content: {}
+  /api/v1/users/{id}/auth-status:
+    get:
+      tags:
+      - UserService
+      description: Get user authentication status
+      operationId: UserService_GetAuthStatus
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.AuthStatus'
+  /api/v1/users/{id}/permissions:
+    get:
+      tags:
+      - UserService
+      description: Get user permissions
+      operationId: UserService_GetUserPermissions
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.GetUserPermissionsResponse'
+  /api/v1/users/{id}/reset-password:
+    post:
+      tags:
+      - UserService
+      description: Reset user password
+      operationId: UserService_ResetPassword
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.user.v1.ResetPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content: {}
+  /api/v1/users/{id}/service-access:
+    get:
+      tags:
+      - UserService
+      description: Get user's service access rights
+      operationId: UserService_GetServiceAccess
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.GetServiceAccessResponse'
+    post:
+      tags:
+      - UserService
+      description: Grant service access
+      operationId: UserService_GrantServiceAccess
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.user.v1.GrantServiceAccessRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.ServiceAccess'
+  /api/v1/users/{id}/service-access/{serviceId}:
+    delete:
+      tags:
+      - UserService
+      description: Revoke service access
+      operationId: UserService_RevokeServiceAccess
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: serviceId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content: {}
+  /api/v1/users/{userId}/roles:
+    post:
+      tags:
+      - UserService
+      description: Assign role to user
+      operationId: UserService_AssignRole
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api.user.v1.AssignRoleRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.User'
+  /api/v1/users/{userId}/roles/{roleId}:
+    delete:
+      tags:
+      - UserService
+      description: Remove role from user
+      operationId: UserService_RemoveRole
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: roleId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.User'
+  /health:
+    get:
+      tags:
+      - UserService
+      description: Health check
+      operationId: UserService_Health
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/api.user.v1.HealthResponse'
+components:
+  schemas:
+    api.common.v1.Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+        limit:
+          type: integer
+          format: int32
+        total:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+      description: Pagination for list responses
+    api.user.v1.AdminLoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        deviceInfo:
+          type: string
+        ipAddress:
+          type: string
+      description: Admin login request
+    api.user.v1.AdminLoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/api.user.v1.User'
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+        expiresIn:
+          type: string
+      description: Admin login response
+    api.user.v1.AssignRoleRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+        roleId:
+          type: string
+    api.user.v1.AuthStatus:
+      type: object
+      properties:
+        userId:
+          type: string
+        isAuthenticated:
+          type: boolean
+        lastLoginAt:
+          type: string
+          format: date-time
+        lastLoginIp:
+          type: string
+        failedLoginAttempts:
+          type: integer
+          format: int32
+        mfaEnabled:
+          type: boolean
+        mfaVerified:
+          type: boolean
+      description: Auth status
+    api.user.v1.CreateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        services:
+          type: array
+          items:
+            type: string
+        scope:
+          type: integer
+          format: enum
+    api.user.v1.CreateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        password:
+          type: string
+        department:
+          type: string
+        managerId:
+          type: string
+        initialRoles:
+          type: array
+          items:
+            type: string
+      description: Request/Response messages
+    api.user.v1.DashboardPreferences:
+      type: object
+      properties:
+        defaultView:
+          type: string
+        refreshInterval:
+          type: integer
+          format: int32
+      description: Dashboard preferences
+    api.user.v1.GetServiceAccessResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        serviceAccess:
+          type: array
+          items:
+            $ref: '#/components/schemas/api.user.v1.ServiceAccess'
+    api.user.v1.GetServiceUsersResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/api.user.v1.User'
+        pagination:
+          $ref: '#/components/schemas/api.common.v1.Pagination'
+    api.user.v1.GetUserPermissionsResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        services:
+          type: array
+          items:
+            type: string
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/api.user.v1.Role'
+    api.user.v1.GrantServiceAccessRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        serviceId:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+    api.user.v1.HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        service:
+          type: string
+        version:
+          type: string
+    api.user.v1.ListRolesResponse:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/api.user.v1.Role'
+        total:
+          type: integer
+          format: int32
+    api.user.v1.ListUsersResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/api.user.v1.User'
+        pagination:
+          $ref: '#/components/schemas/api.common.v1.Pagination'
+    api.user.v1.NotificationPreferences:
+      type: object
+      properties:
+        email:
+          type: boolean
+        slack:
+          type: boolean
+        sms:
+          type: boolean
+      description: Notification preferences
+    api.user.v1.ResetPasswordRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        newPassword:
+          type: string
+        forceReset:
+          type: boolean
+    api.user.v1.Role:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        services:
+          type: array
+          items:
+            type: string
+        scope:
+          type: integer
+          format: enum
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      description: Role message
+    api.user.v1.RoleAssignment:
+      type: object
+      properties:
+        roleId:
+          type: string
+        roleName:
+          type: string
+        assignedAt:
+          type: string
+          format: date-time
+        assignedBy:
+          type: string
+      description: Role assignment
+    api.user.v1.ServiceAccess:
+      type: object
+      properties:
+        serviceId:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        grantedAt:
+          type: string
+          format: date-time
+        grantedBy:
+          type: string
+      description: Service access
+    api.user.v1.UpdateRoleRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        services:
+          type: array
+          items:
+            type: string
+        scope:
+          type: integer
+          format: enum
+    api.user.v1.UpdateUserRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        department:
+          type: string
+        managerId:
+          type: string
+        status:
+          type: integer
+          format: enum
+        preferences:
+          $ref: '#/components/schemas/api.user.v1.UserPreferences'
+    api.user.v1.User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        status:
+          type: integer
+          format: enum
+        department:
+          type: string
+        managerId:
+          type: string
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/api.user.v1.RoleAssignment'
+        serviceAccess:
+          type: array
+          items:
+            $ref: '#/components/schemas/api.user.v1.ServiceAccess'
+        preferences:
+          $ref: '#/components/schemas/api.user.v1.UserPreferences'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+      description: User message
+    api.user.v1.UserPreferences:
+      type: object
+      properties:
+        notifications:
+          $ref: '#/components/schemas/api.user.v1.NotificationPreferences'
+        dashboard:
+          $ref: '#/components/schemas/api.user.v1.DashboardPreferences'
+      description: User preferences
+    api.user.v1.ValidateAccessRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+        serviceId:
+          type: string
+        operation:
+          type: string
+        path:
+          type: string
+    api.user.v1.ValidateAccessResponse:
+      type: object
+      properties:
+        granted:
+          type: boolean
+        reason:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'JWT Bearer Token. Format: "Bearer <token>"'
+tags:
+- name: UserService
+servers:
+- url: http://localhost:8001/api/v1
+  description: Local development server
+- url: https://staging-api.domain.com/api/v1
+  description: Staging server
+- url: https://api.domain.com/api/v1
+  description: Production server
+security:
+- BearerAuth: []

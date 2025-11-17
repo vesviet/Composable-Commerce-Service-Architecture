@@ -1,0 +1,1444 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: CustomerService API
+    description: Customer Service - Manages customer profiles, addresses, and segments
+    version: 0.0.1
+paths:
+    /api/v1/customers:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_ListCustomers
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.ListCustomersReply'
+        post:
+            tags:
+                - CustomerService
+            description: Customer Management
+            operationId: CustomerService_CreateCustomer
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.CreateCustomerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.CreateCustomerReply'
+    /api/v1/customers/health:
+        get:
+            tags:
+                - CustomerService
+            description: Health check
+            operationId: CustomerService_HealthCheck
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.HealthCheckReply'
+    /api/v1/customers/login:
+        post:
+            tags:
+                - CustomerService
+            operationId: CustomerService_Login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.LoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.LoginReply'
+    /api/v1/customers/logout:
+        post:
+            tags:
+                - CustomerService
+            operationId: CustomerService_Logout
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.LogoutRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.LogoutReply'
+    /api/v1/customers/refresh:
+        post:
+            tags:
+                - CustomerService
+            operationId: CustomerService_RefreshToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.RefreshTokenRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.RefreshTokenReply'
+    /api/v1/customers/register:
+        post:
+            tags:
+                - CustomerService
+            description: Customer Authentication (for frontend)
+            operationId: CustomerService_Register
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.RegisterRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.RegisterReply'
+    /api/v1/customers/segments:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_ListSegments
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.ListSegmentsReply'
+        post:
+            tags:
+                - CustomerService
+            description: Customer Segments
+            operationId: CustomerService_CreateSegment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.CreateSegmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.CreateSegmentReply'
+    /api/v1/customers/segments/{id}:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_GetSegment
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetSegmentReply'
+        put:
+            tags:
+                - CustomerService
+            operationId: CustomerService_UpdateSegment
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.UpdateSegmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.UpdateSegmentReply'
+    /api/v1/customers/segments/{segmentId}/customers:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_GetSegmentCustomers
+            parameters:
+                - name: segmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetSegmentCustomersReply'
+    /api/v1/customers/stats:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_GetCustomerStats
+            parameters:
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetCustomerStatsReply'
+    /api/v1/customers/validate:
+        post:
+            tags:
+                - CustomerService
+            operationId: CustomerService_ValidateToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.ValidateTokenRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.ValidateTokenReply'
+    /api/v1/customers/{customerId}/addresses:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_GetCustomerAddresses
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetCustomerAddressesReply'
+        post:
+            tags:
+                - CustomerService
+            description: Address Management
+            operationId: CustomerService_CreateAddress
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.CreateAddressRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.CreateAddressReply'
+    /api/v1/customers/{customerId}/addresses/{id}:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_GetAddress
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetAddressReply'
+        put:
+            tags:
+                - CustomerService
+            operationId: CustomerService_UpdateAddress
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.UpdateAddressRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.UpdateAddressReply'
+        delete:
+            tags:
+                - CustomerService
+            operationId: CustomerService_DeleteAddress
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.DeleteAddressReply'
+    /api/v1/customers/{customerId}/addresses/{id}/default:
+        post:
+            tags:
+                - CustomerService
+            operationId: CustomerService_SetDefaultAddress
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.SetDefaultAddressRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.SetDefaultAddressReply'
+    /api/v1/customers/{customerId}/analytics:
+        get:
+            tags:
+                - CustomerService
+            description: Analytics
+            operationId: CustomerService_GetCustomerAnalytics
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetCustomerAnalyticsReply'
+    /api/v1/customers/{customerId}/preferences:
+        get:
+            tags:
+                - CustomerService
+            description: Preferences Management (Day 4)
+            operationId: CustomerService_GetPreferences
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetPreferencesReply'
+        put:
+            tags:
+                - CustomerService
+            operationId: CustomerService_UpdatePreferences
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.UpdatePreferencesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.UpdatePreferencesReply'
+    /api/v1/customers/{customerId}/preferences/{key}:
+        patch:
+            tags:
+                - CustomerService
+            operationId: CustomerService_SetPreference
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: key
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.SetPreferenceRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.SetPreferenceReply'
+    /api/v1/customers/{customerId}/profile/completion:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_GetProfileCompletion
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetProfileCompletionReply'
+    /api/v1/customers/{customerId}/segments:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_GetCustomerSegments
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetCustomerSegmentsReply'
+        post:
+            tags:
+                - CustomerService
+            operationId: CustomerService_AssignCustomerToSegment
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.AssignCustomerToSegmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.AssignCustomerToSegmentReply'
+    /api/v1/customers/{id}:
+        get:
+            tags:
+                - CustomerService
+            operationId: CustomerService_GetCustomer
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.GetCustomerReply'
+        put:
+            tags:
+                - CustomerService
+            operationId: CustomerService_UpdateCustomer
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.UpdateCustomerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.UpdateCustomerReply'
+        delete:
+            tags:
+                - CustomerService
+            operationId: CustomerService_DeleteCustomer
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.DeleteCustomerReply'
+    /api/v1/customers/{id}/activate:
+        post:
+            tags:
+                - CustomerService
+            operationId: CustomerService_ActivateCustomer
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.ActivateCustomerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.ActivateCustomerReply'
+    /api/v1/customers/{id}/deactivate:
+        post:
+            tags:
+                - CustomerService
+            operationId: CustomerService_DeactivateCustomer
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.DeactivateCustomerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.DeactivateCustomerReply'
+    /api/v1/customers/{id}/password:
+        post:
+            tags:
+                - CustomerService
+            operationId: CustomerService_SetPassword
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.customer.v1.SetPasswordRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.customer.v1.SetPasswordReply'
+components:
+    schemas:
+        api.common.v1.Address:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: Identifier
+                type:
+                    type: integer
+                    description: Address type
+                    format: enum
+                firstName:
+                    type: string
+                    description: Personal information
+                lastName:
+                    type: string
+                company:
+                    type: string
+                addressLine1:
+                    type: string
+                    description: Address lines
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                    description: Location
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                phone:
+                    type: string
+                    description: Contact
+                email:
+                    type: string
+                isDefault:
+                    type: boolean
+                    description: Status flags (optional, service-specific)
+                isVerified:
+                    type: boolean
+                createdAt:
+                    type: string
+                    description: Timestamps
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: Metadata for service-specific data
+            description: |-
+                Address message - shared across all services
+                 Used by Customer Service, Order Service, and other services that need address data
+        api.common.v1.Pagination:
+            type: object
+            properties:
+                page:
+                    type: integer
+                    format: int32
+                limit:
+                    type: integer
+                    format: int32
+                total:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+                hasNext:
+                    type: boolean
+                hasPrev:
+                    type: boolean
+            description: Pagination for list responses
+        api.customer.v1.ActivateCustomerReply:
+            type: object
+            properties:
+                customer:
+                    $ref: '#/components/schemas/api.customer.v1.Customer'
+        api.customer.v1.ActivateCustomerRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+        api.customer.v1.AssignCustomerToSegmentReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.customer.v1.AssignCustomerToSegmentRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                segmentIds:
+                    type: array
+                    items:
+                        type: string
+        api.customer.v1.CreateAddressReply:
+            type: object
+            properties:
+                address:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+        api.customer.v1.CreateAddressRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                type:
+                    type: string
+                firstName:
+                    type: string
+                lastName:
+                    type: string
+                company:
+                    type: string
+                addressLine1:
+                    type: string
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                phone:
+                    type: string
+                isDefault:
+                    type: boolean
+                metadata:
+                    type: object
+            description: Address Management Messages
+        api.customer.v1.CreateCustomerReply:
+            type: object
+            properties:
+                customer:
+                    $ref: '#/components/schemas/api.customer.v1.Customer'
+        api.customer.v1.CreateCustomerRequest:
+            type: object
+            properties:
+                email:
+                    type: string
+                firstName:
+                    type: string
+                lastName:
+                    type: string
+                phone:
+                    type: string
+                dateOfBirth:
+                    type: string
+                    format: date-time
+                gender:
+                    type: integer
+                    format: enum
+                customerType:
+                    type: integer
+                    format: enum
+                preferences:
+                    type: object
+                registrationSource:
+                    type: string
+            description: Customer Management Messages
+        api.customer.v1.CreateSegmentReply:
+            type: object
+            properties:
+                segment:
+                    $ref: '#/components/schemas/api.customer.v1.CustomerSegment'
+        api.customer.v1.CreateSegmentRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                description:
+                    type: string
+                rules:
+                    type: object
+            description: Segment Management Messages
+        api.customer.v1.Customer:
+            type: object
+            properties:
+                id:
+                    type: string
+                email:
+                    type: string
+                firstName:
+                    type: string
+                lastName:
+                    type: string
+                phone:
+                    type: string
+                dateOfBirth:
+                    type: string
+                    format: date-time
+                gender:
+                    type: integer
+                    format: enum
+                customerType:
+                    type: integer
+                    format: enum
+                status:
+                    type: integer
+                    format: enum
+                emailVerified:
+                    type: boolean
+                phoneVerified:
+                    type: boolean
+                preferences:
+                    type: object
+                metadata:
+                    type: object
+                registrationSource:
+                    type: string
+                lastLoginAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                deletedAt:
+                    type: string
+                    format: date-time
+                addresses:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.common.v1.Address'
+                segments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.customer.v1.CustomerSegment'
+            description: Customer entity
+        api.customer.v1.CustomerAnalytics:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                totalOrders:
+                    type: string
+                totalSpent:
+                    type: number
+                    format: double
+                averageOrderValue:
+                    type: number
+                    format: double
+                lastOrderDate:
+                    type: string
+                    format: date-time
+                daysSinceLastOrder:
+                    type: integer
+                    format: int32
+                customerLifetimeValue:
+                    type: string
+                preferredCategories:
+                    type: array
+                    items:
+                        type: string
+                loyaltyTier:
+                    type: string
+        api.customer.v1.CustomerPreferences:
+            type: object
+            properties:
+                id:
+                    type: string
+                customerId:
+                    type: string
+                emailMarketing:
+                    type: boolean
+                smsMarketing:
+                    type: boolean
+                pushNotifications:
+                    type: boolean
+                newsletter:
+                    type: boolean
+                dataSharing:
+                    type: boolean
+                analyticsTracking:
+                    type: boolean
+                cookieConsent:
+                    type: boolean
+                orderUpdates:
+                    type: boolean
+                promotionalEmails:
+                    type: boolean
+                customPreferences:
+                    type: object
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        api.customer.v1.CustomerSegment:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                rules:
+                    type: object
+                isActive:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                customerCount:
+                    type: string
+            description: Customer Segment entity
+        api.customer.v1.CustomerStats:
+            type: object
+            properties:
+                totalCustomers:
+                    type: string
+                activeCustomers:
+                    type: string
+                newCustomersThisMonth:
+                    type: string
+                newCustomersThisWeek:
+                    type: string
+                customerGrowthRate:
+                    type: number
+                    format: double
+                customersByStatus:
+                    type: object
+                    additionalProperties:
+                        type: string
+                customersByType:
+                    type: object
+                    additionalProperties:
+                        type: string
+                customersBySegment:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.customer.v1.DeactivateCustomerReply:
+            type: object
+            properties:
+                customer:
+                    $ref: '#/components/schemas/api.customer.v1.Customer'
+        api.customer.v1.DeactivateCustomerRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                reason:
+                    type: string
+        api.customer.v1.DeleteAddressReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.customer.v1.DeleteCustomerReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.customer.v1.GetAddressReply:
+            type: object
+            properties:
+                address:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+        api.customer.v1.GetCustomerAddressesReply:
+            type: object
+            properties:
+                addresses:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.common.v1.Address'
+        api.customer.v1.GetCustomerAnalyticsReply:
+            type: object
+            properties:
+                analytics:
+                    $ref: '#/components/schemas/api.customer.v1.CustomerAnalytics'
+        api.customer.v1.GetCustomerReply:
+            type: object
+            properties:
+                customer:
+                    $ref: '#/components/schemas/api.customer.v1.Customer'
+        api.customer.v1.GetCustomerSegmentsReply:
+            type: object
+            properties:
+                segments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.customer.v1.CustomerSegment'
+        api.customer.v1.GetCustomerStatsReply:
+            type: object
+            properties:
+                stats:
+                    $ref: '#/components/schemas/api.customer.v1.CustomerStats'
+        api.customer.v1.GetPreferencesReply:
+            type: object
+            properties:
+                preferences:
+                    $ref: '#/components/schemas/api.customer.v1.CustomerPreferences'
+        api.customer.v1.GetProfileCompletionReply:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                percentage:
+                    type: integer
+                    format: int32
+                basicInfo:
+                    $ref: '#/components/schemas/api.customer.v1.ProfileSection'
+                personal:
+                    $ref: '#/components/schemas/api.customer.v1.ProfileSection'
+                address:
+                    $ref: '#/components/schemas/api.customer.v1.ProfileSection'
+                preferences:
+                    $ref: '#/components/schemas/api.customer.v1.ProfileSection'
+                verification:
+                    $ref: '#/components/schemas/api.customer.v1.ProfileSection'
+                missingFields:
+                    type: array
+                    items:
+                        type: string
+        api.customer.v1.GetSegmentCustomersReply:
+            type: object
+            properties:
+                customers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.customer.v1.Customer'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.customer.v1.GetSegmentReply:
+            type: object
+            properties:
+                segment:
+                    $ref: '#/components/schemas/api.customer.v1.CustomerSegment'
+        api.customer.v1.HealthCheckReply:
+            type: object
+            properties:
+                status:
+                    type: string
+                message:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+        api.customer.v1.ListCustomersReply:
+            type: object
+            properties:
+                customers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.customer.v1.Customer'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.customer.v1.ListSegmentsReply:
+            type: object
+            properties:
+                segments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.customer.v1.CustomerSegment'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.customer.v1.LoginReply:
+            type: object
+            properties:
+                accessToken:
+                    type: string
+                refreshToken:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+                customer:
+                    $ref: '#/components/schemas/api.customer.v1.Customer'
+        api.customer.v1.LoginRequest:
+            type: object
+            properties:
+                email:
+                    type: string
+                password:
+                    type: string
+                deviceInfo:
+                    type: string
+                ipAddress:
+                    type: string
+        api.customer.v1.LogoutReply:
+            type: object
+            properties:
+                message:
+                    type: string
+        api.customer.v1.LogoutRequest:
+            type: object
+            properties:
+                sessionId:
+                    type: string
+        api.customer.v1.ProfileSection:
+            type: object
+            properties:
+                completed:
+                    type: boolean
+                fields:
+                    type: array
+                    items:
+                        type: string
+                missing:
+                    type: array
+                    items:
+                        type: string
+        api.customer.v1.RefreshTokenReply:
+            type: object
+            properties:
+                accessToken:
+                    type: string
+                refreshToken:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+        api.customer.v1.RefreshTokenRequest:
+            type: object
+            properties:
+                refreshToken:
+                    type: string
+        api.customer.v1.RegisterReply:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                message:
+                    type: string
+                emailVerificationRequired:
+                    type: boolean
+        api.customer.v1.RegisterRequest:
+            type: object
+            properties:
+                email:
+                    type: string
+                password:
+                    type: string
+                firstName:
+                    type: string
+                lastName:
+                    type: string
+                phone:
+                    type: string
+            description: Customer Authentication Messages
+        api.customer.v1.SetDefaultAddressReply:
+            type: object
+            properties:
+                address:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+        api.customer.v1.SetDefaultAddressRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                id:
+                    type: string
+        api.customer.v1.SetPasswordReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.customer.v1.SetPasswordRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                password:
+                    type: string
+                oldPassword:
+                    type: string
+        api.customer.v1.SetPreferenceReply:
+            type: object
+            properties:
+                preferences:
+                    $ref: '#/components/schemas/api.customer.v1.CustomerPreferences'
+        api.customer.v1.SetPreferenceRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                key:
+                    type: string
+                value:
+                    $ref: '#/components/schemas/google.protobuf.Value'
+        api.customer.v1.UpdateAddressReply:
+            type: object
+            properties:
+                address:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+        api.customer.v1.UpdateAddressRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                id:
+                    type: string
+                type:
+                    type: string
+                firstName:
+                    type: string
+                lastName:
+                    type: string
+                company:
+                    type: string
+                addressLine1:
+                    type: string
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                phone:
+                    type: string
+                isDefault:
+                    type: boolean
+                metadata:
+                    type: object
+        api.customer.v1.UpdateCustomerReply:
+            type: object
+            properties:
+                customer:
+                    $ref: '#/components/schemas/api.customer.v1.Customer'
+        api.customer.v1.UpdateCustomerRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                firstName:
+                    type: string
+                lastName:
+                    type: string
+                phone:
+                    type: string
+                dateOfBirth:
+                    type: string
+                    format: date-time
+                gender:
+                    type: integer
+                    format: enum
+                preferences:
+                    type: object
+                metadata:
+                    type: object
+        api.customer.v1.UpdatePreferencesReply:
+            type: object
+            properties:
+                preferences:
+                    $ref: '#/components/schemas/api.customer.v1.CustomerPreferences'
+        api.customer.v1.UpdatePreferencesRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                emailMarketing:
+                    type: boolean
+                smsMarketing:
+                    type: boolean
+                pushNotifications:
+                    type: boolean
+                newsletter:
+                    type: boolean
+                dataSharing:
+                    type: boolean
+                analyticsTracking:
+                    type: boolean
+                cookieConsent:
+                    type: boolean
+                orderUpdates:
+                    type: boolean
+                promotionalEmails:
+                    type: boolean
+                customPreferences:
+                    type: object
+        api.customer.v1.UpdateSegmentReply:
+            type: object
+            properties:
+                segment:
+                    $ref: '#/components/schemas/api.customer.v1.CustomerSegment'
+        api.customer.v1.UpdateSegmentRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                rules:
+                    type: object
+                isActive:
+                    type: boolean
+        api.customer.v1.ValidateTokenReply:
+            type: object
+            properties:
+                valid:
+                    type: boolean
+                customerId:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+        api.customer.v1.ValidateTokenRequest:
+            type: object
+            properties:
+                token:
+                    type: string
+        google.protobuf.Value:
+            description: Represents a dynamically typed value which can be either null, a number, a string, a boolean, a recursive struct value, or a list of values.
+tags:
+    - name: CustomerService
