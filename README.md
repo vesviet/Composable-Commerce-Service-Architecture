@@ -11,27 +11,31 @@
 - **SRE Runbooks:** [`./sre-runbooks/`](./sre-runbooks/) – All ops/on-call/resilience guides, instant troubleshooting.
 - **Domain-Driven-Design (DDD), Context Map:** [`./ddd/`](./ddd/) – Full domain maps, bounded contexts, glossary.
 - **Glossary:** [`./glossary.md`](./glossary.md) – Shared terms, enum values, event types, domain definitions.
+- **Templates:** [`./templates/`](./templates/) – Standardized templates for all documentation types (services, events, workflows).
+- **Business Processes:** [`./processes/`](./processes/) – E-commerce business process documentation with event flows, flowcharts, and service interactions.
 
 ---
 
 ## 📝 How to Use and Contribute
 
-1. **API Change:** Add/edit OpenAPI spec and PR. Validate with CI.
-2. **Event Change:** Add/edit JSON schema, update handlers/contracts.
-3. **Major Technical Choice:** Write an ADR and PR. Example file in [adr/](./adr/).
-4. **Feature:** Submit a Design Doc (Google RFC style) in `design/` before starting work.
-5. **Domain Change:** Update Context Map or DDD docs.
-6. **Ops/Prod:** Always update runbook after incident/root cause analysis.
-7. **Glossary:** Update when a new term/event/domain/entity is named across teams.
+1. **New Service:** Use templates from [`templates/`](./templates/) to create service documentation, OpenAPI spec, and runbook.
+2. **API Change:** Add/edit OpenAPI spec and PR. Validate with CI. Use [API change template](./templates/api-change-template.md).
+3. **Event Change:** Add/edit JSON schema, update handlers/contracts. Use [event change template](./templates/event-change-template.md).
+4. **Major Technical Choice:** Write an ADR and PR. Use [ADR template](./adr/ADR-template.md).
+5. **Feature:** Submit a Design Doc (Google RFC style) in `design/` before starting work. Use [design template](./design/feature-design-template.md).
+6. **Domain Change:** Update Context Map or DDD docs.
+7. **Ops/Prod:** Always update runbook after incident/root cause analysis. Use [runbook template](./templates/service-runbook-template.md).
+8. **Glossary:** Update when a new term/event/domain/entity is named across teams.
 
 ---
 
 ## 🏛️ Best Practices
+- **Use Templates:** Always start from templates in [`templates/`](./templates/) directory.
 - **Review:** All docs must be reviewed by at least one peer before merge.
 - **Version:** Always date or version files for easy audit.
 - **DO NOT** remove anything from `/backup-YYYY-MM-DD/` without approve.
 - **Keep all API/Event contracts machine readable (YAML/JSON).**
-- See example template inside each relevant directory for quick-start.
+- **Quick Reference:** See [`templates/QUICK_REFERENCE.md`](./templates/QUICK_REFERENCE.md) for copy-paste commands.
 
 ---
 
