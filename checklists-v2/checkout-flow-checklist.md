@@ -133,7 +133,7 @@ Comprehensive checklist for the complete checkout flow from cart to order comple
 - [x] **O2.2.4** Update draft order with payment method
 - [x] **O2.2.5** Convert draft to pending on confirm
 - [x] **O2.2.6** Cancel draft on checkout expiry
-- [x] **O2.2.7** Draft order cleanup
+- [x] **O2.2.7** Draft order cleanup ✅ Implemented (session_cleanup.go)
 
 ### 2.3 Address Management
 - [x] **O2.3.1** Store shipping address in session (JSONB)
@@ -180,19 +180,20 @@ Cart Item → Pricing Service (CalculatePrice) → unit_price
 - [x] **O2.4.2** Pricing service integration (CalculatePrice API)
 - [x] **O2.4.3** Get price from catalog service (fallback)
 - [x] **O2.4.4** Apply promotion codes to order
-- [x] **O2.4.5** Calculate discounts (promotion service integrated, applied to order)
-- [x] **O2.4.6** Calculate tax based on address (pricing service API called)
-- [x] **O2.4.7** Add shipping cost (from shipping service)
+- [x] **O2.4.5** Calculate discounts (promotion service integrated, applied to order) ✅ Applied in ConfirmCheckout
+- [x] **O2.4.6** Calculate tax based on address (pricing service API called) ✅ Called in ConfirmCheckout
+- [ ] **O2.4.7** Add shipping cost (from shipping service) ⚠️ HARDCODED TO 0 - NOT INTEGRATED
 - [x] **O2.4.8** Calculate final total
 - [ ] **O2.4.9** Price rounding (2 decimals)
 - [x] **O2.4.10** Currency handling (USD, VND supported)
 - [x] **O2.4.11** Store pricing snapshot in order
 
 **Missing Integrations:**
-- [ ] Tax calculation not called during checkout
-- [ ] Promo code discount not applied to order total
-- [ ] No price recalculation on address change
+- [x] ~~Tax calculation not called during checkout~~ ✅ **FIXED** - Tax IS called in ConfirmCheckout
+- [x] ~~Promo code discount not applied to order total~~ ✅ **FIXED** - Discount IS applied in ConfirmCheckout
+- [ ] No price recalculation on address change (only tax recalculated, shipping not updated)
 - [ ] No currency conversion in checkout
+- [ ] Shipping cost hardcoded to 0 (not integrated with shipping service)
 
 
 ### 2.5 Inventory Validation
@@ -219,7 +220,7 @@ Cart Item → Pricing Service (CalculatePrice) → unit_price
 - [x] **O2.7.4** Clear cart
 - [x] **O2.7.5** Publish order.created event
 - [ ] **O2.7.6** Send order confirmation email
-- [ ] **O2.7.7** Create order number
+- [x] **O2.7.7** Create order number ✅ Auto-generated using sequence generator
 - [x] **O2.7.8** Return confirmed order
 
 ### 2.8 Error Handling & Rollback
@@ -296,8 +297,8 @@ Cart Item → Pricing Service (CalculatePrice) → unit_price
 - [x] **P3.2.4** CalculatePrice API (product_id, sku, quantity, warehouse_id, currency, country_code)
 - [x] **P3.2.5** CalculateTax API (amount, country_code, state_province)
 - [x] **P3.2.6** ApplyDiscounts API (items, promotion_codes)
-- [x] **P3.2.7** Call CalculateTax during checkout
-- [x] **P3.2.8** Call ApplyDiscounts during checkout
+- [x] **P3.2.7** Call CalculateTax during checkout ✅ Called in ConfirmCheckout
+- [x] **P3.2.8** Call ApplyDiscounts during checkout ✅ Applied in ConfirmCheckout
 - [x] **P3.2.9** Price caching in cart items
 
 ### 3.3 Catalog Service Integration
@@ -311,16 +312,16 @@ Cart Item → Pricing Service (CalculatePrice) → unit_price
 - [x] **P3.4.1** Add to cart: Get price from pricing service
 - [x] **P3.4.2** Cart display: Use stored unit_price
 - [x] **P3.4.3** Checkout start: Calculate subtotal from cart
-- [x] **P3.4.4** Address change: Recalculate tax
-- [x] **P3.4.5** Promo code apply: Recalculate discount
-- [ ] **P3.4.6** Shipping method change: Update shipping cost
+- [x] **P3.4.4** Address change: Recalculate tax ✅ Tax recalculated
+- [x] **P3.4.5** Promo code apply: Recalculate discount ✅ Discount recalculated
+- [ ] **P3.4.6** Shipping method change: Update shipping cost ⚠️ Shipping cost hardcoded to 0
 - [x] **P3.4.7** Order creation: Store final pricing snapshot
 
 ### 3.5 Missing Implementations
-- [x] **P3.5.1** Tax calculation not called (API exists, not integrated)
-- [x] **P3.5.2** Promo discount not applied to order (validation only)
-- [x] **P3.5.3** No price refresh on address change
-- [x] **P3.5.4** No dynamic tax updates
+- [x] ~~**P3.5.1** Tax calculation not called~~ ✅ **FIXED** - Tax IS called in ConfirmCheckout
+- [x] ~~**P3.5.2** Promo discount not applied to order~~ ✅ **FIXED** - Discount IS applied in ConfirmCheckout
+- [x] **P3.5.3** No price refresh on address change (only tax recalculated, shipping not updated)
+- [x] **P3.5.4** No dynamic tax updates (tax recalculated but shipping cost not updated)
 - [ ] **P3.5.5** No loyalty points discount calculation
 - [ ] **P3.5.6** No multi-currency checkout support
 
@@ -693,10 +694,11 @@ Cart Item → Pricing Service (CalculatePrice) → unit_price
 ## 11. Known Issues & Technical Debt
 
 ### 10.1 Current Limitations
-- [ ] **L10.1.1** No inventory reservation during checkout
+- [x] ~~**L10.1.1** No inventory reservation during checkout~~ ✅ **FIXED** - Reservation happens in ConfirmCheckout
 - [ ] **L10.1.2** No saga pattern for distributed transactions
-- [x] **L10.1.3** Limited promo code integration (validation only, not applied)
-- [x] **L10.1.4** No tax calculation during checkout (API exists but not called)
+- [x] ~~**L10.1.3** Limited promo code integration (validation only, not applied)~~ ✅ **FIXED** - Promo discount IS applied
+- [x] ~~**L10.1.4** No tax calculation during checkout (API exists but not called)~~ ✅ **FIXED** - Tax IS calculated
+- [ ] **L10.1.11** Shipping cost hardcoded to 0 (not integrated with shipping service)
 - [ ] **L10.1.5** No loyalty points redemption
 - [ ] **L11.1.6** No saved payment methods
 - [ ] **L11.1.7** No address verification service

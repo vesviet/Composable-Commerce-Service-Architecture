@@ -460,42 +460,81 @@ func (c PriceConsumer) HandlePriceDeleted(ctx, event) {
 
 **Solution:** Event idempotency tracking
 
-```go
-// search/migrations/007_create_event_idempotency_table.sql
+```sql
+-- search/migrations/007_create_event_idempotency_table.sql
 
-CREATE TABLE event_idempotency (
-  id BIGSERIAL PRIMARY KEY,
-  event_id VARCHAR(255) UNIQUE NOT NULL,
-  event_type VARCHAR(100) NOT NULL,
-  processed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS event_idempotency (
+    event_id VARCHAR(255) PRIMARY KEY,
+    
+    -- Event metadata
+    topic VARCHAR(255) NOT NULL,
+    event_type VARCHAR(255) NOT NULL,
+    source VARCHAR(255),
+    pubsub_name VARCHAR(255),
+    
+    -- Processing information
+    processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    processing_duration_ms INTEGER,
+    success BOOLEAN DEFAULT true,
+    
+    -- Event data hash (optional, for additional verification)
+    data_hash VARCHAR(64),
+    
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_event_idempotency_event_id ON event_idempotency(event_id);
+CREATE INDEX idx_event_idempotency_topic ON event_idempotency(topic);
+CREATE INDEX idx_event_idempotency_event_type ON event_idempotency(event_type);
 CREATE INDEX idx_event_idempotency_processed_at ON event_idempotency(processed_at);
+CREATE INDEX idx_event_idempotency_created_at ON event_idempotency(created_at);
+CREATE INDEX idx_event_idempotency_topic_processed_at ON event_idempotency(topic, processed_at);
 ```
 
 **Processing Logic:**
 ```go
+// search/internal/service/event_helpers.go (or similar)
+
 func ProcessEvent(ctx, event) error {
   // 1. Check if already processed
-  if IsEventProcessed(event.ID) {
+  if IsEventProcessed(ctx, event.ID) {
     log.Info("Event already processed, skipping")
     return nil  // Idempotent
   }
   
   // 2. Process event
+  startTime := time.Now()
   err := HandleEvent(ctx, event)
+  processingDuration := time.Since(startTime)
+  
   if err != nil {
+    // Save to DLQ on failure
+    SaveToDLQ(ctx, event, err)
     return err  // Will retry
   }
   
   // 3. Mark as processed
-  MarkEventProcessed(event.ID, event.Type)
+  MarkEventProcessed(ctx, &EventIdempotency{
+    EventID:            event.ID,
+    Topic:              event.Topic,
+    EventType:          event.Type,
+    Source:             event.Source,
+    PubsubName:         event.PubsubName,
+    ProcessedAt:        time.Now(),
+    ProcessingDuration: processingDuration,
+    Success:            true,
+  })
   
   return nil
 }
 ```
+
+**Note:** Implementation includes:
+- Event ID as primary key (not auto-increment ID)
+- Processing duration tracking
+- Success/failure tracking
+- Topic and event_type for filtering
+- Data hash for additional verification (optional)
 
 ### 3.2 Failed Events & DLQ
 
@@ -513,17 +552,27 @@ func ProcessEvent(ctx, event) error {
 
 **Failed Events Table:**
 ```sql
-CREATE TABLE failed_events (
-  id BIGSERIAL PRIMARY KEY,
-  event_id VARCHAR(255) NOT NULL,
-  event_type VARCHAR(100) NOT NULL,
-  topic VARCHAR(255) NOT NULL,
-  payload JSONB NOT NULL,
-  error_message TEXT,
-  retry_count INT DEFAULT 0,
-  last_retry_at TIMESTAMP,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- search/migrations/006_create_failed_events_table.sql
+
+CREATE TABLE IF NOT EXISTS failed_events (
+    id VARCHAR(255) PRIMARY KEY,
+    event_id VARCHAR(255) NOT NULL,
+    topic VARCHAR(255) NOT NULL,
+    event_type VARCHAR(255) NOT NULL,
+    source VARCHAR(255),
+    pubsub_name VARCHAR(255),
+    data JSONB NOT NULL,
+    error_message TEXT,
+    retry_count INTEGER DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'pending', -- pending, retrying, resolved, ignored
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP
 );
+
+CREATE INDEX idx_failed_events_topic ON failed_events(topic);
+CREATE INDEX idx_failed_events_status ON failed_events(status);
+CREATE INDEX idx_failed_events_created_at ON failed_events(created_at);
 ```
 
 **Manual Retry:**
