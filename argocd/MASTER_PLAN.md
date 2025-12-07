@@ -1,283 +1,587 @@
-# ArgoCD Migration Master Plan
+# ArgoCD Deployment Master Plan
 
 **Created**: December 6, 2024  
-**Last Updated**: December 7, 2024  
-**Status**: ✅ **100% HELM CHARTS COMPLETE** (19/19)
+**Last Updated**: December 7, 2024 20:30 ICT  
+**Status**: 🚀 **DEPLOYMENT PHASE IN PROGRESS** (6/19 deployed)
 
 ---
 
-## Executive Summary
+## 📊 Current Status
 
-### Mission Status: ✅ **COMPLETE**
-
-All 19 services now have production-ready ArgoCD Helm charts!
-
-### Progress Overview
+### Deployment Progress
 
 | Category | Count | Status |
 |----------|-------|--------|
-| **Helm Charts Complete** | 19/19 | ✅ 100% |
-| **Deployed Production** | 1/19 | 🚀 Auth Service |
-| **Ready to Deploy** | 18/19 | ⏳ Staging/Prod |
-| **Total Services** | 19 | 17 Go + 2 Node.js |
+| **Deployed to Staging** | 6/19 | 🚀 32% |
+| **Config Issues Fixed** | 24/24 | ✅ 100% |
+| **Helm Charts Ready** | 19/19 | ✅ 100% |
+| **Ready to Deploy** | 13/19 | ⏳ 68% |
+
+### Deployed Services ✅
+
+1. ✅ **auth-service** - Support Services (deployed)
+2. ✅ **user-service** - Support Services (deployed)
+3. ✅ **gateway** - Support Services (deployed)
+4. ✅ **catalog-service** - Core Business (deployed)
+5. ✅ **warehouse-service** - Core Business (deployed)
+6. ✅ **admin** - Frontend (deployed)
+
+### Pending Deployment ⏳
+
+13 services ready to deploy with all config fixes applied.
 
 ---
 
-## Migration Phases
+## 🎯 Deployment Priority & Dependencies
 
-### Phase 1: Core Services ✅ **COMPLETE** (8 services)
-**Timeline**: Weeks 1-4  
-**Status**: All Helm charts ready
+### Tier 1: Infrastructure Services (DEPLOY FIRST)
+**Priority**: CRITICAL  
+**Dependencies**: None  
+**Est. Time**: 1-2 hours total
 
-1. Auth Service 🚀 (deployed)
-2. Gateway Service
-3. User Service
-4. Customer Service
-5. Catalog Service
-6. Pricing Service
-7. Warehouse Service
-8. Location Service
+1. **gateway** ✅ DEPLOYED
+   - Entry point for all services
+   - No dependencies
+   - Must be stable before others
 
-### Phase 2: Business Services ✅ **COMPLETE** (4 services)
-**Timeline**: Weeks 5-8  
-**Status**: All Helm charts ready
+2. **auth-service** ✅ DEPLOYED
+   - Required by all services for authentication
+   - No dependencies
+   - Critical for security
 
-9. Order Service
-10. Payment Service
-11. Promotion Service
-12. Shipping Service
-
-### Phase 3: Support Services ✅ **COMPLETE** (4 services)
-**Timeline**: Weeks 9-10  
-**Status**: All Helm charts ready
-
-13. Fulfillment Service
-14. Search Service
-15. Review Service
-16. Notification Service
-
-### Phase 4: Frontend Services ✅ **COMPLETE** (2 services)
-**Timeline**: Weeks 11-12  
-**Status**: All Helm charts ready + CI/CD
-
-17. Admin Panel (Vite/React)
-18. Frontend (Next.js)
-
-### Additional Services ✅ **COMPLETE** (1 service)
-19. Common Operations Service
+3. **user-service** ✅ DEPLOYED
+   - User management
+   - Depends on: auth-service
+   - Required by most services
 
 ---
 
-## Deployment Roadmap
+### Tier 2: Core Business Services (DEPLOY SECOND)
+**Priority**: HIGH  
+**Dependencies**: Tier 1 + Database  
+**Est. Time**: 3-4 hours total
 
-### Current: Helm Chart Creation ✅ **COMPLETE**
-- [x] All 19 Helm charts created
-- [x] ApplicationSets configured
-- [x] Secrets templates ready
-- [x] Documentation complete
+4. **catalog-service** ✅ DEPLOYED
+   - Product catalog management
+   - Has worker (event processing)
+   - Has migration job
+   - Depends on: postgresql, redis
+   
+5. **customer-service** ⏳ READY
+   - Customer management
+   - Has worker (event processing)
+   - Has migration job
+   - Depends on: auth-service, user-service
 
-### Next: Staging Deployment (6-7 weeks)
+6. **pricing-service** ⏳ READY
+   - Pricing engine
+   - No worker
+   - No migration
+   - Depends on: catalog-service
 
-**Week 1-2: Phase 1** (8 services)
-- Deploy Gateway, User, Catalog, Customer
-- Deploy Pricing, Warehouse, Location
-- Monitor each 24 hours
-
-**Week 3-4: Phase 2** (4 services)
-- Deploy Order, Payment, Promotion, Shipping
-- Monitor each 24-48 hours
-
-**Week 5: Phase 3** (4 services)
-- Deploy Fulfillment, Notification, Search, Review
-- Monitor each 24 hours
-
-**Week 6: Phase 4** (2 services)
-- Deploy Admin, Frontend
-- Performance testing
-
-**Week 7: Additional** (1 service)
-- Deploy Common Operations
-
-### Future: Production Rollout (2-3 weeks)
-
-**Week 8-10: Gradual Deployment**
-- Week 8: 4 services (Gateway, User, Catalog, Customer)
-- Week 9: 4 services (Order, Payment, Pricing, Warehouse)
-- Week 10: 11 services (remaining)
-
-Monitor each batch 48 hours before next deployment.
+7. **warehouse-service** ✅ DEPLOYED
+   - Inventory management
+   - Has worker
+   - Has migration job
+   - Depends on: catalog-service, postgresql
 
 ---
 
-## Service Classification
+### Tier 3: Order & Payment Flow (DEPLOY THIRD)
+**Priority**: HIGH  
+**Dependencies**: Tier 1 + Tier 2  
+**Est. Time**: 3-4 hours total
 
-### By Namespace
+8. **order-service** ⏳ READY
+   - Order processing
+   - No worker
+   - Has migration job
+   - Depends on: catalog, customer, pricing, warehouse
 
-**support-services** (3):
-- Auth 🚀, User, Gateway
+9. **payment-service** ⏳ READY
+   - Payment processing
+   - No worker
+   - No migration
+   - Depends on: order-service
+   - 🔴 HIGH RISK (financial transactions)
 
-**core-services** (10):
-- Customer, Catalog, Pricing, Order, Payment
-- Promotion, Warehouse, Location, Fulfillment, Review
+10. **promotion-service** ⏳ READY
+    - Promotions & discounts
+    - No worker
+    - Has migration job
+    - Depends on: catalog, order
 
-**integration-services** (4):
-- Shipping, Search, Notification, Common Operations
+---
 
-**frontend** (2):
-- Admin, Frontend
+### Tier 4: Fulfillment & Logistics (DEPLOY FOURTH)
+**Priority**: MEDIUM  
+**Dependencies**: Tier 3  
+**Est. Time**: 2-3 hours total
+
+11. **shipping-service** ⏳ READY
+    - Shipping management
+    - Has worker
+    - Has migration job
+    - Depends on: order-service, warehouse
+
+12. **fulfillment-service** ⏳ READY
+    - Order fulfillment
+    - Has worker
+    - Has migration job
+    - Depends on: order, warehouse, shipping
+
+13. **location-service** ⏳ READY
+    - Location/address management
+    - No worker
+    - Has migration job
+    - Depends on: None (standalone)
+
+---
+
+### Tier 5: Support & Integration (DEPLOY FIFTH)
+**Priority**: MEDIUM  
+**Dependencies**: Tier 2+  
+**Est. Time**: 2-3 hours total
+
+14. **search-service** ⏳ READY
+    - Product search (Elasticsearch integration)
+    - Has worker
+    - Has migration job
+    - Depends on: catalog-service
+
+15. **review-service** ⏳ READY
+    - Product reviews
+    - No worker
+    - No migration
+    - Depends on: catalog, customer
+
+16. **notification-service** ⏳ READY
+    - Email/SMS notifications
+    - No worker
+    - No migration
+    - Depends on: customer-service
+
+17. **common-operations-service** ⏳ READY
+    - Shared operations
+    - Has worker
+    - Has migration job
+    - Depends on: Multiple services
+
+---
+
+### Tier 6: Frontend Applications (DEPLOY LAST)
+**Priority**: LOW  
+**Dependencies**: All backend services  
+**Est. Time**: 1-2 hours total
+
+18. **admin** ✅ DEPLOYED
+    - Admin panel (Vite/React)
+    - Depends on: All API services
+
+19. **frontend** ⏳ READY
+    - Customer frontend (Next.js)
+    - Depends on: All API services
+    - Deploy after all backend stable
+
+---
+
+## 🔧 Recent Configuration Fixes (Dec 7, 2024)
+
+All 24 affected services have been fixed:
+
+### Issue #1: ConfigMap Name Mismatch ✅
+- **Fixed**: 15 services
+- **Issue**: Deployment referenced `{service}-config` but ConfigMap created as `{service}`
+- **Impact**: `MountVolume.SetUp failed` errors
+
+### Issue #2: Secret Name Mismatch ✅
+- **Fixed**: 9 services  
+- **Issue**: Secret created as `{service}-secrets` but referenced as `{service}`
+- **Impact**: `secret not found` errors
+
+### Issue #3: Missing Database Config ✅
+- **Fixed**: 9 services
+- **Added**: `database-host`, `database-port`, `database-name` to ConfigMaps
+- **Impact**: Migration jobs now have database connection details
+
+### Issue #4: Worker Dapr Configuration ✅
+- **Fixed**: 7 workers
+- **Change**: Added `dapr.io/enabled: "false"` to worker deployments
+- **Reason**: Workers don't have HTTP servers, only consume events
+
+### Issue #5: ApplicationSet selfHeal Type ✅
+- **Fixed**: 18 ApplicationSets
+- **Change**: Changed from string `"true"/"false"` to boolean `true/false`
+- **Impact**: ApplicationSets now validate correctly
+
+### Issue #6: Secrets Protocol ✅
+- **Fixed**: 16 ApplicationSets
+- **Change**: Removed `secrets://` prefix (ArgoCD Vault Plugin not installed)
+- **Impact**: Secrets files now load correctly as plain values
+
+---
+
+## 📅 Recommended Deployment Schedule
+
+### Week 1: Tier 1-2 Foundation (Dec 8-14)
+**Target**: 7 services total (3 already deployed + 4 new)
+
+**Already Deployed**:
+- ✅ gateway
+- ✅ auth-service  
+- ✅ user-service
+- ✅ catalog-service
+- ✅ warehouse-service
+
+**Deploy This Week**:
+- Mon-Tue: customer-service (test 24h)
+- Wed-Thu: pricing-service (test 24h)
+
+**Success Criteria**:
+- All Tier 1-2 services healthy
+- Core business logic working
+- Event processing functional (workers)
+
+---
+
+### Week 2: Tier 3 Order Flow (Dec 15-21)
+**Target**: 3 services
+
+**Deploy**:
+- Mon-Tue: order-service (test 48h - CRITICAL)
+- Wed: promotion-service (test 24h)
+- Thu-Fri: payment-service (test 48h - HIGH RISK)
+
+**Success Criteria**:
+- End-to-end order flow working
+- Payment integration tested
+- No financial transaction errors
+
+**Special Attention**:
+- payment-service: Deploy during low-traffic hours
+- Extensive testing before production
+
+---
+
+### Week 3: Tier 4 Fulfillment (Dec 22-28)
+**Target**: 3 services
+
+**Deploy**:
+- Mon: location-service (standalone, test 24h)
+- Tue-Wed: shipping-service (test 24h)
+- Thu-Fri: fulfillment-service (test 48h)
+
+**Success Criteria**:
+- Complete order-to-delivery flow
+- Inventory updates working
+- Shipping integration functional
+
+---
+
+### Week 4: Tier 5 Support Services (Dec 29 - Jan 4)
+**Target**: 4 services
+
+**Deploy**:
+- Mon: search-service (test 24h)
+- Tue: review-service (test 24h)
+- Wed: notification-service (test 24h)
+- Thu: common-operations-service (test 24h)
+
+**Success Criteria**:
+- Search functionality working
+- Notifications sent correctly
+- All integrations stable
+
+---
+
+### Week 5: Tier 6 Frontend (Jan 5-11)
+**Target**: 1 service (admin already deployed)
+
+**Already Deployed**:
+- ✅ admin
+
+**Deploy**:
+- Mon-Tue: frontend (Next.js customer app)
+- Wed-Fri: Full system testing
+
+**Success Criteria**:
+- Customer can browse, order, pay
+- Admin can manage all resources
+- All features working end-to-end
+
+---
+
+## 🚨 Critical Deployment Notes
+
+### Pre-Deployment Checklist
+
+For each service, verify:
+
+✅ **Config Validated**:
+```bash
+cd argocd/scripts
+./fix-configmap-names.sh --verify
+helm template {service} argocd/applications/{service} --dry-run
+```
+
+✅ **Secrets Ready**:
+- staging/secrets.yaml exists
+- All required keys present
+- Values are correct for environment
+
+✅ **Dependencies Running**:
+- Check dependent services are healthy
+- Database migrations completed
+- Redis/Consul accessible
+
+✅ **Manual Resources Created** (if needed):
+```bash
+# Create ConfigMap/Secret first to avoid deadlock
+helm template {service} . --values staging/values.yaml --values staging/secrets.yaml > /tmp/{service}.yaml
+# Extract and apply ConfigMap, Secret manually
+```
+
+---
+
+### Deployment Command
+
+```bash
+# 1. Verify
+helm template {service} argocd/applications/{service} --values staging/values.yaml --dry-run
+
+# 2. Optional: Create ConfigMap/Secret manually first
+kubectl apply -f /tmp/{service}-configmap.yaml -n {namespace}
+kubectl apply -f /tmp/{service}-secret.yaml -n {namespace}
+
+# 3. Sync via ArgoCD
+argocd app sync {service}-staging
+
+# 4. Monitor
+kubectl get pods -n {namespace} -l app.kubernetes.io/name={service} -w
+kubectl logs -n {namespace} -l app.kubernetes.io/name={service} -f --tail=50
+```
+
+---
+
+### Post-Deployment Verification
+
+✅ **Health Checks**:
+```bash
+# Check deployment
+kubectl get deployment {service} -n {namespace}
+
+# Check pods
+kubectl get pods -n {namespace} -l app.kubernetes.io/name={service}
+
+# Check migration job (if exists)
+kubectl get jobs -n {namespace} -l app.kubernetes.io/component=migration
+
+# Check worker (if exists)
+kubectl get pods -n {namespace} -l app.kubernetes.io/component=worker
+```
+
+✅ **API Testing**:
+```bash
+# Health endpoint
+curl http://{service}.{namespace}.svc.cluster.local/api/v1/{service}/health
+
+# Port forward for local testing
+kubectl port-forward -n {namespace} svc/{service} 8080:80
+curl http://localhost:8080/api/v1/{service}/health
+```
+
+---
+
+## 📊 Service Categorization
 
 ### By Complexity
 
-**Low** 🟢 (7): User, Location, Notification, Search, Review, Admin, Frontend  
-**Medium** 🟡 (8): Catalog, Customer, Pricing, Warehouse, Promotion, Shipping, Fulfillment, Common Ops  
-**High** 🔴 (4): Gateway, Auth, Order, Payment
+**🟢 Low Complexity** (Quick Deploy - 1-2h each):
+- location-service
+- pricing-service
+- review-service
+- notification-service
+
+**🟡 Medium Complexity** (Standard Deploy - 2-3h each):
+- customer-service
+- warehouse-service (deployed)
+- catalog-service (deployed)
+- promotion-service
+- shipping-service
+- fulfillment-service
+- search-service
+- common-operations-service
+
+**🔴 High Complexity** (Careful Deploy - 3-4h each):
+- gateway (deployed)
+- auth-service (deployed)
+- order-service
+- payment-service
 
 ---
 
-## Standard Deployment Procedure
+### By Database Dependencies
 
-### 1. Prepare (1-2 hours)
-- Review service documentation
-- Check dependencies
-- Review secrets needed
+**PostgreSQL + Migration**:
+- catalog-service ✅
+- customer-service
+- warehouse-service ✅
+- order-service
+- shipping-service
+- fulfillment-service
+- search-service
+- location-service
+- common-operations-service
+- auth-service ✅
+- user-service ✅
+- promotion-service
 
-### 2. Configure (1 hour)
-- Update image tag
-- Configure environment-specific values
-- Encrypt secrets with SOPS
-
-### 3. Deploy to Staging (2-3 hours)
-- Commit changes to Git
-- Apply ApplicationSet (first time)
-- Sync via ArgoCD
-- Verify deployment
-
-### 4. Test (2-4 hours)
-- Health checks
-- API testing
-- Integration testing
-- Performance testing
-
-### 5. Deploy to Production (1-2 hours)
-- Update production tag
-- Manual sync (requires approval)
-- Verify deployment
-- Monitor closely
-
-### 6. Monitor (Ongoing)
-- Watch metrics for 24-48 hours
-- Check logs for errors
-- Validate integrations
-- Document issues
+**No Database**:
+- gateway ✅
+- pricing-service
+- payment-service
+- review-service
+- notification-service
+- admin ✅
+- frontend
 
 ---
 
-## Success Criteria
+### By Worker Deployment
 
-For each service deployment:
+**Has Worker** (Event Processing):
+- catalog-service ✅
+- customer-service
+- warehouse-service ✅
+- shipping-service
+- fulfillment-service
+- search-service
+- common-operations-service
 
-- ✅ Service deployed via ArgoCD
+**No Worker**:
+- All others (12 services)
+
+---
+
+## 🎓 Lessons Learned
+
+### Key Insights from Catalog Deployment
+
+1. **ConfigMap Deadlock**: Migration jobs wait for ConfigMap, but ArgoCD waits for migration job
+   - **Solution**: Create ConfigMap/Secret manually first
+
+2. **Worker Dapr**: Workers don't need Dapr (no HTTP server)
+   - **Solution**: Add `dapr.io/enabled: "false"` annotation
+
+3. **Secret Loading**: `secrets://` protocol needs plugin
+   - **Solution**: Use plain path if plugin not installed
+
+4. **Database Config**: Migration jobs need individual DB keys
+   - **Solution**: Add `database-host/port/name` to ConfigMap
+
+5. **Validation First**: Always run pre-deploy validation
+   - **Solution**: Use provided scripts and helm dry-run
+
+---
+
+## 📚 Documentation
+
+### Quick References
+
+- **Deployment Checklist**: [SERVICE_DEPLOYMENT_CHECKLIST.md](../argocd/docs/SERVICE_DEPLOYMENT_CHECKLIST.md)
+- **Fix Scripts**: `argocd/scripts/fix-configmap-names.sh`
+- **Troubleshooting**: See deployment checklist
+
+### Validation Tools
+
+```bash
+# ConfigMap/Secret verification
+cd argocd/scripts
+./fix-configmap-names.sh --verify
+
+# YAML syntax
+helm template {service} argocd/applications/{service} --dry-run
+
+# ApplicationSet validation
+kubectl apply --dry-run=client -f {service}-appSet.yaml
+```
+
+---
+
+## 🎯 Success Metrics
+
+### Per-Service Goals
+
+- ✅ Deployment successful via ArgoCD
+- ✅ All pods Running (main + worker if exists)
+- ✅ Migration job Completed (if exists)
 - ✅ Health checks passing
-- ✅ Metrics exposed and monitored
-- ✅ Logs aggregated
-- ✅ Auto-sync working (staging)
-- ✅ Manual approval working (production)
-- ✅ Rollback tested
-- ✅ Documentation updated
+- ✅ No crash loops for 24 hours
+- ✅ Logs show no critical errors
+- ✅ Integrations with dependencies working
+
+### Overall Goals
+
+- ✅ 100% services deployed to staging
+- ✅ 0 critical bugs in staging
+- ✅ All E2E flows working
+- ✅ Performance acceptable
+- ✅ Ready for production rollout
 
 ---
 
-## Risk Management
+## 📈 Progress Tracking
 
-### High-Risk Services
+### Deployment Status
 
-| Service | Risk | Mitigation |
-|---------|------|------------|
-| Gateway | Single point of failure | Blue-green deployment |
-| Order | Complex workflows | Extensive testing, low-traffic hours |
-| Payment | Financial/security | Security audit, PCI compliance |
+| Tier | Services | Deployed | Remaining | Progress |
+|------|----------|----------|-----------|----------|
+| Tier 1 | 3 | 3 | 0 | ✅ 100% |
+| Tier 2 | 4 | 2 | 2 | 🚧 50% |
+| Tier 3 | 3 | 0 | 3 | ⏳ 0% |
+| Tier 4 | 3 | 0 | 3 | ⏳ 0% |
+| Tier 5 | 4 | 0 | 4 | ⏳ 0% |
+| Tier 6 | 2 | 1 | 1 | 🚧 50% |
+| **Total** | **19** | **6** | **13** | **32%** |
 
-### Rollback Procedures
+### Weekly Milestones
 
-**Quick Rollback** (< 5 minutes):
-```bash
-argocd app rollback <service-name>-production
-```
-
-**Full Rollback** (< 30 minutes):
-```bash
-kubectl apply -f <service-name>/deploy/local/
-```
-
----
-
-## Key Achievements
-
-### ✅ Helm Chart Creation (100%)
-- 19 complete Helm charts
-- Consistent pattern across all services
-- Production-ready configurations
-- Comprehensive documentation
-
-### ✅ CI/CD Integration
-- Frontend GitLab pipeline
-- Shared templates
-- Auto-deployment to staging
-- Manual approval for production
-
-### ✅ Production Deployment
-- Auth Service running successfully
-- Zero downtime achieved
-- Health checks passing
-- Monitoring active
+- Week 1 (Dec 8-14): Target 7/19 (37%)
+- Week 2 (Dec 15-21): Target 10/19 (53%)
+- Week 3 (Dec 22-28): Target 13/19 (68%)
+- Week 4 (Dec 29-Jan 4): Target 17/19 (89%)
+- Week 5 (Jan 5-11): Target 19/19 (100%)
 
 ---
 
-## Resources
+## 🚀 Next Actions
 
-### Documentation
-- [Quick Summary](./SUMMARY.md)
-- [Migration Status](./STATUS.md)
-- [Service Catalog](./SERVICES.md)
-- [Deployment Guide](./DEPLOYMENT.md)
+### Immediate (This Week)
 
-### Helm Charts
-- Location: `argocd/applications/*/`
-- 19 services, each with complete chart
+1. **Deploy customer-service** (Mon-Tue)
+   - Pre-create ConfigMap/Secret
+   - Monitor worker deployment
+   - Test event processing
 
-### Tools
-- ArgoCD CLI
-- kubectl
-- Helm
-- SOPS
-- GitLab CI/CD
+2. **Deploy pricing-service** (Wed-Thu)
+   - Simpler service (no worker/migration)
+   - Quick validation
 
----
+### Next Week
 
-## Timeline Summary
+1. **Deploy order-service** (Mon-Tue)
+   - Critical service, test extensively
+   - Monitor 48 hours before payment
 
-| Phase | Duration | Status |
-|-------|----------|--------|
-| Helm Chart Creation | 12 weeks | ✅ Complete |
-| Staging Deployment | 6-7 weeks | ⏳ Next |
-| Production Rollout | 2-3 weeks | ⏳ Future |
-| **Total** | **20-22 weeks** | **In Progress** |
-
-**Current Week**: 13 (Helm charts complete)  
-**Next Milestone**: Begin staging deployments
+2. **Deploy promotion-service** (Wed)
+3. **Deploy payment-service** (Thu-Fri)
+   - HIGH RISK - deploy carefully
+   - Low traffic hours
+   - Extensive testing
 
 ---
 
-## Conclusion
-
-**Mission Status**: ✅ **HELM CHARTS COMPLETE**
-
-All 19 services have production-ready ArgoCD Helm charts. Ready to begin mass deployment to staging, followed by gradual production rollout.
-
-**Next Action**: Deploy Phase 1 services (8 services) to staging.
-
----
-
-**Last Updated**: December 7, 2024  
-**Status**: Ready for Deployment Phase
+**Last Updated**: December 7, 2024 20:30 ICT  
+**Next Review**: December 8, 2024  
+**Status**: 🚀 Ready for Tier 2 completion
 
