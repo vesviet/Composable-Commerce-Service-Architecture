@@ -1,42 +1,70 @@
-# 📚 Project Documentation Home
+# Documentation
 
-> **Generated: Nov 2025. Welcome to the new docs ecosystem, designed for enterprise e-commerce best practice (Shopify, Amazon, PayPal standards).**
-
-## 🚀 Where to Find What (Index)
-
-- **API Contract (OpenAPI):** [`./openapi/`](./openapi/) – REST/gRPC/GraphQL API for each service. One OpenAPI file per service.
-- **Event Contracts (JSON Schema):** [`./json-schema/`](./json-schema/) – All event message schemas, validated automatically, used for codegen/testing.
-- **Architecture Decisions (ADR):** [`./adr/`](./adr/) – Major technical decisions, rationale, alternatives, consequences. Follow [ADR format](https://adr.github.io/).
-- **Technical Design Docs:** [`./design/`](./design/) – Feature/service design, RFC style (Google/Shopify), discuss/review here before implementation!
-- **SRE Runbooks:** [`./sre-runbooks/`](./sre-runbooks/) – All ops/on-call/resilience guides, instant troubleshooting.
-- **Domain-Driven-Design (DDD), Context Map:** [`./ddd/`](./ddd/) – Full domain maps, bounded contexts, glossary.
-- **Glossary:** [`./glossary.md`](./glossary.md) – Shared terms, enum values, event types, domain definitions.
-- **Templates:** [`./templates/`](./templates/) – Standardized templates for all documentation types (services, events, workflows).
-- **Business Processes:** [`./processes/`](./processes/) – E-commerce business process documentation with event flows, flowcharts, and service interactions.
+Project documentation organized by topic.
 
 ---
 
-## 📝 How to Use and Contribute
+## 📁 Documentation Structure
 
-1. **New Service:** Use templates from [`templates/`](./templates/) to create service documentation, OpenAPI spec, and runbook.
-2. **API Change:** Add/edit OpenAPI spec and PR. Validate with CI. Use [API change template](./templates/api-change-template.md).
-3. **Event Change:** Add/edit JSON schema, update handlers/contracts. Use [event change template](./templates/event-change-template.md).
-4. **Major Technical Choice:** Write an ADR and PR. Use [ADR template](./adr/ADR-template.md).
-5. **Feature:** Submit a Design Doc (Google RFC style) in `design/` before starting work. Use [design template](./design/feature-design-template.md).
-6. **Domain Change:** Update Context Map or DDD docs.
-7. **Ops/Prod:** Always update runbook after incident/root cause analysis. Use [runbook template](./templates/service-runbook-template.md).
-8. **Glossary:** Update when a new term/event/domain/entity is named across teams.
+### [ArgoCD Migration](./argocd/)
+Complete documentation for ArgoCD/GitOps migration.
 
----
+**Status**: ✅ 100% Complete (19/19 services)
 
-## 🏛️ Best Practices
-- **Use Templates:** Always start from templates in [`templates/`](./templates/) directory.
-- **Review:** All docs must be reviewed by at least one peer before merge.
-- **Version:** Always date or version files for easy audit.
-- **DO NOT** remove anything from `/backup-YYYY-MM-DD/` without approve.
-- **Keep all API/Event contracts machine readable (YAML/JSON).**
-- **Quick Reference:** See [`templates/QUICK_REFERENCE.md`](./templates/QUICK_REFERENCE.md) for copy-paste commands.
+**Quick Links**:
+- [Quick Summary](./argocd/SUMMARY.md) - One-page overview
+- [Migration Status](./argocd/STATUS.md) - Current progress
+- [Service Catalog](./argocd/SERVICES.md) - All 19 services
+- [Deployment Guide](./argocd/DEPLOYMENT.md) - How to deploy
+- [Master Plan](./argocd/MASTER_PLAN.md) - Complete strategy
 
 ---
 
-**For detailed standards, see Shopify/Amazon/Pan-PayPal architecture guides, or ask principal engineers for mentoring.**
+## 🚀 Quick Start
+
+### ArgoCD Migration
+
+All 19 services now have production-ready Helm charts:
+
+```
+Progress: ██████████████████████████████ 100% 🎉
+
+✅ Helm Charts:     19/19 (100%)
+🚀 Deployed:         1/19 (Auth - Production)
+⏳ Ready:           18/19 (Staging/Production)
+```
+
+**Next Steps**: Deploy to staging → Production rollout
+
+See [ArgoCD Documentation](./argocd/) for details.
+
+---
+
+## 📚 Additional Documentation
+
+### Service-Specific Docs
+- Each service has its own README in its directory
+- Helm charts in `argocd/applications/*/`
+
+### CI/CD
+- Frontend GitLab CI/CD: `frontend/.gitlab-ci.yml`
+- Shared templates: `gitlab-ci-templates/templates/`
+
+### Infrastructure
+- Kubernetes configs: `k8s-local/`
+- Dapr configs: `dapr/`
+- Docker Compose: `docker-compose.yml`
+
+---
+
+## 🎯 Current Focus
+
+**ArgoCD Migration**: Ready for mass deployment
+- ✅ All Helm charts complete
+- ⏳ Staging deployments starting
+- ⏳ Production rollout planned
+
+---
+
+For more information, see the specific documentation in each subdirectory.
+
