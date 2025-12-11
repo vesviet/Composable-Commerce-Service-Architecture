@@ -1,6 +1,6 @@
 # ArgoCD Services Catalog
 
-Complete list of all 19 services with Helm charts.
+Complete list of all 20 services with Helm charts.
 
 ---
 
@@ -94,32 +94,39 @@ Complete list of all 19 services with Helm charts.
 - **Features**: Shipping rates, carrier integration
 - **Chart**: `argocd/applications/shipping-service/`
 
+### 13. Loyalty Rewards Service
+- **Status**: Ready to deploy
+- **Namespace**: `core-services` / `core-services-prod`
+- **Ports**: 8013 (HTTP), 9013 (gRPC)
+- **Features**: Points system, tier management (Bronze/Silver/Gold), referrals, campaigns
+- **Chart**: `argocd/applications/loyalty-rewards/`
+
 ---
 
 ## Phase 3: Support Services (4 services)
 
-### 13. Fulfillment Service
+### 14. Fulfillment Service
 - **Status**: Ready to deploy
 - **Namespace**: `core-services` / `core-services-prod`
 - **Ports**: 80 (HTTP), 81 (gRPC)
 - **Features**: Order fulfillment workflows
 - **Chart**: `argocd/applications/fulfillment-service/`
 
-### 14. Search Service
+### 15. Search Service
 - **Status**: Ready to deploy
 - **Namespace**: `integration-services` / `integration-services-prod`
 - **Ports**: 80 (HTTP), 81 (gRPC)
 - **Features**: Elasticsearch integration, product search
 - **Chart**: `argocd/applications/search-service/`
 
-### 15. Review Service
+### 16. Review Service
 - **Status**: Ready to deploy
 - **Namespace**: `core-services` / `core-services-prod`
 - **Ports**: 80 (HTTP), 81 (gRPC)
 - **Features**: Product reviews, ratings
 - **Chart**: `argocd/applications/review-service/`
 
-### 16. Notification Service
+### 17. Notification Service
 - **Status**: Ready to deploy
 - **Namespace**: `integration-services` / `integration-services-prod`
 - **Ports**: 80 (HTTP), 81 (gRPC)
@@ -131,7 +138,7 @@ Complete list of all 19 services with Helm charts.
 
 ## Phase 4: Frontend Services (2 services)
 
-### 17. Admin Panel
+### 18. Admin Panel
 - **Status**: Ready to deploy
 - **Namespace**: `frontend` / `frontend-prod`
 - **Port**: 80 (HTTP)
@@ -139,7 +146,7 @@ Complete list of all 19 services with Helm charts.
 - **Features**: Dashboard, product/order/customer management
 - **Chart**: `argocd/applications/admin/`
 
-### 18. Frontend (Customer)
+### 19. Frontend (Customer)
 - **Status**: Ready to deploy
 - **Namespace**: `frontend` / `frontend-prod`
 - **Port**: 80 (HTTP)
@@ -152,7 +159,7 @@ Complete list of all 19 services with Helm charts.
 
 ## Additional Services (1 service)
 
-### 19. Common Operations Service
+### 20. Common Operations Service
 - **Status**: Ready to deploy
 - **Namespace**: `integration-services` / `integration-services-prod`
 - **Ports**: 8018 (HTTP), 9018 (gRPC)
@@ -222,5 +229,5 @@ service-name/
 
 ---
 
-**Total**: 19 services, all with complete Helm charts ✅
+**Total**: 20 services, all with complete Helm charts ✅
 
