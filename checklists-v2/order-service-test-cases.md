@@ -2,22 +2,29 @@
 
 ## Overview
 
-This document describes comprehensive test cases for the Order Service, focusing on the stock reservation logic that was recently fixed.
+Comprehensive test cases for Order Service, focusing on stock reservation logic fixes.
 
-## Test Files Created
+## Test Files
 
 ### `order/internal/biz/order_reservation_test.go`
 
-Test cases covering:
-1. **ReserveStockForItems với default warehouse fallback**
-2. **releaseReservationWithRetry mechanism**
-3. **CancelOrder với retry mechanism**
-4. **ReserveStockForItems với OrderItem type**
-5. **Unsupported type handling**
+**Test Cases**:
+1. `TestOrderUsecase_ReserveStockForItems_WithDefaultWarehouse` - Default warehouse fallback
+2. `TestOrderUsecase_ReleaseReservationWithRetry` - Retry mechanism
+3. `TestOrderUsecase_CancelOrder_WithRetry` - Order cancellation with retry
+4. `TestOrderUsecase_ReserveStockForItems_WithOrderItems` - OrderItem type support
+5. `TestOrderUsecase_ReserveStockForItems_UnsupportedType` - Error handling
 
-## Test Cases
+### `order/internal/biz/cancellation/cancellation_test.go`
 
-### 1. ReserveStockForItems với Default Warehouse
+**Test Cases**:
+1. `TestCancellationUsecase_ReleaseReservationWithRetry` - Retry mechanism
+2. `TestCancellationUsecase_CancelOrder_WithRetry` - Order cancellation with retry
+3. `TestCancellationUsecase_CancelOrderItems_WithRetry` - Partial cancellation with retry
+
+## Test Scenarios
+
+### 1. Stock Reservation với Default Warehouse
 
 **Test**: `TestOrderUsecase_ReserveStockForItems_WithDefaultWarehouse`
 
@@ -33,7 +40,7 @@ Test cases covering:
 - All items attempt to reserve stock (no skipped items)
 - Previous reservations are rolled back on failure
 
-### 2. ReleaseReservationWithRetry
+### 2. Release Reservation với Retry
 
 **Test**: `TestOrderUsecase_ReleaseReservationWithRetry`
 
@@ -49,7 +56,7 @@ Test cases covering:
 - Maximum 3 retries attempted
 - Error returned after all retries fail
 
-### 3. CancelOrder với Retry
+### 3. Order Cancellation với Retry
 
 **Test**: `TestOrderUsecase_CancelOrder_WithRetry`
 
@@ -63,46 +70,15 @@ Test cases covering:
 - Retry mechanism is applied to each reservation release
 - Order status is updated to "cancelled" regardless of release failures
 
-### 4. ReserveStockForItems với OrderItem Type
+### 4. Partial Cancellation với Retry
 
-**Test**: `TestOrderUsecase_ReserveStockForItems_WithOrderItems`
-
-**Scenarios**:
-- ✅ Reserve stock for OrderItem slice
-- ✅ Default warehouse used for missing warehouse IDs
-
-**Key Assertions**:
-- Function works with both `CreateOrderItemRequest` and `OrderItem` types
-- Default warehouse fallback works for OrderItem type
-
-### 5. Unsupported Type Handling
-
-**Test**: `TestOrderUsecase_ReserveStockForItems_UnsupportedType`
+**Test**: `TestCancellationUsecase_CancelOrderItems_WithRetry`
 
 **Scenarios**:
-- ✅ Error returned for unsupported item types
-
-**Key Assertions**:
-- Proper error message for unsupported types
-
-## Mock Updates
-
-### MockWarehouseInventoryService
-
-**Added**:
-- `ReserveStockFunc` - Function callback for custom ReserveStock behavior
-- `ReleaseReservationFunc` - Function callback for custom ReleaseReservation behavior
-- `ReleaseReservationCallCount` - Counter to track release calls
-- `Reset()` - Method to reset mock state between tests
-
-### MockOrderRepo
-
-**Added**:
-- `FindByIDFunc` - Function callback for custom FindByID behavior (returns `*model.Order`)
-- `UpdateFunc` - Function callback for custom Update behavior (takes `*model.Order`)
-- `FindByID()` - Implementation returning `*model.Order`
-- `Update()` - Implementation taking `*model.Order`
-- `mockConvertBizOrderToModel()` - Helper to convert biz.Order to model.Order
+- ✅ Cancel single item - release succeeds
+- ✅ Cancel multiple items - all succeed
+- ✅ Cancel item - release fails, retry succeeds
+- ✅ Cancel item - release fails after retries, item still cancelled
 
 ## Running Tests
 
@@ -115,11 +91,11 @@ go test ./internal/biz -run TestOrderUsecase_ReleaseReservationWithRetry -v
 go test ./internal/biz -run TestOrderUsecase_CancelOrder_WithRetry -v
 ```
 
-### Run Specific Test
+### Run Cancellation Tests
 
 ```bash
 cd order
-go test ./internal/biz -run TestOrderUsecase_ReserveStockForItems_WithDefaultWarehouse -v
+go test ./internal/biz/cancellation -v
 ```
 
 ### Run with Coverage
@@ -129,36 +105,28 @@ cd order
 go test ./internal/biz -run TestOrderUsecase_ReserveStockForItems -cover
 ```
 
-## Known Issues
-
-### Test File Compilation Errors
-
-**Issue**: `cart_test.go` has compilation errors due to outdated function signatures.
-
-**Impact**: Does not affect production code or new test cases.
-
-**Status**: Deferred - requires updating `cart_test.go` to match current `NewCartUsecase` signature.
-
-### Test File Compilation Errors (order_test.go)
-
-**Issue**: `order_test.go` has compilation errors due to outdated types (int64 vs string for IDs).
-
-**Impact**: Does not affect production code or new test cases.
-
-**Status**: Deferred - requires updating `order_test.go` to match current types.
-
-## Test Coverage Goals
+## Test Coverage
 
 - ✅ Stock reservation with default warehouse fallback
 - ✅ Retry mechanism for reservation release
 - ✅ Order cancellation with retry
+- ✅ Partial cancellation with retry
 - ✅ Multiple item types support
 - ✅ Error handling and rollback
 
+## Known Issues
+
+### Test File Compilation Errors
+
+**Issue**: Some test files (`cart_test.go`, `order_test.go`) have compilation errors due to outdated function signatures.
+
+**Impact**: Does not affect production code or new test cases.
+
+**Status**: Deferred - requires updating test files to match current signatures.
+
 ## Next Steps
 
-1. Fix `cart_test.go` compilation errors (if needed)
-2. Fix `order_test.go` compilation errors (if needed)
-3. Add integration tests for end-to-end flows
-4. Add performance tests for concurrent reservations
-5. Add tests for edge cases (expired reservations, concurrent cancellations)
+1. Fix compilation errors in existing test files (if needed)
+2. Add integration tests for end-to-end flows
+3. Add performance tests for concurrent reservations
+4. Add tests for edge cases (expired reservations, concurrent cancellations)

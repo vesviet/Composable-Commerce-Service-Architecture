@@ -1,6 +1,49 @@
-# Cart Stock Check Logic - Summary & Recommendation
+# Cart Stock Check Logic Review
 
-## Current State
+## Current Implementation
+
+### Flow
+
+**Location**: `order/internal/biz/cart.go`
+
+**GetCart Flow**:
+```go
+func (uc *CartUsecase) GetCart(...) (*Cart, error) {
+    // 1. Get cart from DB
+    modelCart, err := uc.cartRepo.FindBySessionID(ctx, sessionID)
+    
+    // 2. Convert model to biz
+    cart := convertModelCartToBiz(modelCart)
+    
+    // 3. Calculate totals
+    cart.Totals = uc.calculateCartTotals(cart.Items)
+    
+    // 4. Update stock status (in memory only)
+    uc.updateItemStockStatus(ctx, cart.Items)
+    
+    return cart, nil
+}
+```
+
+**updateItemStockStatus**:
+```go
+func (uc *CartUsecase) updateItemStockStatus(ctx context.Context, items []*CartItem) {
+    for _, item := range items {
+        var warehouseID string
+        if item.WarehouseID != nil && *item.WarehouseID != "" {
+            warehouseID = *item.WarehouseID
+        } else {
+            warehouseID = uc.defaultWarehouseID  // Use default if missing
+        }
+        
+        // Check stock via warehouse service
+        err := uc.warehouseInventoryService.CheckStock(ctx, item.ProductID, warehouseID, item.Quantity)
+        item.InStock = err == nil  // Update in memory only
+    }
+}
+```
+
+## Current Behavior
 
 ### ✅ What Works
 - Stock is checked **every time** `GetCart()` is called
@@ -28,20 +71,20 @@ GetCart()
 - No historical tracking of stock changes
 - Potential confusion if DB field is used elsewhere
 
-## Recommendation
+## Analysis: Should We Persist InStock?
 
 ### Option A: Keep Current Approach (Runtime Check Only) ✅ **RECOMMENDED**
 
-**Rationale**:
-1. **Performance**: No DB writes on every `GetCart()` call
-2. **Accuracy**: Always reflects current stock status
-3. **Simplicity**: Current implementation works well
-4. **Real-time**: Stock changes are immediately reflected
+**Pros**:
+- ✅ Always reflects current stock status
+- ✅ No DB writes needed (better performance)
+- ✅ Simpler implementation
+- ✅ Real-time accuracy
 
-**Action Items**:
-1. ✅ **Document behavior**: `in_stock` field in DB is not authoritative
-2. ✅ **Keep runtime check**: Current implementation is correct
-3. ⚠️ **Consider**: Add `stock_checked_at` timestamp for monitoring (optional)
+**Cons**:
+- ❌ DB field `in_stock` is misleading (not accurate)
+- ❌ Cannot query "out of stock items" from DB
+- ❌ No historical tracking of stock changes
 
 **When to Use**: 
 - Performance is critical
@@ -74,20 +117,6 @@ func (uc *CartUsecase) updateItemStockStatus(ctx context.Context, items []*CartI
         }
     }
 }
-
-func (uc *CartUsecase) persistStockStatus(ctx context.Context, itemID int64, inStock bool) {
-    modelItem, err := uc.cartRepo.FindItemByID(ctx, itemID)
-    if err != nil {
-        uc.log.WithContext(ctx).Warnf("Failed to find cart item %d for stock update: %v", itemID, err)
-        return
-    }
-    
-    modelItem.InStock = inStock
-    if err := uc.cartRepo.SaveItem(ctx, modelItem); err != nil {
-        uc.log.WithContext(ctx).Warnf("Failed to persist stock status for item %d: %v", itemID, err)
-        // Don't fail - this is best effort
-    }
-}
 ```
 
 **When to Use**:
@@ -107,7 +136,7 @@ func (uc *CartUsecase) persistStockStatus(ctx context.Context, itemID int64, inS
 | **Complexity** | ✅ Simple | ⚠️ More complex |
 | **Real-time** | ✅ Immediate | ✅ Immediate |
 
-## Final Recommendation
+## Recommendation
 
 ### ✅ **Option A: Keep Current Approach**
 
@@ -133,15 +162,26 @@ func (uc *CartUsecase) updateItemStockStatus(ctx context.Context, items []*CartI
 }
 ```
 
-## Testing Checklist
+## Testing Considerations
 
-- [x] Stock check works on GetCart
-- [x] Out-of-stock items are detected
-- [x] Checkout validates InStock
-- [x] Default warehouse is used when missing
-- [ ] Performance test: GetCart with many items
-- [ ] Test stock changes between GetCart calls
-- [ ] Test race condition: stock runs out during checkout
+1. **Test Stock Status Changes**:
+   - Add item to cart (in stock)
+   - Stock runs out
+   - GetCart should show out of stock
+   - Stock comes back
+   - GetCart should show in stock
+
+2. **Test Checkout Validation**:
+   - Cart with out-of-stock items
+   - Checkout should fail with clear error
+
+3. **Test Performance**:
+   - Measure impact of DB writes (if implementing Option B)
+   - Consider batch updates if needed
+
+4. **Test Race Conditions**:
+   - Multiple users checking out same item
+   - Stock changes between GetCart and Checkout
 
 ## Conclusion
 
