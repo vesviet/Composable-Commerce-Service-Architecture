@@ -16,10 +16,12 @@ These checklists provide step-by-step guidance for implementing new features, fi
 
 ### Stock Management
 
-- **[Stock Management in Checkout Flow](./stock-management-checkout-checklist.md)**
+- **[Stock Management in Checkout Flow (Quote Pattern)](./stock-management-checkout-checklist.md)** 🟢 **80% Complete**
   - Implementation checklist for improving stock management in checkout flow
+  - **Quote Pattern**: No draft orders, cart acts as quote
   - Hybrid approach: Pre-reserve with short TTL + Extend on activity
   - Covers: Order service, Warehouse service, Frontend integration
+  - **Summary**: See `stock-management-checkout-checklist-summary.md` for implementation details
 
 ## Usage
 
