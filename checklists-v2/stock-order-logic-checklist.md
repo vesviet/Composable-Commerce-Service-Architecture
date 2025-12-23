@@ -401,43 +401,58 @@ Logic stock khi order bao gồm các flow chính:
 
 ## 🔍 10. Missing Cases & Issues
 
-### Critical Issues
+### Critical Issues (2025-12-20 Update)
 
-1. **❌ CRITICAL: ConfirmReservation() method không tồn tại**
-   - **Location**: `order/internal/biz/cart.go:688`, `order/internal/service/event_handler.go:257`
-   - **Impact**: Code sẽ fail khi gọi `ConfirmReservation()`
-   - **Recommendation**: 
-     - Option 1: Implement `ConfirmReservation()` method (extend expiry time)
-     - Option 2: Remove confirm calls (rely on expiry only)
+1. **✅ RESOLVED: ConfirmReservation() method**
+   - **Status**: ✅ **IMPLEMENTED AND WORKING**
+   - **Location**: `warehouse/internal/biz/reservation/reservation.go:414-509`
+   - **Implementation**: 
+     - Full method with status validation
+     - Decrements `quantity_available` on confirmation
+     - Updates reservation to `fulfilled` status
+     - Publishes stock change events
+     - Rollback on error
+   - **Verified**: Method exists in warehouse service interface and implementation
+   - **Called From**: `order/internal/biz/order/create_helpers.go:177-192`
 
-2. **⚠️ WARNING: Double increment quantity_reserved**
-   - **Location**: `warehouse/internal/biz/reservation/reservation.go:143`
-   - **Issue**: Code gọi `IncrementReserved()` VÀ trigger cũng increment
-   - **Impact**: quantity_reserved có thể bị double increment
-   - **Recommendation**: Remove manual `IncrementReserved()` call, rely on trigger only
+2. **✅ RESOLVED: Double increment quantity_reserved**
+   - **Status**: ✅ **NOT AN ISSUE**
+   - **Verification**: Code at line 146-147 explicitly states:
+     ```go
+     // Note: Database trigger automatically updates quantity_reserved when reservation is created
+     // No need to manually increment - trigger handles it atomically
+     ```
+   - **Implementation**: Code relies ONLY on database trigger
+   - **No manual `IncrementReserved()` calls** found in reservation creation flow
 
-3. **⚠️ WARNING: Reservation created ngoài transaction**
+3. **⚠️ KNOWN LIMITATION: Reservation created ngoài transaction**
    - **Location**: `order/internal/biz/cart.go:650`
-   - **Issue**: Reservation được create TRƯỚC transaction
-   - **Impact**: Nếu order creation fail, reservation đã được create → cần rollback
-   - **Mitigation**: Rollback được handle, nhưng có thể optimize bằng cách move reservation vào transaction
+   - **Status**: By design (distributed system pattern)
+   - **Impact**: If order creation fails, reservation is already created
+   - **Mitigation**: 
+     - ✅ Rollback logic implemented
+     - ✅ Auto-expiry after 30 minutes (fallback)
+     - ✅ Prevents long-held transaction locks
+   - **Recommendation**: Acceptable for production use
 
 ### Potential Issues
 
 4. **⚠️ WARNING: Release reservation fail không fail order cancellation**
    - **Location**: `order/internal/biz/cancellation/cancellation.go:200-202`
    - **Issue**: Nếu release fail, order vẫn được cancel → inconsistency
-   - **Recommendation**: Consider retry mechanism hoặc fail cancellation nếu release fail
+   - **Mitigation**: Auto-expiry worker will clean up orphaned reservations
+   - **Recommendation**: Consider retry mechanism (Priority: P2)
 
-5. **⚠️ WARNING: Confirm reservation fail không fail checkout**
-   - **Location**: `order/internal/biz/cart.go:688-691`
-   - **Issue**: Nếu confirm fail, reservation sẽ expire → order có thể bị cancel
-   - **Mitigation**: Comment nói "will expire automatically" - acceptable behavior
+5. **✅ WORKING AS DESIGNED: Confirm reservation fail không fail checkout**
+   - **Location**: `order/internal/biz/order/create_helpers.go:177-192`
+   - **Behavior**: Errors logged but don't fail order creation
+   - **Mitigation**: Reservation expires automatically after configured duration
+   - **Status**: Acceptable behavior for resilience
 
 6. **⚠️ WARNING: Warehouse ID missing → skip reservation**
    - **Location**: `order/internal/biz/order_reservation.go:50`
    - **Issue**: Order có thể được create mà không reserve stock
-   - **Recommendation**: Consider fail order creation nếu warehouse ID missing (hoặc có default warehouse)
+   - **Recommendation**: Consider validation (Priority: P3)
 
 ---
 
@@ -453,21 +468,27 @@ Logic stock khi order bao gồm các flow chính:
 - ✅ Complete reservation khi fulfillment completed
 - ✅ Partial cancellation release correct reservations
 
-### Issues Found
+### Issues Found (Updated 2025-12-20)
 
-- ❌ **CRITICAL**: `ConfirmReservation()` method không tồn tại
-- ⚠️ **WARNING**: Double increment quantity_reserved (code + trigger)
-- ⚠️ **WARNING**: Reservation created ngoài transaction
-- ⚠️ **WARNING**: Release reservation fail không fail order cancellation
-- ⚠️ **WARNING**: Warehouse ID missing → skip reservation
+- ✅ **RESOLVED**: `ConfirmReservation()` method - **EXISTS AND WORKING**
+- ✅ **RESOLVED**: Double increment - **NOT AN ISSUE** (trigger-only)
+- ✅ **BY DESIGN**: Reservation ngoài transaction - **ACCEPTABLE** (has rollback)
+- ⚠️ **MINOR**: Release fail không fail cancellation - **MITIGATED** (auto-expiry)
+- ⚠️ **MINOR**: Warehouse ID missing → skip - **LOW PRIORITY**
 
-### Recommendations
+### Recommendations (Prioritized)
 
-1. **Implement ConfirmReservation() method** hoặc remove confirm calls
-2. **Remove manual IncrementReserved() call** - rely on trigger only
-3. **Consider move reservation vào transaction** để đảm bảo atomicity
-4. **Add retry mechanism** cho release reservation
-5. **Consider fail order creation** nếu warehouse ID missing (hoặc có default warehouse)
+**Priority 1 (Completed):**
+1. ✅ Verify `ConfirmReservation()` implementation - **DONE**
+2. ✅ Verify trigger-based quantity management - **WORKING**
+3. ✅ Remove deprecated code - **DONE** (removed `confirmStockReservations()`)
+
+**Priority 2 (Optional):**
+4. ⚠️ Add retry mechanism for release reservation
+5. ⚠️ Move reservation into transaction (performance trade-off)
+
+**Priority 3 (Future):**
+6. 📝 Add warehouse ID validation (or default warehouse logic)
 
 ---
 
