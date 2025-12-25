@@ -63,8 +63,18 @@ This checklist guides the migration of each service to use the new common code i
   - Common version: v1.2.9 → v1.3.3
   - Lines saved: ~8 added (health setup)
   - Notes: Phase 1 complete. Already using gRPC for all internal services! Config kept as-is (custom Viper).
-- [ ] customer-service
-- [ ] pricing-service
+- [x] **customer-service** ✅ COMPLETED
+  - Migrated: 2025-12-25
+  - Commit: 78b135b
+  - Common version: v1.2.10 → v1.3.3
+  - Lines saved: ~11 added (health setup)
+  - Notes: Phase 1 complete. Already using gRPC for Order service with circuit breaker! Config kept as-is (custom Viper).
+- [x] **pricing-service** ✅ COMPLETED
+  - Migrated: 2025-12-25
+  - Commit: 80a9b86
+  - Common version: v1.2.9 → v1.3.3
+  - Lines saved: ~18 added (health setup)
+  - Notes: Phase 1 complete. Added health checks. Catalog/warehouse clients still HTTP (should migrate to gRPC).
 - [ ] promotion-service
 - [ ] fulfillment-service
 - [ ] search-service
