@@ -45,9 +45,24 @@ This checklist guides the migration of each service to use the new common code i
   - Common version: v1.3.3
   - Lines saved: ~150
   - Notes: Health, DB, Config migrated.
-- [ ] warehouse-service (PRIORITY 7 - NEXT)
-- [ ] shipping-service (PRIORITY 8)
-- [ ] catalog-service
+- [x] **warehouse-service (PRIORITY 7)** ✅ COMPLETED
+  - Migrated: 2025-12-25
+  - Commit: f63a067
+  - Common version: v1.3.3
+  - Lines saved: ~9 (Phases 1-3 already done)
+  - Notes: Phases 1-3 already using common code. Migrated catalog HTTP client.
+- [x] **shipping-service (PRIORITY 8)** ✅ COMPLETED
+  - Migrated: 2025-12-25
+  - Commit: 5797535
+  - Common version: v1.3.3
+  - Lines saved: ~20 (Phases 1-3, 5 already done)
+  - Notes: All phases complete. Catalog HTTP client migrated. Pre-existing helper.go issue noted.
+- [x] **catalog-service** ✅ COMPLETED
+  - Migrated: 2025-12-25
+  - Commit: d34fcff
+  - Common version: v1.2.9 → v1.3.3
+  - Lines saved: ~8 added (health setup)
+  - Notes: Phase 1 complete. Already using gRPC for all internal services! Config kept as-is (custom Viper).
 - [ ] customer-service
 - [ ] pricing-service
 - [ ] promotion-service
@@ -329,6 +344,15 @@ This checklist guides the migration of each service to use the new common code i
 ---
 
 ## 🌐 PHASE 4: HTTP CLIENTS (HIGH PRIORITY)
+
+> [!IMPORTANT]
+> **POLICY: Prefer gRPC over HTTP for Internal Services**
+> - For internal service-to-service communication, **use gRPC clients** instead of HTTP
+> - HTTP clients in `common/client` should ONLY be used for:
+>   - External third-party APIs (payment gateways, shipping carriers, etc.)
+>   - Services that don't have gRPC support yet (legacy systems)
+> - If migrating legacy HTTP client code, consider migrating to gRPC instead
+> - See [http-to-grpc-migration.md](./http-to-grpc-migration.md) for gRPC migration guide
 
 ### Pre-Migration Checklist
 - [ ] **Identify existing HTTP clients**

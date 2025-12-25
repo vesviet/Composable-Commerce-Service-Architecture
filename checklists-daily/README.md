@@ -45,6 +45,28 @@ Thư mục này chứa các checklist hàng ngày để review và maintain micr
 - 📊 Performance tracking
 - 🚨 Rollback procedures
 
+### 4. [gRPC Client Implementation Checklist](./grpc-client-implementation-checklist.md)
+**Mục đích:** Comprehensive checklist cho gRPC client implementation across all microservices
+
+**Tần suất:** Weekly (during implementation phase)  
+**Thời gian:** ~90 phút  
+**Ưu tiên:** High
+
+**Nội dung:**
+- 🔴 Circuit Breakers & Resilience
+- 🟡 Performance Optimization (Connection Pooling, Compression, Keep-Alive)
+- 🟡 Error Handling & Status Codes
+- 🟡 Observability & Tracing (Metrics, Logging, Tracing)
+- 🟢 Testing (Unit, Integration, Load Tests)
+
+**Services Covered:**
+- Order Service (10 gRPC clients)
+- Catalog Service (4 gRPC clients)
+- Warehouse Service (4 gRPC clients)
+- Customer Service (1 gRPC client) - ⚠️ CRITICAL improvements needed
+- Gateway Service (1 gRPC client)
+- Search Service (3 gRPC clients)
+
 ## 🗓️ Daily Schedule
 
 | Time | Checklist | Assignee | Duration |
