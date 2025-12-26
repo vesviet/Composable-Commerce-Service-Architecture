@@ -20,6 +20,7 @@ This checklist covers all technical implementation requirements for gRPC clients
 - ✅ **Customer Service** - 1 gRPC client (Order)
 - ✅ **Gateway Service** - 1 gRPC client (Warehouse)
 - ✅ **Search Service** - 3 gRPC clients (Catalog, Pricing, Warehouse)
+- ✅ **Promotion Service** - 4 gRPC clients (Customer, Catalog, Pricing, Review)
 
 ---
 
@@ -124,6 +125,22 @@ This checklist covers all technical implementation requirements for gRPC clients
 - [x] Monitor circuit breaker states ✅ (State change logging via circuit breaker)
 - [ ] Test failure scenarios ⚠️ (Pending - needs integration tests)
 
+### Promotion Service (4 clients) ✅ **COMPLETED** (2025-01-XX)
+- [x] **Customer Client** - ✅ Circuit breaker implemented
+- [x] **Catalog Client** - ✅ Circuit breaker implemented
+- [x] **Pricing Client** - ✅ Circuit breaker implemented
+- [x] **Review Client** - ✅ Circuit breaker implemented
+
+**Configuration:**
+- [x] Configure failure thresholds (5 consecutive failures OR 70% failure rate over 10 requests) ✅
+- [ ] Add retry policies with exponential backoff ⚠️ (Pending - can be added later)
+- [x] Configure timeout policies (5s, 10s, 30s based on operation) ✅ **COMPLETED** (2025-01-XX)
+  - ✅ Quick operations (5s): GetCustomer, GetProduct, GetPrice, GetProductRating, GetCustomerSegments, ValidateCustomer, ValidateCustomerReview, GetCustomerReviewCount
+  - ✅ Medium operations (10s): GetProductsByCategory, CalculateDiscount, GetCustomerReviews
+  - ✅ Long operations (30s): ValidateProducts (iterates through multiple products)
+- [x] Monitor circuit breaker states ✅ (State change logging via circuit breaker)
+- [ ] Test failure scenarios ⚠️ (Pending - needs integration tests)
+
 ---
 
 ## 🟡 PERFORMANCE OPTIMIZATION
@@ -210,7 +227,8 @@ conn, err := grpc.NewClient(
 - [x] **Warehouse Service** - ✅ **CONFIGURED** (10s ping, 3s timeout) - Completed 2025-01-XX
 - [x] **Customer Service** - ✅ **CONFIGURED** (10s ping, 3s timeout) - Completed 2025-01-XX
 - [ ] **Gateway Service** - Keep-alive configured
-- [ ] **Search Service** - Keep-alive configured
+- [x] **Search Service** - ✅ **CONFIGURED** (10s ping, 3s timeout) - Completed 2025-01-XX
+- [x] **Promotion Service** - ✅ **CONFIGURED** (10s ping, 3s timeout) - Completed 2025-01-XX
 
 ---
 
@@ -262,7 +280,8 @@ if err != nil {
 - [ ] **Warehouse Service** - Error handling implemented
 - [x] **Customer Service** - ✅ **ENHANCED** (gRPC status code mapping) - Completed 2025-01-XX
 - [ ] **Gateway Service** - Error handling implemented
-- [ ] **Search Service** - Error handling implemented
+- [x] **Search Service** - ✅ **ENHANCED** (gRPC status code mapping) - Completed 2025-01-XX
+- [x] **Promotion Service** - ✅ **ENHANCED** (gRPC status code mapping) - Completed 2025-01-XX
 
 ---
 
@@ -533,9 +552,9 @@ if err != nil {
 
 ### Overall Progress
 - **Basic Implementation:** ✅ **100%** (All services have gRPC clients)
-- **Circuit Breakers:** ✅ **~70%** (Order, Customer, Warehouse, Catalog, Fulfillment services completed)
-- **Performance Optimization:** ✅ **~70%** (Order, Customer, Warehouse, Catalog, Fulfillment services completed)
-- **Error Handling:** ✅ **~80%** (Most services have basic error handling)
+- **Circuit Breakers:** ✅ **~85%** (Order, Customer, Warehouse, Catalog, Fulfillment, Search, Promotion services completed)
+- **Performance Optimization:** ✅ **~85%** (Order, Customer, Warehouse, Catalog, Fulfillment, Search, Promotion services completed)
+- **Error Handling:** ✅ **~85%** (Most services have enhanced error handling with gRPC status code mapping)
 - **Observability:** ⚠️ **~30%** (Some services have metrics/logging)
 - **Testing:** ⚠️ **~10%** (Few services have tests)
 
@@ -545,8 +564,9 @@ if err != nil {
 - **Warehouse Service:** ✅ **~90%** (Circuit breakers + Timeout policies + Performance optimizations implemented for ALL clients - Completed 2025-01-XX)
 - **Fulfillment Service:** ✅ **~90%** (Circuit breakers + Timeout policies + Performance optimizations implemented for ALL clients - Completed 2025-01-XX)
 - **Customer Service:** ✅ **~80%** (Circuit breaker, performance, error handling completed - observability and testing pending)
+- **Search Service:** ✅ **~90%** (Circuit breakers + Timeout policies + Performance optimizations implemented for ALL clients - Completed 2025-01-XX)
+- **Promotion Service:** ✅ **~90%** (Circuit breakers + Timeout policies + Performance optimizations implemented for ALL clients - Completed 2025-01-XX)
 - **Gateway Service:** ⚠️ **~60%** (Basic implementation complete, needs enhancements)
-- **Search Service:** ⚠️ **~60%** (Basic implementation complete, needs enhancements)
 
 ---
 
@@ -564,8 +584,10 @@ if err != nil {
    - [x] Add performance optimizations for Catalog Service ✅ **COMPLETED** (2025-01-XX)
    - [x] Implement circuit breakers for Fulfillment Service ✅ **COMPLETED** (2025-01-XX)
    - [x] Add performance optimizations for Fulfillment Service ✅ **COMPLETED** (2025-01-XX)
-   - [ ] Implement circuit breakers for Catalog Service
-   - [ ] Add performance optimizations for Catalog Service
+   - [x] Implement circuit breakers for Search Service ✅ **COMPLETED** (2025-01-XX)
+   - [x] Add performance optimizations for Search Service ✅ **COMPLETED** (2025-01-XX)
+   - [x] Implement circuit breakers for Promotion Service ✅ **COMPLETED** (2025-01-XX)
+   - [x] Add performance optimizations for Promotion Service ✅ **COMPLETED** (2025-01-XX)
    - [ ] Enhance error handling for all services
 
 3. **Medium-term (Week 4-6):**
