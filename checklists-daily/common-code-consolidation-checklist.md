@@ -2,7 +2,7 @@
 
 **Last Updated**: 2025-01-XX  
 **Status**: In Progress  
-**Overall Progress**: 84% Complete (16/19 services migrated to common code)
+**Overall Progress**: 89% Complete (17/19 services migrated to common code)
 
 ---
 
@@ -16,7 +16,7 @@ This comprehensive checklist tracks both:
 
 | Category | Status | Progress |
 |----------|--------|----------|
-| **Common Code Migration** | ✅ 84% Complete | 16/19 services |
+| **Common Code Migration** | ✅ 89% Complete | 17/19 services |
 | **Worker Framework** | 🔄 0% Complete | 0/11 services |
 | **Cache Consolidation** | 🔄 20% Complete | 1/6 services |
 | **Middleware System** | 🔄 30% Complete | 1/3 services |
@@ -27,6 +27,34 @@ This comprehensive checklist tracks both:
 ---
 
 ## PART 1: COMMON CODE MIGRATION
+
+### Health Checks Migration Status ⭐ UPDATED
+
+**Progress**: 17/19 services (89%) ✅
+
+| Service | Status | Notes |
+|---------|--------|-------|
+| **auth** | ✅ DONE | Using `common/observability/health` |
+| **user** | ✅ DONE | Using `common/observability/health` |
+| **order** | ✅ DONE | Using `common/observability/health` |
+| **warehouse** | ✅ DONE | Using `common/observability/health` |
+| **customer** | ✅ DONE | Using `common/observability/health` |
+| **fulfillment** | ✅ DONE | Using `common/observability/health` |
+| **catalog** | ✅ DONE | Using `common/observability/health` |
+| **promotion** | ✅ DONE | Using `common/observability/health` |
+| **search** | ✅ DONE | Using `common/observability/health` |
+| **notification** | ✅ DONE | Using `common/observability/health` |
+| **review** | ✅ DONE | Using `common/observability/health` |
+| **shipping** | ✅ DONE | Using `common/observability/health` |
+| **payment** | ✅ DONE | Using `common/observability/health` |
+| **pricing** | ✅ DONE | Using `common/observability/health` |
+| **location** | ✅ DONE | Using `common/observability/health` |
+| **common-operations** | ✅ DONE | Using `common/observability/health` |
+| **gateway** | ✅ **DONE** ⭐ | **Recently migrated** - Using `common/observability/health` |
+| **analytics** | 🔄 TODO | Not started |
+| **loyalty-rewards** | 🔄 TODO | Not started |
+
+**Remaining**: 2 services (analytics, loyalty-rewards)
 
 ### Service Migration Status
 
@@ -48,11 +76,11 @@ This comprehensive checklist tracks both:
 | **review** | ✅ | - | - | - | - | ✅ **DONE** | Health checks added |
 | **location** | ✅ | - | - | - | - | ✅ **DONE** | Health checks added |
 | **common-operations** | ✅ | - | - | - | - | ✅ **DONE** | Health checks added |
-| **gateway** | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 **TODO** | Special handling needed |
+| **gateway** | ✅ | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 **In Progress** | Health checks migrated ✅ |
 | **analytics** | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 **TODO** | Not started |
 | **loyalty-rewards** | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 | 🔄 **TODO** | Not started |
 
-**Migration Progress**: 16/19 services (84%) ✅
+**Migration Progress**: 17/19 services (89%) ✅
 
 ### Quick Migration Guide
 
@@ -366,7 +394,7 @@ err := eventPublisher.PublishEvent(ctx, events.TopicUserRegistered, event)
 
 | Category | Current Lines | Target Lines | Reduction % | Progress |
 |----------|--------------|-------------|-------------|----------|
-| **Common Code Migration** | ~3,150+ | 0 | 100% | 84% (16/19) |
+| **Common Code Migration** | ~3,150+ | 0 | 100% | 89% (17/19) |
 | **Worker Framework** | ~600+ | 0 | 100% | 0% (0/11) |
 | **Cache Consolidation** | ~400+ | ~100 | 75% | 20% (1/6) |
 | **Middleware System** | ~300+ | ~100 | 67% | 30% (1/3) |
@@ -376,7 +404,8 @@ err := eventPublisher.PublishEvent(ctx, events.TopicUserRegistered, event)
 ### Services Summary
 
 **Total Services**: 19
-- **Common Code Migration**: 16/19 (84%) ✅
+- **Common Code Migration**: 17/19 (89%) ✅
+- **Health Checks**: 17/19 (89%) ✅
 - **Services with Workers**: 11 (need consolidation)
 - **Services with Cache**: 6 (need consolidation)
 - **Services with Middleware**: 3 (need consolidation)
@@ -443,6 +472,9 @@ If issues occur:
 
 ## Update Log
 
+- **2025-01-XX**: Updated Health Checks migration status
+  - Gateway service migrated to common health checks ✅
+  - Progress: 17/19 services (89%) - Health Checks complete
 - **2025-01-XX**: Merged two checklists into one comprehensive file
 - **2025-12-25**: 16/19 services migrated to common code (84% complete)
 - **2025-01-XX**: Initial consolidation checklist created
