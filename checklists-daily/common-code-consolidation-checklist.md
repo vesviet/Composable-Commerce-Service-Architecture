@@ -265,7 +265,13 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 - [x] Add JWT Validation: `common/validation/jwt.go` ✅
 - [x] Add Business Rule Validation: `common/validation/business_rules.go` ✅
 - [x] Add comprehensive test cases (85.7% coverage) ✅
-- [ ] Migrate all services to use common validation
+- [ ] Migrate Order service (Priority 1 - highest impact, ~240 lines)
+- [ ] Migrate Gateway service (Priority 2 - JWT consolidation, ~150 lines)
+- [ ] Migrate Customer service (Priority 3 - ~100 lines)
+- [ ] Migrate Catalog service (Priority 4 - ~80 lines)
+- [ ] Migrate remaining 10 services (Priority 5 - batch migration, ~500 lines)
+
+**Migration Plan**: See `validation-framework-migration-plan.md` for detailed strategy
 
 **Expected Reduction**: ~200+ lines → ~50 lines (75% elimination)
 
