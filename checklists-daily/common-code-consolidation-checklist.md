@@ -248,8 +248,8 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 | **order** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~200 lines eliminated) |
 | **customer** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~100 lines eliminated) |
 | **catalog** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~80 lines eliminated) |
-| **warehouse** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~70 lines eliminated) |
-| **pricing** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~50 lines eliminated) |
+| **warehouse** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~75 lines eliminated) |
+| **pricing** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~80 lines eliminated) |
 | **payment** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~30 lines eliminated) |
 | **shipping** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~60 lines eliminated) |
 | **notification** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~20 lines eliminated) |
@@ -260,18 +260,6 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 | **promotion** | ✅ | ✅ Yes | ✅ **DONE** | Updated common v1.4.1 (minimal validation logic) |
 | **search** | ✅ | ✅ Yes | ✅ **DONE** | Updated common v1.4.1 (minimal validation logic) |
 | **common-operations** | ✅ | ✅ Yes | ✅ **DONE** | Updated common v1.4.1 (minimal validation logic) |
-| **warehouse** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **pricing** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **payment** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **shipping** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **notification** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **common-operations** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **auth** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **user** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **fulfillment** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **loyalty-rewards** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **promotion** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
-| **search** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
 
 **Enhancement Tasks**:
 - [x] Add JWT Validation: `common/validation/jwt.go` ✅
