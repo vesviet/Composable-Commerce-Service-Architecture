@@ -279,7 +279,7 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 - [x] Migrate Fulfillment service (~10 lines) ✅
 - [x] Migrate Loyalty-Rewards service (~8 lines) ✅
 - [x] Update Promotion, Search, Common-Operations services to common v1.4.1 ✅
-- [ ] Migrate Gateway service (Priority 2 - JWT consolidation, ~150 lines)
+- [x] Migrate Gateway service (Priority 2 - JWT consolidation, ~150 lines) ✅
 - [ ] Migrate Customer service (Priority 3 - ~100 lines)
 - [ ] Migrate Catalog service (Priority 4 - ~80 lines)
 - [ ] Migrate remaining 10 services (Priority 5 - batch migration, ~500 lines)
