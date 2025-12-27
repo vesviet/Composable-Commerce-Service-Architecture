@@ -485,6 +485,15 @@ If issues occur:
 
 ## Update Log
 
+- **2025-01-26**: Phase 2 Cache Consolidation completed ✅
+  - All 6 services migrated to `common/utils/cache`
+  - warehouse, gateway, loyalty-rewards, catalog: migrated
+  - promotion, search: already using common cache
+  - Progress: 20% → 100% (1/6 → 6/6 services)
+  - Code reduction: ~300+ lines eliminated
+- **2025-01-26**: Phase 1 Worker Framework progress updated
+  - 6/12 services migrated (50% complete)
+  - warehouse, pricing, catalog, promotion, search, notification: migrated
 - **2025-01-XX**: Updated Health Checks migration status
   - Gateway service migrated to common health checks ✅
   - Progress: 17/19 services (89%) - Health Checks complete
