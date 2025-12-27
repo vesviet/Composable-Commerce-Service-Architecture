@@ -250,7 +250,7 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 | **catalog** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~80 lines eliminated) |
 | **warehouse** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~75 lines eliminated) |
 | **pricing** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~80 lines eliminated) |
-| **payment** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~30 lines eliminated) |
+| **payment** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~55 lines eliminated) |
 | **shipping** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~60 lines eliminated) |
 | **notification** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~20 lines eliminated) |
 | **auth** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~15 lines eliminated) |
