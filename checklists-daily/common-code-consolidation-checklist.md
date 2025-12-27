@@ -177,7 +177,7 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 
 ### Phase 3: Middleware Consolidation
 
-**Status**: 🔄 Review Complete - Ready for Consolidation
+**Status**: 🔄 50% Complete (Phase 1 & 2 done, Phase 3 & 4 pending)
 
 #### Review Summary
 - ✅ **Comprehensive review completed** - See `middleware-requirements-review.md`
@@ -195,9 +195,9 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 | Service | Has Middleware | Uses Common Middleware | Status | Notes |
 |---------|---------------|----------------------|--------|-------|
 | **gateway** | ✅ | ✅ Partial | 🔄 Optimize | Complex middleware required (12+ types), optimize manager code |
-| **order** | ✅ | ✅ Partial | 🔄 TODO | Custom logging + rate limit, migrate logging to common |
-| **promotion** | ✅ | ✅ Partial | 🔄 TODO | Custom logging + rate limit + auth, migrate logging, remove auth |
-| **shipping** | ✅ | ✅ Partial | 🔄 TODO | Redundant auth middleware, remove it |
+| **order** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to Kratos built-in logging, rate limit kept (business requirement) |
+| **promotion** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to Kratos built-in logging, removed auth, rate limit kept (business requirement) |
+| **shipping** | ✅ | ✅ Yes | ✅ **DONE** | Removed redundant auth middleware |
 | **payment** | ✅ | ✅ Yes | ✅ **DONE** | Recovery + Metadata only (optimal) |
 | **customer** | ✅ | ✅ Yes | ✅ **DONE** | Recovery + Metadata only (optimal) |
 | **catalog** | ✅ | ✅ Yes | ✅ **DONE** | Recovery + Metadata only (optimal) |
@@ -216,12 +216,13 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 
 **Consolidation Tasks**:
 - [x] Review all services middleware requirements ✅
-- [ ] Phase 1: Remove redundant auth middleware (Promotion, Shipping)
-- [ ] Phase 2: Migrate custom logging to common (Order, Promotion)
+- [x] Phase 1: Remove redundant auth middleware (Promotion, Shipping) ✅
+- [x] Phase 2: Migrate custom logging to Kratos built-in (Order, Promotion) ✅
 - [ ] Phase 3: Evaluate rate limiting consolidation (Order, Promotion) - Business decision needed
 - [ ] Phase 4: Optimize Gateway middleware manager code organization
 
 **Expected Reduction**: ~650 lines → ~100 lines (85% elimination potential)
+**Actual Reduction**: ~540 lines eliminated (Phase 1 & 2 complete) ✅
 
 ---
 
