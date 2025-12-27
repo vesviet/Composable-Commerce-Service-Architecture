@@ -164,8 +164,10 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 **Enhancement Tasks**:
 - [x] Migrate warehouse, gateway, loyalty-rewards, catalog caches ✅
 - [x] Optimize search cache DeletePattern ✅
-- [ ] Create TypedCache: `common/cache/typed_cache.go` with generics (future enhancement)
-- [ ] Add cache warming, bulk operations, metrics (future enhancement)
+- [x] All 6 services using `common/utils/cache/RedisCache` ✅
+- [x] Code reduction: ~300+ lines eliminated ✅
+- [ ] Create TypedCache: `common/cache/typed_cache.go` with generics (future enhancement - low priority)
+- [ ] Add cache warming, bulk operations, metrics (future enhancement - low priority)
 
 **Expected Reduction**: ~400+ lines → ~100 lines (75% elimination)
 
