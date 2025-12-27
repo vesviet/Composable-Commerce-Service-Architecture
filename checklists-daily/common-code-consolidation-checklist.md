@@ -257,7 +257,7 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 | **user** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~25 lines eliminated) |
 | **fulfillment** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~10 lines eliminated) |
 | **loyalty-rewards** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~8 lines eliminated) |
-| **promotion** | ✅ | ✅ Yes | ✅ **DONE** | Updated common v1.4.1 (minimal validation logic) |
+| **promotion** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~30 lines eliminated - UUID validation for IDs, required validation for codes, range validation for count) |
 | **search** | ✅ | ✅ Yes | ✅ **DONE** | Updated common v1.4.1 (minimal validation logic) |
 | **common-operations** | ✅ | ✅ Yes | ✅ **DONE** | Updated common v1.4.1 (minimal validation logic) |
 
