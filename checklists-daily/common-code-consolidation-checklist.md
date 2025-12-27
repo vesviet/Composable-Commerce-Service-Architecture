@@ -229,7 +229,7 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 
 ### Phase 4: Validation Framework
 
-**Status**: 🔄 29% Complete (4/14 services migrated)
+**Status**: 🔄 36% Complete (5/14 services migrated)
 
 #### Common Validation Status
 - ✅ **Created**: `common/validation/validator.go` exists
@@ -247,7 +247,7 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 | **gateway** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common JWT validator (~150 lines eliminated) |
 | **order** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~200 lines eliminated) |
 | **customer** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~100 lines eliminated) |
-| **catalog** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
+| **catalog** | ✅ | ✅ Yes | ✅ **DONE** | Migrated to common validation (~80 lines eliminated) |
 | **warehouse** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
 | **pricing** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
 | **payment** | ✅ | ❌ | 🔄 TODO | Validation in service layer |
@@ -268,6 +268,7 @@ For detailed step-by-step instructions, see sections below. Quick reference:
 - [x] Migrate Order service (Priority 1 - highest impact, ~240 lines) ✅
 - [x] Migrate Gateway service (Priority 2 - JWT consolidation, ~150 lines) ✅
 - [x] Migrate Customer service (Priority 3 - ~100 lines) ✅
+- [x] Migrate Catalog service (Priority 4 - ~80 lines) ✅
 - [ ] Migrate Gateway service (Priority 2 - JWT consolidation, ~150 lines)
 - [ ] Migrate Customer service (Priority 3 - ~100 lines)
 - [ ] Migrate Catalog service (Priority 4 - ~80 lines)
