@@ -51,7 +51,7 @@
 | **review-service** | 8000 | 8000 | 9000 | 5 | BaseAppConfig (correct) | ✅ Fixed | ✅ Healthy |
 | **search-service** | 8000 | 8000 | 9000 | 12 | BaseAppConfig (correct) | ✅ Fixed | ✅ Healthy |
 | **shipping-service** | 8000 | 8000 | 9000 | 13 | BaseAppConfig (correct) | ✅ Fixed | ✅ Healthy |
-| **user-service** | 8000 | 8000 | 9000 | 15 | Custom struct | ✅ Working | ✅ Healthy |
+| **user-service** | 8000 | 8000 | 9000 | 15 | BaseAppConfig (correct) | ✅ Migrated | ✅ Healthy |
 | **warehouse-service** | 8000 | 8000 | 9000 | 9 | BaseAppConfig (correct) | ✅ Fixed | ✅ Healthy |
 
 ### Support Services
@@ -126,12 +126,12 @@
 - ✅ `catalog-service` - Correct initialization
 
 **Services Using Custom Config (Not Affected)**:
-- ✅ `user-service` - Custom struct (working)
 - ✅ `notification-service` - Custom struct (working)
 
 **Services Migrated to BaseAppConfig**:
 - ✅ `payment-service` - Migrated from Custom struct to BaseAppConfig (2025-12-28)
 - ✅ `auth-service` - Migrated from Custom struct to BaseAppConfig (2025-12-28)
+- ✅ `user-service` - Migrated from Custom struct to BaseAppConfig (2025-12-28)
 
 **Root Cause**:
 When using embedded pointer structs (`*BaseAppConfig`), mapstructure requires nested structs to be initialized for proper unmarshaling. Empty BaseAppConfig pointer causes config values to be ignored, resulting in:
@@ -257,7 +257,7 @@ config:
 ### Pattern Categories
 
 #### Category 1: BaseAppConfig with Correct Initialization ✅
-**Services**: customer, catalog, review (fixed), pricing (fixed), payment (migrated), auth (migrated)
+**Services**: customer, catalog, review (fixed), pricing (fixed), payment (migrated), auth (migrated), user (migrated)
 
 **Pattern**:
 ```go
@@ -295,7 +295,7 @@ BaseAppConfig: &commonConfig.BaseAppConfig{
 - No more random ports or wrong Redis DB assignments
 
 #### Category 3: Custom Config Structs (Not Using BaseAppConfig) ✅
-**Services**: user, notification
+**Services**: notification
 
 **Pattern**:
 ```go
@@ -429,7 +429,7 @@ For services using BaseAppConfig:
 | review-service | BaseAppConfig (correct) | 8000/9000 | 5 | ✅ Fixed 2025-12-28 |
 | search-service | BaseAppConfig (correct) | 8000/9000 | 12 | ✅ Fixed 2025-12-28 (also migrated eventbus) |
 | shipping-service | BaseAppConfig (correct) | 8000/9000 | 13 | ✅ Fixed 2025-12-28 |
-| user-service | Custom struct | 8000/9000 | 15 | Not using BaseAppConfig |
+| user-service | BaseAppConfig (correct) | 8000/9000 | 15 | ✅ Migrated 2025-12-28 |
 | warehouse-service | BaseAppConfig (correct) | 8000/9000 | 9 | ✅ Fixed 2025-12-28 |
 
 **Status**: ✅ All 16 backend services are now healthy with correct configuration patterns
@@ -511,14 +511,15 @@ For service name `"{service}"`:
 **Total Services**: 29 (16 backend + 9 workers + 2 frontend + 2 infrastructure)  
 **Healthy**: 16 (100% of backend services) ✅  
 **At Risk**: 0 (0%) ✅  
-**Fixed**: 12 (75% of BaseAppConfig services) - All BaseAppConfig services now fixed ✅  
-**Custom Pattern (Working)**: 2 (12.5%) - user, notification ✅  
+**Fixed**: 13 (81.25% of BaseAppConfig services) - All BaseAppConfig services now fixed ✅  
+**Custom Pattern (Working)**: 1 (6.25%) - notification ✅  
 **Workers**: 9 (31%) - All healthy ✅  
 
 **Critical Issues**: ✅ **ALL RESOLVED** (2025-12-28)
-- ✅ All 12 services using BaseAppConfig now have correct initialization
+- ✅ All 13 services using BaseAppConfig now have correct initialization
 - ✅ Payment service migrated from Custom struct to BaseAppConfig (2025-12-28)
 - ✅ Auth service migrated from Custom struct to BaseAppConfig (2025-12-28)
+- ✅ User service migrated from Custom struct to BaseAppConfig (2025-12-28)
 - ✅ All configurations are correct
 - ✅ All services are healthy
 
@@ -559,10 +560,15 @@ For service name `"{service}"`:
   - Updated import paths (common/utils/database, common/repository)
   - Updated config YAML files to use standardized ports (8000/9000)
   - All builds successful
+- ✅ Migrated user-service from Custom struct to BaseAppConfig pattern:
+  - Updated user/config/config.go to use BaseAppConfig
+  - Updated all config references (Server, Data, Consul, Trace) to use BaseAppConfig
+  - Updated config YAML files to use standardized ports (8000/9000)
+  - All builds successful, wire regenerated
 - ✅ All services built, committed, and pushed
 - ✅ Config Loading status: 100% Complete
 - ✅ All 16 backend services now healthy
-- ✅ BaseAppConfig services: 12 (75%), Custom struct services: 2 (12.5%)
+- ✅ BaseAppConfig services: 13 (81.25%), Custom struct services: 1 (6.25%)
 
 ### Version 2.0 (2025-12-28) - Config Loading Pattern Review
 - Identified BaseAppConfig initialization issue
