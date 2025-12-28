@@ -45,7 +45,7 @@
 | **location-service** | 8000 | 8000 | 9000 | 7 | BaseAppConfig (correct) | ✅ Fixed | ✅ Healthy |
 | **notification-service** | 8000 | 8000 | 9000 | 11 | Custom struct | ✅ Working | ✅ Healthy |
 | **order-service** | 8000 | 8000 | 9000 | 1 | BaseAppConfig (correct) | ✅ Fixed | ✅ Healthy |
-| **payment-service** | 8000 | 8000 | 9000 | 14 | Custom struct | ✅ Working | ✅ Healthy |
+| **payment-service** | 8000 | 8000 | 9000 | 14 | BaseAppConfig (correct) | ✅ Migrated | ✅ Healthy |
 | **pricing-service** | 8000 | 8000 | 9000 | 2 | BaseAppConfig (correct) | ✅ Fixed | ✅ Healthy |
 | **promotion-service** | 8000 | 8000 | 9000 | 3 | BaseAppConfig (correct) | ✅ Fixed | ✅ Healthy |
 | **review-service** | 8000 | 8000 | 9000 | 5 | BaseAppConfig (correct) | ✅ Fixed | ✅ Healthy |
@@ -128,8 +128,10 @@
 **Services Using Custom Config (Not Affected)**:
 - ✅ `auth-service` - Custom struct (working)
 - ✅ `user-service` - Custom struct (working)
-- ✅ `payment-service` - Custom struct (working)
 - ✅ `notification-service` - Custom struct (working)
+
+**Services Migrated to BaseAppConfig**:
+- ✅ `payment-service` - Migrated from Custom struct to BaseAppConfig (2025-12-28)
 
 **Root Cause**:
 When using embedded pointer structs (`*BaseAppConfig`), mapstructure requires nested structs to be initialized for proper unmarshaling. Empty BaseAppConfig pointer causes config values to be ignored, resulting in:
@@ -255,7 +257,7 @@ config:
 ### Pattern Categories
 
 #### Category 1: BaseAppConfig with Correct Initialization ✅
-**Services**: customer, catalog, review (fixed), pricing (fixed)
+**Services**: customer, catalog, review (fixed), pricing (fixed), payment (migrated)
 
 **Pattern**:
 ```go
@@ -293,7 +295,7 @@ BaseAppConfig: &commonConfig.BaseAppConfig{
 - No more random ports or wrong Redis DB assignments
 
 #### Category 3: Custom Config Structs (Not Using BaseAppConfig) ✅
-**Services**: auth, user, payment, notification
+**Services**: auth, user, notification
 
 **Pattern**:
 ```go
@@ -421,7 +423,7 @@ For services using BaseAppConfig:
 | location-service | BaseAppConfig (correct) | 8000/9000 | 7 | ✅ Fixed 2025-12-28 |
 | notification-service | Custom struct | 8000/9000 | 11 | Not using BaseAppConfig |
 | order-service | BaseAppConfig (correct) | 8000/9000 | 1 | ✅ Fixed 2025-12-28 |
-| payment-service | Custom struct | 8000/9000 | 14 | Not using BaseAppConfig |
+| payment-service | BaseAppConfig (correct) | 8000/9000 | 14 | ✅ Migrated 2025-12-28 |
 | pricing-service | BaseAppConfig (correct) | 8000/9000 | 2 | ✅ Fixed 2025-12-28 |
 | promotion-service | BaseAppConfig (correct) | 8000/9000 | 3 | ✅ Fixed 2025-12-28 |
 | review-service | BaseAppConfig (correct) | 8000/9000 | 5 | ✅ Fixed 2025-12-28 |
@@ -448,7 +450,7 @@ BACKEND SERVICES (16):
 ├── location-service (8000/9000, Redis DB 7) ✅ BaseAppConfig (correct - fixed 2025-12-28)
 ├── notification-service (8000/9000, Redis DB 11) ✅ Custom struct
 ├── order-service (8000/9000, Redis DB 1) ✅ BaseAppConfig (correct - fixed 2025-12-28)
-├── payment-service (8000/9000, Redis DB 14) ✅ Custom struct
+├── payment-service (8000/9000, Redis DB 14) ✅ BaseAppConfig (migrated 2025-12-28)
 ├── pricing-service (8000/9000, Redis DB 2) ✅ BaseAppConfig (correct - fixed 2025-12-28)
 ├── promotion-service (8000/9000, Redis DB 3) ✅ BaseAppConfig (correct - fixed 2025-12-28)
 ├── review-service (8000/9000, Redis DB 5) ✅ BaseAppConfig (correct - fixed 2025-12-28)
@@ -509,12 +511,13 @@ For service name `"{service}"`:
 **Total Services**: 29 (16 backend + 9 workers + 2 frontend + 2 infrastructure)  
 **Healthy**: 16 (100% of backend services) ✅  
 **At Risk**: 0 (0%) ✅  
-**Fixed**: 10 (62.5% of BaseAppConfig services) - All BaseAppConfig services now fixed ✅  
-**Custom Pattern (Working)**: 4 (25%) - auth, user, payment, notification ✅  
+**Fixed**: 11 (68.75% of BaseAppConfig services) - All BaseAppConfig services now fixed ✅  
+**Custom Pattern (Working)**: 3 (18.75%) - auth, user, notification ✅  
 **Workers**: 9 (31%) - All healthy ✅  
 
 **Critical Issues**: ✅ **ALL RESOLVED** (2025-12-28)
-- ✅ All 10 services using BaseAppConfig now have correct initialization
+- ✅ All 11 services using BaseAppConfig now have correct initialization
+- ✅ Payment service migrated from Custom struct to BaseAppConfig (2025-12-28)
 - ✅ All configurations are correct
 - ✅ All services are healthy
 
@@ -544,9 +547,15 @@ For service name `"{service}"`:
   - search-service (also migrated eventbus, updated common v1.4.8)
   - shipping-service
   - warehouse-service
+- ✅ Migrated payment-service from Custom struct to BaseAppConfig pattern:
+  - Updated payment/config/config.go to use BaseAppConfig
+  - Updated all config references (Server, Data, Consul, Trace) to use BaseAppConfig
+  - Updated config YAML files to use standardized ports (8000/9000)
+  - All builds successful, wire regenerated
 - ✅ All services built, committed, and pushed
 - ✅ Config Loading status: 100% Complete
 - ✅ All 16 backend services now healthy
+- ✅ BaseAppConfig services: 11 (68.75%), Custom struct services: 3 (18.75%)
 
 ### Version 2.0 (2025-12-28) - Config Loading Pattern Review
 - Identified BaseAppConfig initialization issue
