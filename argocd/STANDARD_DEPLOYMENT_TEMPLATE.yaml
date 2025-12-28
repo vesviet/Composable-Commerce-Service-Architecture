@@ -1,0 +1,137 @@
+# Standard Microservice Deployment Template
+# Version: 1.1 (Standardized "Warehouse Pattern")
+# Date: 2025-12-28
+#
+# This is the standardized deployment template for all backend microservices.
+# It includes:
+# - Standardized Ports (8000/9000/5005)
+# - Dapr Configurations
+# - Standard Environment Variables
+# - Liveness/Readiness Probes
+#
+# Usage:
+#   1. Copy to argocd/applications/main/<your-service>/templates/deployment.yaml
+#   2. Replace <SERVICE_NAME> with your service name (e.g., 'auth', 'warehouse')
+#   3. Replace <SERVICE_VAR_PREFIX> with uppercase version (e.g., 'AUTH', 'WAREHOUSE')
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "<SERVICE_NAME>.fullname" . }}
+  labels:
+    {{- include "<SERVICE_NAME>.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      {{- include "<SERVICE_NAME>.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "<SERVICE_NAME>.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "<SERVICE_NAME>.serviceAccountName" . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              ulimit -n 65536 || true
+              exec /app/bin/<SERVICE_NAME> -conf /app/configs/config.yaml
+          ports:
+            - name: http-svc
+              containerPort: {{ .Values.service.targetHttpPort }}
+              protocol: TCP
+            - name: grpc-svc
+              containerPort: {{ .Values.service.targetGrpcPort }}
+              protocol: TCP
+            - name: dapr-grpc
+              containerPort: 5005
+              protocol: TCP
+          env:
+            - name: KRATOS_CONF
+              value: "/app/configs"
+            
+            # Dapr configuration (required for Redis Streams event consumption)
+            - name: DAPR_GRPC_ENDPOINT
+              value: "localhost:50001"  # Connect to Dapr sidecar gRPC port
+            - name: DAPR_PUBSUB_NAME
+              value: "pubsub-redis"  # Dapr pub/sub component name
+            
+            # Database URL
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "<SERVICE_NAME>.fullname" . }}
+                  key: database-url
+            - name: <SERVICE_VAR_PREFIX>_DATA_DATABASE_SOURCE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "<SERVICE_NAME>.fullname" . }}
+                  key: database-url
+            
+            # Encryption Key
+            - name: <SERVICE_VAR_PREFIX>_SECURITY_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "<SERVICE_NAME>.fullname" . }}
+                  key: encryption-key
+                  optional: true
+            
+            # Service discovery (Overrides for libs if needed)
+            - name: REDIS_ADDR
+              value: {{ .Values.env.redisAddr | quote }}
+            - name: <SERVICE_VAR_PREFIX>_DATA_REDIS_ADDR
+              value: {{ .Values.env.redisAddr | quote }}
+            - name: CONSUL_ADDR
+              value: {{ .Values.env.consulAddress | quote }}
+            - name: <SERVICE_VAR_PREFIX>_registry_CONSUL_ADDRESS
+              value: {{ .Values.env.consulAddress | quote }}
+            
+            # Pod info
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          
+          volumeMounts:
+            - name: config
+              mountPath: /app/configs
+              readOnly: true
+          
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+      
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "<SERVICE_NAME>.fullname" . }}

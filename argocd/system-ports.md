@@ -18,7 +18,7 @@ All services have been reviewed and standardized according to the plan.
 | **admin** | Frontend | N/A | 80 | N/A | N/A | N/A | Static/Nginx hosting |
 | **auth-service** | Backend | 8000 | 8000 | 9000 | `:8000` | 0 | Standardized |
 | **catalog-service** | Backend | 8000 | 8000 | 9000 | `:8000` | 4 | Standardized |
-| **common-operations** | Backend | 8018 | 8018 | 9018 | `:8018` / `:9018` | 8 | Standardized |
+| **common-operations** | Backend | 8000 | 8000 | 9000 | `:8000` / `:9000` | 8 | Standardized |
 | **customer-service** | Backend | 8000 | 8000 | 9000 | `0.0.0.0:8000` | 6 | Standardized |
 | **frontend** | Frontend | N/A | 3000 | N/A | N/A | N/A | Next.js App |
 | **fulfillment-service** | Backend | 8000 | 8000 | 9000 | `0.0.0.0:8000` | 10 | Standardized |
