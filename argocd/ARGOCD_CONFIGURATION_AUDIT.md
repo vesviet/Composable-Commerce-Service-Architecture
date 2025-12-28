@@ -456,7 +456,7 @@ BACKEND SERVICES (16):
 ├── review-service (8000/9000, Redis DB 5) ✅ BaseAppConfig (correct - fixed 2025-12-28)
 ├── search-service (8000/9000, Redis DB 12) ✅ BaseAppConfig (correct - fixed 2025-12-28)
 ├── shipping-service (8000/9000, Redis DB 13) ✅ BaseAppConfig (correct - fixed 2025-12-28)
-├── user-service (8000/9000, Redis DB 15) ✅ Custom struct
+├── user-service (8000/9000, Redis DB 15) ✅ BaseAppConfig (migrated 2025-12-28)
 └── warehouse-service (8000/9000, Redis DB 9) ✅ BaseAppConfig (correct - fixed 2025-12-28)
 
 WORKER SERVICES (9):
