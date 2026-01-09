@@ -1,0 +1,1187 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: SearchService API
+    description: Search service definition
+    version: 0.0.1
+paths:
+    /api/v1/search/analytics:
+        get:
+            tags:
+                - SearchService
+            description: Get search analytics
+            operationId: SearchService_GetSearchAnalytics
+            parameters:
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+                - name: searchType
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: category
+                  in: query
+                  schema:
+                    type: string
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.GetSearchAnalyticsResponse'
+    /api/v1/search/autocomplete:
+        get:
+            tags:
+                - SearchService
+            description: Get autocomplete suggestions
+            operationId: SearchService_GetAutocomplete
+            parameters:
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: category
+                  in: query
+                  schema:
+                    type: string
+                - name: userId
+                  in: query
+                  schema:
+                    type: string
+                - name: types
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.GetAutocompleteResponse'
+    /api/v1/search/content:
+        get:
+            tags:
+                - SearchService
+            description: Search content
+            operationId: SearchService_SearchContent
+            parameters:
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+                - name: contentTypes
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: sortBy
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: userId
+                  in: query
+                  schema:
+                    type: string
+                - name: sessionId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.SearchContentResponse'
+    /api/v1/search/index:
+        post:
+            tags:
+                - SearchService
+            description: Index content
+            operationId: SearchService_IndexContent
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.search.v1.IndexContentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.IndexContentResponse'
+    /api/v1/search/index/{id}:
+        put:
+            tags:
+                - SearchService
+            description: Update index
+            operationId: SearchService_UpdateIndex
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.search.v1.UpdateIndexRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.UpdateIndexResponse'
+        delete:
+            tags:
+                - SearchService
+            description: Remove from index
+            operationId: SearchService_RemoveFromIndex
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: indexType
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.RemoveFromIndexResponse'
+    /api/v1/search/popular:
+        get:
+            tags:
+                - SearchService
+            description: Get popular searches
+            operationId: SearchService_GetPopularSearches
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: timePeriod
+                  in: query
+                  schema:
+                    type: string
+                - name: searchType
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: category
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.GetPopularSearchesResponse'
+    /api/v1/search/products:
+        get:
+            tags:
+                - SearchService
+            description: Search products
+            operationId: SearchService_SearchProducts
+            parameters:
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: sortBy
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: categories
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: brands
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: minPrice
+                  in: query
+                  schema:
+                    type: number
+                    format: double
+                - name: maxPrice
+                  in: query
+                  schema:
+                    type: number
+                    format: double
+                - name: minRating
+                  in: query
+                  schema:
+                    type: number
+                    format: double
+                - name: inStockOnly
+                  in: query
+                  schema:
+                    type: boolean
+                - name: userId
+                  in: query
+                  schema:
+                    type: string
+                - name: sessionId
+                  in: query
+                  schema:
+                    type: string
+                - name: includeFacets
+                  in: query
+                  schema:
+                    type: boolean
+                - name: includeHighlights
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.SearchProductsResponse'
+    /api/v1/search/products/advanced:
+        get:
+            tags:
+                - SearchService
+            description: Advanced product search
+            operationId: SearchService_AdvancedProductSearch
+            parameters:
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+                - name: sortBy
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: fuzzySearch
+                  in: query
+                  schema:
+                    type: boolean
+                - name: includeFacets
+                  in: query
+                  schema:
+                    type: boolean
+                - name: includeHighlights
+                  in: query
+                  schema:
+                    type: boolean
+                - name: userId
+                  in: query
+                  schema:
+                    type: string
+                - name: sessionId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.SearchProductsResponse'
+    /api/v1/search/reindex:
+        post:
+            tags:
+                - SearchService
+            description: Reindex all content
+            operationId: SearchService_ReindexAll
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.search.v1.ReindexAllRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.ReindexAllResponse'
+    /api/v1/search/status:
+        get:
+            tags:
+                - SearchService
+            description: Get search service status
+            operationId: SearchService_GetSearchStatus
+            parameters:
+                - name: includeIndices
+                  in: query
+                  schema:
+                    type: boolean
+                - name: includePerformance
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.GetSearchStatusResponse'
+    /api/v1/search/suggestions:
+        get:
+            tags:
+                - SearchService
+            description: Get search suggestions
+            operationId: SearchService_GetSuggestions
+            parameters:
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: category
+                  in: query
+                  schema:
+                    type: string
+                - name: userId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.GetSuggestionsResponse'
+    /api/v1/search/track:
+        post:
+            tags:
+                - SearchService
+            description: Track search event
+            operationId: SearchService_TrackSearchEvent
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.search.v1.TrackSearchEventRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.TrackSearchEventResponse'
+    /api/v1/search/trending:
+        get:
+            tags:
+                - SearchService
+            description: Get trending searches
+            operationId: SearchService_GetTrendingSearches
+            parameters:
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: timePeriod
+                  in: query
+                  schema:
+                    type: string
+                - name: searchType
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: category
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.GetTrendingSearchesResponse'
+    /api/v1/search/visual:
+        post:
+            tags:
+                - SearchService
+            description: Visual search by image
+            operationId: SearchService_VisualSearch
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.search.v1.VisualSearchRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.SearchProductsResponse'
+    /api/v1/users/{userId}/recommendations:
+        get:
+            tags:
+                - SearchService
+            description: Get personalized recommendations
+            operationId: SearchService_GetRecommendations
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.GetRecommendationsResponse'
+    /api/v1/users/{userId}/searches:
+        get:
+            tags:
+                - SearchService
+            description: Get user search history
+            operationId: SearchService_GetUserSearchHistory
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: searchType
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.GetUserSearchHistoryResponse'
+    /api/v1/users/{userId}/searches/save:
+        post:
+            tags:
+                - SearchService
+            description: Save search
+            operationId: SearchService_SaveSearch
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.search.v1.SaveSearchRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.SaveSearchResponse'
+    /api/v1/users/{userId}/searches/{searchId}:
+        delete:
+            tags:
+                - SearchService
+            description: Delete saved search
+            operationId: SearchService_DeleteSavedSearch
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: searchId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.search.v1.DeleteSavedSearchResponse'
+components:
+    schemas:
+        api.search.v1.AutocompleteSuggestion:
+            type: object
+            properties:
+                text:
+                    type: string
+                type:
+                    type: integer
+                    format: enum
+                category:
+                    type: string
+                url:
+                    type: string
+                popularity:
+                    type: integer
+                    format: int32
+                id:
+                    type: string
+        api.search.v1.ContentResult:
+            type: object
+            properties:
+                contentId:
+                    type: string
+                contentType:
+                    type: string
+                title:
+                    type: string
+                excerpt:
+                    type: string
+                author:
+                    type: string
+                publishedAt:
+                    type: string
+                    format: date-time
+                tags:
+                    type: array
+                    items:
+                        type: string
+                category:
+                    type: string
+            description: Content result message
+        api.search.v1.DeleteSavedSearchResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.search.v1.FacetValue:
+            type: object
+            properties:
+                value:
+                    type: string
+                displayValue:
+                    type: string
+                count:
+                    type: integer
+                    format: int32
+                selected:
+                    type: boolean
+            description: Facet value message
+        api.search.v1.GetAutocompleteResponse:
+            type: object
+            properties:
+                suggestions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.AutocompleteSuggestion'
+                queryId:
+                    type: string
+        api.search.v1.GetPopularSearchesResponse:
+            type: object
+            properties:
+                popularSearches:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.SearchSuggestion'
+        api.search.v1.GetRecommendationsResponse:
+            type: object
+            properties:
+                recommendations:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.SearchResult'
+                recommendationId:
+                    type: string
+        api.search.v1.GetSearchAnalyticsResponse:
+            type: object
+            properties:
+                analytics:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.SearchAnalytics'
+                totalSearches:
+                    type: integer
+                    format: int32
+                uniqueUsers:
+                    type: integer
+                    format: int32
+                avgSearchTimeMs:
+                    type: number
+                    format: double
+                overallCtr:
+                    type: number
+                    format: double
+                overallConversionRate:
+                    type: number
+                    format: double
+        api.search.v1.GetSearchStatusResponse:
+            type: object
+            properties:
+                healthy:
+                    type: boolean
+                elasticsearchStatus:
+                    type: string
+                indices:
+                    type: object
+                    additionalProperties:
+                        $ref: '#/components/schemas/api.search.v1.IndexStatus'
+                performance:
+                    $ref: '#/components/schemas/api.search.v1.PerformanceMetrics'
+        api.search.v1.GetSuggestionsResponse:
+            type: object
+            properties:
+                suggestions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.SearchSuggestion'
+        api.search.v1.GetTrendingSearchesResponse:
+            type: object
+            properties:
+                trendingSearches:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.SearchSuggestion'
+        api.search.v1.GetUserSearchHistoryResponse:
+            type: object
+            properties:
+                searches:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.UserSearch'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.search.v1.IndexContentRequest:
+            type: object
+            properties:
+                indexType:
+                    type: integer
+                    format: enum
+                contentId:
+                    type: string
+                content:
+                    type: object
+                    additionalProperties:
+                        type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.search.v1.IndexContentResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                documentId:
+                    type: string
+        api.search.v1.IndexStatus:
+            type: object
+            properties:
+                name:
+                    type: string
+                healthy:
+                    type: boolean
+                documentCount:
+                    type: string
+                size:
+                    type: string
+                lastUpdated:
+                    type: string
+                    format: date-time
+        api.search.v1.PerformanceMetrics:
+            type: object
+            properties:
+                avgSearchTimeMs:
+                    type: number
+                    format: double
+                avgIndexTimeMs:
+                    type: number
+                    format: double
+                searchesPerSecond:
+                    type: integer
+                    format: int32
+                cacheHitRate:
+                    type: number
+                    format: double
+                activeConnections:
+                    type: integer
+                    format: int32
+        api.search.v1.ProductResult:
+            type: object
+            properties:
+                product_id:
+                    type: string
+                id:
+                    type: string
+                sku:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                price:
+                    type: number
+                    format: double
+                basePrice:
+                    type: number
+                    format: double
+                salePrice:
+                    type: number
+                    format: double
+                specialPrice:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                brand:
+                    type: string
+                category:
+                    type: string
+                inStock:
+                    type: boolean
+                quantity:
+                    type: string
+                rating:
+                    type: number
+                    format: double
+                reviewCount:
+                    type: integer
+                    format: int32
+                images:
+                    type: array
+                    items:
+                        type: string
+                attributes:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Product result message
+        api.search.v1.ReindexAllRequest:
+            type: object
+            properties:
+                indexType:
+                    type: integer
+                    format: enum
+                force:
+                    type: boolean
+        api.search.v1.ReindexAllResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                documentsIndexed:
+                    type: integer
+                    format: int32
+        api.search.v1.RemoveFromIndexResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.search.v1.SaveSearchRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                query:
+                    type: string
+                searchType:
+                    type: integer
+                    format: enum
+                filters:
+                    type: object
+                    additionalProperties:
+                        type: string
+                name:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.search.v1.SaveSearchResponse:
+            type: object
+            properties:
+                savedSearch:
+                    $ref: '#/components/schemas/api.search.v1.UserSearch'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.search.v1.SearchAnalytics:
+            type: object
+            properties:
+                query:
+                    type: string
+                searchCount:
+                    type: integer
+                    format: int32
+                uniqueUsers:
+                    type: integer
+                    format: int32
+                avgResults:
+                    type: number
+                    format: double
+                zeroResultsCount:
+                    type: integer
+                    format: int32
+                clickThroughRate:
+                    type: number
+                    format: double
+                conversionRate:
+                    type: number
+                    format: double
+                avgSearchTimeMs:
+                    type: number
+                    format: double
+                date:
+                    type: string
+                    format: date-time
+            description: Search analytics message
+        api.search.v1.SearchContentResponse:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.SearchResult'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                searchTimeMs:
+                    type: number
+                    format: double
+                facets:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.SearchFacet'
+                queryId:
+                    type: string
+        api.search.v1.SearchFacet:
+            type: object
+            properties:
+                name:
+                    type: string
+                displayName:
+                    type: string
+                type:
+                    type: integer
+                    format: enum
+                values:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.FacetValue'
+            description: Search facet message
+        api.search.v1.SearchProductsResponse:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.SearchResult'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                searchTimeMs:
+                    type: number
+                    format: double
+                facets:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.search.v1.SearchFacet'
+                queryId:
+                    type: string
+                correctedQuery:
+                    type: string
+                hasMore:
+                    type: boolean
+        api.search.v1.SearchResult:
+            type: object
+            properties:
+                id:
+                    type: string
+                type:
+                    type: integer
+                    format: enum
+                title:
+                    type: string
+                description:
+                    type: string
+                url:
+                    type: string
+                imageUrl:
+                    type: string
+                score:
+                    type: number
+                    format: double
+                position:
+                    type: integer
+                    format: int32
+                highlights:
+                    type: object
+                    additionalProperties:
+                        type: string
+                product:
+                    $ref: '#/components/schemas/api.search.v1.ProductResult'
+                content:
+                    $ref: '#/components/schemas/api.search.v1.ContentResult'
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Search result message
+        api.search.v1.SearchSuggestion:
+            type: object
+            properties:
+                text:
+                    type: string
+                type:
+                    type: integer
+                    format: enum
+                popularity:
+                    type: integer
+                    format: int32
+                category:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Search suggestion message
+        api.search.v1.TrackSearchEventRequest:
+            type: object
+            properties:
+                queryId:
+                    type: string
+                eventType:
+                    type: string
+                resultId:
+                    type: string
+                position:
+                    type: integer
+                    format: int32
+                value:
+                    type: number
+                    format: double
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.search.v1.TrackSearchEventResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.search.v1.UpdateIndexRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                indexType:
+                    type: integer
+                    format: enum
+                content:
+                    type: object
+                    additionalProperties:
+                        type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.search.v1.UpdateIndexResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.search.v1.UserSearch:
+            type: object
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+                query:
+                    type: string
+                searchType:
+                    type: integer
+                    format: enum
+                filters:
+                    type: object
+                    additionalProperties:
+                        type: string
+                saved:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: User search message
+        api.search.v1.VisualSearchRequest:
+            type: object
+            properties:
+                imageData:
+                    type: string
+                    format: bytes
+                imageUrl:
+                    type: string
+                limit:
+                    type: integer
+                    format: int32
+                filters:
+                    type: object
+                    additionalProperties:
+                        type: string
+                userId:
+                    type: string
+                sessionId:
+                    type: string
+tags:
+    - name: SearchService

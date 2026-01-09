@@ -1,0 +1,511 @@
+openapi: 3.0.3
+info:
+  title: API Gateway Service
+  description: |
+    API Gateway for TA Microservices Platform.
+    
+    The gateway routes HTTP requests to backend microservices, providing:
+    - Unified API endpoint for all services
+    - Authentication and authorization
+    - Rate limiting
+    - CORS handling
+    - Request/response transformation
+    - Health checks and monitoring
+    
+    All backend service endpoints are proxied through `/api/*` paths.
+  version: 1.0.0
+  contact:
+    name: Platform Engineering Team
+    email: platform@company.com  
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api-dev.company.com
+    description: Development
+  - url: https://api.company.com
+    description: Production
+
+tags:
+  - name: Health
+    description: Gateway health and system status endpoints
+  - name: Metrics  
+    description: Prometheus metrics endpoint
+  - name: Proxy
+    description: Proxied backend service endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns gateway health status and backend service connectivity
+      operationId: HealthCheck
+      responses:
+        '200':
+          description: Gateway is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "healthy"
+                service: "gateway-service"
+                version: "v1.0.0"
+                timestamp: "2026-01-09T13:30:00Z"
+        '503':
+          description: Gateway is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness check
+      description: Kubernetes readiness probe - indicates if gateway can serve traffic
+      operationId: ReadinessCheck
+      responses:
+        '200':
+          description: Gateway is ready to serve traffic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Gateway is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: Liveness check
+      description: Kubernetes liveness probe - indicates if gateway is running
+      operationId: LivenessCheck
+      responses:
+        '200':
+          description: Gateway is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Gateway is down
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Prometheus metrics
+      description: Exposes Prometheus-compatible metrics for monitoring
+      operationId: GetMetrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP http_requests_total Total HTTP requests
+                  # TYPE http_requests_total counter
+                  http_requests_total{method="GET",path="/api/auth/health"} 123
+                  
+  /api/auth/*:
+    x-summary: Auth Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Auth Service
+      description: |
+        Proxies requests to the authentication service.
+        
+        **Backend Service:** auth-service (port 80)
+        
+        **Available Endpoints:**
+        - GET `/api/v1/auth/health` - Health check
+        - POST `/api/v1/auth/tokens/generate` - Generate access token
+        - POST `/api/v1/auth/tokens/refresh` - Refresh access token
+        - POST `/api/v1/auth/tokens/validate` - Validate token
+        - POST `/api/v1/auth/tokens/revoke` - Revoke token
+        - POST `/api/v1/auth/sessions` - Create session
+        - GET `/api/v1/auth/sessions/{sessionId}` - Get session
+        - DELETE `/api/v1/auth/sessions/{sessionId}` - Delete session
+        
+        See [Auth Service OpenAPI Spec](./auth.openapi.yaml) for full details.
+      operationId: ProxyToAuth
+      responses:
+        '200':
+          description: Successful proxy response from auth service
+        '502':
+          description: Bad gateway - auth service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/*:
+    x-summary: User Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to User Service
+      description: |
+        Proxies requests to the user management service.
+        
+        **Backend Service:** user-service (port 80)
+        
+        See [User Service OpenAPI Spec](./user.openapi.yaml) for full details.
+      operationId: ProxyToUser
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/customer/*:
+    x-summary: Customer Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Customer Service
+      description: |
+        Proxies requests to the customer management service.
+        
+        **Backend Service:** customer-service (port 80)
+        
+        See [Customer Service OpenAPI Spec](./customer.openapi.yaml) for full details.
+      operationId: ProxyToCustomer
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/catalog/*:
+    x-summary: Catalog Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Catalog Service
+      description: |
+        Proxies requests to the product catalog service.
+        
+        **Backend Service:** catalog-service (port 80)
+        
+        See [Catalog Service OpenAPI Spec](./catalog.openapi.yaml) for full details.
+      operationId: ProxyToCatalog
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/order/*:
+    x-summary: Order Service Routes  
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Order Service
+      description: |
+        Proxies requests to the order management service.
+        
+        **Backend Service:** order-service (port 80)
+        
+        See [Order Service OpenAPI Spec](./order.openapi.yaml) for full details.
+      operationId: ProxyToOrder
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/payment/*:
+    x-summary: Payment Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Payment Service
+      description: |
+        Proxies requests to the payment processing service.
+        
+        **Backend Service:** payment-service (port 80)
+        
+        See [Payment Service OpenAPI Spec](./payment.openapi.yaml) for full details.
+      operationId: ProxyToPayment
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/fulfillment/*:
+    x-summary: Fulfillment Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Fulfillment Service
+      description: |
+        Proxies requests to the order fulfillment service.
+        
+        **Backend Service:** fulfillment-service (port 80)
+        
+        See [Fulfillment Service OpenAPI Spec](./fulfillment.openapi.yaml) for full details.
+      operationId: ProxyToFulfillment
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/shipping/*:
+    x-summary: Shipping Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Shipping Service
+      description: |
+        Proxies requests to the shipping calculation service.
+        
+        **Backend Service:** shipping-service (port 80)
+        
+        See [Shipping Service OpenAPI Spec](./shipping.openapi.yaml) for full details.
+      operationId: ProxyToShipping
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/warehouse/*:
+    x-summary: Warehouse Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Warehouse Service
+      description: |
+        Proxies requests to the warehouse management service.
+        
+        **Backend Service:** warehouse-service (port 80)
+        
+        See [Warehouse Service OpenAPI Spec](./warehouse.openapi.yaml) for full details.
+      operationId: ProxyToWarehouse
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/pricing/*:
+    x-summary: Pricing Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Pricing Service
+      description: |
+        Proxies requests to the pricing engine service.
+        
+        **Backend Service:** pricing-service (port 80)
+        
+        See [Pricing Service OpenAPI Spec](./pricing.openapi.yaml) for full details.
+      operationId: ProxyToPricing
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/promotion/*:
+    x-summary: Promotion Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Promotion Service
+      description: |
+        Proxies requests to the promotion and discount service.
+        
+        **Backend Service:** promotion-service (port 80)
+        
+        See [Promotion Service OpenAPI Spec](./promotion.openapi.yaml) for full details.
+      operationId: ProxyToPromotion
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/notification/*:
+    x-summary: Notification Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Notification Service
+      description: |
+        Proxies requests to the notification service.
+        
+        **Backend Service:** notification-service (port 80)
+        
+        See [Notification Service OpenAPI Spec](./notification.openapi.yaml) for full details.
+      operationId: ProxyToNotification
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/search/*:
+    x-summary: Search Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Search Service
+      description: |
+        Proxies requests to the search service (Elasticsearch).
+        
+        **Backend Service:** search-service (port 80)
+        
+        See [Search Service OpenAPI Spec](./search.openapi.yaml) for full details.
+      operationId: ProxyToSearch
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/review/*:
+    x-summary: Review Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Review Service
+      description: |
+        Proxies requests to the product review and rating service.
+        
+        **Backend Service:** review-service (port 80)
+        
+        See [Review Service OpenAPI Spec](./review.openapi.yaml) for full details.
+      operationId: ProxyToReview
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/location/*:
+    x-summary: Location Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Location Service
+      description: |
+        Proxies requests to the location and address service.
+        
+        **Backend Service:** location-service (port 80)
+        
+        See [Location Service OpenAPI Spec](./location.openapi.yaml) for full details.
+      operationId: ProxyToLocation
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+  /api/operations/*:
+    x-summary: Common Operations Service Routes
+    get:
+      tags:
+        - Proxy
+      summary: Proxy to Common Operations Service
+      description: |
+        Proxies requests to the common operations service.
+        
+        **Backend Service:** common-operations-service (port 80)
+        
+        See [Common Operations OpenAPI Spec](./common-operations.openapi.yaml) for full details.
+      operationId: ProxyToCommonOperations
+      responses:
+        '200':
+          description: Successful proxy response
+        '502':
+          description: Bad gateway
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+        - version
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+          description: Overall health status
+        service:
+          type: string
+          example: "gateway-service"
+          description: Service name
+        version:
+          type: string
+          example: "v1.0.0"
+          description: Service version
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+        details:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional health details
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type or code
+        message:
+          type: string
+          description: Human-readable error message
+        code:
+          type: integer
+          description: HTTP status code
+        details:
+          type: object
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from auth service
+
+security:
+  - BearerAuth: []

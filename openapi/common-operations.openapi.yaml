@@ -1,0 +1,468 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: OperationsService API
+    version: 0.0.1
+paths:
+    /api/v1/operations/health:
+        get:
+            tags:
+                - OperationsService
+            description: Health Check
+            operationId: OperationsService_Health
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.HealthResponse'
+    /api/v1/operations/tasks:
+        get:
+            tags:
+                - OperationsService
+            operationId: OperationsService_ListTasks
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: taskType
+                  in: query
+                  schema:
+                    type: string
+                - name: entityType
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: requestedBy
+                  in: query
+                  schema:
+                    type: string
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.ListTasksResponse'
+        post:
+            tags:
+                - OperationsService
+            description: Task Management
+            operationId: OperationsService_CreateTask
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.operations.v1.CreateTaskRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.CreateTaskResponse'
+    /api/v1/operations/tasks/{id}:
+        get:
+            tags:
+                - OperationsService
+            operationId: OperationsService_GetTask
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.GetTaskResponse'
+        delete:
+            tags:
+                - OperationsService
+            description: Delete Task
+            operationId: OperationsService_DeleteTask
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.DeleteTaskResponse'
+    /api/v1/operations/tasks/{id}/cancel:
+        post:
+            tags:
+                - OperationsService
+            operationId: OperationsService_CancelTask
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.operations.v1.CancelTaskRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.CancelTaskResponse'
+    /api/v1/operations/tasks/{id}/retry:
+        post:
+            tags:
+                - OperationsService
+            operationId: OperationsService_RetryTask
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.operations.v1.RetryTaskRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.RetryTaskResponse'
+    /api/v1/operations/tasks/{taskId}/download:
+        get:
+            tags:
+                - OperationsService
+            description: File Management
+            operationId: OperationsService_GetDownloadUrl
+            parameters:
+                - name: taskId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.GetDownloadUrlResponse'
+    /api/v1/operations/tasks/{taskId}/events:
+        get:
+            tags:
+                - OperationsService
+            description: Task Events
+            operationId: OperationsService_GetTaskEvents
+            parameters:
+                - name: taskId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.GetTaskEventsResponse'
+    /api/v1/operations/tasks/{taskId}/logs:
+        get:
+            tags:
+                - OperationsService
+            description: Task Logs
+            operationId: OperationsService_GetTaskLogs
+            parameters:
+                - name: taskId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.GetTaskLogsResponse'
+    /api/v1/operations/tasks/{taskId}/progress:
+        patch:
+            tags:
+                - OperationsService
+            description: Progress Update (Internal API for services)
+            operationId: OperationsService_UpdateTaskProgress
+            parameters:
+                - name: taskId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.operations.v1.UpdateTaskProgressRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.operations.v1.UpdateTaskProgressResponse'
+components:
+    schemas:
+        api.operations.v1.CancelTaskRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                reason:
+                    type: string
+        api.operations.v1.CancelTaskResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.operations.v1.CreateTaskRequest:
+            type: object
+            properties:
+                taskType:
+                    type: string
+                entityType:
+                    type: string
+                requestedBy:
+                    type: string
+                params:
+                    type: string
+                fileName:
+                    type: string
+                fileSize:
+                    type: string
+                scheduledAt:
+                    type: string
+                    format: date-time
+        api.operations.v1.CreateTaskResponse:
+            type: object
+            properties:
+                task:
+                    $ref: '#/components/schemas/api.operations.v1.Task'
+                uploadUrl:
+                    type: string
+        api.operations.v1.DeleteTaskResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.operations.v1.GetDownloadUrlResponse:
+            type: object
+            properties:
+                downloadUrl:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+        api.operations.v1.GetTaskEventsResponse:
+            type: object
+            properties:
+                events:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.operations.v1.TaskEvent'
+        api.operations.v1.GetTaskLogsResponse:
+            type: object
+            properties:
+                logs:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.operations.v1.TaskLog'
+        api.operations.v1.GetTaskResponse:
+            type: object
+            properties:
+                task:
+                    $ref: '#/components/schemas/api.operations.v1.Task'
+        api.operations.v1.HealthResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+        api.operations.v1.ListTasksResponse:
+            type: object
+            properties:
+                tasks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.operations.v1.Task'
+                total:
+                    type: integer
+                    format: int32
+        api.operations.v1.RetryTaskRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+        api.operations.v1.RetryTaskResponse:
+            type: object
+            properties:
+                task:
+                    $ref: '#/components/schemas/api.operations.v1.Task'
+        api.operations.v1.Task:
+            type: object
+            properties:
+                id:
+                    type: string
+                taskType:
+                    type: string
+                entityType:
+                    type: string
+                status:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                requestedBy:
+                    type: string
+                params:
+                    type: string
+                inputFileUrl:
+                    type: string
+                outputFileUrl:
+                    type: string
+                fileName:
+                    type: string
+                fileSize:
+                    type: string
+                totalRecords:
+                    type: integer
+                    format: int32
+                processedRecords:
+                    type: integer
+                    format: int32
+                successRecords:
+                    type: integer
+                    format: int32
+                failedRecords:
+                    type: integer
+                    format: int32
+                progressPercentage:
+                    type: number
+                    format: double
+                scheduledAt:
+                    type: string
+                    format: date-time
+                startedAt:
+                    type: string
+                    format: date-time
+                completedAt:
+                    type: string
+                    format: date-time
+                errorMessage:
+                    type: string
+                retryCount:
+                    type: integer
+                    format: int32
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        api.operations.v1.TaskEvent:
+            type: object
+            properties:
+                id:
+                    type: string
+                taskId:
+                    type: string
+                eventType:
+                    type: string
+                eventData:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+        api.operations.v1.TaskLog:
+            type: object
+            properties:
+                id:
+                    type: string
+                taskId:
+                    type: string
+                level:
+                    type: string
+                message:
+                    type: string
+                details:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+        api.operations.v1.UpdateTaskProgressRequest:
+            type: object
+            properties:
+                taskId:
+                    type: string
+                processedRecords:
+                    type: integer
+                    format: int32
+                successRecords:
+                    type: integer
+                    format: int32
+                failedRecords:
+                    type: integer
+                    format: int32
+                errorMessage:
+                    type: string
+                isCompleted:
+                    type: boolean
+        api.operations.v1.UpdateTaskProgressResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+tags:
+    - name: OperationsService
