@@ -79,6 +79,22 @@ docker compose logs pricing-service | grep "sync worker"
    ```
 
 3. Check event subscription in Catalog Service
+   - Verify Subscription to `pricing.price.updated`
+   - Check Consumer logs for `PriceScope` filtering (product/warehouse/sku)
+
+### Debugging Unified Price Topic
+Since Jan 2026, all price updates (Product, Warehouse, SKU) are published to a single topic: `pricing.price.updated`.
+
+**Check Payload:**
+Ensure `priceScope` field is present:
+```json
+{
+  "productId": "p1",
+  "priceScope": "warehouse",  <-- CRITICAL
+  "warehouseId": "wh1",
+  "newPrice": 100
+}
+```
 
 ### Issue 3: Cache Hit Rate Low
 
