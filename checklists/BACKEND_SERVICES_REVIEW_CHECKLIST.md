@@ -1,0 +1,226 @@
+# ✅ Backend Services - Code Review Checklist
+
+**Last Updated**: January 11, 2026
+**Reviewer**: Cascade (Tech Lead)
+**Objective**: Systematically review all Go microservices to ensure they meet architecture standards, identify risks, and create a backlog of actionable improvements.
+
+---
+
+## 📊 Overall Review Progress
+
+| Service Group | Status | Notes |
+| :--- | :--- | :--- |
+| **Core Libs & Gateway** | ✅ Completed | `common` & `gateway` reviewed. Key findings on routing & middleware. |
+| **Identity** | ✅ Completed | `auth`, `user`, `customer` reviewed. |
+| **Commerce** | 🟡 In Progress | `catalog` 🟡, `pricing` ✅, `promotion` ⚪ |
+| **Logistics** | ⚪ Pending | `warehouse`, `order`, `payment`, `fulfillment`, `shipping` |
+| **Supporting** | ⚪ Pending | `notification`, `search`, `analytics`, `location` |
+| **Engagement** | ⚪ Pending | `review`, `loyalty-rewards` |
+
+---
+
+## 📝 Master Review Rubric
+
+For each service, the following aspects will be reviewed:
+
+-   **[ ] Architecture & Structure**: Does it follow the standard Clean Architecture layout?
+-   **[ ] `go.mod` & Dependencies**: Are dependencies clean? Any version conflicts or deprecated libs?
+-   **[ ] API (`/api/proto`)**: Is the gRPC/HTTP contract clear, consistent, and well-defined?
+-   **[ ] Business Logic (`/internal/biz`)**: Is the core logic sound, testable, and free of data layer leakage?
+-   **[ ] Data Layer (`/internal/data`)**: Correct use of repository pattern? Efficient queries? Transaction management?
+-   **[ ] Configuration (`/configs`)**: Is configuration clear, secure (no hardcoded secrets), and consistent?
+-   **[ ] Testing**: What is the state of unit and integration tests? Is coverage adequate?
+-   **[ ] Observability**: Are there structured logs, relevant metrics, and distributed tracing?
+-   **[ ] Security**: Any obvious vulnerabilities (e.g., injection, improper authz, data leakage)?
+-   **[ ] Action Items**: A summary of findings and prioritized tasks.
+
+---
+
+## 🚀 Service-by-Service Review
+
+### 1. `common` (Shared Library)
+
+-   **[✅] Review Status**: Completed
+-   **Findings**:
+    -   **Good**: Comprehensive set of shared components.
+    -   **Issue**: `README.md` has merge conflicts.
+    -   **Issue**: `auth.go` middleware has a potential panic on JWT claim type casting.
+-   **Action Items**:
+    -   `[P1]` Clean up `common/README.md`.
+    -   `[P1]` Create a `CHANGELOG.md` for version tracking.
+    -   `[P2]` Add safe type conversion for JWT claims in `auth.go`.
+
+### 2. `gateway`
+
+-   **[✅] Review Status**: Completed
+-   **Findings**:
+    -   **Good**: Kratos-based, health/metrics endpoints, policy-driven routing config.
+    -   **Issue (P0)**: Routing engine doesn't evaluate HTTP methods (security risk).
+    -   **Issue (P0)**: Default server timeout is non-deterministic.
+    -   **Issue (P1)**: Public path list is hardcoded.
+    -   **Issue (P1)**: In-memory rate limiter is not for production.
+-   **Action Items**:
+    -   `[P0]` **Immediate Fix**: Split route patterns to apply auth based on method.
+    -   `[P0]` **Long-term Fix**: Enhance routing engine to support `methods` in YAML.
+    -   `[P1]` Add an explicit `gateway.default_timeout`.
+    -   `[P1]` Refactor `AuthMiddleware` to read public paths from config.
+
+### 3. `auth`
+
+-   **[✅] Review Status**: Completed
+-   **Architecture Goal**: Token & Session management ONLY. User/credential logic belongs to `user`/`customer` services.
+-   **Findings**:
+    -   **[P0] Mismatch giữa Token & Session**: `TokenUsecase` tự tạo `session_id` (dạng `session_user_time`) trong khi `SessionUsecase` dùng UUID. Hai hệ thống không liên kết với nhau.
+    -   **[P0] Mismatch giữa Code & DB Schema**: Code trong `userRepo` và `authRepo` đang thao tác với table `users`, nhưng migration lại tạo table `credentials`. Code sẽ fail runtime.
+    -   **[P0] Logic `RefreshToken` không an toàn**: `ValidateToken` được dùng để check refresh token nhưng không kiểm tra `type` claim, cho phép access token có thể dùng để refresh.
+    -   **[P0] Hardcoded Secrets**: `config.yaml` chứa `jwt.secret` và `encryption.key` mặc định.
+    -   **[P1] Trùng lặp và sai scope**: `UserRepo` trong `auth` service là không cần thiết, logic bị trùng lặp và sai trách nhiệm.
+    -   **[P1] Revoke token dùng `KEYS` trên Redis**: `RevokeUserTokens` dùng `KEYS` là một practice nguy hiểm cho production.
+-   **Action Items**:
+    -   **[REMOVE]** `[P1]` Loại bỏ `UserRepo` và các logic User CRUD ra khỏi `auth` service. Chuyển trách nhiệm này cho `user` service.
+    -   `[P0]` **Refactor Token Generation**: `TokenUsecase.GenerateToken` phải gọi `SessionUsecase.CreateSession` để lấy `session_id` (UUID) thật sự.
+    -   `[P0]` **Fix Refresh Token Logic**: Phải kiểm tra `type == 'refresh'` trong claim khi refresh token.
+    -   `[P0]` **Fix DB Mismatch**: Nếu `auth` cần lưu credential, đổi code để dùng table `credentials`. Nếu không, xóa bỏ logic liên quan.
+    -   `[P0]` **Secure Configuration**: Chuyển toàn bộ secret sang đọc từ environment variables và fail-fast nếu giá trị mặc định được dùng trong production.
+    -   `[P1]` **Optimize Revocation**: Thay thế `KEYS` bằng `SCAN` trong `RevokeUserTokens` hoặc dùng cấu trúc dữ liệu khác (e.g., a Redis SET per user).
+
+### 4. `user`
+
+-   **[✅] Review Status**: Completed
+-   **Architecture Goal**: User management + RBAC + Admin login (credential validation). Token/session must be delegated to `auth`.
+-   **Findings**:
+    -   **Good**: Proto surface matches the domain well (users, roles, assignments, service access, auth-related internal RPCs).
+    -   **Good**: `AdminLogin` validates credentials in `user` and delegates token generation to `auth` via gRPC client with circuit breaker.
+    -   **Issue (P0)**: `user/internal/client/auth/auth_client.go` does not pass `roles` to `auth.GenerateToken` (parameter exists but not mapped). Current workaround stores roles in `claims["roles"]` as comma-separated string.
+    -   **Issue (P1)**: Password hashing is done in service layer (`CreateUser`), while password validation is in biz layer; security logic is split.
+    -   **Issue (P1)**: `ValidatePassword` logs part of password hash (`hash prefix`), which can leak sensitive info to logs.
+    -   **Issue (P1)**: In `AssignRole` handler, `assignedBy` is set to `req.UserId` (self) instead of the actor from context; audit trail may be incorrect.
+    -   **Issue (P2)**: `permissions` / `services` are stored as text JSON arrays; OK for now but may need `jsonb` + GIN indexes if querying becomes heavy.
+-   **Action Items**:
+    -   `[P0]` Pass `roles` into `authPB.GenerateTokenRequest` (`Roles: roles`) and align downstream consumption (avoid stringifying roles into claims).
+    -   `[P1]` Move password hashing into biz/usecase (or consistently keep all password operations in biz), to centralize password policy and make testing easier.
+    -   `[P1]` Remove password hash prefix from logs in `ValidatePassword`.
+    -   `[P1]` Fix `assignedBy` / `grantedBy` to be derived from request context (e.g., `X-User-ID` injected by gateway), not the target user.
+    -   `[P2]` Consider migrating `permissions`/`services` columns to `jsonb` + indexes if needed.
+
+### 5. `customer`
+
+-   **[✅] Review Status**: Completed
+-   **Architecture Goal**: Customer profiles + addresses + preferences + segmentation. Token/session validation delegated to `auth`. Service must enforce authz for customer-scoped endpoints.
+-   **Findings**:
+    -   **Good**: Clean Architecture layout aligns with platform standard; repo/tx extraction pattern is consistent.
+    -   **Good**: Auth integration exists via gRPC + Consul discovery + circuit breaker (`internal/client/auth`).
+    -   **Issue (P0)**: `ValidateToken` parses JWT using `ParseUnverified` and can return `valid=true` without signature verification (forgeable if called outside gateway).
+    -   **Issue (P0)**: Migration `015_add_customer_groups_support.sql` is not in Goose format and contains schema mismatch (`customer_type = 2` while base schema uses string enums). Risk of migration not running / incorrect default group assignment.
+    -   **Issue (P0)**: Migration `001_create_customers_table.sql` uses `gen_random_uuid()` but does not ensure `pgcrypto` extension exists; fresh env migration can fail.
+    -   **Issue (P0)**: Migration `010_add_password_hash_to_customers.sql` adds an index on `password_hash`, which is not used by typical login flows (wasteful, remove).
+    -   **Issue (P1)**: HTTP server middleware stack lacks explicit auth/authz middleware; must ensure gateway enforcement + service-side authorization checks for customer-owned resources.
+    -   **Issue (P1)**: Route conflict risk: `/api/v1/customers/segments` vs `/api/v1/customers/{id}` relies on declaration order (fragile routing invariant).
+    -   **Issue (P1)**: Address default trigger does not account for `type='both'`, allowing multiple defaults across types.
+    -   **Issue (P1)**: Repo/search filters may mismatch DB types for `status` / `customer_type` (code uses integers, initial migrations define strings; migration 005 suggests conversion). This can cause incorrect filtering or runtime errors.
+    -   **Issue (P1)**: Email verification token generation is predictable and uses hardcoded URL; should be random, stored, TTL-based, and configurable.
+    -   **Issue (P2)**: Repos always preload `Profile` and `Preferences` by default; can make list/search heavier than necessary.
+    -   **Issue (P2)**: Logging contains PII (email) and some noisy debug logs; should be masked/leveled appropriately.
+-   **Action Items**:
+    -   `[P0]` Replace `ValidateToken` logic: do not use `ParseUnverified` to conclude validity. Call `auth` service for token validation (or verify signature locally as fallback).
+    -   `[P0]` Fix `015_add_customer_groups_support.sql`: add Goose Up/Down blocks and align `customer_type` condition with actual schema (`'business'` vs int) and migration ordering.
+    -   `[P0]` Ensure UUID generation works in fresh DB: add `CREATE EXTENSION IF NOT EXISTS pgcrypto;` (or switch to `uuid-ossp`) before using `gen_random_uuid()`.
+    -   `[P0]` Remove `idx_customers_password_hash` (unused index).
+    -   `[P1]` Decide email uniqueness semantics with soft delete: keep global unique, or replace with **unique partial index** on `(email) WHERE deleted_at IS NULL` and remove table-level UNIQUE.
+    -   `[P1]` Fix routing fragility: avoid depending on ordering between `/customers/segments` and `/customers/{id}` (rename route or ensure router prefers static matches).
+    -   `[P1]` Fix default address invariant with `type='both'` (ensure only one effective default for shipping/billing).
+    -   `[P1]` Enforce authz: ensure customer-scoped endpoints validate actor/customer match (defense-in-depth beyond gateway).
+    -   `[P1]` Normalize `status` / `customer_type` across proto ↔ model ↔ DB ↔ filters; update repository filters to use correct types.
+    -   `[P1]` Implement proper email verification: secure random token + persistence + TTL + base URL from config.
+    -   `[P2]` Optimize preloads: load `Profile`/`Preferences` only when needed (separate list vs detail queries).
+    -   `[P2]` Reduce PII/noisy logs; mask emails and lower verbose logs to debug.
+
+### 6. `catalog`
+
+-   **[🟡] Review Status**: In Progress (Core review completed – awaiting fixes & test coverage)
+-   **Architecture Goal**: Product catalog + category/brand/manufacturer + CMS + EAV attributes + visibility rules. Acts as aggregation layer (price, stock, promotion) and publishes product events for search.
+-   **Findings**:
+    -   **Good**: Hybrid EAV + flat table design with materialized view (`product_search_view`) and hot-attribute columns. Uses Redis L1/L2 cache.
+    -   **Issue (P0)**: Business layer `Create/Update/DeleteProduct` executes side-effects (cache invalidation, events, ES indexing, MV refresh) **without wrapping DB writes in transaction** – risk of event/ES out of sync if DB fails.
+    -   **Issue (P0)**: Migration ordering bug – migration `018_update_products_table_remove_warehouse.sql` drops `product_search_view` *after* view was created in `009`; view may disappear in prod → repo falls back to base table (perf degrade).
+    -   **Issue (P0)**: `product_search_view` misses `deleted_at IS NULL` filter (soft-deleted products may appear).
+    -   **Issue (P0)**: `GetProduct` ignores `bypass_cache`; cannot guarantee fresh data for checkout.
+    -   **Issue (P0)**: N+1 query in `GetProductsByIDs` when cache miss; batch list 100 → 100 DB hits.
+    -   **Issue (P0)**: `repo.List` loses ordering when using materialized view (IN (...) query) and has bug when `viewExists=false`.
+    -   **Issue (P1)**: Route order-dependency (static vs `{id}`) same as customer – `/products/search` etc.
+    -   **Issue (P1)**: Cache invalidation duplicated in biz & service layers – risk double work / inconsistencies.
+    -   **Issue (P1)**: Full-text indexes use `'english'`; main language is Vietnamese – stemming mismatch.
+    -   **Issue (P1)**: View refresh triggered on every write (afterCreate/Update/Delete) plus cron – DB load.
+    -   **Issue (P1)**: Topic names for events inconsistent (`product.created`, `catalog.product.updated`).
+    -   **Issue (P1)**: Down migration 006 drops `idx_products_manufacturer` (should only drop conditional index).
+    -   **Issue (P2)**: Function `refresh_product_materialized_views` may fail silently; need alerting.
+    -   **Issue (P2)**: Validation/merge logic prevents clearing fields (empty string treated as unchanged).
+    -   **Issue (P2)**: Repeated UUID parsing without error surfacing – invalid IDs ignored.
+-   **Action Items**:
+    -   `[P0]` Wrap DB writes + side effects in single transaction + outbox / job queue for ES indexing & events.
+    -   `[P0]` Create migration to recreate `product_search_view` after warehouse column removal; add `deleted_at IS NULL` filter.
+    -   `[P0]` Implement proper `bypass_cache` path + configurable TTL for critical flows.
+    -   `[P0]` Add batch `FindByIDs` repo method; refactor `GetProductsByIDs` to avoid N+1.
+    -   `[P0]` Fix `repo.List` bug: align `usingView` variable, preserve ordering with `ORDER BY array_position`.
+    -   `[P1]` Remove duplicate cache invalidation in service layer; keep single owner (biz layer).
+    -   `[P1]` Switch full-text config to `simple` or rely on Elasticsearch; document rationale.
+    -   `[P1]` Debounce MV refresh (cron every 5 min) – remove per-write triggers.
+    -   `[P1]` Standardize event topics: `catalog.product.created|updated|deleted`; align payload keys.
+    -   `[P1]` Fix Down migration 006 – don’t drop primary manufacturer index.
+    -   `[P2]` Add alert/metric on MV refresh failure; consider timeout.
+    -   `[P2]` Improve update semantics using fieldmask / proto optional presence.
+    -   `[P2]` Validate UUID inputs early and return 400 on invalid.
+
+*... (các service khác ở trạng thái Pending) ...*
+
+### 7. `pricing`
+
+-   **[✅] Review Status**: Completed
+-   **Architecture Goal**: Dynamic pricing engine with SKU + Warehouse support, discount management, tax calculation, and real-time price sync to catalog service.
+-   **Overall Status**: 🟡 **NEEDS SIGNIFICANT FIXES (75% Complete)** - Good architecture but multiple critical issues found.
+-   **Findings**:
+    -   **Excellent**: Clean Domain-Driven Design with 6 well-organized domains (price, discount, tax, rule, dynamic, calculation).
+    -   **Excellent**: Comprehensive API coverage with 20+ endpoints supporting price management, calculations, discounts, taxes, and rules.
+    -   **Good**: 4-level priority pricing system: SKU+Warehouse → SKU Global → Product+Warehouse → Product Global.
+    -   **Good**: Multi-level Redis caching with proper cache keys and TTL configuration.
+    -   **Issue (P0)**: **Critical Panic Risk** - `consul.go:33` has `panic(err)` on Consul client creation failure, will crash service in production.
+    -   **Issue (P0)**: **Race Condition in Price Updates** - `price.go:236,273` uses `go func()` for catalog sync without proper error handling or context cancellation, can cause goroutine leaks.
+    -   **Issue (P0)**: **Inefficient N+1 Query Pattern** - `pricing.go:1025-1070` in `ComparePrices` and `ListPricesByWarehouse` performs individual queries in loops instead of batch queries.
+    -   **Issue (P0)**: **Currency Conversion Silent Failures** - `price.go:115-145` returns original price on conversion errors without proper error propagation, masking critical failures.
+    -   **Issue (P0)**: **Missing Transaction Management** - Price creation/updates don't use database transactions, risking data inconsistency during failures.
+    -   **Issue (P0)**: **Inconsistent Error Handling** - Service layer catches `gorm.ErrRecordNotFound` but doesn't convert to proper gRPC status codes.
+    -   **Issue (P1)**: **Memory Leak Risk** - Circuit breaker in `circuit_breaker.go:42` uses `sync.RWMutex` but no cleanup mechanism for failed services.
+    -   **Issue (P1)**: **Input Validation Gaps** - Many endpoints lack proper input validation (e.g., negative prices, invalid currency codes, malformed UUIDs).
+    -   **Issue (P1)**: **Cache Invalidation Race** - Cache invalidation happens after database update, creating window where stale data can be served.
+    -   **Issue (P1)**: **Pagination Performance** - `ListPrices` loads all records then applies pagination in memory instead of database-level LIMIT/OFFSET.
+    -   **Issue (P1)**: **JSON Marshaling Errors Ignored** - `convertPriceRuleToProto` ignores JSON marshal errors for conditions/actions, can return malformed data.
+    -   **Issue (P1)**: **Hardcoded Defaults** - Multiple hardcoded values (page size 20, timeout 5s) should be configurable.
+    -   **Issue (P1)**: **Missing Index Usage** - Queries don't leverage composite indexes effectively, causing full table scans.
+    -   **Issue (P2)**: **No Audit Logging** - Price/discount/tax changes not logged for compliance requirements.
+    -   **Issue (P2)**: **Weak Authorization** - Service layer lacks authorization checks, relies entirely on gateway.
+    -   **Issue (P2)**: **Resource Cleanup** - `data.go:85-95` cleanup function doesn't handle partial failures properly.
+    -   **Issue (P2)**: **Configuration Validation** - Config loading doesn't validate required fields or ranges.
+    -   **Issue (P3)**: **No Unit Tests** - Zero test coverage for business logic, making refactoring risky.
+    -   **Issue (P3)**: **Logging Inconsistency** - Mix of Info/Error/Debug levels without clear guidelines.
+-   **Action Items**:
+    -   `[P0]` **Fix Panic Risk**: Replace `panic(err)` in `consul.go:33` with proper error handling and service degradation. Estimated: 30 minutes.
+    -   `[P0]` **Fix Race Conditions**: Add proper context cancellation and error handling to async goroutines in `price.go:236,273`. Estimated: 2 hours.
+    -   `[P0]` **Optimize N+1 Queries**: Refactor `ComparePrices` and list methods to use batch queries instead of loops. Estimated: 4 hours.
+    -   `[P0]` **Fix Currency Conversion**: Properly propagate currency conversion errors instead of silent fallbacks. Estimated: 2 hours.
+    -   `[P0]` **Add Transaction Management**: Wrap price CRUD operations in database transactions for consistency. Estimated: 3 hours.
+    -   `[P0]` **Fix Error Handling**: Convert GORM errors to proper gRPC status codes throughout service layer. Estimated: 2 hours.
+    -   `[P1]` **Add Input Validation**: Implement comprehensive validation for all API endpoints (price ranges, currency codes, UUIDs). Estimated: 1 day.
+    -   `[P1]` **Fix Cache Race**: Move cache invalidation inside database transaction or use proper cache-aside pattern. Estimated: 3 hours.
+    -   `[P1]` **Optimize Pagination**: ✅ **COMPLETED** - Implemented database-level pagination with proper LIMIT/OFFSET queries using common package utilities. Added new repository methods `ListBySKU`, `ListByWarehouse`, and `GetPricesBySKUForWarehouses` for efficient database-level filtering. Estimated: 4 hours.
+    -   `[P1]` **Handle JSON Errors**: Add proper error handling for JSON marshal/unmarshal operations. Estimated: 2 hours.
+    -   `[P1]` **Add Index Optimization**: Review and optimize database queries to use composite indexes effectively. Estimated: 4 hours.
+    -   `[P2]` **Implement Audit Logging**: Add audit trail for all price/discount/tax changes with user tracking. Estimated: 1 day.
+    -   `[P2]` **Add Authorization**: Implement service-level authorization checks for sensitive operations. Estimated: 4 hours.
+    -   `[P2]` **Add Configuration Validation**: Validate all config fields on startup with proper error messages. Estimated: 2 hours.
+    -   `[P3]` **Add Unit Tests**: Create comprehensive test suite for business logic with 80%+ coverage. Estimated: 3 days.
+    -   `[P3]` **Standardize Logging**: Implement consistent logging levels and structured logging throughout. Estimated: 4 hours.
+    -   `[P3]` **Complete Dynamic Pricing**: Implement demand-based and time-based pricing algorithms. Estimated: 2-3 days.
+    -   `[P3]` **Separate Worker Binary**: Create `cmd/worker/main.go` for background sync jobs. Estimated: 1 hour.
+    -   `[P3]` **Add Monitoring Dashboard**: Create Grafana dashboard for pricing metrics and alerts. Estimated: 2-3 hours.
+
+*... (các service khác ở trạng thái Pending) ...*

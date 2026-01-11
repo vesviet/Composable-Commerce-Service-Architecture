@@ -42,15 +42,8 @@ This section lists checklists that are **known to be not fully implemented yet**
 - **Tax (integration pending)**
   - `tax-implementation-checklist-magento-vs-shopify.md` (core tax done; Order/Promotion/Shipping/Catalog integration pending)
 
-- **Promotion (integration pending)**
-  - `promotion-developer-implementation-checklist.md` (core engine done; Order/Shipping/Catalog integration pending)
-  - `promotion-service-checklist.md` (use as implementation tracker; integrations still pending)
-
-- **Cart (Magento-like alignment pending)**
-  - `cart-management-logic-checklist.md` (updated requirements; implementation alignment still in progress)
-
-- **Fulfillment (integration hardening pending)**
-  - `fulfillment-service-business-review-and-developer-checklist.md` (atomicity/idempotency + shipping integration items pending)
+- **Commerce Core follow-ups (Cart/Promotion/Fulfillment)**
+  - `commerce-core-followup-checklist.md` (single source of truth; owners/status tracked per item)
 
 ---
 
