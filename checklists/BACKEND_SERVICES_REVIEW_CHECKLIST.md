@@ -12,7 +12,7 @@
 | :--- | :--- | :--- |
 | **Core Libs & Gateway** | ✅ Completed | `common` & `gateway` reviewed. Key findings on routing & middleware. |
 | **Identity** | ✅ Completed | `auth`, `user`, `customer` reviewed. |
-| **Commerce** | 🟡 In Progress | `catalog` 🟡, `pricing` ✅, `promotion` ⚪ |
+| **Commerce** | 🟡 In Progress | `catalog` 🟡, `pricing` ✅, `promotion` 🟡 |
 | **Logistics** | ⚪ Pending | `warehouse`, `order`, `payment`, `fulfillment`, `shipping` |
 | **Supporting** | ⚪ Pending | `notification`, `search`, `analytics`, `location` |
 | **Engagement** | ⚪ Pending | `review`, `loyalty-rewards` |
@@ -173,54 +173,56 @@ For each service, the following aspects will be reviewed:
 
 *... (các service khác ở trạng thái Pending) ...*
 
-### 7. `pricing`
+### 7. `promotion`
 
--   **[✅] Review Status**: Completed
--   **Architecture Goal**: Dynamic pricing engine with SKU + Warehouse support, discount management, tax calculation, and real-time price sync to catalog service.
--   **Overall Status**: 🟡 **NEEDS SIGNIFICANT FIXES (75% Complete)** - Good architecture but multiple critical issues found.
+-   **[🟡] Review Status**: In Progress (Core review completed – awaiting fixes)
+-   **Architecture Goal**: Campaign + promotion + coupon management with validation for checkout (cart rules) and catalog rules; usage tracking and analytics.
 -   **Findings**:
-    -   **Excellent**: Clean Domain-Driven Design with 6 well-organized domains (price, discount, tax, rule, dynamic, calculation).
-    -   **Excellent**: Comprehensive API coverage with 20+ endpoints supporting price management, calculations, discounts, taxes, and rules.
-    -   **Good**: 4-level priority pricing system: SKU+Warehouse → SKU Global → Product+Warehouse → Product Global.
-    -   **Good**: Multi-level Redis caching with proper cache keys and TTL configuration.
-    -   **Issue (P0)**: **Critical Panic Risk** - `consul.go:33` has `panic(err)` on Consul client creation failure, will crash service in production.
-    -   **Issue (P0)**: **Race Condition in Price Updates** - `price.go:236,273` uses `go func()` for catalog sync without proper error handling or context cancellation, can cause goroutine leaks.
-    -   **Issue (P0)**: **Inefficient N+1 Query Pattern** - `pricing.go:1025-1070` in `ComparePrices` and `ListPricesByWarehouse` performs individual queries in loops instead of batch queries.
-    -   **Issue (P0)**: **Currency Conversion Silent Failures** - `price.go:115-145` returns original price on conversion errors without proper error propagation, masking critical failures.
-    -   **Issue (P0)**: **Missing Transaction Management** - Price creation/updates don't use database transactions, risking data inconsistency during failures.
-    -   **Issue (P0)**: **Inconsistent Error Handling** - Service layer catches `gorm.ErrRecordNotFound` but doesn't convert to proper gRPC status codes.
-    -   **Issue (P1)**: **Memory Leak Risk** - Circuit breaker in `circuit_breaker.go:42` uses `sync.RWMutex` but no cleanup mechanism for failed services.
-    -   **Issue (P1)**: **Input Validation Gaps** - Many endpoints lack proper input validation (e.g., negative prices, invalid currency codes, malformed UUIDs).
-    -   **Issue (P1)**: **Cache Invalidation Race** - Cache invalidation happens after database update, creating window where stale data can be served.
-    -   **Issue (P1)**: **Pagination Performance** - `ListPrices` loads all records then applies pagination in memory instead of database-level LIMIT/OFFSET.
-    -   **Issue (P1)**: **JSON Marshaling Errors Ignored** - `convertPriceRuleToProto` ignores JSON marshal errors for conditions/actions, can return malformed data.
-    -   **Issue (P1)**: **Hardcoded Defaults** - Multiple hardcoded values (page size 20, timeout 5s) should be configurable.
-    -   **Issue (P1)**: **Missing Index Usage** - Queries don't leverage composite indexes effectively, causing full table scans.
-    -   **Issue (P2)**: **No Audit Logging** - Price/discount/tax changes not logged for compliance requirements.
-    -   **Issue (P2)**: **Weak Authorization** - Service layer lacks authorization checks, relies entirely on gateway.
-    -   **Issue (P2)**: **Resource Cleanup** - `data.go:85-95` cleanup function doesn't handle partial failures properly.
-    -   **Issue (P2)**: **Configuration Validation** - Config loading doesn't validate required fields or ranges.
-    -   **Issue (P3)**: **No Unit Tests** - Zero test coverage for business logic, making refactoring risky.
-    -   **Issue (P3)**: **Logging Inconsistency** - Mix of Info/Error/Debug levels without clear guidelines.
+    -   **Good**: Data model uses JSONB with GIN indexes for applicability lists (products/categories/brands/segments). `rule_type`, `priority`, `stop_rules_processing` supported.
+    -   **Issue (P0)**: `ValidatePromotions` parses backward-compat JSON fields via `json.Unmarshal` **without checking errors** → silently wrong validation results.
+    -   **Issue (P0)**: SQL injection risk in `GetActivePromotions`: builds JSONB conditions via string concatenation (customer segments/products/categories/brands).
+    -   **Issue (P0)**: Coupon code generation uses `math/rand` + reseed-per-call; bulk generation does pre-check queries and is race-prone under concurrency.
+    -   **Issue (P0)**: Usage limit enforcement is not atomic. DB trigger increments counts but cannot prevent concurrent overuse vs `usage_limit`/`total_usage_limit`.
+    -   **Issue (P1)**: `ListPromotions` does post-fetch filtering (SKUs/categories/brands/segments) which breaks pagination/total correctness and wastes DB/CPU.
+    -   **Issue (P1)**: JSON marshal/unmarshal errors ignored across repositories (`promotion`, `coupon`, `promotion_usage`) → data corruption masked.
+    -   **Issue (P1)**: Missing idempotency for `promotion_usage` by `order_id` → retries can double-count usage.
+    -   **Issue (P1)**: Coupon code lookup not normalized (case sensitivity) → user-entered codes may fail unexpectedly.
+    -   **Issue (P2)**: Health endpoint is hardcoded and does not check DB/Redis; inconsistent with other services using common health endpoints.
 -   **Action Items**:
-    -   `[P0]` **Fix Panic Risk**: Replace `panic(err)` in `consul.go:33` with proper error handling and service degradation. Estimated: 30 minutes.
-    -   `[P0]` **Fix Race Conditions**: Add proper context cancellation and error handling to async goroutines in `price.go:236,273`. Estimated: 2 hours.
-    -   `[P0]` **Optimize N+1 Queries**: Refactor `ComparePrices` and list methods to use batch queries instead of loops. Estimated: 4 hours.
-    -   `[P0]` **Fix Currency Conversion**: Properly propagate currency conversion errors instead of silent fallbacks. Estimated: 2 hours.
-    -   `[P0]` **Add Transaction Management**: Wrap price CRUD operations in database transactions for consistency. Estimated: 3 hours.
-    -   `[P0]` **Fix Error Handling**: Convert GORM errors to proper gRPC status codes throughout service layer. Estimated: 2 hours.
-    -   `[P1]` **Add Input Validation**: Implement comprehensive validation for all API endpoints (price ranges, currency codes, UUIDs). Estimated: 1 day.
-    -   `[P1]` **Fix Cache Race**: Move cache invalidation inside database transaction or use proper cache-aside pattern. Estimated: 3 hours.
-    -   `[P1]` **Optimize Pagination**: ✅ **COMPLETED** - Implemented database-level pagination with proper LIMIT/OFFSET queries using common package utilities. Added new repository methods `ListBySKU`, `ListByWarehouse`, and `GetPricesBySKUForWarehouses` for efficient database-level filtering. Estimated: 4 hours.
-    -   `[P1]` **Handle JSON Errors**: Add proper error handling for JSON marshal/unmarshal operations. Estimated: 2 hours.
-    -   `[P1]` **Add Index Optimization**: Review and optimize database queries to use composite indexes effectively. Estimated: 4 hours.
-    -   `[P2]` **Implement Audit Logging**: Add audit trail for all price/discount/tax changes with user tracking. Estimated: 1 day.
-    -   `[P2]` **Add Authorization**: Implement service-level authorization checks for sensitive operations. Estimated: 4 hours.
-    -   `[P2]` **Add Configuration Validation**: Validate all config fields on startup with proper error messages. Estimated: 2 hours.
-    -   `[P3]` **Add Unit Tests**: Create comprehensive test suite for business logic with 80%+ coverage. Estimated: 3 days.
-    -   `[P3]` **Standardize Logging**: Implement consistent logging levels and structured logging throughout. Estimated: 4 hours.
-    -   `[P3]` **Complete Dynamic Pricing**: Implement demand-based and time-based pricing algorithms. Estimated: 2-3 days.
-    -   `[P3]` **Separate Worker Binary**: Create `cmd/worker/main.go` for background sync jobs. Estimated: 1 hour.
-    -   `[P3]` **Add Monitoring Dashboard**: Create Grafana dashboard for pricing metrics and alerts. Estimated: 2-3 hours.
+    -   `[P0]` Validate JSON inputs: check `json.Unmarshal` errors and return `InvalidArgument` (or fail closed) for malformed payload.
+    -   `[P0]` Fix `GetActivePromotions` SQL injection: parameterize JSONB conditions; build correct OR across values; avoid raw string concatenation.
+    -   `[P0]` Replace coupon code generation with `crypto/rand` (or UUID/base32) and retry on unique constraint conflict instead of pre-check queries.
+    -   `[P0]` Enforce usage limits atomically in transaction: conditional `UPDATE ... WHERE usage_count < usage_limit` + insert `promotion_usage` + commit; remove/avoid trigger-based counting.
+    -   `[P1]` Move SKU/category/brand/segment filtering into repository query; ensure pagination/total is correct.
+    -   `[P1]` Add idempotency key/unique constraint for `(order_id, promotion_id, usage_type)` to prevent retry double-count.
+    -   `[P1]` Normalize coupon codes (store uppercase, query uppercase) or use `citext`.
+    -   `[P1]` Handle JSON marshal/unmarshal errors consistently in data layer.
+    -   `[P2]` Align health checks with common health handler (DB + Redis readiness/liveness).
+
+### 8. `pricing`
+
+-   **[🟡] Review Status**: In Progress (Re-audit completed – critical fixes pending)
+-   **Architecture Goal**: Dynamic pricing engine with SKU + Warehouse support, price calculation + tax rules, and price sync to catalog.
+-   **Findings**:
+    -   **Good**: Priority pricing fallback implemented (`GetPriceWithPriority`). Repository supports DB-level pagination for prices and batch helpers (e.g., `ListBySKU`, `ListByWarehouse`, `GetPricesBySKUForWarehouses`).
+    -   **Issue (P0)**: `internal/server/consul.go` still uses `panic(err)` on Consul client init failure.
+    -   **Issue (P0)**: Currency conversion is fail-open: on conversion error, code returns original price with `nil` error (`GetPrice`, `ConvertPriceCurrency`) → wrong currency can leak to callers.
+    -   **Issue (P0)**: Async catalog sync uses `go func()` + `context.Background()` without timeout/cancel; risk goroutine leak and missing tracing (`CreatePrice`, `UpdatePrice`).
+    -   **Issue (P0)**: `BulkCalculatePrice` is N+1: loops and calls `CalculatePrice` per item; `applyPriceRules` loads rules per request.
+    -   **Issue (P0)**: Tax calculation fail-open: errors can lead to `taxAmount=0` and still return success.
+    -   **Issue (P1)**: `ListDiscounts` pagination is still in-memory in service layer.
+    -   **Issue (P1)**: Missing transaction boundary for write + side effects (DB write + cache invalidation + events + catalog sync are not atomic).
+    -   **Issue (P1)**: Calculation cache key appears inconsistent (currency missing in the initial cache lookup request); risk incorrect cache hits.
+    -   **Issue (P2)**: Health endpoint is static and does not validate DB/Redis dependencies.
+-   **Action Items**:
+    -   `[P0]` Remove `panic` in Consul init; return error and fail gracefully or allow no-registry mode.
+    -   `[P0]` Make currency conversion fail-closed (return error) or return typed error + explicit fallback flag; never return wrong currency with `nil` error.
+    -   `[P0]` Replace goroutine sync with worker/event/outbox or add timeout + bounded worker pool; propagate trace context.
+    -   `[P0]` Refactor bulk calc to batch-load prices/rules/tax context; avoid per-item DB calls.
+    -   `[P0]` Decide tax failure policy: fail request in prod or use explicit fallback rules; add alerting.
+    -   `[P1]` Add repo pagination for discounts; stop paginating in-memory.
+    -   `[P1]` Add transaction management in usecases (DB write + cache/event) and unify transaction pattern in repositories.
+    -   `[P1]` Fix calculation cache key to include currency + all tax/rule inputs.
+    -   `[P2]` Align health checks with common health handler.
 
 *... (các service khác ở trạng thái Pending) ...*
