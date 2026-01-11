@@ -34,11 +34,30 @@ This directory contains comprehensive business logic checklists, sprint trackers
 | Document | Purpose |
 |----------|---------|
 | [MISSING_CHECKLISTS_ANALYSIS.md](./MISSING_CHECKLISTS_ANALYSIS.md) | Historical gap analysis from Nov 2025 |
-| [CART_MANAGEMENT_REVIEW.md](./CART_MANAGEMENT_REVIEW.md) | Detailed cart service implementation review |
+
+## ✅ Not Implemented Yet (Current Focus)
+
+This section lists checklists that are **known to be not fully implemented yet**, based on the latest working sessions (update as implementation progresses).
+
+- **Tax (integration pending)**
+  - `tax-implementation-checklist-magento-vs-shopify.md` (core tax done; Order/Promotion/Shipping/Catalog integration pending)
+
+- **Promotion (integration pending)**
+  - `promotion-developer-implementation-checklist.md` (core engine done; Order/Shipping/Catalog integration pending)
+  - `promotion-service-checklist.md` (use as implementation tracker; integrations still pending)
+
+- **Cart (Magento-like alignment pending)**
+  - `cart-management-logic-checklist.md` (updated requirements; implementation alignment still in progress)
+
+- **Fulfillment (integration hardening pending)**
+  - `fulfillment-service-business-review-and-developer-checklist.md` (atomicity/idempotency + shipping integration items pending)
+
+---
 
 ## 📋 Business Logic Checklists
 
 ### Core Commerce Flow
+- [tax-implementation-checklist-magento-vs-shopify.md](./tax-implementation-checklist-magento-vs-shopify.md) - Tax implementation checklist (Magento-like vs Shopify-like)
 - [cart-management-logic-checklist.md](./cart-management-logic-checklist.md) - Cart operations, validation, persistence
 - [checkout-process-logic-checklist.md](./checkout-process-logic-checklist.md) - Multi-step checkout orchestration
 - [payment-processing-logic-checklist.md](./payment-processing-logic-checklist.md) - Payment flows, security, gateway integrations
@@ -49,6 +68,7 @@ This directory contains comprehensive business logic checklists, sprint trackers
 
 ### Customer & Account Management
 - [customer-account-management-checklist.md](./customer-account-management-checklist.md) - Customer operations, segmentation, privacy
+- [customer-service-business-review-and-developer-checklist.md](./customer-service-business-review-and-developer-checklist.md) - Tech lead review + developer checklist for Customer service
 - [auth-permission-flow-checklist.md](./auth-permission-flow-checklist.md) - Authentication and permissions
 - [security-fraud-prevention-checklist.md](./security-fraud-prevention-checklist.md) - Security and fraud prevention
 
@@ -56,6 +76,7 @@ This directory contains comprehensive business logic checklists, sprint trackers
 - [catalog-stock-price-logic-checklist.md](./catalog-stock-price-logic-checklist.md) - Catalog, stock, and pricing logic
 - [catalog-product-visibility-rules.md](./catalog-product-visibility-rules.md) - Product visibility rules
 - [promotion-service-checklist.md](./promotion-service-checklist.md) - Promotion service (Magento comparison)
+- [promotion-developer-implementation-checklist.md](./promotion-developer-implementation-checklist.md) - Developer checklist for Promotion service (core done, integrations pending)
 - [price-promotion-logic-checklist.md](./price-promotion-logic-checklist.md) - Pricing and promotion logic
 - [product-review-rating-checklist.md](./product-review-rating-checklist.md) - Review and rating system
 

@@ -7,6 +7,10 @@
 
 ## 🎯 Quick Navigation
 
+### For Developers (MUST READ)
+→ **[GRPC_PROTO_AND_VERSIONING_RULES.md](./GRPC_PROTO_AND_VERSIONING_RULES.md)** - Rules for internal gRPC API changes and versioning.
+
+
 ### For Business Logic & Features
 → **[checklists/](./checklists/)** (40 files)
 - Business logic implementation checklists

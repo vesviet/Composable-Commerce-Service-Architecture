@@ -74,19 +74,31 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
 
 ### 5. Warehouse Domain
 
-| Topic | Description | Publisher Service | Payload Reference |
-|-------|-------------|--------------------|-------------------|
-| `warehouse.inventory.stock_changed` | Inventory stock level changed | Warehouse Service | `warehouse/internal/events/inventory_events.go` |
-| `warehouse.inventory.reserved` | Inventory reserved | Warehouse Service | `warehouse/internal/events/inventory_events.go` |
-| `warehouse.inventory.released` | Inventory released | Warehouse Service | `warehouse/internal/events/inventory_events.go` |
+| Topic | Description | Publisher Service | Payload (Go type) | Producer Trace (code) | Primary Consumers | DLQ / Retry Trace |
+|-------|-------------|-------------------|------------------|------------------------|------------------|------------------|
+| `warehouse.inventory.stock_changed` | Inventory stock level changed | Warehouse Service | `warehouse/internal/biz/events.StockUpdatedEvent` | `warehouse/internal/biz/inventory/inventory.go`, `warehouse/internal/biz/reservation/reservation.go`, `warehouse/internal/worker/cron/stock_change_detector.go` (all publish via string literal) | Search worker | Search DLQ: `dlq.warehouse.inventory.stock_changed` (`search/internal/constants/event_topics.go`), handler: `search/internal/service/dlq_handler.go`, HTTP: `search/internal/server/http.go` |
+| `warehouse.inventory.reserved` | Inventory reserved (kept in reference) | Warehouse Service | (TBD) | Publish call-site not confirmed (search for literal `warehouse.inventory.reserved` in warehouse service) | (TBD) | No topic-based DLQ found (`dlq.warehouse.inventory.reserved` not present) |
+| `warehouse.inventory.released` | Inventory released (kept in reference) | Warehouse Service | (TBD) | Publish call-site not confirmed (search for literal `warehouse.inventory.released` in warehouse service) | (TBD) | No topic-based DLQ found (`dlq.warehouse.inventory.released` not present) |
+
+**Notes**:
+- Detailed trace doc: `docs/workfllow/event-ref/warehouse/README.md`.
+- `warehouse.inventory.stock_changed` is currently published from multiple places using **string literals**.
 
 ### 6. Fulfillment Domain
 
-| Topic | Description | Publisher Service | Payload Reference |
-|-------|-------------|--------------------|-------------------|
-| `fulfillments.fulfillment.status_changed` | Fulfillment status changed | Fulfillment Service | `fulfillment/internal/events/fulfillment_events.go` |
-| `picklists.picklist.status_changed` | Picklist status changed | Fulfillment Service | `fulfillment/internal/events/picklist_events.go` |
-| `packages.package.status_changed` | Package status changed | Fulfillment/Shipping Service | `shipping/internal/events/package_events.go` |
+| Topic | Description | Publisher Service | Payload (Go type) | Producer Trace (code) | Primary Consumers | DLQ / Retry Trace |
+|-------|-------------|-------------------|------------------|------------------------|------------------|------------------|
+| `fulfillments.fulfillment.status_changed` | Fulfillment status changed (unified lifecycle event) | Fulfillment Service | `events.FulfillmentStatusChangedEvent` | `fulfillment/internal/events/publisher.go` (`PublishFulfillmentStatusChanged`) | Order service (inbound HTTP subscription), Warehouse | No topic-based DLQ found (`dlq.fulfillments.*` not present). Order inbound failures stored in DB DLQ: `order/internal/service/event_helpers.go` + admin endpoints in `order/internal/server/http.go`. |
+| `picklists.picklist.status_changed` | Picklist status changed (unified) | Fulfillment Service | `events.PicklistStatusChangedEvent` | `fulfillment/internal/events/publisher.go` (`PublishPicklistStatusChanged`) | (TBD/limited) | No topic-based DLQ found (`dlq.picklists.*` not present). |
+| `packages.package.status_changed` | Package status changed (unified) | Fulfillment Service | `events.PackageStatusChangedEvent` | `fulfillment/internal/events/publisher.go` (`PublishPackageStatusChanged*`) | Shipping service, Warehouse (optional) | No topic-based DLQ found (`dlq.packages.*` not present). |
+
+**Notes**:
+- Authoritative topic constants: `fulfillment/internal/constants/event_topics.go`.
+- Payload structs:
+  - `fulfillment/internal/events/fulfillment_events.go`
+  - `fulfillment/internal/events/picklist_events.go`
+  - `fulfillment/internal/events/package_events.go`
+- Detailed trace doc: `docs/workfllow/event-ref/fulfillment/README.md`.
 
 ### 7. Promotion Domain
 
