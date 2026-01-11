@@ -27,11 +27,22 @@
 
 ### Known correctness gaps (must fix before enabling advanced promos)
 
-- [ ] **CRITICAL:** Advanced discount calculation currently builds cart items with `Quantity=1` and `UnitPrice=0` in `calculatePromotionDiscountAdvanced`.
+- [ ] **CRITICAL (GATING):** Advanced discount calculation currently builds cart items with `Quantity=1` and `UnitPrice=0` in `calculatePromotionDiscountAdvanced`.
   - Impact: BOGO/tiered/selection promos can be wrong.
-- [ ] **CRITICAL:** Free-shipping discount calculation currently passes `shippingAmount=0`.
+  - Required fix: build items from `items[]` input with correct `quantity` and `unit_price_excl_tax`.
+
+- [ ] **CRITICAL (GATING):** Free-shipping discount calculation currently passes `shippingAmount=0`.
   - Impact: shipping discount cannot be computed correctly.
+  - Required fix: require `shipping_amount_excl_tax` in request and pass through.
+
 - [ ] **HIGH:** Parallel arrays `ProductIDs[]` / `CategoryIDs[]` / `BrandIDs[]` can drift; mapping is not explicit.
+  - Required fix: `items[]` is canonical; treat parallel arrays as legacy fallback only.
+
+- [ ] **HIGH:** Money determinism/rounding policy not explicitly enforced.
+  - Required fix: compute using integer minor units/decimal; define rounding rule; stable sorting for deterministic outputs.
+
+- [ ] **HIGH:** Usage recording must be idempotent (order completion events are at-least-once).
+  - Required fix: dedupe by `order_id`/`event_id` + DB unique constraints on usage rows.
 
 ---
 

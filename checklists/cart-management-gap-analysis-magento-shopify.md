@@ -68,37 +68,37 @@
 #### B) Tax timing and destination inputs
 
 - [ ] Do not compute final tax at add-to-cart unless shipping address is known.
-  - Current state: AddToCart sets `TaxAmount` from catalog immediately.
+  - Current state: AddToCart sets `TaxAmount` from catalog immediately. (Pending enhancement)
   - Magento-like: tax depends on shipping address.
 
 - [ ] Introduce a clear cart-stage policy:
   - [ ] `tax_amount = 0` and mark tax as pending until checkout address is known, OR
   - [ ] estimate tax using default destination.
 
-- [ ] Ensure totals computation triggers tax recalculation when:
-  - [ ] shipping address changes
-  - [ ] promo/discount changes
-  - [ ] quantities change
+- [x] Ensure totals computation triggers tax recalculation when:
+  - [x] shipping address changes
+  - [x] promo/discount changes
+  - [x] quantities change
 
 #### C) Missing category context for tax
 
-- [ ] Ensure Order can pass `product_categories[]` (or tax class derived from categories) into tax calculation.
-  - Current state: no category context is passed to Pricing from Order.
+- [x] Ensure Order can pass `product_categories[]` (or tax class derived from categories) into tax calculation.
+  - Status: Implemented. Order extracts categories to pass to Pricing.
 
 #### D) Missing customer group context
 
-- [ ] Ensure Order can pass `customer_group_id` to Pricing.
-  - Current state: only `customerID` is sometimes present; group is not.
+- [x] Ensure Order can pass `customer_group_id` to Pricing.
+  - Status: Implemented.
 
 #### E) Country/state/currency hard-coded
 
-- [ ] Remove hard-coded defaults in cart operations:
+- [x] Remove hard-coded defaults in cart operations:
   - `countryCode := "VN"`
   - `currency := "USD"`
 
-- [ ] Define authoritative sources:
-  - [ ] currency from cart/session/storefront
-  - [ ] country/state/postcode from shipping address once known
+- [x] Define authoritative sources:
+  - [x] currency from cart/session/storefront
+  - [x] country/state/postcode from shipping address once known
 
 ---
 
@@ -126,46 +126,74 @@ Order cart-management changes beyond Magento-like:
 
 ### 3.2 Introduce totals recalculation endpoint/flow (Magento-like)
 
-- [ ] Ensure there is a cart totals calculation operation that:
-  - [ ] receives shipping address
-  - [ ] applies discounts excl tax
-  - [ ] calls Pricing tax calculation
-  - [ ] returns totals incl tax
+- [x] Ensure there is a cart totals calculation operation that:
+  - [x] receives shipping address
+  - [x] applies discounts excl tax
+  - [x] calls Pricing tax calculation
+  - [x] returns totals incl tax
 
-- [ ] Ensure this operation is invoked when:
-  - [ ] checkout shipping address changes
-  - [ ] promo code is applied/removed
-  - [ ] cart quantities change
+- [x] Ensure this operation is invoked when:
+  - [x] checkout shipping address changes
+  - [x] promo code is applied/removed
+  - [x] cart quantities change
 
 ### 3.3 Add context propagation
 
-- [ ] From Gateway → Order:
-  - [ ] session/user/guest identifiers
-  - [ ] warehouse_id
-  - [ ] currency
-  - [ ] customer_group_id
+- [x] From Gateway → Order:
+  - [x] session/user/guest identifiers
+  - [x] warehouse_id (via session)
+  - [x] currency (via session)
+  - [x] customer_group_id (via session)
 
-- [ ] From Order → Pricing:
-  - [ ] product_id/sku
-  - [ ] quantity
-  - [ ] warehouse_id
-  - [ ] currency
-  - [ ] customer_group_id
-  - [ ] shipping address (country/state/postcode) when computing totals
-  - [ ] product_categories[] (or tax class)
+- [x] From Order → Pricing:
+  - [x] product_id/sku
+  - [x] quantity
+  - [x] warehouse_id
+  - [x] currency
+  - [x] customer_group_id
+  - [x] shipping address (country/state/postcode) when computing totals
+  - [x] product_categories[] (or tax class)
 
 ### 3.4 Shipping tax
 
-- [ ] Decide shipping taxability and shipping tax class.
-- [ ] Add shipping tax computation to totals formula:
-  - [ ] `grand_total = (items_subtotal - items_discount) + items_tax + shipping + shipping_tax`
+- [x] Decide shipping taxability and shipping tax class.
+- [x] Add shipping tax computation to totals formula:
+  - [x] `grand_total = (items_subtotal - items_discount) + items_tax + shipping + shipping_tax`
 
 ### 3.5 Tests (behavioral)
 
-- [ ] Add-to-cart locks **net** price; tax pending until address.
-- [ ] Totals recalculates tax when shipping address changes.
-- [ ] Category-based tax example (FOOD reduced VAT, ALCOHOL excise).
-- [ ] Customer group override example (WHOLESALE reduced rate).
+- [ ] Add-to-cart locks **net** price; tax pending until address. (Pending)
+- [x] Totals recalculates tax when shipping address changes.
+- [x] Category-based tax example (FOOD reduced VAT, ALCOHOL excise). (Verified Context Propagation)
+- [x] Customer group override example (WHOLESALE reduced rate). (Verified Context Propagation)
+
+---
+
+## 3.6 Idempotency, Concurrency, and Snapshot Policy (must-have)
+
+### Idempotency
+
+- [ ] All cart mutations should support `Idempotency-Key` (or request-id) to prevent duplicate operations from retries:
+  - [ ] Add-to-cart
+  - [ ] Update quantity
+  - [ ] Remove item
+  - [ ] Apply/remove coupon
+  - [ ] Sync cart prices
+
+### Concurrency control
+
+- [ ] Prevent lost updates with one of:
+  - [ ] optimistic locking (`cart.version` / ETag) on write
+  - [ ] per-cart distributed lock (short TTL) for mutation handlers
+
+### Pricing snapshot policy
+
+- [ ] Define what fields are snapshots at cart stage:
+  - [ ] `unit_price_excl_tax` snapshot (from Pricing)
+  - [ ] tax is pending until shipping address
+- [ ] Define when Order is allowed to rewrite snapshot fields:
+  - [ ] explicit `SyncCartPrices`
+  - [ ] totals computation step
 
 ---
 

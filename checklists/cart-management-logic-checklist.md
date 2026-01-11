@@ -2,8 +2,8 @@
 
 **Service:** Cart/Order Service  
 **Created:** 2025-11-19  
-**Status:** 🟡 **Partially Implemented** (Magento-like alignment not fully complete)  
-**Priority:** 🔴 **Critical**
+**Status:** 🟢 **Mostly Implemented** (Tax Context, Logic, and Shipping Tax aligned)  
+**Priority:** 🟠 **High** (Remaining: Add-to-cart source of truth)
 
 **Legend:**
 - ✅ implemented
@@ -28,35 +28,29 @@ This section is the actionable list for developers to make Cart align with **Mag
 
 ### B) Checkout tax recalculation correctness
 
-- ❌ **P3** Tax recalculation on address updates ignores discount
-  - **Current evidence:** `order/internal/biz/checkout/update_helpers.go` → `calculateAndUpdateTaxAndShipping` calls `calculateTax(ctx, subtotal, country, state)`.
-  - **Expected:** `taxable = max(0, subtotal - discount_excl_tax)`; tax must be computed on taxable amount.
+- ✅ **P3** Tax recalculation on address updates ignores discount
+  - **Status:** Fixed. `calculateAndUpdateTaxAndShipping` and `recalculateTotals` now subtract discount before tax.
 
-- ❌ **P4** Checkout tax API call missing postcode + category + customer group
-  - **Current evidence:** `order/internal/biz/checkout/calculations.go` calls `pricingService.CalculateTax(taxableAmount, country, state)`.
-  - **Expected:** pass `postcode`, `customer_group_id`, `product_categories[]` (or derived tax class) per Magento-like rules.
+- ✅ **P4** Checkout tax API call missing postcode + category + customer group
+  - **Status:** Fixed. `PricingService.CalculateTax` now accepts and uses `postcode`, `categories`, `customer_group_id`.
 
 ### C) Currency/country hard-coding in cart flows
 
-- ❌ **P5** Cart update/validate/sync uses hard-coded `countryCode = "VN"` and `currency = "USD"`
-  - **Evidence:**
-    - `order/internal/biz/cart/update.go`
-    - `order/internal/biz/cart/validate.go`
-    - `order/internal/biz/cart/sync.go`
-  - **Expected:** derive currency from storefront/cart/session; derive destination from shipping address once known.
+- ✅ **P5** Cart update/validate/sync uses hard-coded `countryCode = "VN"` and `currency = "USD"`
+  - **Status:** Fixed. Logic now derives currency/country from Cart/Session context with fallbacks.
 
 ### D) Category & customer group tax inputs
 
-- ❌ **P6** Category-based tax not wired into totals context
-  - **Expected:** Order/Checkout can resolve product categories (from Catalog or snapshot) and pass them to Pricing tax.
+- ✅ **P6** Category-based tax not wired into totals context
+  - **Status:** Fixed. `CalculateTax` calls now pass category IDs from cart items.
 
-- ❌ **P7** Customer group tax not wired into totals context
-  - **Expected:** Order/Checkout obtains `customer_group_id` (Customer service) and passes into Pricing tax.
+- ✅ **P7** Customer group tax not wired into totals context
+  - **Status:** Fixed. `CalculateTax` calls now pass `customer_group_id`.
 
 ### E) Shipping tax
 
-- ❌ **P8** Shipping tax policy not implemented
-  - **Expected:** define if shipping taxable; if yes compute `shipping_tax_amount` and include in grand total.
+- ✅ **P8** Shipping tax policy not implemented
+  - **Status:** Fixed. `CartTotals` now calculates shipping tax (using `ShippingService` or `PricingService` logic).
 
 ---
 
@@ -74,7 +68,9 @@ This section is the actionable list for developers to make Cart align with **Mag
 10. [Integration Points](#8-integration-points)
 11. [Edge Cases & Race Conditions](#9-edge-cases--race-conditions)
 12. [Performance & Caching](#10-performance--caching)
-13. [Testing Scenarios](#11-testing-scenarios-magento-like-additions)
+13. [Idempotency & Concurrency Control](#11-idempotency--concurrency-control)
+14. [Observability](#12-observability)
+15. [Testing Scenarios](#13-testing-scenarios-magento-like-additions)
 
 ---
 
@@ -119,20 +115,20 @@ Cart management là trung tâm của shopping experience. Cart service phải x�
 
 ### 0.2 Category-based tax (CRITICAL)
 
-- ❌ **R0.2.1** Include `product_categories[]` (or a derived tax class) in totals/tax calculation context.
-- ❌ **R0.2.2** Support category-specific tax rules (FOOD/ALCOHOL examples).
-- ❌ **R0.2.3** Define precedence when product belongs to multiple categories.
+- ✅ **R0.2.1** Include `product_categories[]` (or a derived tax class) in totals/tax calculation context.
+- ✅ **R0.2.2** Support category-specific tax rules (FOOD/ALCOHOL examples). (Context passed)
+- ✅ **R0.2.3** Define precedence when product belongs to multiple categories. (Pricing Service logic)
 
 ### 0.3 Customer group tax (CRITICAL)
 
-- ❌ **R0.3.1** Include `customer_group_id` in totals/tax calculation context.
-- ❌ **R0.3.2** Support group-specific overrides.
+- ✅ **R0.3.1** Include `customer_group_id` in totals/tax calculation context.
+- ✅ **R0.3.2** Support group-specific overrides. (Context passed)
 
 ### 0.4 Shipping tax
 
-- ❌ **R0.4.1** Decide whether shipping is taxable.
-- ❌ **R0.4.2** If taxable, define shipping tax class per method/zone.
-- ❌ **R0.4.3** Include shipping tax in totals formula.
+- ✅ **R0.4.1** Decide whether shipping is taxable.
+- ✅ **R0.4.2** If taxable, define shipping tax class per method/zone.
+- ✅ **R0.4.3** Include shipping tax in totals formula.
 
 ---
 
@@ -194,7 +190,43 @@ Cart management là trung tâm của shopping experience. Cart service phải x�
 
 ---
 
-## 11. Testing Scenarios (Magento-like additions)
+## 11. Idempotency & Concurrency Control
+
+- [ ] **R11.1** All cart mutation endpoints accept `Idempotency-Key` and dedupe duplicates:
+  - [ ] add-to-cart
+  - [ ] update quantity
+  - [ ] remove item
+  - [ ] apply/remove coupon
+  - [ ] sync prices
+
+- [ ] **R11.2** Prevent lost updates with optimistic locking (recommended):
+  - [ ] Store `cart_version` on cart
+  - [ ] Require `If-Match` / `cart_version` on write
+  - [ ] Reject stale writes with `409 Conflict`
+
+- [ ] **R11.3** Cart merge (guest → user) is idempotent:
+  - [ ] dedupe key: `(guest_cart_id, user_id)`
+  - [ ] repeated merge does not double quantities
+
+## 12. Observability
+
+- [ ] **R12.1** Metrics:
+  - [ ] cart mutation latency p95/p99 (by endpoint)
+  - [ ] price mismatch rate (validate detects price drift)
+  - [ ] stock check failure rate
+  - [ ] promotion validation latency
+  - [ ] totals calculation latency
+
+- [ ] **R12.2** Logs/tracing:
+  - [ ] propagate `cart_id`, `order_id`, `customer_id`, `request_id`
+  - [ ] log when price was resynced and why
+
+- [ ] **R12.3** Alerts:
+  - [ ] sudden spike in price mismatch
+  - [ ] warehouse stock check error rate spike
+  - [ ] pricing service latency spike
+
+## 13. Testing Scenarios (Magento-like additions)
 
 - ❌ Add-to-cart returns price excl tax; tax pending until shipping address known
 - ❌ Address change recomputes tax using taxable amount (subtotal-discount)

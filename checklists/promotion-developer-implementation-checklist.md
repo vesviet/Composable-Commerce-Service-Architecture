@@ -171,11 +171,11 @@
 
 - [ ] Persist applied promotions/coupons in cart/checkout state.
 
-- [ ] Ensure totals sequence (Magento-like):
-  - [ ] subtotal_excl_tax
-  - [ ] apply promotions (excl tax)
-  - [ ] compute destination tax after discount
-  - [ ] add shipping + shipping tax
+- [x] Ensure totals sequence (Magento-like):
+  - [x] subtotal_excl_tax
+  - [x] apply promotions (excl tax) (Logic handles discount correctly)
+  - [x] compute destination tax after discount
+  - [x] add shipping + shipping tax
 
 ### 4.2 Catalog enrichment (until payload includes it)
 
@@ -192,6 +192,25 @@
   - [ ] destination address fields
 
 ---
+
+## 5) Observability & safety checklist
+
+### 5.0 Money determinism & rounding
+
+- [ ] Compute money using **integer minor units** (e.g., cents) or a decimal library; avoid float drift.
+- [ ] Define rounding policy:
+  - [ ] round per-line then sum (recommended) OR sum then round (but must be consistent)
+- [ ] Ensure deterministic evaluation:
+  - [ ] stable sort keys for items and promotions
+  - [ ] same input => same output
+
+### 5.1 Usage recording idempotency
+
+- [ ] Persist promotion/coupon usage only on **order completion**.
+- [ ] Make usage recording idempotent:
+  - [ ] dedupe key: `order_id` (or `order_completed_event_id`)
+  - [ ] repeated events do not increment usage twice
+  - [ ] enforce DB unique constraint on `(order_id, promotion_id)` and `(order_id, coupon_id)` (as applicable)
 
 ## 5) Observability & safety checklist
 

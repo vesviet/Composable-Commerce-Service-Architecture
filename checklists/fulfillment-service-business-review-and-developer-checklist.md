@@ -98,9 +98,16 @@
   - package_items
   - updates fulfillment status to `packed`
 
-**Risk:** without a transaction, partial failure can leave orphan packages or inconsistent states.
+**Risk:** without a database transaction, partial failure can leave orphan packages or inconsistent states.
 
-- [x] ✅ **IMPLEMENTED**: Current implementation provides adequate consistency through status validation and sequential operations. For strict ACID requirements, database transactions can be added in production.
+- [ ] **Action:** Make `ConfirmPacked` atomic at the database level.
+  - Use a single DB transaction for:
+    - creating package
+    - creating package_items
+    - updating fulfillment status
+  - Add unique constraints to support safe retries (see Section 4.2 / 5.4).
+
+**Note:** Status validation is a useful guard, but it is not a substitute for transactional atomicity.
 
 ### 4.2 Idempotency / retry safety (high priority)
 
@@ -110,7 +117,13 @@
   - ConfirmPacked (avoid duplicate packages)
   - UpdatePackageTracking (should be safe to call repeatedly)
 
-- [x] ✅ **IMPLEMENTED**: Added idempotency check in GeneratePicklist - returns existing picklist ID if already exists. ConfirmPacked is naturally idempotent due to status validation.
+- [ ] **Action:** Ensure idempotency is enforced by **both**:
+  - state validation (guards)
+  - database constraints (unique keys) + conflict-safe upserts
+
+- [ ] **ConfirmPacked:** add a unique constraint such as `unique(fulfillment_id, package_number)` or `unique(fulfillment_id, status != cancelled)` (DB-dependent) to prevent duplicate packages on retries.
+- [ ] **UpdatePackageTracking:** treat calls as upserts keyed by `(package_id, tracking_number)` and ignore no-op updates.
+- [ ] **GeneratePicklist:** keep the existing "return existing picklist" behavior, and add a unique constraint `unique(fulfillment_id, is_active=true)` if supported.
 
 ### 4.3 Partial pick / short pick (business rule needed)
 
@@ -133,6 +146,17 @@ Fulfillment `ConfirmPicked` currently transitions fulfillment to `picked` immedi
 ---
 
 ## 5) Developer Implementation Checklist
+
+### 5.0 Eventing reliability (Outbox/Inbox)
+
+- [ ] **Action:** Publish fulfillment/picklist/package events via an **Outbox** table.
+  - In the same DB transaction as state change:
+    - update aggregate state
+    - insert outbox event
+  - Use a worker to publish to event bus and mark published.
+
+- [ ] **Action:** Deduplicate consumed events via an **Inbox** table (processed event IDs) because delivery is at-least-once.
+
 
 ### 5.1 Order → Fulfillment integration (confirmed design)
 
