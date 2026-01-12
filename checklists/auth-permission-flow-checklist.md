@@ -735,43 +735,43 @@ type ServiceCacheConfig struct {
 ### **Common Package Extraction Checklist**
 
 #### **Phase 1: Foundation (Week 1)**
-- [ ] **Create Generic Cache Interface**
-  - Implement `common/utils/cache/entity_cache.go`
-  - Add Redis implementation với generic types
-  - Add comprehensive unit tests
-  - Add performance benchmarks
+- [x] **Create Generic Cache Interface**
+  - [x] Implement `common/utils/cache/entity_cache.go` (Consolidated into `common/utils/cache/cache.go`)
+  - [x] Add Redis implementation với generic types
+  - [x] Add comprehensive unit tests
+  - [ ] Add performance benchmarks
 
-- [ ] **Create Generic Event Helper**
-  - Implement `common/events/entity_event_helper.go`
-  - Add nil-safe publishing patterns
-  - Add event type converters
-  - Add integration tests với Dapr
+- [x] **Create Generic Event Helper**
+  - [x] Implement `common/events/entity_event_helper.go`
+  - [x] Add nil-safe publishing patterns
+  - [x] Add event type converters
+  - [x] Add integration tests với Dapr
 
 #### **Phase 2: Integration (Week 2)**
-- [ ] **Update Customer Service**
-  - Replace `customer/internal/biz/customer/cache.go` với common cache
-  - Replace `customer/internal/biz/customer/events.go` với common events
-  - Update dependency injection
-  - Run integration tests
+- [x] **Update Customer Service**
+  - [x] Replace `customer/internal/biz/customer/cache.go` với common cache
+  - [x] Replace `customer/internal/biz/customer/events.go` với common events
+  - [x] Update dependency injection
+  - [x] Run integration tests
 
-- [ ] **Update User Service**
-  - Replace `user/internal/biz/user/cache.go` với common cache
-  - Replace `user/internal/biz/user/events.go` với common events
-  - Update dependency injection
-  - Run integration tests
+- [x] **Update User Service**
+  - [x] Replace `user/internal/biz/user/cache.go` với common cache
+  - [x] Replace `user/internal/biz/user/events.go` với common events
+  - [x] Update dependency injection
+  - [x] Run integration tests
 
 #### **Phase 3: Server & Config (Week 3)**
-- [ ] **Create HTTP Server Builder**
-  - Implement `common/server/http_setup.go`
-  - Add health check registration
-  - Add Swagger UI setup
-  - Add middleware configuration
+- [x] ~~**Create HTTP Server Builder**~~ (Skipped: Internal comms via gRPC)
+  - ~~Implement `common/server/http_setup.go`~~
+  - ~~Add health check registration~~
+  - ~~Add Swagger UI setup~~
+  - ~~Add middleware configuration~~
 
-- [ ] **Create Config Template**
-  - Implement `common/config/service_config_template.go`
-  - Add cache config standardization
-  - Add pagination config standardization
-  - Update service configs to use template
+- [x] ~~**Create Config Template**~~ (Skipped: Not needed per user)
+  - ~~Implement `common/config/service_config_template.go`~~
+  - ~~Add cache config standardization~~
+  - ~~Add pagination config standardization~~
+  - ~~Update service configs to use template~~
 
 #### **Phase 4: Validation & Polish (Week 4)**
 - [ ] **Enhance Common Validation**

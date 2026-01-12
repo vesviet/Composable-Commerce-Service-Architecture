@@ -70,22 +70,53 @@ For each service, the following aspects will be reviewed:
 
 ### 3. `auth`
 
--   **[✅] Review Status**: Completed
+-   **[✅] Review Status**: Completed (Updated after comprehensive code review)
 -   **Architecture Goal**: Token & Session management ONLY. User/credential logic belongs to `user`/`customer` services.
+-   **Session & Token Integration Status**: ✅ **FIXED** - TokenUsecase now properly integrates with SessionUsecase
 -   **Findings**:
-    -   **[P0] Mismatch giữa Token & Session**: `TokenUsecase` tự tạo `session_id` (dạng `session_user_time`) trong khi `SessionUsecase` dùng UUID. Hai hệ thống không liên kết với nhau.
-    -   **[P0] Mismatch giữa Code & DB Schema**: Code trong `userRepo` và `authRepo` đang thao tác với table `users`, nhưng migration lại tạo table `credentials`. Code sẽ fail runtime.
-    -   **[P0] Logic `RefreshToken` không an toàn**: `ValidateToken` được dùng để check refresh token nhưng không kiểm tra `type` claim, cho phép access token có thể dùng để refresh.
-    -   **[P0] Hardcoded Secrets**: `config.yaml` chứa `jwt.secret` và `encryption.key` mặc định.
-    -   **[P1] Trùng lặp và sai scope**: `UserRepo` trong `auth` service là không cần thiết, logic bị trùng lặp và sai trách nhiệm.
-    -   **[P1] Revoke token dùng `KEYS` trên Redis**: `RevokeUserTokens` dùng `KEYS` là một practice nguy hiểm cho production.
+
+#### **🔴 Critical Security Issues (P0)**
+-   **[P0] JWT Secret Management**: Default secret "default-secret-change-in-production" can be used in production. Only environment variable override exists but not enforced.
+-   **[P0] Session Expiration Not Enforced**: Sessions persist indefinitely in database with no cleanup mechanism. Cache expires (1h) but DB records remain forever.
+-   **[P0] Incomplete Token Revocation**: Revocation only stored in Redis (volatile). If Redis fails, revoked tokens become valid again.
+-   **[P0] Missing Session Validation in Token Validation**: `ValidateToken` doesn't check `session.is_active` - revoked sessions can still validate tokens.
+-   **[P0] No Rate Limiting**: No protection against token refresh/validation spam attacks.
+-   **[P0] Cache Invalidation Race Conditions**: Session revocation (DB delete + cache invalidate) not atomic - stale sessions can remain in cache.
+
+#### **🟡 High Priority Issues (P1)**
+-   **[P1] No Audit Trail**: Token generation/validation/revocation not logged for security monitoring.
+-   **[P1] Backward Compatibility Confusion**: Both "client_type" and "user_type" in JWT claims causing downstream confusion.
+-   **[P1] Missing Permissions Version Validation**: Old tokens with outdated permissions still valid after permission changes.
+-   **[P1] No Session Device Binding**: Device info stored but never validated - token theft not detected.
+-   **[P1] Hardcoded Session Limits**: Max 5 sessions per user hardcoded, should be configurable per user type.
+-   **[P1] Insufficient Input Validation**: UserType not validated against enum (customer/admin/shipper), IP address format not validated.
+
+#### **🟢 Medium Priority Issues (P2)**
+-   **[P2] No Session Analytics**: No tracking of session patterns or suspicious activity.
+-   **[P2] Missing Health Checks**: No health endpoints for session/token operations.
+-   **[P2] No Testing Coverage**: No unit/integration/security tests visible.
+
 -   **Action Items**:
-    -   `[x]` **[REMOVE]** `[P1]` Loại bỏ `UserRepo` và các logic User CRUD ra khỏi `auth` service. Chuyển trách nhiệm này cho `user` service.
-    -   `[x]` **Refactor Token Generation**: `TokenUsecase.GenerateToken` phải gọi `SessionUsecase.CreateSession` để lấy `session_id` (UUID) thật sự.
-    -   `[x]` **Fix Refresh Token Logic**: Phải kiểm tra `type == 'refresh'` trong claim khi refresh token.
-    -   `[P0]` **Fix DB Mismatch**: Nếu `auth` cần lưu credential, đổi code để dùng table `credentials`. Nếu không, xóa bỏ logic liên quan.
-    -   `[x]` **Secure Configuration**: Chuyển toàn bộ secret sang đọc từ environment variables và fail-fast nếu giá trị mặc định được dùng trong production.
-    -   `[x]` **Optimize Revocation**: Thay thế `KEYS` bằng `SCAN` trong `RevokeUserTokens` hoặc dùng cấu trúc dữ liệu khác (e.g., a Redis SET per user).
+    -   `[P0]` **Implement Session Expiration Cleanup**: Daily background job to clean expired sessions from database.
+    -   `[P0]` **Add Session Active Check**: Validate `session.is_active == true` in token validation flow.
+    -   `[P0]` **Implement Database Token Revocation Backup**: Store revocation state in PostgreSQL as fallback.
+    -   `[P0]` **Add Rate Limiting**: Implement rate limiting on token generation/validation/refresh endpoints.
+    -   `[P0]` **Fix Atomic Session Revocation**: Wrap DB delete + cache invalidate in transaction or use distributed lock.
+    -   `[P0]` **Enforce JWT Secret Validation**: Fail-fast if default secret used in production environment.
+    -   `[P1]` **Implement Audit Logging**: Log all token/session operations with user context for security monitoring.
+    -   `[P1]` **Add Device Binding Validation**: Validate device info matches during token validation.
+    -   `[P1]` **Implement Permissions Version Check**: Validate permissions_version in token claims during validation.
+    -   `[P1]` **Make Session Limits Configurable**: Allow different session limits per user type (admin vs customer).
+    -   `[P1]` **Add Input Validation**: Validate UserType enum and IP address format.
+    -   `[P2]` **Add Comprehensive Testing**: Unit tests for token/session logic, integration tests for auth flow, security tests for token forgery.
+    -   `[P2]` **Implement Session Analytics**: Track session patterns and detect anomalous behavior.
+
+#### **✅ Resolved Issues**
+-   `[x]` **Token-Session Integration**: TokenUsecase now properly calls SessionUsecase.CreateSession for UUID session IDs.
+-   `[x]` **UserRepo Removal**: User CRUD logic removed from auth service, properly delegated to user service.
+-   `[x]` **Refresh Token Type Check**: Refresh token validation now checks token type in claims.
+-   `[x]` **Environment Variable Support**: JWT secret can be overridden via AUTH_JWT_SECRET environment variable.
+-   `[x]` **Optimized Token Revocation**: Uses Redis SET per user instead of dangerous KEYS operation.
 
 ### 4. `user`
 
