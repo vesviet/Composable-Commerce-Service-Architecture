@@ -79,6 +79,139 @@ This is a comprehensive **microservices-based e-commerce platform** built with m
 
 ---
 
+## 🧭 SERVICE SOURCE TREE INDEX (IMPLEMENTED STRUCTURE)
+
+This section captures the **actual source tree layout** observed in the repository (not just the intended standard). It is useful for onboarding, review scoping, and identifying deviations.
+
+### 🌟 Cross-cutting Notes (Observed)
+- **`vendor/` present in many Go services** (`auth`, `order`, `payment`, `warehouse`, `fulfillment`, `shipping`, `notification`, `search`, `analytics`, `location`, `review`, `loyalty-rewards`). Decide platform policy (commit vendor vs rely on module proxy) to avoid dependency drift.
+- **Migration layout inconsistencies**
+  - `payment/` contains both `migrations/` and `internal/migrations/`.
+  - `analytics/` has multiple `001_*.sql` files — verify Goose ordering/numbering.
+- **Entrypoint naming deviation**: `analytics` uses `cmd/server` instead of `cmd/<service>`.
+- **Repo hygiene**: root contains `comman/` (possible typo/duplicate of `common`). Some services contain backup files (e.g. `shipping/go.mod.old`, `review/go.mod.bak2`).
+
+### 📦 Logistics Services
+
+#### `order`
+- **Entrypoints**: `cmd/order`, `cmd/worker`, `cmd/migrate`
+- **API**: `api/order/v1`
+- **Internal**:
+  - `internal/biz/` domains: `cart`, `checkout`, `order`, `order_edit`, `cancellation`, `return`, `status`, `validation`, `providers`
+  - cross-cutting: `transaction.go`, `event_idempotency.go`, `failed_event.go`, `monitoring.go`
+  - `internal/data/`, `internal/repository/`, `internal/model/`
+  - `internal/service/`, `internal/server/`, `internal/middleware/`
+  - `internal/events/`, `internal/worker/`, `internal/client/`, `internal/cache/`
+- **Migrations**: `migrations/`
+
+#### `payment`
+- **Entrypoints**: `cmd/payment`, `cmd/worker`, `cmd/migrate`
+- **API**: `api/payment/v1`
+- **Internal**:
+  - `internal/biz/`, `internal/data/`, `internal/repository/`, `internal/model/`
+  - `internal/service/`, `internal/server/`, `internal/middleware/`
+  - `internal/client/` (order/customer clients + circuit breaker)
+  - `internal/job/`, `internal/worker/`, `internal/utils/`, `internal/constants/`
+- **Migrations**: `migrations/001..007_*.sql` + `internal/migrations/` (exists)
+- **Tests**: `test/integration`, `test/performance`, `test/security`, `testutil`
+
+#### `warehouse`
+- **Entrypoints**: `cmd/warehouse`, `cmd/worker`, `cmd/migrate`
+- **API**: `api/warehouse/v1`, `api/inventory/v1`, `api/backorder/v1`, `api/distributor/v1`
+- **Internal**:
+  - `internal/biz/`
+  - `internal/data/` subpackages: `postgres`, `redis`, `eventbus`, `grpc_client`
+  - `internal/repository/`, `internal/model/`, `internal/service/`, `internal/server/`, `internal/worker/`
+  - `internal/observer/`, `internal/utils/`, `internal/constants/`
+- **Migrations**: `migrations/`
+
+#### `fulfillment`
+- **Entrypoints**: `cmd/fulfillment`, `cmd/worker`, `cmd/migrate`
+- **API**: `api/fulfillment/v1`, `api/picklist/v1`, `api/package/v1`
+- **Internal**: `internal/biz/`, `internal/data/`, `internal/repository/`, `internal/model/`, `internal/service/`, `internal/server/`, `internal/worker/`, `internal/events/`, `internal/observer/`, `internal/client/`
+- **Migrations**: `migrations/001..015_*.sql`
+
+#### `shipping`
+- **Entrypoints**: `cmd/shipping`, `cmd/worker`, `cmd/migrate`
+- **API**: `api/shipping/v1`
+- **Internal**:
+  - `internal/biz/` domains: `carrier`, `shipment`, `shipping_method`
+  - adapters: `internal/carrier/` (`ghn/`, `grab/`, `interface.go`)
+  - `internal/carrierfactory/`
+  - plus standard layers: `internal/data/`, `internal/repository/`, `internal/model/`, `internal/service/`, `internal/server/`, `internal/worker/`, `internal/events/`, `internal/observer/`
+  - `internal/testdata/`
+- **Migrations**: timestamped `202411*` series
+- **Notes**: contains `pkg/` (service-local utilities) and `go.mod.old`
+
+### 🧩 Supporting Services
+
+#### `notification`
+- **Entrypoints**: `cmd/notification`, `cmd/worker`, `cmd/migrate`
+- **API**: `api/notification/v1`
+- **Internal**:
+  - `internal/biz/` domains: `delivery`, `events`, `message`, `notification`, `preference`, `subscription`, `template`
+  - `internal/cache/` (has tests)
+  - plus standard layers: `internal/data/`, `internal/repository/`, `internal/model/`, `internal/service/`, `internal/server/`, `internal/worker/`, `internal/client/`
+  - `internal/pkg/`, `internal/provider/`, `internal/constants/`, `internal/observability/`
+- **Migrations**: `migrations/00001..00006_*.sql`
+
+#### `search`
+- **Entrypoints**: `cmd/search`, `cmd/worker`, `cmd/sync`, `cmd/migrate`
+- **API**: `api/search/v1` (+ `api/openapi.yaml`)
+- **Internal**:
+  - `internal/data/` subpackages: `elasticsearch`, `postgres`, `redis`, `eventbus`
+  - `internal/cache/`, `internal/constants/`, `internal/observability/prometheus`
+  - plus standard layers: `internal/biz/`, `internal/service/`, `internal/server/`, `internal/worker/`, `internal/client/`
+- **Migrations**: `migrations/`
+- **Tests**: `test/integration`
+
+#### `analytics`
+- **Entrypoint**: `cmd/server/main.go`
+- **API**: `api/analytics/v1`
+- **Eventing**: `dapr/subscription.yaml`
+- **Internal**:
+  - domain-heavy: `internal/domain/`
+  - `internal/usecase/`, `internal/repository/`, `internal/service/`
+  - `internal/handler/` (event + health)
+  - `internal/infrastructure/` (`database/`, `redis/`)
+  - `internal/pkg/circuitbreaker`, `internal/config/`
+- **Migrations**: includes multiple `001_*.sql` (verify ordering)
+
+#### `location`
+- **Entrypoints**: `cmd/location`, `cmd/migrate`
+- **API**: `api/location/v1` (includes generated `.pb.go` + `.proto`)
+- **Internal**:
+  - `internal/biz/location/` (usecase + validator + tests)
+  - `internal/data/postgres/`, `internal/model/`, `internal/service/` (has tests)
+  - `internal/server/` (consul/grpc/http/server)
+  - `internal/client/`
+- **Migrations**: `migrations/001_create_locations_table.sql`
+
+### 💬 Engagement Services
+
+#### `review`
+- **Entrypoints**: `cmd/review`, `cmd/migrate`
+- **API**: `api/review/v1`
+- **Internal**:
+  - `internal/biz/` domains: `review`, `rating`, `helpful`, `moderation`, `events`
+  - `internal/data/` (`postgres`, `redis`), `internal/cache/`
+  - `internal/client/` (catalog/order/user)
+  - `internal/observability/` (metrics + tracing)
+  - plus standard layers: `internal/server/`, `internal/service/`, `internal/worker/`
+- **Migrations**: `migrations/001..002_*.sql`
+
+#### `loyalty-rewards`
+- **Entrypoint**: `cmd/loyalty-rewards` (server)
+- **API**: `api/loyalty/v1` (+ `api/openapi.yaml`)
+- **Internal**:
+  - `internal/biz/` domains: `account`, `tier`, `transaction`, `reward`, `redemption`, `campaign`, `referral`, `analytics`, `events`
+  - `internal/cache/` (account/reward/tier)
+  - `internal/client/` (customer/order/notification)
+  - plus standard layers: `internal/data/`, `internal/repository/`, `internal/model/`, `internal/server/`, `internal/service/`, `internal/jobs/`, `internal/observability/`
+- **Migrations**: `migrations/001..008_*.sql`
+
+---
+
 ## 📁 STANDARD SERVICE STRUCTURE
 
 Each Go microservice follows **Clean Architecture** with this standardized structure:

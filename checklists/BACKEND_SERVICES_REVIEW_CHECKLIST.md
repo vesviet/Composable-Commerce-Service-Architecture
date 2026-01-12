@@ -13,7 +13,7 @@
 | **Core Libs & Gateway** | ✅ Completed | `common` & `gateway` reviewed. Key findings on routing & middleware. |
 | **Identity** | ✅ Completed | `auth`, `user`, `customer` reviewed. |
 | **Commerce** | 🟡 In Progress | `catalog` 🟡, `pricing` ✅, `promotion` 🟡 |
-| **Logistics** | ⚪ Pending | `warehouse`, `order`, `payment`, `fulfillment`, `shipping` |
+| **Logistics** | 🟡 In Progress | `order` 🟡 (review in progress), `warehouse` ⚪, `payment` ⚪, `fulfillment` ⚪, `shipping` ⚪ |
 | **Supporting** | ⚪ Pending | `notification`, `search`, `analytics`, `location` |
 | **Engagement** | ⚪ Pending | `review`, `loyalty-rewards` |
 
@@ -42,28 +42,31 @@ For each service, the following aspects will be reviewed:
 
 -   **[✅] Review Status**: Completed
 -   **Findings**:
-    -   **Good**: Comprehensive set of shared components.
-    -   **Issue**: `README.md` has merge conflicts.
-    -   **Issue**: `auth.go` middleware has a potential panic on JWT claim type casting.
+    -   **Good**: Comprehensive set of shared components (`errors`, `client`, `middleware`).
+    -   **Good**: `client` package implements robust gRPC patterns with circuit breaker, retries, and observability.
+    -   **Good**: `errors` package provides standardized error codes and structured JSON support.
+    -   **Issue**: `README.md` is malformed; it concatenates the default GitLab template with the actual documentation (contains `=======` separator).
+    -   **Issue**: `auth.go` type assertions are generally safe, but `RequireRole` logic allows `nil` roles to bypass validation if not strictly checked (though current implementation looks okay).
+    -   **Issue**: Versioning is managed via `go.mod` comments; no specialized versioning tool/changelog automation.
 -   **Action Items**:
-    -   `[P1]` Clean up `common/README.md`.
-    -   `[P1]` Create a `CHANGELOG.md` for version tracking.
-    -   `[P2]` Add safe type conversion for JWT claims in `auth.go`.
+    -   `[x]` **Fix README**: Remove the top half (GitLab template) and the `=======` line; keep the "Common Package" documentation.
+    -   `[x]` **Standardize Versioning**: Create a `CHANGELOG.md` and enforce git tags matching `go.mod` version comments.
+    -   `[x]` **Refactor Auth**: Encapsulate claim extraction to ensure type safety is centralized.
 
 ### 2. `gateway`
 
 -   **[✅] Review Status**: Completed
 -   **Findings**:
     -   **Good**: Kratos-based, health/metrics endpoints, policy-driven routing config.
-    -   **Issue (P0)**: Routing engine doesn't evaluate HTTP methods (security risk).
-    -   **Issue (P0)**: Default server timeout is non-deterministic.
-    -   **Issue (P1)**: Public path list is hardcoded.
-    -   **Issue (P1)**: In-memory rate limiter is not for production.
+    -   **Good**: Redis support added for rate limiting (configurable).
+    -   **Issue (P0)**: Routing engine doesn't evaluate HTTP methods (security risk). `AuthMiddleware` skips auth based on path only; `POST` endpoints are exposed if they share a prefix with public `GET` ones.
+    -   **Issue (P0)**: Default server timeout is non-deterministic (iterates random service map to pick a timeout).
+    -   **Issue (P1)**: Public path list is duplicated: hardcoded in `kratos_middleware.go` (source of truth) vs `gateway.yaml` (misleading).
 -   **Action Items**:
-    -   `[P0]` **Immediate Fix**: Split route patterns to apply auth based on method.
+    -   `[P0]` **Immediate Fix**: Modify `AuthMiddleware` to check HTTP methods against config before skipping auth.
     -   `[P0]` **Long-term Fix**: Enhance routing engine to support `methods` in YAML.
-    -   `[P1]` Add an explicit `gateway.default_timeout`.
-    -   `[P1]` Refactor `AuthMiddleware` to read public paths from config.
+    -   `[P1]` Add an explicit `gateway.default_timeout` config and use it in `server/http.go`.
+    -   `[P1]` Refactor `AuthMiddleware` to read public paths ONLY from config; remove hardcoded map.
 
 ### 3. `auth`
 
@@ -78,8 +81,8 @@ For each service, the following aspects will be reviewed:
     -   **[P1] Revoke token dùng `KEYS` trên Redis**: `RevokeUserTokens` dùng `KEYS` là một practice nguy hiểm cho production.
 -   **Action Items**:
     -   **[REMOVE]** `[P1]` Loại bỏ `UserRepo` và các logic User CRUD ra khỏi `auth` service. Chuyển trách nhiệm này cho `user` service.
-    -   `[P0]` **Refactor Token Generation**: `TokenUsecase.GenerateToken` phải gọi `SessionUsecase.CreateSession` để lấy `session_id` (UUID) thật sự.
-    -   `[P0]` **Fix Refresh Token Logic**: Phải kiểm tra `type == 'refresh'` trong claim khi refresh token.
+    -   `[x]` **Refactor Token Generation**: `TokenUsecase.GenerateToken` phải gọi `SessionUsecase.CreateSession` để lấy `session_id` (UUID) thật sự.
+    -   `[x]` **Fix Refresh Token Logic**: Phải kiểm tra `type == 'refresh'` trong claim khi refresh token.
     -   `[P0]` **Fix DB Mismatch**: Nếu `auth` cần lưu credential, đổi code để dùng table `credentials`. Nếu không, xóa bỏ logic liên quan.
     -   `[P0]` **Secure Configuration**: Chuyển toàn bộ secret sang đọc từ environment variables và fail-fast nếu giá trị mặc định được dùng trong production.
     -   `[P1]` **Optimize Revocation**: Thay thế `KEYS` bằng `SCAN` trong `RevokeUserTokens` hoặc dùng cấu trúc dữ liệu khác (e.g., a Redis SET per user).
@@ -198,6 +201,62 @@ For each service, the following aspects will be reviewed:
     -   `[P1]` Normalize coupon codes (store uppercase, query uppercase) or use `citext`.
     -   `[P1]` Handle JSON marshal/unmarshal errors consistently in data layer.
     -   `[P2]` Align health checks with common health handler (DB + Redis readiness/liveness).
+
+### 8. `pricing`
+
+### 9. `order`
+
+-   **[🟡] Review Status**: In Progress (Checkout & Order creation flow audited – additional areas pending)
+-   **Architecture Goal**: Cart + Checkout orchestration + Order lifecycle + reservations + integration with pricing/promotion/warehouse/payment/shipping. Must be **correctness-first** (money/stock), idempotent, and secure (defense-in-depth beyond gateway).
+-   **Findings**:
+    -   **Good**:
+        -   Clean-ish structure with multiple entrypoints: `cmd/order`, `cmd/worker`, `cmd/migrate`.
+        -   HTTP server exposes `/health` (DB+Redis checks) and `/metrics` and Swagger/OpenAPI.
+        -   Checkout has operational hooks for cart cleanup retry + alerting/metrics when cleanup fails.
+        -   Order flow supports reservation IDs and records reservation confirmation errors into metadata.
+    -   **Issue (P0) – Authorization/ownership gaps**:
+        -   `checkout.GetCart` loads cart by `FindBySessionID(sessionID)` and ignores `customerID/guestToken` parameters → possible cart takeover if session ID is guessed/leaked.
+        -   `checkout.ValidateInventory` and `checkout.ValidatePromoCode` do not enforce that session/cart belongs to the caller (`customerID` unused for authz).
+        -   `OrderService.GetOrder` / `GetOrderByNumber` do not show explicit owner check at service layer (must verify in biz/repo); `GetUserOrders` does not enforce actor==requested customer.
+        -   DLQ admin endpoints are registered via `HandleFunc` without explicit service-side authz middleware.
+    -   **Issue (P0) – Payment/Order/Reservation ordering is unsafe**:
+        -   `ConfirmCheckout` processes online payment (authorize + capture) **before** order is created. If order creation fails after capture, rollback path only voids authorization (may not refund captured payment).
+        -   Reservation confirmation happens after order creation and failures are treated as best-effort (metadata only) → risk oversell / paid-but-not-reserved.
+    -   **Issue (P0) – Reservation subsystem correctness**:
+        -   Reservation map is keyed by `product_id` (`map[ProductID]ReservationID`) → breaks for duplicate line items / multi-warehouse lines.
+        -   `ReserveStockForItems` contains a "TEMPORARY FIX" that skips reservation on "inventory not found" instead of failing checkout → paid orders without stock lock.
+        -   Rollback may not release reservations when using `warehouseClient` fallback (no `ReleaseReservation`).
+        -   Hardcoded `DefaultWarehouseID` used in multiple places.
+    -   **Issue (P0) – Hardcoded values**:
+        -   Currency hardcoded to `"USD"` in order creation helpers and payment flow.
+        -   Payment provider hardcoded to `"stripe"`.
+        -   Default warehouse UUID hardcoded in biz constants.
+    -   **Issue (P1) – Transactionality & reliability**:
+        -   `CreateOrder` performs multiple side-effects (reservation confirm, notification, event publish) without a clear transaction/outbox boundary.
+        -   `checkout.createOrderAndConfirmReservations` uses repeated `Get/Update/Get/Update` patterns (race-prone, slow) and does not use `TransactionManager`.
+        -   Many operations return response objects with `error=nil` even when operation fails (transport success but business failure), making retries/alerts unreliable.
+    -   **Issue (P1) – Logging/PII/ops**:
+        -   `checkout.GetCart` writes a hardcoded debug log to `/home/user/microservices/.cursor/debug.log`.
+    -   **Issue (P0) – Cart response backward compatibility bug**:
+        -   `CartService.AddToCart`: `IncludeCartData` cannot be set to false due to proto bool default semantics; code forces it true.
+-   **Action Items**:
+    -   `[P0]` Enforce cart/session ownership everywhere: never load cart by session ID alone; require customerID match (or guest token for guest) at repo + biz + service layers.
+    -   `[P0]` Fix checkout payment ordering: for online flows **Authorize → CreateOrder(tx) → Capture** (or implement explicit saga with idempotency + compensations).
+    -   `[P0]` Make reservation mandatory for checkout (fail-closed). Remove "inventory not found → skip reservation" behavior (or gate behind explicit config + on-hold status).
+    -   `[P0]` Replace reservation map keyed by `product_id` with per-line reservation records; verify reservation completeness before payment.
+    -   `[P0]` Remove hardcoded `DefaultWarehouseID`/`USD`/`stripe`; source from config/context and fail-fast when missing.
+    -   `[P0]` Add idempotency for ConfirmCheckout and payment calls (idempotency key per session/cart/order).
+    -   `[P1]` Introduce transaction boundary + outbox/failed_event pattern for order creation side-effects; stop ignoring update errors.
+    -   `[P1]` Align gRPC middleware (logging/tracing/metadata) with HTTP; protect DLQ endpoints with service-side authz.
+    -   `[P1]` Remove hardcoded debug file logging and ensure no PII leaks.
+    -   `[P1]` Fix `IncludeCartData` presence semantics (use `BoolValue` or `oneof`).
+    -   `[P0]` Remove hardcoded default shipping origin (`Ho Chi Minh City` fallback). Fail-closed or make origin configurable per warehouse/env.
+    -   `[P0]` Ensure extending checkout session also extends cart/reservation TTL (or disallow extend if reservations expired).
+    -   `[P0]` Fix reservation ID parsing: stop treating numeric values as UUID strings; require valid UUIDs and re-reserve when invalid.
+    -   `[P1]` Stop wiping entire cart metadata during reservation cleanup; remove only checkout/reservation keys.
+    -   `[P1]` Fix nil-safety in `RollbackReservationsMap` (avoid panic when `warehouseInventoryService` is nil).
+    -   `[P1]` Stop ignoring JSON marshal/unmarshal errors in checkout metadata/address conversions; propagate or fail-closed for required fields.
+    -   `[P0]` Fix tax/shipping calculation fail-open: do not silently set tax/shipping to 0 on upstream errors during confirm.
 
 ### 8. `pricing`
 
