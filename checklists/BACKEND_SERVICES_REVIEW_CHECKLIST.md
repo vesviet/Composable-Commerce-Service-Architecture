@@ -80,12 +80,12 @@ For each service, the following aspects will be reviewed:
     -   **[P1] Trùng lặp và sai scope**: `UserRepo` trong `auth` service là không cần thiết, logic bị trùng lặp và sai trách nhiệm.
     -   **[P1] Revoke token dùng `KEYS` trên Redis**: `RevokeUserTokens` dùng `KEYS` là một practice nguy hiểm cho production.
 -   **Action Items**:
-    -   **[REMOVE]** `[P1]` Loại bỏ `UserRepo` và các logic User CRUD ra khỏi `auth` service. Chuyển trách nhiệm này cho `user` service.
+    -   `[x]` **[REMOVE]** `[P1]` Loại bỏ `UserRepo` và các logic User CRUD ra khỏi `auth` service. Chuyển trách nhiệm này cho `user` service.
     -   `[x]` **Refactor Token Generation**: `TokenUsecase.GenerateToken` phải gọi `SessionUsecase.CreateSession` để lấy `session_id` (UUID) thật sự.
     -   `[x]` **Fix Refresh Token Logic**: Phải kiểm tra `type == 'refresh'` trong claim khi refresh token.
     -   `[P0]` **Fix DB Mismatch**: Nếu `auth` cần lưu credential, đổi code để dùng table `credentials`. Nếu không, xóa bỏ logic liên quan.
-    -   `[P0]` **Secure Configuration**: Chuyển toàn bộ secret sang đọc từ environment variables và fail-fast nếu giá trị mặc định được dùng trong production.
-    -   `[P1]` **Optimize Revocation**: Thay thế `KEYS` bằng `SCAN` trong `RevokeUserTokens` hoặc dùng cấu trúc dữ liệu khác (e.g., a Redis SET per user).
+    -   `[x]` **Secure Configuration**: Chuyển toàn bộ secret sang đọc từ environment variables và fail-fast nếu giá trị mặc định được dùng trong production.
+    -   `[x]` **Optimize Revocation**: Thay thế `KEYS` bằng `SCAN` trong `RevokeUserTokens` hoặc dùng cấu trúc dữ liệu khác (e.g., a Redis SET per user).
 
 ### 4. `user`
 
