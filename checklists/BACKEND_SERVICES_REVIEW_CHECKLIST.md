@@ -13,7 +13,7 @@
 | **Core Libs & Gateway** | ✅ Completed | `common` & `gateway` reviewed. Key findings on routing & middleware. |
 | **Identity** | ✅ Completed | `auth`, `user`, `customer` reviewed. |
 | **Commerce** | 🟡 In Progress | `catalog` 🟡, `pricing` ✅, `promotion` 🟡 |
-| **Logistics** | 🟡 In Progress | `order` 🟡 (review in progress), `warehouse` ⚪, `payment` ⚪, `fulfillment` ⚪, `shipping` ⚪ |
+| **Logistics** | 🟡 In Progress | `order` ✅ (completed), `warehouse` ⚪, `payment` ⚪, `fulfillment` ⚪, `shipping` ⚪ |
 | **Supporting** | ⚪ Pending | `notification`, `search`, `analytics`, `location` |
 | **Engagement** | ⚪ Pending | `review`, `loyalty-rewards` |
 
@@ -257,6 +257,12 @@ For each service, the following aspects will be reviewed:
     -   `[P1]` Fix nil-safety in `RollbackReservationsMap` (avoid panic when `warehouseInventoryService` is nil).
     -   `[P1]` Stop ignoring JSON marshal/unmarshal errors in checkout metadata/address conversions; propagate or fail-closed for required fields.
     -   `[P0]` Fix tax/shipping calculation fail-open: do not silently set tax/shipping to 0 on upstream errors during confirm.
+    -   `[P0]` Fix DB migration `014_convert_order_id_to_uuid.sql`: extension mismatch (`uuid-ossp` vs `gen_random_uuid()`), will fail on fresh DB unless `pgcrypto` enabled.
+    -   `[P0]` Fix migration `027_change_reservation_id_to_varchar.sql`: not in Goose Up/Down format; may not run, causing runtime type mismatch.
+    -   `[P0]` Fix DLQ repo bug: `failed_event` updates use string id against BIGSERIAL; parse id to int64 before update/delete.
+    -   `[P0]` Make repos transaction-aware: `status/payment/item/address/checkout/return/edit_history` must use tx DB from context; `orderRepo.Update/Save` must also use tx DB.
+    -   `[P1]` Fix `orderRepo.List` pagination offset calculation (page-based pagination currently not applied when offset=0).
+    -   `[P0]` Add tests (beyond cart optimistic locking): integration tests for ConfirmCheckout/CreateOrder/payment/reservation flows; unit tests for ownership/idempotency policies.
 
 ### 8. `pricing`
 
