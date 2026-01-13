@@ -13,7 +13,7 @@
 | **Core Libs & Gateway** | ✅ Completed | `common` & `gateway` reviewed. Key findings on routing & middleware. |
 | **Identity** | ✅ Completed | `auth`, `user`, `customer` reviewed. |
 | **Commerce** | 🟡 In Progress | `catalog` 🟡, `pricing` ✅, `promotion` 🟡 |
-| **Logistics** | 🟡 In Progress | `order` ✅ (completed), `warehouse` ✅ (completed), `payment` ✅ (completed), `fulfillment` ⚪, `shipping` ⚪ |
+| **Logistics** | 🟡 In Progress | `order` ✅ (completed), `warehouse` ✅ (completed), `payment` ✅ (completed), `fulfillment` ✅ (completed), `shipping` ✅ (completed) |
 | **Supporting** | ⚪ Pending | `notification`, `search`, `analytics`, `location` |
 | **Engagement** | ⚪ Pending | `review`, `loyalty-rewards` |
 
@@ -85,23 +85,20 @@ For each service, the following aspects will be reviewed:
 -   **Findings**:
     -   **Good**: Implements RBAC (Roles, Permissions, Service Access) with proper DB schema (`users`, `roles`, `role_assignments`).
     -   **Good**: Validates passwords using `bcrypt` (via `PasswordManager`).
-    -   **Resolved**: `AdminLogin` deprecated; Unified Login Flow implemented in `auth` service.
+    -   **Resolved**: `AdminLogin` deprecated and removed; Unified Login Flow implemented in `auth` service.
     -   **Resolved**: `ValidateUserCredentials` expanded to return permissions and roles.
-    -   **Issue (P0)**: Architectural Anti-Pattern - `AdminLogin` (Deprecated) still exists but warns on usage.
-        -   **Impact**: Logic duplication (Rate Limit, Account Lock) with `auth` service.
-        -   **Circular Dependency**: `user` calls `auth` (GenerateToken), while `auth` calls `user` (ValidateCredentials).
-    -   **Issue (P1)**: Duplicate Security Logic - `UserUsecase` implements its own Rate Limiting and Account Locking (`IncrementLoginFailure`) using Redis, separate from `auth` service's limiter.
+    -   **Resolved**: Logic duplication (Rate Limit, Account Lock) removed; delegated to `auth` service.
+    -   **Resolved**: Circular Dependency (User -> Auth) removed.
     -   **Issue (P1)**: Inverted Control Flow - `user` service pushes permissions to `auth` service during token generation, rather than `auth` pulling permissions during login.
     -   **Issue (P1)**: Hardcoded Permissions Version - `permissionsVersion` is hardcoded to `time.Now().Unix()` in `AdminLogin`, bypassing actual versioning logic.
     -   **Issue (P1)**: Password hashing is done in service layer (`CreateUser`), while password validation is in biz layer; security logic is split.
     -   **Issue (P1)**: `ValidatePassword` logs part of password hash (`hash prefix`), which can leak sensitive info to logs.
     -   **Issue (P2)**: No Clear Separation - `ValidateUserCredentials` (internal) and `CreateUser` (public/internal?) share `UserService`.
 -   **Action Items**:
-    -   `[P0]` **Refactor Login Flow**: `AdminLogin` deprecated.
-        - [ ] **Remove Logic Duplication**: Once `auth.Login` is fully adopted, remove `AdminLogin` and related rate limiting/account locking logic to rely on `auth` service.
+    -   `[x]` **Refactor Login Flow**: `AdminLogin` removed. Unified Login Flow adopted.
     -   `[ ]` **Data Access Layer**: Separate `Repo` implementation.
-    -   `[P0]` **Remove Duplicate Security Logic**: Deprecate Rate Limit/Account Lock in `user` service; rely on `auth` service's implementation.
-    -   `[P0]` **Fix Circular Dependency**: Ensure `user` service does NOT depend on `auth` service for core flows. `auth` should depend on `user`.
+    -   `[x]` **Remove Duplicate Security Logic**: Removed Rate Limit/Account Lock in `user` service.
+    -   `[x]` **Fix Circular Dependency**: `user` service no longer depends on `auth` service.
     -   `[P1]` **Implement Real Permissions Versioning**: Store `permissions_version` in `users` table and increment on role changes.
     -   `[P1]` Move password hashing into biz/usecase (or consistently keep all password operations in biz).
     -   `[P1]` Remove password hash prefix from logs in `ValidatePassword`.
@@ -272,7 +269,75 @@ For each service, the following aspects will be reviewed:
     -   `[P2]` Implement built-in rate limiting - add configurable rate limits per customer/payment method to prevent gateway throttling.
     -   `[P2]` Enhance audit logging for PCI DSS - add structured fields for financial transaction compliance and automated reporting.
 
-### 9. `pricing`
+### 9. `fulfillment`
+
+-   **[✅] Review Status**: Completed (Comprehensive review of order fulfillment, warehouse assignment, picking/packing/shipping workflow, and quality control)
+-   **Architecture Goal**: Order fulfillment orchestration + warehouse assignment + pick/pack/ship workflow + quality control. Acts as critical orchestration service connecting orders, warehouse inventory, and shipping with proper error handling and rollback capabilities.
+-   **Findings**:
+    -   **Good**: Comprehensive fulfillment workflow with 4+ business domains (fulfillment, picklist, package, qc) covering complete order-to-delivery process. Clean separation between fulfillment orchestration and domain-specific logic.
+    -   **Good**: Strong warehouse integration with capacity checking, time slot management, and location-based warehouse assignment. Proper integration with warehouse service for inventory allocation and reservation management.
+    -   **Good**: Quality control system with configurable rules (high-value orders, random sampling) and comprehensive QC result tracking. Proper audit trail for compliance and dispute resolution.
+    -   **Good**: Event-driven architecture with comprehensive event publishing for fulfillment status changes, picklist updates, and package tracking. Supports integration with external systems (shipping providers, tracking services).
+    -   **Good**: Rich observability with 15+ Prometheus metrics covering fulfillment operations, picklist performance, package tracking, and QC results. Structured logging throughout the fulfillment workflow.
+    -   **Good**: Comprehensive API coverage with 3 service APIs (fulfillment, picklist, package) providing complete control over the fulfillment lifecycle.
+    -   **Issue (P0)**: Vendor directory inconsistencies - `go.mod` and `vendor/modules.txt` were out of sync, requiring manual `go mod vendor` to fix build issues (similar to warehouse service).
+    -   **Issue (P0)**: Missing transaction boundaries in critical fulfillment operations - status updates, picklist generation, and package creation should be wrapped in database transactions to prevent inconsistent states.
+    -   **Issue (P0)**: Event publishing failures are silently ignored - critical business events (fulfillment status changes) may be lost without proper retry mechanisms or dead letter queues.
+    -   **Issue (P1)**: No automated warehouse assignment fallback - if primary warehouse assignment fails, there's no intelligent fallback to secondary warehouses based on capacity or proximity.
+    -   **Issue (P1)**: Picklist expiry handling is basic - expired picklists require manual intervention rather than automated reassignment or cancellation workflows.
+    -   **Issue (P1)**: Package tracking integration is incomplete - basic tracking number storage without real-time status updates from shipping providers or webhook handling.
+    -   **Issue (P1)**: Quality control is not integrated with business rules - QC results don't automatically trigger business actions (repacking, returns, customer notifications).
+    -   **Issue (P2)**: No automated fulfillment optimization - picklist generation doesn't consider warehouse layout, product location clustering, or picker efficiency.
+    -   **Issue (P2)**: Limited testing coverage - only basic integration tests found, missing comprehensive unit tests for business logic, workflow tests, and error scenario testing.
+    -   **Issue (P2)**: No fulfillment analytics - missing performance metrics (fulfillment time, error rates, warehouse efficiency) and optimization insights.
+-   **Action Items**:
+    -   `[P0]` Fix build system - ensure CI/CD runs `go mod tidy && go mod vendor` to prevent vendor inconsistencies.
+    -   `[P0]` Add transaction boundaries to all fulfillment write operations - wrap status updates, picklist creation, and package operations in database transactions.
+    -   `[P0]` Implement reliable event delivery - add outbox pattern or dead letter queues for critical fulfillment events to prevent data loss.
+    -   `[P1]` Implement intelligent warehouse assignment fallback - add secondary warehouse selection based on capacity, proximity, and service level agreements.
+    -   `[P1]` Enhance picklist expiry handling - implement automated workflows for expired picklist reassignment, cancellation, and inventory release.
+    -   `[P1]` Integrate real-time package tracking - add webhook handlers for shipping provider updates and real-time status synchronization.
+    -   `[P1]` Connect QC results to business actions - implement automated workflows triggered by QC failures (repacking, returns, notifications).
+    -   `[P2]` Add fulfillment optimization algorithms - implement warehouse layout-aware picklist generation and route optimization for pickers.
+    -   `[P2]` Implement comprehensive test suite - add unit tests for all business logic, integration tests for fulfillment workflows, and chaos testing for failure scenarios.
+    -   `[P2]` Add fulfillment analytics and reporting - implement performance dashboards, efficiency metrics, and optimization recommendations.
+
+### 10. `shipping`
+
+-   **[✅] Review Status**: Completed (Comprehensive review of shipping management, carrier integration, shipment tracking, and label generation)
+-   **Architecture Goal**: Shipping orchestration + carrier integration + real-time tracking + label generation. Acts as central shipping hub connecting orders, fulfillment, carriers, and customers with robust error handling and event-driven communication.
+-   **Findings**:
+    -   **Good**: Comprehensive shipping domain with 18+ business domains (carrier, shipment, package, events, fraud, gateway, reconciliation, retry, sync, cleanup, settings, payment_method, common, transaction, throughput, webhook) covering complete shipping lifecycle from quote to delivery.
+    -   **Good**: Strong carrier abstraction with unified interfaces supporting multiple carriers (GHN, Grab, UPS, FedEx, DHL) through provider pattern. Each carrier has dedicated client implementations with proper error handling.
+    -   **Good**: Advanced shipment state management with comprehensive status transitions (draft → processing → ready → shipped → out_for_delivery → delivered) and proper business rule validation.
+    -   **Good**: Robust webhook processing framework with signature validation, retry logic, and event deduplication for carrier status updates.
+    -   **Good**: Event-driven architecture with 15+ event types for shipment lifecycle, carrier updates, and tracking changes. Proper event versioning and metadata.
+    -   **Good**: Comprehensive API with 23+ endpoints covering shipment CRUD, carrier management, tracking, returns, and rate calculation.
+    -   **Issue (P0)**: Vendor directory inconsistencies - `go.mod` and `vendor/modules.txt` were out of sync, requiring manual `go mod vendor` to fix build issues (consistent across all services).
+    -   **Issue (P0)**: Missing transaction boundaries in critical shipping operations - shipment creation, status updates, and carrier API calls should be wrapped in database transactions to prevent inconsistent states.
+    -   **Issue (P0)**: Event publishing failures are silently ignored - critical shipping events may be lost without proper retry mechanisms or dead letter queues.
+    -   **Issue (P1)**: Carrier integration is incomplete - real carrier API implementations exist only for GHN and Grab, other carriers (UPS, FedEx, DHL) have stub implementations.
+    -   **Issue (P1)**: Label generation lacks real carrier integration - shipping labels are generated as stubs without actual carrier API calls for production labels.
+    -   **Issue (P1)**: Rate calculation is not implemented - shipping rate calculation logic is missing, only basic carrier rate requests exist.
+    -   **Issue (P1)**: Tracking event storage uses JSONB anti-pattern - shipment tracking events stored in JSONB instead of dedicated table, making analytics queries inefficient.
+    -   **Issue (P1)**: Return shipment processing is incomplete - return workflow exists in proto but implementation is stubbed.
+    -   **Issue (P2)**: No comprehensive testing coverage - only 2 test files found, missing unit tests for business logic, integration tests for carrier APIs, and end-to-end shipment workflows.
+    -   **Issue (P2)**: Limited observability - no custom Prometheus metrics implementation, relying only on basic middleware logging.
+    -   **Issue (P2)**: No caching strategy implemented - carrier data, shipping rates, and frequently accessed shipment data not cached.
+-   **Action Items**:
+    -   `[P0]` Fix build system - ensure CI/CD runs `go mod tidy && go mod vendor` to prevent vendor inconsistencies.
+    -   `[P0]` Add transaction boundaries to all shipping write operations - wrap shipment creation, status updates, and carrier operations in database transactions.
+    -   `[P0]` Implement reliable event delivery - add outbox pattern or dead letter queues for critical shipping events (shipment status, tracking updates).
+    -   `[P1]` Complete carrier integrations - implement real API integrations for UPS, FedEx, DHL with production credentials and error handling.
+    -   `[P1]` Implement production label generation - integrate with carrier APIs for real shipping label creation and printing.
+    -   `[P1]` Add shipping rate calculation logic - implement rate calculation algorithms considering weight, dimensions, distance, and carrier-specific pricing.
+    -   `[P1]` Create dedicated tracking events table - move tracking events from JSONB to normalized table structure for efficient analytics.
+    -   `[P1]` Complete return shipment processing - implement full return workflow with carrier coordination and customer communication.
+    -   `[P2]` Implement comprehensive observability - add Prometheus metrics for shipping operations, carrier API performance, and shipment KPIs.
+    -   `[P2]` Add comprehensive test suite - implement unit tests for business logic, integration tests for carrier APIs, and end-to-end shipment flow tests.
+    -   `[P2]` Implement caching strategy - add Redis caching for carrier configurations, shipping rates, and frequently accessed shipment data.
+
+### 11. `pricing`
 
 ### 9. `order`
 
