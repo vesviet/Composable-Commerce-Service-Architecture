@@ -49,9 +49,7 @@ For each service, the following aspects will be reviewed:
     -   **Issue**: `auth.go` type assertions are generally safe, but `RequireRole` logic allows `nil` roles to bypass validation if not strictly checked (though current implementation looks okay).
     -   **Issue**: Versioning is managed via `go.mod` comments; no specialized versioning tool/changelog automation.
 -   **Action Items**:
-    -   `[x]` **Fix README**: Remove the top half (GitLab template) and the `=======` line; keep the "Common Package" documentation.
-    -   `[x]` **Standardize Versioning**: Create a `CHANGELOG.md` and enforce git tags matching `go.mod` version comments.
-    -   `[x]` **Refactor Auth**: Encapsulate claim extraction to ensure type safety is centralized.
+
 
 ### 2. `gateway`
 
@@ -77,30 +75,33 @@ For each service, the following aspects will be reviewed:
 
 #### **🔴 Critical Security Issues (P0)**
 -   **[P0] JWT Secret Management**: Default secret "default-secret-change-in-production" can be used in production. Only environment variable override exists but not enforced.
--   **[P0] Session Expiration Not Enforced**: Sessions persist indefinitely in database with no cleanup mechanism. Cache expires (1h) but DB records remain forever.
--   **[P0] Incomplete Token Revocation**: Revocation only stored in Redis (volatile). If Redis fails, revoked tokens become valid again.
--   **[P0] Missing Session Validation in Token Validation**: `ValidateToken` doesn't check `session.is_active` - revoked sessions can still validate tokens.
--   **[P0] No Rate Limiting**: No protection against token refresh/validation spam attacks.
--   **[P0] Cache Invalidation Race Conditions**: Session revocation (DB delete + cache invalidate) not atomic - stale sessions can remain in cache.
-
-#### **🟡 High Priority Issues (P1)**
--   **[P1] No Audit Trail**: Token generation/validation/revocation not logged for security monitoring.
--   **[P1] Backward Compatibility Confusion**: Both "client_type" and "user_type" in JWT claims causing downstream confusion.
--   **[P1] Missing Permissions Version Validation**: Old tokens with outdated permissions still valid after permission changes.
--   **[P1] No Session Device Binding**: Device info stored but never validated - token theft not detected.
--   **[P1] Hardcoded Session Limits**: Max 5 sessions per user hardcoded, should be configurable per user type.
--   **[P1] Insufficient Input Validation**: UserType not validated against enum (customer/admin/shipper), IP address format not validated.
 
 #### **🟢 Medium Priority Issues (P2)**
 -   **[P2] No Session Analytics**: No tracking of session patterns or suspicious activity.
 -   **[P2] Missing Health Checks**: No health endpoints for session/token operations.
 -   **[P2] No Testing Coverage**: No unit/integration/security tests visible.
 
--   **Action Items**:
-    -   `[P0]` **Implement Session Expiration Cleanup**: Daily background job to clean expired sessions from database.
-    -   `[P0]` **Add Session Active Check**: Validate `session.is_active == true` in token validation flow.
-    -   `[P0]` **Implement Database Token Revocation Backup**: Store revocation state in PostgreSQL as fallback.
-    -   `[P0]` **Add Rate Limiting**: Implement rate limiting on token generation/validation/refresh endpoints.
+### Action Items
+
+**Completed ✅**:
+- [x] Implement session expiration cleanup (P0.1)
+- [x] Add session active check to token validation (P0.2)
+- [x] Create PostgreSQL token revocation backup (P0.3)
+- [x] Implement rate limiting middleware (P0.4)
+- [x] Fix session revocation race conditions (P0.5)
+- [x] Add audit logging for security events (P1.1)
+- [x] Add configurable session limits per user type (P1.4)
+
+**Remaining**:
+- [ ] Complete device binding validation (P1.2) - requires GetSession on SessionUsecase interface
+- [ ] Implement permissions version check (P1.3) - requires User/Customer service integration
+- [ ] Add comprehensive input validation (P1.5)
+- [ ] Session analytics and anomaly detection (P2.1)
+- [ ] Enhanced health checks (P2.2)
+- [ ] Comprehensive test coverage (P2.3)
+
+---
+oints.
     -   `[P0]` **Fix Atomic Session Revocation**: Wrap DB delete + cache invalidate in transaction or use distributed lock.
     -   `[P0]` **Enforce JWT Secret Validation**: Fail-fast if default secret used in production environment.
     -   `[P1]` **Implement Audit Logging**: Log all token/session operations with user context for security monitoring.
@@ -111,12 +112,7 @@ For each service, the following aspects will be reviewed:
     -   `[P2]` **Add Comprehensive Testing**: Unit tests for token/session logic, integration tests for auth flow, security tests for token forgery.
     -   `[P2]` **Implement Session Analytics**: Track session patterns and detect anomalous behavior.
 
-#### **✅ Resolved Issues**
--   `[x]` **Token-Session Integration**: TokenUsecase now properly calls SessionUsecase.CreateSession for UUID session IDs.
--   `[x]` **UserRepo Removal**: User CRUD logic removed from auth service, properly delegated to user service.
--   `[x]` **Refresh Token Type Check**: Refresh token validation now checks token type in claims.
--   `[x]` **Environment Variable Support**: JWT secret can be overridden via AUTH_JWT_SECRET environment variable.
--   `[x]` **Optimized Token Revocation**: Uses Redis SET per user instead of dangerous KEYS operation.
+
 
 ### 4. `user`
 
@@ -125,13 +121,13 @@ For each service, the following aspects will be reviewed:
 -   **Findings**:
     -   **Good**: Proto surface matches the domain well (users, roles, assignments, service access, auth-related internal RPCs).
     -   **Good**: `AdminLogin` validates credentials in `user` and delegates token generation to `auth` via gRPC client with circuit breaker.
-    -   **Issue (P0)**: `user/internal/client/auth/auth_client.go` does not pass `roles` to `auth.GenerateToken` (parameter exists but not mapped). Current workaround stores roles in `claims["roles"]` as comma-separated string.
+    -   **Fixed**: `user/internal/client/auth/auth_client.go` **NOW** passes `roles` to `auth.GenerateToken`.
     -   **Issue (P1)**: Password hashing is done in service layer (`CreateUser`), while password validation is in biz layer; security logic is split.
-    -   **Issue (P1)**: `ValidatePassword` logs part of password hash (`hash prefix`), which can leak sensitive info to logs.
+    -   **Issue (P1) [CONFIRMED]**: `ValidatePassword` logs part of password hash (`hash prefix`), which can leak sensitive info to logs.
     -   **Issue (P1)**: In `AssignRole` handler, `assignedBy` is set to `req.UserId` (self) instead of the actor from context; audit trail may be incorrect.
     -   **Issue (P2)**: `permissions` / `services` are stored as text JSON arrays; OK for now but may need `jsonb` + GIN indexes if querying becomes heavy.
 -   **Action Items**:
-    -   `[P0]` Pass `roles` into `authPB.GenerateTokenRequest` (`Roles: roles`) and align downstream consumption (avoid stringifying roles into claims).
+
     -   `[P1]` Move password hashing into biz/usecase (or consistently keep all password operations in biz), to centralize password policy and make testing easier.
     -   `[P1]` Remove password hash prefix from logs in `ValidatePassword`.
     -   `[P1]` Fix `assignedBy` / `grantedBy` to be derived from request context (e.g., `X-User-ID` injected by gateway), not the target user.
@@ -144,7 +140,7 @@ For each service, the following aspects will be reviewed:
 -   **Findings**:
     -   **Good**: Clean Architecture layout aligns with platform standard; repo/tx extraction pattern is consistent.
     -   **Good**: Auth integration exists via gRPC + Consul discovery + circuit breaker (`internal/client/auth`).
-    -   **Issue (P0)**: `ValidateToken` parses JWT using `ParseUnverified` and can return `valid=true` without signature verification (forgeable if called outside gateway).
+    -   **Issue (P0) [CONFIRMED]**: `ValidateToken` parses JWT using `ParseUnverified` and can return `valid=true` without signature verification (forgeable if called outside gateway). Code explicitly notes reliance on Gateway.
     -   **Issue (P0)**: Migration `015_add_customer_groups_support.sql` is not in Goose format and contains schema mismatch (`customer_type = 2` while base schema uses string enums). Risk of migration not running / incorrect default group assignment.
     -   **Issue (P0)**: Migration `001_create_customers_table.sql` uses `gen_random_uuid()` but does not ensure `pgcrypto` extension exists; fresh env migration can fail.
     -   **Issue (P0)**: Migration `010_add_password_hash_to_customers.sql` adds an index on `password_hash`, which is not used by typical login flows (wasteful, remove).
