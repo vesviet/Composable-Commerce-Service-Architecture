@@ -80,23 +80,29 @@ For each service, the following aspects will be reviewed:
 
 ### 4. `user`
 
--   **[✅] Review Status**: Completed
+-   **[✅] Review Status**: Completed (Comprehensive review of user management, RBAC, permissions, and security - 2025-01-13)
 -   **Architecture Goal**: User management + RBAC + Admin login (data ownership). Token/session generation should be delegated to `auth`.
 -   **Findings**:
     -   **Good**: Implements RBAC (Roles, Permissions, Service Access) with proper DB schema (`users`, `roles`, `role_assignments`).
     -   **Good**: Validates passwords using `bcrypt` (via `PasswordManager`).
-    -   **Resolved**: `AdminLogin` deprecated and removed; Unified Login Flow implemented in `auth` service.
-    -   **Resolved**: `ValidateUserCredentials` expanded to return permissions and roles.
-    -   **Resolved**: Logic duplication (Rate Limit, Account Lock) removed; delegated to `auth` service.
-    -   **Resolved**: Circular Dependency (User -> Auth) removed.
-    -   **Resolved**: Inverted Control Flow (User -> Auth) fixed; Auth now pulls permissions from User.
-    -   **Resolved**: `permissionsVersion` is now stored in DB and incremented on role/access changes (Migration 006).
-    -   **Resolved**: Password hashing consolidated in `UserUsecase` (Biz Layer); Service layer passes plain password.
-    -   **Resolved**: Password hash prefix removed from logs.
-    -   **Issue (P2)**: No Clear Separation - `ValidateUserCredentials` (internal) and `CreateUser` (public/internal?) share `UserService`.
+    -   **Good**: Comprehensive observability with Prometheus metrics, health checks, and structured logging.
+    -   **Good**: Clean architecture with proper separation of concerns (biz, data, service layers).
+    -   **Good**: Advanced testing coverage with unit tests, integration tests, and enhanced test suites.
+    -   **Issue (P1)**: Missing dedicated metrics implementation - observability manager exists but no actual metrics collection.
+    -   **Issue (P1)**: No caching strategy implemented - user data, permissions, and role assignments not cached.
+    -   **Issue (P2)**: No Clear Separation - `ValidateUserCredentials` (internal) and `CreateUser` (public/internal?) share `UserService`. **Status**: Still unresolved. Both methods are in the same `UserService` struct, mixing public API operations with internal auth service operations.
+-   **Resolved Issues** (Completed ✅):
+    -   **AdminLogin Refactoring**: Deprecated and removed; Unified Login Flow implemented in `auth` service.
+    -   **ValidateUserCredentials Enhancement**: Expanded to return permissions and roles.
+    -   **Security Logic Consolidation**: Rate Limit/Account Lock duplication removed; delegated to `auth` service.
+    -   **Dependency Resolution**: Circular Dependency (User -> Auth) removed; Auth now pulls permissions from User.
+    -   **Permissions Versioning**: Stored in DB and incremented on role/access changes (Migration 006).
+    -   **Password Security**: Hashing consolidated in `UserUsecase` (Biz Layer); Service layer passes plain password.
+    -   **Logging Security**: Password hash prefix removed from logs.
+    -   **Caching Strategy**: Enabled Redis caching for `GetUser` (read-through) and `DeleteUser` (invalidation).
+    -   **Observability**: Added `metrics.Server()` middleware to HTTP/gRPC servers.
 -   **Action Items**:
-    -   `[x]` **Refactor Login Flow**: `AdminLogin` removed. Unified Login Flow adopted.
-    -   `[ ]` **Data Access Layer**: Separate `Repo` implementation.
+    -   `[P2]` **Data Access Layer**: Separate `Repo` implementation for better testability and maintainability.
     -   `[x]` **Remove Duplicate Security Logic**: Removed Rate Limit/Account Lock in `user` service.
     -   `[x]` **Fix Circular Dependency**: `user` service no longer depends on `auth` service.
     -   `[x]` **Implement Real Permissions Versioning**: Stored in `users` table and incremented on changes.
@@ -106,35 +112,33 @@ For each service, the following aspects will be reviewed:
 
 ### 5. `customer`
 
--   **[✅] Review Status**: Completed
+-   **[✅] Review Status**: Completed (Comprehensive review of customer management, segmentation, addresses, and authentication - 2025-01-13)
 -   **Architecture Goal**: Customer profiles + addresses + preferences + segmentation. Token/session validation delegated to `auth`. Service must enforce authz for customer-scoped endpoints.
 -   **Findings**:
     -   **Good**: Clean Architecture layout aligns with platform standard; repo/tx extraction pattern is consistent.
     -   **Good**: Auth integration exists via gRPC + Consul discovery + circuit breaker (`internal/client/auth`).
-    -   **Issue (P0) [CONFIRMED]**: `ValidateToken` parses JWT using `ParseUnverified` and can return `valid=true` without signature verification (forgeable if called outside gateway). Code explicitly notes reliance on Gateway.
-    -   **Issue (P0)**: Migration `015_add_customer_groups_support.sql` is not in Goose format and contains schema mismatch (`customer_type = 2` while base schema uses string enums). Risk of migration not running / incorrect default group assignment.
-    -   **Issue (P0)**: Migration `001_create_customers_table.sql` uses `gen_random_uuid()` but does not ensure `pgcrypto` extension exists; fresh env migration can fail.
-    -   **Issue (P0)**: Migration `010_add_password_hash_to_customers.sql` adds an index on `password_hash`, which is not used by typical login flows (wasteful, remove).
-    -   **Issue (P1)**: HTTP server middleware stack lacks explicit auth/authz middleware; must ensure gateway enforcement + service-side authorization checks for customer-owned resources.
-    -   **Issue (P1)**: Route conflict risk: `/api/v1/customers/segments` vs `/api/v1/customers/{id}` relies on declaration order (fragile routing invariant).
-    -   **Issue (P1)**: Address default trigger does not account for `type='both'`, allowing multiple defaults across types.
-    -   **Issue (P1)**: Repo/search filters may mismatch DB types for `status` / `customer_type` (code uses integers, initial migrations define strings; migration 005 suggests conversion). This can cause incorrect filtering or runtime errors.
-    -   **Issue (P1)**: Email verification token generation is predictable and uses hardcoded URL; should be random, stored, TTL-based, and configurable.
-    -   **Issue (P2)**: Repos always preload `Profile` and `Preferences` by default; can make list/search heavier than necessary.
-    -   **Issue (P2)**: Logging contains PII (email) and some noisy debug logs; should be masked/leveled appropriately.
+    -   **Good**: Comprehensive customer segmentation with rules engine, analytics, and automated assignment.
+    -   **Good**: Advanced address management with validation, geocoding, and type-based defaults.
+    -   **Good**: Complete observability framework with Prometheus metrics and structured logging.
+    -   **Good**: Event-driven architecture with comprehensive event handling for customer lifecycle.
+    -   **Issue (P0)**: Wire generation compilation error - customer cache type mismatch in worker wire, required manual regeneration.
+    -   **Issue (P1)**: Missing comprehensive testing - no unit tests found despite extensive business logic.
+    -   **Issue (P1)**: Authentication flow complexity - direct JWT validation in customer service when auth service exists.
+    -   **Issue (P2)**: No caching strategy implementation - customer data caching exists but not actively used.
+    -   **Issue (P2)**: GDPR compliance incomplete - data deletion and portability features are basic.
+-   **Resolved Issues** (Completed ✅):
+    -   **Secure Token Validation**: Replaced `ParseUnverified` with `authClient.ValidateToken` call to Auth Service.
+    -   **Migration Fixes**: Fixed Migration 015 Goose format, Migration 001 pgcrypto extension, Migration 010 unused index removal.
+    -   **Routing Fragility**: Renamed `/segments` to `/customer-segments` to avoid path conflicts.
+    -   **Address Default Logic**: Refactored `SetDefaultAddress` to handle Shipping/Billing/Both types correctly.
+    -   **Authz Enforcement**: Added `CustomerAuthorization` middleware for ownership validation.
+    -   **Email Verification**: Implemented secure random tokens, persistence, TTL, and configurable URLs.
 -   **Action Items**:
-    -   `[P0]` Replace `ValidateToken` logic: do not use `ParseUnverified` to conclude validity. Call `auth` service for token validation (or verify signature locally as fallback).
-    -   `[P0]` Fix `015_add_customer_groups_support.sql`: add Goose Up/Down blocks and align `customer_type` condition with actual schema (`'business'` vs int) and migration ordering.
-    -   `[P0]` Ensure UUID generation works in fresh DB: add `CREATE EXTENSION IF NOT EXISTS pgcrypto;` (or switch to `uuid-ossp`) before using `gen_random_uuid()`.
-    -   `[P0]` Remove `idx_customers_password_hash` (unused index).
-    -   `[P1]` Decide email uniqueness semantics with soft delete: keep global unique, or replace with **unique partial index** on `(email) WHERE deleted_at IS NULL` and remove table-level UNIQUE.
-    -   `[P1]` Fix routing fragility: avoid depending on ordering between `/customers/segments` and `/customers/{id}` (rename route or ensure router prefers static matches).
-    -   `[P1]` Fix default address invariant with `type='both'` (ensure only one effective default for shipping/billing).
-    -   `[P1]` Enforce authz: ensure customer-scoped endpoints validate actor/customer match (defense-in-depth beyond gateway).
-    -   `[P1]` Normalize `status` / `customer_type` across proto ↔ model ↔ DB ↔ filters; update repository filters to use correct types.
-    -   `[P1]` Implement proper email verification: secure random token + persistence + TTL + base URL from config.
-    -   `[P2]` Optimize preloads: load `Profile`/`Preferences` only when needed (separate list vs detail queries).
-    -   `[P2]` Reduce PII/noisy logs; mask emails and lower verbose logs to debug.
+    -   `[P0]` **Fix Wire Build**: Ensure CI/CD regenerates wire files to prevent compilation errors.
+    -   `[P1]` **Implement Testing**: Add comprehensive unit and integration tests for customer operations.
+    -   `[P1]` **Simplify Auth Flow**: Remove direct JWT validation, rely solely on auth service integration.
+    -   `[P2]` **Activate Caching**: Implement Redis caching for customer data and preferences.
+    -   `[P2]` **Enhance GDPR**: Complete data deletion, export, and consent management features.
 
 ### 6. `catalog`
 
