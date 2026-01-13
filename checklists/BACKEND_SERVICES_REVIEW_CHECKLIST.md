@@ -81,10 +81,26 @@ For each service, the following aspects will be reviewed:
 ### 4. `user`
 
 -   **[✅] Review Status**: Completed
-    -   `[P1]` Move password hashing into biz/usecase (or consistently keep all password operations in biz), to centralize password policy and make testing easier.
+-   **Architecture Goal**: User management + RBAC + Admin login (data ownership). Token/session generation should be delegated to `auth`.
+-   **Findings**:
+    -   **Good**: Implements RBAC (Roles, Permissions, Service Access) with proper DB schema (`users`, `roles`, `role_assignments`).
+    -   **Good**: Validates passwords using `bcrypt` (via `PasswordManager`).
+    -   **Issue (P0)**: Architectural Anti-Pattern - `AdminLogin` is implemented in `user` service (`internal/service/user.go`) and orchestrates login (Local Validation -> Rate Limit -> Account Lock -> Call Auth.GenerateToken).
+        -   **Impact**: Logic duplication (Rate Limit, Account Lock) with `auth` service.
+        -   **Circular Dependency**: `user` calls `auth` (GenerateToken), while `auth` calls `user` (ValidateCredentials).
+    -   **Issue (P1)**: Duplicate Security Logic - `UserUsecase` implements its own Rate Limiting and Account Locking (`IncrementLoginFailure`) using Redis, separate from `auth` service's limiter.
+    -   **Issue (P1)**: Inverted Control Flow - `user` service pushes permissions to `auth` service during token generation, rather than `auth` pulling permissions during login.
+    -   **Issue (P1)**: Hardcoded Permissions Version - `permissionsVersion` is hardcoded to `time.Now().Unix()` in `AdminLogin`, bypassing actual versioning logic.
+    -   **Issue (P1)**: Password hashing is done in service layer (`CreateUser`), while password validation is in biz layer; security logic is split.
+    -   **Issue (P1)**: `ValidatePassword` logs part of password hash (`hash prefix`), which can leak sensitive info to logs.
+    -   **Issue (P2)**: No Clear Separation - `ValidateUserCredentials` (internal) and `CreateUser` (public/internal?) share `UserService`.
+-   **Action Items**:
+    -   `[P0]` **Refactor Login Flow**: Move `AdminLogin` orchestration to `auth` service. `user` service should only provide `ValidateCredentials` and `GetUserPermissions`.
+    -   `[P0]` **Remove Duplicate Security Logic**: Deprecate Rate Limit/Account Lock in `user` service; rely on `auth` service's implementation.
+    -   `[P0]` **Fix Circular Dependency**: Ensure `user` service does NOT depend on `auth` service for core flows. `auth` should depend on `user`.
+    -   `[P1]` **Implement Real Permissions Versioning**: Store `permissions_version` in `users` table and increment on role changes.
+    -   `[P1]` Move password hashing into biz/usecase (or consistently keep all password operations in biz).
     -   `[P1]` Remove password hash prefix from logs in `ValidatePassword`.
-    -   `[P1]` Fix `assignedBy` / `grantedBy` to be derived from request context (e.g., `X-User-ID` injected by gateway), not the target user.
-    -   `[P2]` Consider migrating `permissions`/`services` columns to `jsonb` + indexes if needed.
 
 ### 5. `customer`
 
