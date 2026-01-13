@@ -81,17 +81,6 @@ For each service, the following aspects will be reviewed:
 ### 4. `user`
 
 -   **[✅] Review Status**: Completed
--   **Architecture Goal**: User management + RBAC + Admin login (credential validation). Token/session must be delegated to `auth`.
--   **Findings**:
-    -   **Good**: Proto surface matches the domain well (users, roles, assignments, service access, auth-related internal RPCs).
-    -   **Good**: `AdminLogin` validates credentials in `user` and delegates token generation to `auth` via gRPC client with circuit breaker.
-    -   **Fixed**: `user/internal/client/auth/auth_client.go` **NOW** passes `roles` to `auth.GenerateToken`.
-    -   **Issue (P1)**: Password hashing is done in service layer (`CreateUser`), while password validation is in biz layer; security logic is split.
-    -   **Issue (P1) [CONFIRMED]**: `ValidatePassword` logs part of password hash (`hash prefix`), which can leak sensitive info to logs.
-    -   **Issue (P1)**: In `AssignRole` handler, `assignedBy` is set to `req.UserId` (self) instead of the actor from context; audit trail may be incorrect.
-    -   **Issue (P2)**: `permissions` / `services` are stored as text JSON arrays; OK for now but may need `jsonb` + GIN indexes if querying becomes heavy.
--   **Action Items**:
-
     -   `[P1]` Move password hashing into biz/usecase (or consistently keep all password operations in biz), to centralize password policy and make testing easier.
     -   `[P1]` Remove password hash prefix from logs in `ValidatePassword`.
     -   `[P1]` Fix `assignedBy` / `grantedBy` to be derived from request context (e.g., `X-User-ID` injected by gateway), not the target user.
