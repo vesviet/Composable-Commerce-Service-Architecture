@@ -13,7 +13,7 @@
 | **Core Libs & Gateway** | ✅ Completed | `common` & `gateway` reviewed. Key findings on routing & middleware. |
 | **Identity** | ✅ Completed | `auth`, `user`, `customer` reviewed. |
 | **Commerce** | 🟡 In Progress | `catalog` 🟡, `pricing` ✅, `promotion` 🟡 |
-| **Logistics** | 🟡 In Progress | `order` ✅ (completed), `warehouse` ⚪, `payment` ⚪, `fulfillment` ⚪, `shipping` ⚪ |
+| **Logistics** | 🟡 In Progress | `order` ✅ (completed), `warehouse` ✅ (completed), `payment` ✅ (completed), `fulfillment` ⚪, `shipping` ⚪ |
 | **Supporting** | ⚪ Pending | `notification`, `search`, `analytics`, `location` |
 | **Engagement** | ⚪ Pending | `review`, `loyalty-rewards` |
 
@@ -71,8 +71,8 @@ For each service, the following aspects will be reviewed:
 -   **[✅] Review Status**: Completed (Updated after comprehensive code review)
 -   **Architecture Goal**: Token & Session management ONLY. User/credential logic belongs to `user`/`customer` services.
     -   `[P1]` **Implement Permissions Version Check**: Validate permissions_version in token claims during validation.
-    -   `[P1]` **Make Session Limits Configurable**: Allow different session limits per user type (admin vs customer).
-    -   `[P1]` **Add Input Validation**: Validate UserType enum and IP address format.
+    -   **Good**: Unified Login Flow implemented with configurable policies (TTL, session limits) for admin/customer.
+    -   `[P1]` **Implement Permissions Version Check**: Validate permissions_version in token claims during validation.
     -   `[P2]` **Add Comprehensive Testing**: Unit tests for token/session logic, integration tests for auth flow, security tests for token forgery.
     -   `[P2]` **Implement Session Analytics**: Track session patterns and detect anomalous behavior.
 
@@ -85,7 +85,9 @@ For each service, the following aspects will be reviewed:
 -   **Findings**:
     -   **Good**: Implements RBAC (Roles, Permissions, Service Access) with proper DB schema (`users`, `roles`, `role_assignments`).
     -   **Good**: Validates passwords using `bcrypt` (via `PasswordManager`).
-    -   **Issue (P0)**: Architectural Anti-Pattern - `AdminLogin` is implemented in `user` service (`internal/service/user.go`) and orchestrates login (Local Validation -> Rate Limit -> Account Lock -> Call Auth.GenerateToken).
+    -   **Resolved**: `AdminLogin` deprecated; Unified Login Flow implemented in `auth` service.
+    -   **Resolved**: `ValidateUserCredentials` expanded to return permissions and roles.
+    -   **Issue (P0)**: Architectural Anti-Pattern - `AdminLogin` (Deprecated) still exists but warns on usage.
         -   **Impact**: Logic duplication (Rate Limit, Account Lock) with `auth` service.
         -   **Circular Dependency**: `user` calls `auth` (GenerateToken), while `auth` calls `user` (ValidateCredentials).
     -   **Issue (P1)**: Duplicate Security Logic - `UserUsecase` implements its own Rate Limiting and Account Locking (`IncrementLoginFailure`) using Redis, separate from `auth` service's limiter.
@@ -95,12 +97,15 @@ For each service, the following aspects will be reviewed:
     -   **Issue (P1)**: `ValidatePassword` logs part of password hash (`hash prefix`), which can leak sensitive info to logs.
     -   **Issue (P2)**: No Clear Separation - `ValidateUserCredentials` (internal) and `CreateUser` (public/internal?) share `UserService`.
 -   **Action Items**:
-    -   `[P0]` **Refactor Login Flow**: Move `AdminLogin` orchestration to `auth` service. `user` service should only provide `ValidateCredentials` and `GetUserPermissions`.
+    -   `[P0]` **Refactor Login Flow**: `AdminLogin` deprecated.
+        - [ ] **Remove Logic Duplication**: Once `auth.Login` is fully adopted, remove `AdminLogin` and related rate limiting/account locking logic to rely on `auth` service.
+    -   `[ ]` **Data Access Layer**: Separate `Repo` implementation.
     -   `[P0]` **Remove Duplicate Security Logic**: Deprecate Rate Limit/Account Lock in `user` service; rely on `auth` service's implementation.
     -   `[P0]` **Fix Circular Dependency**: Ensure `user` service does NOT depend on `auth` service for core flows. `auth` should depend on `user`.
     -   `[P1]` **Implement Real Permissions Versioning**: Store `permissions_version` in `users` table and increment on role changes.
     -   `[P1]` Move password hashing into biz/usecase (or consistently keep all password operations in biz).
     -   `[P1]` Remove password hash prefix from logs in `ValidatePassword`.
+
 
 ### 5. `customer`
 
@@ -198,7 +203,76 @@ For each service, the following aspects will be reviewed:
     -   `[P1]` Handle JSON marshal/unmarshal errors consistently in data layer.
     -   `[P2]` Align health checks with common health handler (DB + Redis readiness/liveness).
 
-### 8. `pricing`
+### 7. `warehouse`
+
+-   **[✅] Review Status**: Completed (Comprehensive review of warehouse, inventory, reservation, and throughput management)
+-   **Architecture Goal**: Warehouse management + real-time inventory tracking + stock reservations + throughput capacity management. Acts as critical data source for order fulfillment, supports multi-warehouse operations with location-based warehouse detection.
+-   **Findings**:
+    -   **Good**: Comprehensive domain-driven architecture with 10+ business domains (warehouse, inventory, reservation, throughput, timeslot, adjustment, transaction, alert, distributor, backorder). Clean separation of concerns with proper repository patterns.
+    -   **Good**: Real-time inventory tracking with available/reserved/on-order quantities, proper stock movements audit trail, and event-driven updates to catalog service.
+    -   **Good**: Robust reservation system with configurable expiry times by payment method (cod: 24h, bank_transfer: 4h, credit_card: 30m, etc.). Row-level locking prevents race conditions.
+    -   **Good**: Throughput capacity management with daily/hourly limits, real-time utilization tracking, and customer-selectable time slots.
+    -   **Good**: Comprehensive observability with 15+ Prometheus metrics, structured logging, and event publishing for stock changes, reservations, and capacity updates.
+    -   **Good**: Location-aware warehouse detection with caching, ancestor location support (ward → district → city → province → country), and coverage area management.
+    -   **Issue (P0)**: Vendor directory inconsistencies - `go.mod` and `vendor/modules.txt` were out of sync, requiring manual `go mod vendor` to fix build issues.
+    -   **Issue (P1)**: Missing transaction boundaries in critical paths - inventory adjustments, stock movements, and reservations should be wrapped in database transactions to prevent partial state updates.
+    -   **Issue (P1)**: Race condition potential in bulk operations - batch stock adjustments and transfers don't use database transactions, could lead to inconsistent states under concurrent load.
+    -   **Issue (P1)**: Hardcoded configuration values - default warehouse UUID, default reorder points, and capacity limits are hardcoded instead of configurable.
+    -   **Issue (P1)**: Event publishing without guaranteed delivery - stock change events and reservation updates are published synchronously without outbox pattern or guaranteed retry.
+    -   **Issue (P1)**: Throughput capacity enforcement is advisory - time slot capacity checks warn but don't block orders when exceeded, risking operational overload.
+    -   **Issue (P2)**: Limited testing coverage - only 3 test files found, missing unit tests for core business logic, integration tests for event flows, and performance tests for high-throughput scenarios.
+    -   **Issue (P2)**: Alert system lacks prioritization - all alerts use same notification channels regardless of severity (low-stock vs out-of-stock vs capacity critical).
+    -   **Issue (P2)**: Backorder management is incomplete - queue exists but no automated restocking logic or supplier integration.
+-   **Action Items**:
+    -   `[P0]` Fix build system - ensure CI/CD runs `go mod tidy && go mod vendor` to prevent vendor inconsistencies.
+    -   `[P0]` Add transaction boundaries for all write operations - wrap inventory adjustments, stock movements, and reservations in database transactions.
+    -   `[P1]` Implement outbox pattern for event publishing - ensure stock change events and reservation updates are reliably delivered even if downstream services are unavailable.
+    -   `[P1]` Make capacity enforcement strict - block orders when time slot capacity is exceeded, with proper error messages and fallback options.
+    -   `[P1]` Externalize hardcoded configuration - move default warehouse ID, reorder points, and capacity limits to config files.
+    -   `[P1]` Add bulk operation transactions - ensure batch adjustments and transfers are atomic operations.
+    -   `[P2]` Implement comprehensive test suite - unit tests for all business logic, integration tests for event flows, load tests for throughput scenarios.
+    -   `[P2]` Enhance alert system with severity levels - route critical alerts (out-of-stock, capacity exceeded) to immediate channels (SMS/email), routine alerts to delayed channels.
+    -   `[P2]` Complete backorder automation - implement supplier ordering, restocking workflows, and automated fulfillment when stock arrives.
+    -   `[P2]` Add warehouse performance analytics - track fulfillment rates, stock turnover, and capacity utilization trends.
+
+### 8. `payment`
+
+-   **[✅] Review Status**: Completed (Comprehensive review of payment processing, fraud detection, multi-gateway support, and security compliance)
+-   **Architecture Goal**: Payment processing orchestration + fraud prevention + multi-gateway support + PCI compliance. Acts as critical money-handling service requiring correctness-first design, comprehensive security, and reliable transaction processing.
+-   **Findings**:
+    -   **Good**: Comprehensive payment domain with 15+ business domains (payment, transaction, refund, fraud, gateway, webhook, reconciliation, retry, sync, cleanup, settings, payment_method, common, events, throughput). Excellent separation of concerns for financial operations.
+    -   **Good**: Multi-gateway architecture supporting Stripe, PayPal, VNPay, MoMo with proper abstraction layers. Each gateway has dedicated client, models, and webhook handling.
+    -   **Good**: Advanced fraud detection with rule-based scoring, ML models, blacklists, velocity checks, and device fingerprinting. Configurable risk thresholds and automated blocking.
+    -   **Good**: Comprehensive idempotency handling with configurable TTL, preventing duplicate payments and ensuring exactly-once processing semantics.
+    -   **Good**: Robust webhook processing with signature validation, retry logic, and event deduplication. Supports multiple providers with provider-specific handlers.
+    -   **Good**: Extensive test coverage including integration tests, security tests, performance tests, and PCI DSS compliance validation.
+    -   **Good**: Comprehensive observability with 20+ Prometheus metrics covering payments, transactions, fraud detection, gateway operations, and system health.
+    -   **Good**: Security-first design with encryption, tokenization, PCI DSS compliance checks, and secure credential management.
+    -   **Issue (P0)**: Transaction boundaries missing in critical payment flows - payment processing, refunds, and reconciliation operations should be wrapped in database transactions to prevent inconsistent states.
+    -   **Issue (P0)**: Idempotency race conditions - concurrent requests with same idempotency key can bypass checks due to lack of distributed locking.
+    -   **Issue (P0)**: Webhook signature validation failures are silently ignored in some cases, potentially allowing forged webhook events.
+    -   **Issue (P1)**: Fraud detection rules are hardcoded thresholds - velocity limits, amount limits should be configurable per payment method and region.
+    -   **Issue (P1)**: Reconciliation process lacks transaction boundaries - batch reconciliation operations don't guarantee atomicity when updating multiple payment states.
+    -   **Issue (P1)**: Payment method tokenization uses static encryption keys - should rotate keys periodically and support key versioning for compliance.
+    -   **Issue (P1)**: Retry logic for failed payments lacks exponential backoff configuration - fixed retry intervals may overwhelm payment gateways.
+    -   **Issue (P1)**: Event publishing for payment state changes is synchronous - risk of payment processing delays if event consumers are slow or unavailable.
+    -   **Issue (P2)**: Limited support for payment installments and recurring billing - missing complex payment schedules and subscription management.
+    -   **Issue (P2)**: No built-in rate limiting for payment attempts - relies on external gateway limits, risking account lockouts.
+    -   **Issue (P2)**: Audit logging lacks structured PCI DSS compliance fields - missing required fields for financial transaction auditing.
+-   **Action Items**:
+    -   `[P0]` Add transaction boundaries to all payment write operations - wrap ProcessPayment, ProcessRefund, and reconciliation in database transactions.
+    -   `[P0]` Implement distributed locking for idempotency checks - use Redis-based locking to prevent race conditions on concurrent identical requests.
+    -   `[P0]` Strengthen webhook signature validation - implement strict signature checking with proper error handling and alerting for validation failures.
+    -   `[P1]` Make fraud detection thresholds configurable - externalize velocity limits, amount limits, and geographic restrictions via configuration.
+    -   `[P1]` Add transaction boundaries to reconciliation operations - ensure batch updates are atomic and recoverable.
+    -   `[P1]` Implement encryption key rotation - add support for periodic key rotation and versioning for PCI DSS compliance.
+    -   `[P1]` Enhance retry logic with exponential backoff - configure retry intervals based on payment provider limits and error types.
+    -   `[P1]` Make event publishing asynchronous - implement outbox pattern or async publishing to prevent payment processing delays.
+    -   `[P2]` Add installment and subscription support - implement complex payment schedules and recurring billing capabilities.
+    -   `[P2]` Implement built-in rate limiting - add configurable rate limits per customer/payment method to prevent gateway throttling.
+    -   `[P2]` Enhance audit logging for PCI DSS - add structured fields for financial transaction compliance and automated reporting.
+
+### 9. `pricing`
 
 ### 9. `order`
 
