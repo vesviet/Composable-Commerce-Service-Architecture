@@ -89,19 +89,19 @@ For each service, the following aspects will be reviewed:
     -   **Resolved**: `ValidateUserCredentials` expanded to return permissions and roles.
     -   **Resolved**: Logic duplication (Rate Limit, Account Lock) removed; delegated to `auth` service.
     -   **Resolved**: Circular Dependency (User -> Auth) removed.
-    -   **Issue (P1)**: Inverted Control Flow - `user` service pushes permissions to `auth` service during token generation, rather than `auth` pulling permissions during login.
-    -   **Issue (P1)**: Hardcoded Permissions Version - `permissionsVersion` is hardcoded to `time.Now().Unix()` in `AdminLogin`, bypassing actual versioning logic.
-    -   **Issue (P1)**: Password hashing is done in service layer (`CreateUser`), while password validation is in biz layer; security logic is split.
-    -   **Issue (P1)**: `ValidatePassword` logs part of password hash (`hash prefix`), which can leak sensitive info to logs.
+    -   **Resolved**: Inverted Control Flow (User -> Auth) fixed; Auth now pulls permissions from User.
+    -   **Resolved**: `permissionsVersion` is now stored in DB and incremented on role/access changes (Migration 006).
+    -   **Resolved**: Password hashing consolidated in `UserUsecase` (Biz Layer); Service layer passes plain password.
+    -   **Resolved**: Password hash prefix removed from logs.
     -   **Issue (P2)**: No Clear Separation - `ValidateUserCredentials` (internal) and `CreateUser` (public/internal?) share `UserService`.
 -   **Action Items**:
     -   `[x]` **Refactor Login Flow**: `AdminLogin` removed. Unified Login Flow adopted.
     -   `[ ]` **Data Access Layer**: Separate `Repo` implementation.
     -   `[x]` **Remove Duplicate Security Logic**: Removed Rate Limit/Account Lock in `user` service.
     -   `[x]` **Fix Circular Dependency**: `user` service no longer depends on `auth` service.
-    -   `[P1]` **Implement Real Permissions Versioning**: Store `permissions_version` in `users` table and increment on role changes.
-    -   `[P1]` Move password hashing into biz/usecase (or consistently keep all password operations in biz).
-    -   `[P1]` Remove password hash prefix from logs in `ValidatePassword`.
+    -   `[x]` **Implement Real Permissions Versioning**: Stored in `users` table and incremented on changes.
+    -   `[x]` **Consolidate Password Logic**: Moved hashing to `UserUsecase`.
+    -   `[x]` **Security**: Removed password hash logging.
 
 
 ### 5. `customer`
