@@ -140,6 +140,8 @@ To ensure code quality, reliability, and maintainability across all backend serv
     -   **P0-2**: Missing middleware stack (4h) - Add metrics + tracing
     -   **P1-1**: Token revocation metadata (6h) - Capture audit trail
     -   **P1-2**: Session limits bypass (5h) - Enforce LRU eviction
+    -   **P1-3**: Refresh token rotation handling (2-4h) - Rotation currently revokes old refresh token/session but only logs a warning if revoke fails; recommend **fail refresh** on revoke failure to avoid token reuse and add tests to enforce behavior.
+    -   **P1-4**: Gateway blacklist & validation metrics (1-2h) - Gateway implements JWT blacklist (`jwt_blacklist.go`) and local validation fallback; verify Redis integration, add metrics (blacklist checks, cache hit rate), and add integration tests.
 -   **Reference**: Full details in [`IDENTITY_SERVICES_REVIEW.md` → Auth Service](./IDENTITY_SERVICES_REVIEW.md#-service-1-auth-service)
     -   **Issue (P0) [Persistence]**: Tokens/Sessions are stored **ONLY in Redis** → **[✅ Fixed]** - Implemented `tokens` table and dual-write in `TokenRepo`.
     -   **Issue (P0) [Observability]**: Missing `metrics` and `tracing` middleware → **[P0]** Add metrics + tracing: inject `metrics.Server()` and `tracing.Server()` in `auth/internal/server/http.go` and verify `/metrics` + Jaeger traces in staging.
@@ -150,6 +152,8 @@ To ensure code quality, reliability, and maintainability across all backend serv
     -   `[P0]` **Add Metrics & Tracing Middleware** (4h)
     -   `[x]` `[P1]` **Implement Token Revocation Metadata**: Verified and enforced usage in `TokenRepo`. **(Completed)**
     -   `[x]` `[P1]` **Add Session Limits**: Implemented atomic session cleanup in `SessionRepo`. **(Completed)**
+    -   `[P1]` **Enforce Refresh Token Rotation Strictness** (2-4h): If revocation of the old refresh token/session fails during refresh, return an error (fail the refresh) to prevent refresh token reuse; add unit and integration tests to assert behavior.
+    -   `[P1]` **Verify Gateway Blacklist & Metrics** (1-2h): Confirm `jwt_blacklist` integration, add Prometheus metrics for blacklist checks and JWT cache hit-rate, and add an integration test that simulates revoked tokens being rejected.
     -   `[P2]` Add Integration Tests (6h)
 
 #### 4. `user`
@@ -167,6 +171,7 @@ To ensure code quality, reliability, and maintainability across all backend serv
 -   **Key Issues**:
     -   **P1-1**: Missing middleware stack (4h) - Add metrics + tracing
     -   **P1-2**: Worker resilience audit (8h) - Verify concurrency patterns
+    -   **P1-3**: Password management (1h) - Customer `AuthUsecase` uses `common/security` PasswordManager (✅ implemented). Verify no remaining direct `bcrypt` usage and update tests/docs.
 -   **Reference**: Full details in [`IDENTITY_SERVICES_REVIEW.md` → Customer Service](./IDENTITY_SERVICES_REVIEW.md#-service-3-customer-service)
 
 ---
