@@ -284,7 +284,14 @@ To ensure code quality, reliability, and maintainability across all backend serv
   - `AdjustStock` and `UpdateInventory` now fully atomic with transactional outbox
   - Worker polls outbox every 1s, processes 20 events/batch, retries 5x before DLQ
   - Prometheus metrics: `warehouse_outbox_events_processed_total`, `warehouse_outbox_events_failed_total`
--   **Notes**: All P0 (critical) items resolved. Service is production-ready for reliable event delivery and data consistency.
+
+  **References**
+  - `warehouse/internal/biz/inventory/inventory.go` (transactional `AdjustStock`, outbox save; TODOs: unmanaged goroutines for alerts & catalog sync)
+  - `warehouse/migrations/025_create_outbox_events_table.sql`
+  - `warehouse/internal/worker/outbox_worker.go` (worker logic, retries, metrics)
+  - `warehouse/internal/observability/prometheus/metrics.go`
+
+-   **Notes**: All P0 (critical) items resolved. Service is production-ready for reliable event delivery and data consistency. P1 items remain (replace unmanaged goroutines, add integration & fault-injection tests).
 
 #### 11. `payment`
 -   **[✅] Review Status**: Completed
