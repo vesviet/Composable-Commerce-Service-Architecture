@@ -387,6 +387,13 @@ This checklist documents findings from reviewing the Shipping Service logic, foc
    - Implement tracking events
    - Improve error handling
 
+5. **Reliability & Outbox Migration (Follow `catalog` patterns)**:
+   - `[P0]` **Implement Transactional Outbox**: Add `outbox_events` migration, `OutboxRepo`, and an Outbox Worker; ensure usecases save outbox entries within DB transactions instead of publishing directly to Dapr (8-12h).
+   - `[P0]` **Migrate Tracking Events**: Create `shipment_tracking_events` table, implement `AddTrackingEvent` and query APIs; remove JSONB tracking storage (4-8h).
+   - `[P0]` **Carrier Integration & Labeling**: Replace stubs with carrier adapters and sandbox integration tests; add retry/reconciliation job for stuck labels (8-16h).
+   - `[P1]` **Webhook DLQ & Retries**: Implement retry policy + DLQ for carrier webhooks and add monitoring/alerts (3-6h).
+   - `[P1]` **Add Integration & Fault Injection Tests**: Simulate carrier outages, webhook failures, partial-batch failures, and outbox worker failures (4-8h).
+
 ---
 
 ## 🔄 Update History

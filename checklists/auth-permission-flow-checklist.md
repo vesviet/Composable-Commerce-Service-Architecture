@@ -19,14 +19,14 @@ Document này đưa ra solution tối ưu cho authentication flow dựa trên ph
 ✅ **Unified Password Management**: All services use `common/security` package  
 
 ### Critical Issues
-🔴 **Single Point of Failure**: Auth Service down → toàn bộ login fail  
-🔴 **Token Dependency**: Redis down → không validate được token (Logic currently DB dependent for session check)  
-🔴 **No Fallback**: Không có backup strategy khi services unavailable  
+🔴 **Single Point of Failure**: Auth Service down → toàn bộ login fail (plan: improved fallback)  
+🔴 **Token Dependency**: Redis được dùng cho cache/blacklist; DB vẫn là source of truth — khuyến nghị migrate session primary sang Redis (để giảm độ trễ và tăng availability).  
+🔴 **Fallback / Emergency**: Gateway có cơ chế local validation/fallback nhưng cần đảm bảo blacklist/short TTL và rõ ràng trong runbook.  
 🔴 **Security Gaps**: 
-  - Login endpoints thiếu Rate Limiting & Brute Force Protection (Account Locking).
-  - Refresh Token Rotation chưa revoke token cũ (Reuse vulnerability).
-  - Customer Service `AuthUsecase` vẫn dùng direct `bcrypt` (Inconsistent).
-  - **Gateway Revocation Bypass**: Gateway validates JWT locally but does **NOT** check blacklist. Revoked tokens are accepted until expiration.
+  - Login endpoints: verify rate limiting & brute force protections are enabled (account lock already available).
+  - Refresh Token Rotation: rotation implemented (revokes old session) but currently logs warning if revoke fails — khuyến nghị *fail* refresh on revoke failure to tránh token reuse.
+  - Customer Service `AuthUsecase` hiện sử dụng `common/security` PasswordManager (✅) — verify and remove any legacy direct bcrypt copies.
+  - Gateway token revocation: Gateway tích hợp blacklist (`jwt_blacklist.go`) và `jwt_validator_wrapper.go` — verify Redis integration & metrics (cache hit rate, blacklist checks).
 
 ---
 
@@ -37,8 +37,8 @@ Document này đưa ra solution tối ưu cho authentication flow dựa trên ph
 **Core Principle**: Maintain centralized Auth Service với local fallback capabilities
 
 **Status Check (2026-01-13)**: 
-- ⚠️ **Hybrid/Fallback NOT Implemented**. Services strictly depend on Auth Service.
-- 🔴 **Gateway Bypass**: Local validation skips revocation check.
+- ⚠️ **Hybrid/Fallback partially implemented**: Gateway provides local validation fallback but services still rely on Auth Service for token generation/refresh; recommend formalize emergency flow with short TTL tokens and sync/safety checks.
+- ✅ **Gateway Revocation Fix**: Gateway checks token blacklist via Redis (see `jwt_blacklist.go`) — verify configured and covered by tests/metrics.
 
 ```mermaid
 graph TD
