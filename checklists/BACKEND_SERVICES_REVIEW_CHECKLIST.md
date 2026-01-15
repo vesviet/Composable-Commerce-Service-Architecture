@@ -147,29 +147,21 @@ To ensure code quality, reliability, and maintainability across all backend serv
     -   **Issue (P0) [Observability]**: Missing `metrics` and `tracing` middleware → **[P0]** Add metrics + tracing: inject `metrics.Server()` and `tracing.Server()` in `auth/internal/server/http.go` and verify `/metrics` + Jaeger traces in staging.
     -   **Issue (P1) [Security]**: `RevokeTokenWithMetadata` not implemented → **[✅ Fixed]** - Verified implementation; `TokenRepo` properly persists revocation metadata to `token_blacklist`.
     -   **Issue (P1) [Security]**: Session limit bypass risk → **[✅ Fixed]** - Implemented atomic `CreateSessionWithLimit` in `SessionRepo`.
--   **Prioritized Action Items** (Est. 29 hours):
-    -   `[x]` `[P0]` **Implement PostgreSQL Token Persistence**: Create `tokens` table and implement dual-write in `TokenRepo`. **(Completed)**
-    -   `[P0]` **Add Metrics & Tracing Middleware** (4h)
-    -   `[x]` `[P1]` **Implement Token Revocation Metadata**: Verified and enforced usage in `TokenRepo`. **(Completed)**
-    -   `[x]` `[P1]` **Add Session Limits**: Implemented atomic session cleanup in `SessionRepo`. **(Completed)**
-    -   `[P1]` **Enforce Refresh Token Rotation Strictness** (2-4h): If revocation of the old refresh token/session fails during refresh, return an error (fail the refresh) to prevent refresh token reuse; add unit and integration tests to assert behavior.
-    -   `[P1]` **Verify Gateway Blacklist & Metrics** (1-2h): Confirm `jwt_blacklist` integration, add Prometheus metrics for blacklist checks and JWT cache hit-rate, and add an integration test that simulates revoked tokens being rejected.
+-   **Prioritized Action Items** (Est. 6 hours):
     -   `[P2]` Add Integration Tests (6h)
 
 #### 4. `user`
 -   **[🟡] Review Status**: In Progress - See [`IDENTITY_SERVICES_REVIEW.md`](./IDENTITY_SERVICES_REVIEW.md) for full details
--   **Overall Score**: 92% | **Issues**: 3 (all P1) | **Est. Fix**: 12h
+-   **Overall Score**: 95% | **Issues**: 2 (all P1) | **Est. Fix**: 9h
 -   **Key Issues**:
-    -   **P1-1**: Missing tracing middleware (3h) - Add OpenTelemetry
     -   **P1-2**: Event publishing outside transaction (5h) - Move to business logic
     -   **P1-3**: Repository leaks implementation (4h) - Hide gorm.DB behind interface
 -   **Reference**: Full details in [`IDENTITY_SERVICES_REVIEW.md` → User Service](./IDENTITY_SERVICES_REVIEW.md#-service-2-user-service)
 
 #### 5. `customer`
 -   **[🟡] Review Status**: In Progress - See [`IDENTITY_SERVICES_REVIEW.md`](./IDENTITY_SERVICES_REVIEW.md) for full details
--   **Overall Score**: 88% | **Issues**: 2 (all P1) | **Est. Fix**: 12h
+-   **Overall Score**: 92% | **Issues**: 1 (P1) | **Est. Fix**: 8h
 -   **Key Issues**:
-    -   **P1-1**: Missing middleware stack (4h) - Add metrics + tracing
     -   **P1-2**: Worker resilience audit (8h) - Verify concurrency patterns
     -   **P1-3**: Password management (1h) - Customer `AuthUsecase` uses `common/security` PasswordManager (✅ implemented). Verify no remaining direct `bcrypt` usage and update tests/docs.
 -   **Reference**: Full details in [`IDENTITY_SERVICES_REVIEW.md` → Customer Service](./IDENTITY_SERVICES_REVIEW.md#-service-3-customer-service)

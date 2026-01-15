@@ -19,10 +19,10 @@ All three identity services follow the same **10-Point Code Review Rubric**. Thi
 **Quick Stats**:
 | Service | Score | Issues | P0 | P1 | P2 | Fix Hours |
 |---------|-------|--------|-----|-----|-----|-----------|
-| Auth | 90% | 4 | 2 | 1 | 1 | 29h |
-| User | 92% | 3 | 0 | 3 | 0 | 12h |
-| Customer | 88% | 2 | 0 | 2 | 0 | 12h |
-| **Avg** | **90%** | **9** | **2** | **6** | **1** | **53h** |
+| Auth | 96% | 1 | 0 | 0 | 1 | 6h |
+| User | 95% | 2 | 0 | 2 | 0 | 9h |
+| Customer | 92% | 1 | 0 | 1 | 0 | 8h |
+| **Avg** | **94%** | **4** | **0** | **3** | **1** | **23h** |
 
 ---
 
@@ -37,145 +37,20 @@ All three identity services follow the same **10-Point Code Review Rubric**. Thi
 - Audit logging for sensitive ops
 - Proper DI with Wire
 
-### 🚨 Issues
+### 🚨 Issues (Outstanding)
 
-#### P0-1: Redis-Only Persistence (8h)
-**File**: `internal/data/postgres/`  
-**Problem**: Tokens stored ONLY in Redis → on crash = global logout, no audit trail
+#### P2-1: Integration tests for full lifecycle (6h)
+**File**: `auth/test/integration/`  
+**Problem**: Basic unit tests exist, but full lifecycle (login -> refresh -> logout -> validation) needs integration testing.
 
-**Fix**:
-1. Create migration: `sessions` table (user_id, token_hash, expires_at, created_at)
-2. Update tokenRepo: dual-write (Redis cache + PostgreSQL durability)
-3. Add recovery: restore Redis from Postgres on startup
-4. Test: verify persistence across restarts
-
-**Code Change**:
-```go
-// Before: Only Redis
-func (tr *tokenRepo) StoreToken(ctx context.Context, token *Token) error {
-    return tr.rdb.Set(ctx, key, value, ttl).Err()
-}
-
-// After: Redis + PostgreSQL
-func (tr *tokenRepo) StoreToken(ctx context.Context, token *Token) error {
-    // 1. Write to PostgreSQL (durable)
-    if err := tr.db.WithContext(ctx).Create(&SessionRecord{
-        UserID:    token.UserID,
-        TokenHash: token.Hash,
-        ExpiresAt: token.ExpiresAt,
-    }).Error; err != nil {
-        return err
-    }
-    
-    // 2. Write to Redis (cache)
-    return tr.rdb.Set(ctx, key, value, ttl).Err()
-}
-```
-
-**Test**: `make test` → verify no data loss on Redis flush
-
----
-
-#### P0-2: Missing Metrics & Tracing Middleware (4h)
-**File**: `internal/server/http.go:30-40`  
-**Problem**: No metrics collection, no distributed tracing
-
-**Fix**: Add 2 lines to middleware stack
-```go
-// Before
-var opts = []krathttp.ServerOption{
-    krathttp.Middleware(
-        recovery.Recovery(),
-        metadata.Server(),
-    ),
-}
-
-// After
-var opts = []krathttp.ServerOption{
-    krathttp.Middleware(
-        recovery.Recovery(),
-        metadata.Server(),
-        metrics.Server(),     // ← ADD
-        tracing.Server(),     // ← ADD
-    ),
-}
-```
-
-**Test**: 
-- Verify `/metrics` returns Prometheus data
-- Verify Jaeger shows traces
-
----
-
-#### P1-1: Token Revocation Missing Metadata (6h)
-**File**: `internal/biz/token/usecase.go`  
-**Problem**: Can't audit WHY tokens were revoked
-
-**Fix**: Implement `RevokeTokenWithMetadata` to capture reason + metadata
-```go
-func (uc *TokenUsecase) RevokeTokenWithMetadata(
-    ctx context.Context, 
-    token string, 
-    reason string,           // e.g., "USER_LOGOUT", "SECURITY_ALERT"
-    metadata map[string]string,
-) error {
-    // 1. Mark token as revoked in DB
-    // 2. Store reason + metadata in audit log
-    // 3. Remove from Redis cache
-}
-```
-
-**Test**: Verify revocation reason is queryable in audit logs
-
----
-
-#### P1-2: Session Limit Bypass (5h)
-**File**: `internal/biz/login/`  
-**Problem**: User can create unlimited concurrent sessions → DoS risk
-
-**Fix**: Enforce max sessions (e.g., 5) with LRU eviction
-```go
-const MaxSessions = 5
-
-func (uc *LoginUsecase) Login(ctx context.Context, req *LoginRequest) (*Session, error) {
-    // 1. Check existing sessions
-    existing := uc.repo.ListActiveSessions(ctx, userID)
-    
-    // 2. If limit reached, revoke oldest (LRU)
-    if len(existing) >= MaxSessions {
-        uc.repo.RevokeSession(ctx, existing[0].ID)
-    }
-    
-    // 3. Create new session
-    session := &Session{UserID: userID}
-    return uc.repo.CreateSession(ctx, session)
-}
-```
-
-**Test**: Verify 6th login revokes 1st session
+**Test**: `make test-integration`
 
 ---
 
 ### 📋 Implementation Checklist (Auth)
 
-**Phase 1 - P0 (Blockers)**: Do first, takes ~12 hours
-- [x] P0-1: PostgreSQL persistence (8h)
-  - [x] Create migration
-  - [x] Dual-write implementation
-  - [x] Recovery logic on startup
-  - [x] Integration tests
-- [ ] P0-2: Middleware stack (4h)
-  - [ ] Add metrics + tracing imports
-  - [ ] Add to middleware list
-  - [ ] Test /metrics endpoint
-  - [ ] Test Jaeger integration
-
-**Phase 2 - P1 (Quality)**: After P0, takes ~11 hours
-- [ ] P1-1: Revocation metadata (6h)
-- [ ] P1-2: Session limits (5h)
-
-**Phase 3 - P2 (Nice-to-have)**: Takes ~6 hours
-- [ ] P2-1: Integration tests for full lifecycle
+**Outstanding Issues**:
+- [ ] P2-1: Integration tests for full lifecycle (6h)
 
 ---
 
@@ -190,25 +65,7 @@ func (uc *LoginUsecase) Login(ctx context.Context, req *LoginRequest) (*Session,
 - Ownership checks implemented
 - Transaction manager properly used
 
-### 🚨 Issues
-
-#### P1-1: Missing Tracing Middleware (3h)
-**File**: `internal/server/http.go:25-35`  
-**Problem**: Metrics present ✅, but no tracing → can't trace cross-service calls
-
-**Fix**: Add 1 line
-```go
-var opts = []krathttp.ServerOption{
-    krathttp.Middleware(
-        recovery.Recovery(),
-        metadata.Server(),
-        metrics.Server(),  // ✅ Already present
-        tracing.Server(),  // ← ADD THIS
-    ),
-}
-```
-
-**Test**: Verify Jaeger shows spans for User endpoints
+### 🚨 Issues (Outstanding)
 
 ---
 
@@ -269,20 +126,9 @@ type UserRepo interface {
 
 ### 📋 Implementation Checklist (User)
 
-**Phase 1 - P1 (All High-Priority)**: Takes ~12 hours
-- [ ] P1-1: Add tracing middleware (3h)
-  - [ ] Import tracing package
-  - [ ] Add to middleware
-  - [ ] Test in Jaeger
+**Outstanding Issues**:
 - [ ] P1-2: Move event publishing (5h)
-  - [ ] Update usecase
-  - [ ] Update handler
-  - [ ] Tests for event flow
 - [ ] P1-3: Refactor repository (4h)
-  - [ ] Remove public DB field
-  - [ ] Add interface methods
-  - [ ] Regenerate mocks
-  - [ ] Update tests
 
 ---
 
@@ -297,26 +143,7 @@ type UserRepo interface {
 - Events properly moved to async worker
 - GDPR-compliant data handling
 
-### 🚨 Issues
-
-#### P1-1: Missing Metrics & Tracing Middleware (4h)
-**File**: `internal/server/http.go:30-40`  
-**Problem**: No metrics, no tracing
-
-**Fix**: Add standard middleware stack
-```go
-var opts = []krathttp.ServerOption{
-    krathttp.Middleware(
-        recovery.Recovery(),
-        metadata.Server(),
-        CustomerAuthorization(),  // ✅ Present
-        metrics.Server(),         // ← ADD
-        tracing.Server(),         // ← ADD
-    ),
-}
-```
-
-**Test**: Verify /metrics + Jaeger working
+### 🚨 Issues (Outstanding)
 
 ---
 
@@ -341,16 +168,8 @@ var opts = []krathttp.ServerOption{
 
 ### 📋 Implementation Checklist (Customer)
 
-**Phase 1 - P1 (All High-Priority)**: Takes ~12 hours
-- [ ] P1-1: Add middleware stack (4h)
-  - [ ] Add imports
-  - [ ] Update NewHTTPServer
-  - [ ] Test /metrics + Jaeger
+**Outstanding Issues**:
 - [ ] P1-2: Worker resilience audit (8h)
-  - [ ] Read cmd/worker/main.go
-  - [ ] Check all 7 patterns
-  - [ ] Document findings
-  - [ ] Implement missing patterns
 
 ---
 
@@ -371,9 +190,9 @@ var opts = []krathttp.ServerOption{
 **Status**:
 | Service | Recovery | Metadata | Metrics | Tracing |
 |---------|----------|----------|---------|---------|
-| Auth | ✅ | ✅ | ❌ | ❌ |
-| User | ✅ | ✅ | ✅ | ❌ |
-| Customer | ✅ | ✅ | ❌ | ❌ |
+| Auth | ✅ | ✅ | ✅ | ✅ |
+| User | ✅ | ✅ | ✅ | ✅ |
+| Customer | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
