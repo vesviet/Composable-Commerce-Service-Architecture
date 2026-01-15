@@ -132,6 +132,7 @@ To ensure code quality, reliability, and maintainability across all backend serv
 - Customer (88%): 2 issues (all P1) → 12h fix
 - **Total**: 11 issues → 53h to production ready
 
+<<<<<<< HEAD
 #### 3. `auth`
 -   **[🟡] Review Status**: In Progress - See [`IDENTITY_SERVICES_REVIEW.md`](./IDENTITY_SERVICES_REVIEW.md) for full details
 -   **Overall Score**: 90% | **Issues**: 4 (2 P0, 1 P1, 1 P2) | **Est. Fix**: 29h
@@ -165,6 +166,77 @@ To ensure code quality, reliability, and maintainability across all backend serv
     -   **P1-2**: Worker resilience audit (8h) - Verify concurrency patterns
     -   **P1-3**: Password management (1h) - Customer `AuthUsecase` uses `common/security` PasswordManager (✅ implemented). Verify no remaining direct `bcrypt` usage and update tests/docs.
 -   **Reference**: Full details in [`IDENTITY_SERVICES_REVIEW.md` → Customer Service](./IDENTITY_SERVICES_REVIEW.md#-service-3-customer-service)
+=======
+#### 3. `auth` (Session Auth)
+-   **[🟡] Review Status**: In Progress (session auth reviewed vs Master Rubric)
+-   **Session/Auth Entry Points**:
+    -   `auth/internal/service/auth.go`: `Login`, `GenerateToken`, `RefreshToken`, `CreateSession`, `GetSession`, `GetUserSessions`, `RevokeSession`, `RevokeUserSessions`
+-   **Session Persistence & Limits**:
+    -   `auth/internal/biz/session/session.go`: session usecase + configurable limits (`Auth.Session.MaxSessionsPerUser`, `Auth.SessionLimits.*`)
+    -   `auth/internal/data/postgres/session.go`: Postgres repo `user_sessions` + atomic `CreateSessionWithLimit` (rotates oldest sessions)
+    -   **Gap (P1) [Correctness]**: `GetSession`/`GetUserSessions` repo does **not filter** `is_active=true` and `RevokeSession` physically deletes instead of marking inactive. Decide consistent semantics (soft revoke vs hard delete) and enforce.
+-   **Session TTL / Cleanup**:
+    -   `auth/internal/biz/session/session.go`: exposes `CleanupExpiredSessions(maxIdle, absoluteExpiration)`
+    -   `auth/internal/data/postgres/session.go`: cleanup deletes if `is_active=false` OR idle OR too old
+    -   **Gap (P1) [Config/Runtime Safety]**: cleanup logic depends on worker scheduling + durations; verify config wiring and add metrics on rows deleted.
+-   **Security Notes (Session Auth scope)**:
+    -   No cookie-based session flags to review here (service appears token+session-id based, not HTTP cookie session).
+    -   **Gap (P1) [Auditability]**: session rotation/revocation deletes rows; consider persisting `revoked_at`/`revoked_reason` for audit trails.
+-   **Action Items (Session Auth)**:
+    -   `[P1]` Define revoke semantics (soft vs hard) + filter queries by active status.
+    -   `[P1]` Add metrics/tracing around session endpoints + cleanup worker.
+
+#### 4. `user` (Identity User Service)
+-   **[🟡] Review Status**: In Progress (re-audited)
+-   **Entry Points**:
+    -   `user/internal/service/user.go` (gRPC/HTTP handlers)
+    -   `cmd/user/main.go` (server bootstrap)
+-   **Architecture & Patterns**:
+    -   Clean layers, Google Wire DI, Outbox pattern implemented (`internal/worker/outbox_worker.go`).
+    -   Redis cache wrapper (`userCache`) for hot reads.
+-   **Key Findings (this review)**:
+    -   **[✅ Fixed] Event publishing transactionality**: `UserUsecase.CreateUser` now writes Outbox event within DB tx; worker publishes asynchronously.
+    -   **[P1] Missing tracing middleware**: `internal/server/http.go` uses metrics but no `tracing.Server()`; same for gRPC server.
+    -   **[P1] Repository abstraction leak**: `internal/data/postgres/user.go` still returns GORM models and exposes `gorm.DB` in repo; refactor to pure interface + DTO mapping.
+    -   **[P1] Token invalidation**: `incrementPermissionsVersion` uses `time.Now().UnixNano()` but tokens reference `PermissionsVersion` claim; need strict monotonic guarantees & tests.
+    -   **[P2] Cache eviction strategy**: `userCache` invalidates on writes but lacks TTL metrics; add hit/miss instrumentation.
+-   **Action Items (User Service)**:
+    -   `[P1]` Inject OpenTelemetry tracing middleware for HTTP & gRPC servers.
+    -   `[P1]` Refactor postgres repos to hide GORM; return domain entities.
+    -   `[P1]` Add unit/integration tests ensuring `PermissionsVersion` bump invalidates old JWTs.
+    -   `[P2]` Instrument Redis cache with Prometheus metrics (hits, misses, evictions).
+-   **Overall Score (updated)**: 92 → 93 % (1 P1 fixed, 3 P1 remain) | **Est. Fix**: 10h
+
+#### 5. `customer` (Identity Customer Service)
+-   **[🟡] Review Status**: In Progress (re-audited)
+-   **Entry Points**:
+    -   `customer/internal/service/customer.go` (service composition)
+    -   `customer/internal/service/authentication.go` (`Register`, `Login`, `Logout`, `RefreshToken`, `ValidateToken`, `VerifyEmail`)
+    -   `customer/cmd/customer/*` (server bootstrap + wire)
+    -   `customer/cmd/worker/*` + `customer/internal/data/eventbus/*` (async consumers)
+-   **Auth Integration Model**:
+    -   Customer service owns **customer credential + profile**; delegates **token/session** to Auth service via `internal/client/auth/*`.
+    -   `customer/internal/biz/customer/auth.go`: `AuthUsecase` calls `authClient.GenerateToken/RefreshToken/RevokeSession/ValidateToken`.
+-   **Security & AuthZ**:
+    -   **Good**: Rate limit + account lock backed by Redis (`customer/internal/biz/customer/cache.go`).
+    -   **Good**: Ownership middleware `CustomerAuthorization()` on HTTP server (`customer/internal/server/http.go`, `customer/internal/server/middleware/authz.go`).
+    -   **Gap (P1) [Security]**: `Logout` continues even if `authClient.RevokeSession` fails (fail-open). Consider configurable policy: fail-closed for high-security clients; at minimum emit metric + alert.
+    -   **Gap (P1) [Security]**: AuthZ middleware relies on `x-user-id` / `x-user-role` headers; ensure Gateway strips client-supplied values and injects trusted identity.
+-   **Observability**:
+    -   **Gap (P1)**: HTTP server has recovery/metadata/authz but **no metrics/tracing middleware** (unlike user service). Add `metrics.Server()` + `tracing.Server()`.
+-   **Data & Domain**:
+    -   Password hashing uses `common/security.PasswordManager` ✅ (`customer/internal/biz/customer/auth.go`).
+    -   Email verification tokens implemented (`internal/biz/customer/verification.go`, `internal/data/postgres/verification.go`, migrations `016_create_verification_tokens_table.sql`).
+-   **Resilience / Workers**:
+    -   Events handled by worker (eventbus consumers) — good separation from API server.
+    -   **Gap (P1)**: Need resilience audit for consumers: retry/backoff, DLQ, idempotency (files: `customer/internal/data/eventbus/*.go`).
+-   **Action Items (Customer Service)**:
+    -   `[P1]` Add `metrics.Server()` + `tracing.Server()` in `customer/internal/server/http.go`.
+    -   `[P1]` Harden logout behavior: add metric + decide fail-open vs fail-closed.
+    -   `[P1]` Ensure Gateway header trust boundary is enforced for `x-user-*`.
+    -   `[P1]` Audit eventbus consumers for retry/DLQ/idempotency.
+-   **Overall Score (updated)**: 88 → 90 % | **Est. Fix**: 10-14h
+>>>>>>> 481ae01f7c8354b16cd65236eea82c558a83f81f
 
 ---
 
