@@ -1,1034 +1,895 @@
-# 📦 FULFILLMENT SERVICE REVIEW
+# FULFILLMENT SERVICE - DETAILED CODE REVIEW
 
-**Review Date**: January 14, 2026  
-**Reviewer**: Principal Developer (Cascade)  
-**Service**: Fulfillment (Order Fulfillment + Picking + Packing + Shipping)  
-**Score**: 72% | **Issues**: 6 (2 P0, 4 P1)
-**Est. Fix Time**: 22 hours
-
----
-
-## 📋 Executive Summary
-
-Fulfillment service has good architecture and multi-warehouse support but has **2 critical P0 issues** that must be fixed before production:
-
-**Critical Issues**:
-1. **P0-1**: Non-atomic multi-fulfillment creation (8h) - Phantom fulfillments risk
-2. **P0-2**: Missing Transactional Outbox pattern (8h) - Event loss risk
-
-**Good News**:
-- Clean DDD architecture ✅
-- Multi-warehouse support ✅
-- Comprehensive status machine ✅
-- Retry logic for failures ✅
-- QC integration ✅
-
-**Status**: ⚠️ **NOT PRODUCTION READY** - Requires P0 fixes
+**Service**: Fulfillment Service  
+**Reviewer**: Senior Lead  
+**Review Date**: 2026-01-16  
+**Review Standard**: [Team Lead Code Review Guide](./TEAM_LEAD_CODE_REVIEW_GUIDE.md)  
+**Overall Score**: TBD (needs recalibration after correcting Outbox/Idempotency findings)
 
 ---
 
-## ✅ What's Excellent
+## 📊 EXECUTIVE SUMMARY
 
-### 1. Multi-Warehouse Support ✅
-**Status**: Well-designed | **Impact**: Supports complex fulfillment scenarios
+Fulfillment Service quản lý toàn bộ quy trình fulfillment từ order → planning → picking → packing → ready_to_ship → shipping. Kiến trúc nhìn chung theo Clean Architecture (biz/data/service) và có transaction boundary rõ (`tx.InTx`). Tuy nhiên có **một điểm lệch lớn so với chuẩn “transactional outbox”**: có đoạn **publish event sau commit** và chỉ log warn khi lỗi → có thể mất event.
 
-**Features**:
-- One fulfillment per warehouse
-- Automatic warehouse selection
-- Capacity checking integration
-- Time slot support
+### Điểm Mạnh
+- ✅ Clean Architecture rõ ràng (biz/data/service layers)
+- ✅ Multi-domain (fulfillment/picklist/package/qc) với interface-based dependencies
+- ✅ Multi-warehouse support (group items by warehouse)
+- ✅ Retry mechanism cho pick/pack failures + max retries
+- ✅ Status transition validation
+- ✅ Sequence generator cho fulfillment/package numbers
+- ✅ HTTP server có Swagger `/docs`, metrics `/metrics`, health `/health*`
 
-**Location**: `internal/biz/fulfillment/fulfillment.go:CreateFromOrderMulti`
+### Vấn Đề Cần Fix
+- ✅ **ĐÃ FIX (code hiện tại)**: `selectWarehouse` đã **fail-closed** khi `warehouseClient == nil` (return error), không còn placeholder UUID
+- ⚠️ **P1 (HIGH)**: Có **đoạn publish event sau commit** trong `CreateFromOrderMulti` (dù `EventPublisher` hiện tại là OutboxEventPublisher thì vẫn ok; nhưng comment/code đang mâu thuẫn và các flow khác có thể publish trong-tx) → cần chuẩn hoá: **chỉ ghi outbox trong cùng transaction**, worker publish async
+- ⚠️ **P1 (HIGH)**: Idempotency khi tạo fulfillment theo order cần làm rõ theo business rule multi-warehouse: hiện có migration `017_add_idempotency_constraint.sql` unique `(order_id)` nhưng comment lại nói có thể phải `(order_id, warehouse_id)`
+- ⚠️ **2 P2 (NICE TO HAVE)**: HTTP server thiếu logging/metadata propagation middleware; metrics gauge increment sai semantics
 
-**Rubric Compliance**: ✅ #1 (Architecture & Clean Code)
-
-
-### 2. Comprehensive Status Machine ✅
-**Status**: Well-defined | **Impact**: Clear workflow tracking
-
-**States**:
-- pending → planning → picking → picked → packing → packed → ready → shipped → completed
-- Failed states: pick_failed, pack_failed
-- Cancellable states with validation
-
-**Rubric Compliance**: ✅ #3 (Business Logic)
+**Estimated Fix Time**: 10-16 giờ (tùy hướng fix outbox/idempotency)
 
 ---
 
-### 3. Retry Logic for Failures ✅
-**Status**: Resilient | **Impact**: Handles transient failures
-
-**Features**:
-- Pick retry with max attempts
-- Pack retry with max attempts
-- Retry count tracking
-- Error event publishing
-
-**Rubric Compliance**: ✅ #9 (Configuration - Resilience)
-
----
-
-### 4. QC Integration ✅
-**Status**: Quality control support
-- QC requirement detection
-- QC result tracking
-- Blocks shipping if QC required but not passed
-
-**Rubric Compliance**: ✅ #3 (Business Logic)
-
----
-
-### 5. Health Checks ✅
-**Status**: Database + Redis verification
-- `/health` → basic readiness
-- `/health/ready` → external dependencies
-- `/health/live` → liveness
-- `/health/detailed` → detailed status
-
-**Rubric Compliance**: ✅ #9 (Configuration - Resilience)
-
----
-
-## 🚨 Critical Issues (2 P0 + 4 P1)
+## 🔍 DETAILED REVIEW (10-POINT CHECKLIST)
 
 
-### P0-1: Non-Atomic Multi-Fulfillment Creation (8h) ⚠️
+### 1. ARCHITECTURE & CLEAN CODE ⭐⭐⭐⭐⭐ (95%)
 
-**File**: `internal/biz/fulfillment/fulfillment.go:175-230`  
-**Severity**: 🔴 CRITICAL  
-**Impact**: Phantom fulfillments - partial creation on failure
+#### ✅ ĐÚNG: Clean Architecture với Domain-Driven Design
 
-**Current State**:
 ```go
-// ❌ CREATES MULTIPLE FULFILLMENTS IN LOOP WITHOUT TRANSACTION
-func (uc *FulfillmentUseCase) CreateFromOrderMulti(ctx context.Context, orderID string, orderData OrderData) ([]*model.Fulfillment, error) {
-    // ... group items by warehouse ...
-    
-    fulfillments := make([]*model.Fulfillment, 0, len(warehouseItems))
-    for warehouseID, items := range warehouseItems {
-        // Create fulfillment
-        fulfillment := &model.Fulfillment{...}
-        
-        // Save to database
-        if err := uc.repo.Create(ctx, fulfillment); err != nil {
-            // ❌ MANUAL ROLLBACK - NOT ATOMIC!
-            for _, f := range fulfillments {
-                _ = uc.repo.Delete(ctx, f.ID) // Best effort cleanup
-            }
-            return nil, fmt.Errorf("failed to create fulfillment: %w", err)
-        }
-        
-        fulfillments = append(fulfillments, fulfillment)
-        
-        // Publish event (outside transaction)
-        if uc.eventPub != nil {
-            uc.eventPub.PublishFulfillmentStatusChanged(ctx, fulfillment, "", "pending", "")
-        }
-    }
-    
-    return fulfillments, nil
+// fulfillment/internal/biz/fulfillment/fulfillment.go
+type FulfillmentUseCase struct {
+    repo            FulfillmentRepo
+    picklistUsecase PicklistUsecase
+    warehouseClient WarehouseClient
+    eventPub        EventPublisher
+    tx              Transaction
+    log             *log.Helper
 }
+
+// Dependency injection rõ ràng, testable
+func NewFulfillmentUseCase(
+    repo FulfillmentRepo,
+    picklistUsecase PicklistUsecase,
+    warehouseClient WarehouseClient,
+    eventPub EventPublisher,
+    tx Transaction,
+    logger log.Logger,
+) *FulfillmentUseCase
 ```
 
-**Problem**:
-- Creates multiple fulfillments in a loop
-- Each `Create` is a separate transaction
-- If 3rd fulfillment fails, first 2 are already committed
-- Manual rollback with `Delete` is NOT atomic
-- If rollback fails → phantom fulfillments in database
-- Events published outside transaction → can be lost
+**Tốt**: 
+- Domain logic tách biệt khỏi infrastructure
+- Interface-based dependencies (repo, client, eventPub)
+- Multi-domain organization (fulfillment, picklist, package, qc)
 
-**Scenario**:
-1. Order has 3 warehouses → needs 3 fulfillments
-2. Fulfillment 1 created → committed
-3. Fulfillment 2 created → committed
-4. Fulfillment 3 fails → tries to rollback
-5. Rollback of Fulfillment 1 fails (network error)
-6. Result: 2 phantom fulfillments in database
-7. Order stuck in inconsistent state
+#### ⚠️ VẤN ĐỀ P1: Sử dụng Transactional Outbox chưa đúng cách
 
-**Fix** (8 hours) - Use Single Transaction:
+**Hiện tại (thực tế code)**:
+- Service đã có `OutboxEventPublisher` và `outbox_worker` (đây là điểm cộng).
+- Tuy nhiên, trong `CreateFromOrderMulti`, việc ghi vào outbox (`uc.eventPub.Publish...`) lại được gọi **bên ngoài** và **sau khi** transaction chính (`uc.tx.InTx`) đã commit.
+
+**Rủi ro (vẫn là Dual-Write):**
+- Nếu `uc.tx.InTx` commit thành công, nhưng service bị crash ngay trước khi `saveToOutbox` được gọi, event sẽ bị mất vĩnh viễn.
+- Dù `OutboxEventPublisher` đã được inject, cách gọi này làm mất đi sự đảm bảo atomic của pattern Transactional Outbox.
+
+**Khuyến nghị (chuẩn production):**
+- **P1**: Di chuyển lời gọi `uc.eventPub.Publish...` vào **bên trong** block `uc.tx.InTx` để đảm bảo việc ghi business data (fulfillment) và outbox event nằm trong cùng một transaction.
+
+---
+
+### 2. API & CONTRACT ⭐⭐⭐⭐ (85%)
+
+#### ✅ ĐÚNG: gRPC Service với Proto Contract
 
 ```go
-// ✅ ATOMIC MULTI-FULFILLMENT CREATION
-func (uc *FulfillmentUseCase) CreateFromOrderMulti(ctx context.Context, orderID string, orderData OrderData) ([]*model.Fulfillment, error) {
-    var fulfillments []*model.Fulfillment
-    
-    // Use transaction to ensure atomicity
-    err := uc.tx.InTx(ctx, func(ctx context.Context) error {
-        // Group items by warehouse
-        warehouseItems := make(map[string][]OrderItem)
-        for _, item := range orderData.Items {
-            warehouseID := ""
-            if item.WarehouseID != nil {
-                warehouseID = *item.WarehouseID
-            }
-            warehouseItems[warehouseID] = append(warehouseItems[warehouseID], item)
-        }
-        
-        // Create all fulfillments in same transaction
-        for warehouseID, items := range warehouseItems {
-            fulfillmentNumber, err := uc.repo.GenerateFulfillmentNumber(ctx)
-            if err != nil {
-                return fmt.Errorf("failed to generate fulfillment number: %w", err)
-            }
-            
-            fulfillment := &model.Fulfillment{
-                ID:                uuid.New().String(),
-                FulfillmentNumber: fulfillmentNumber,
-                OrderID:           orderID,
-                OrderNumber:       orderData.OrderNumber,
-                Status:            constants.FulfillmentStatusPending,
-                Items:             convertOrderItems(items),
-                CreatedAt:         time.Now(),
-                UpdatedAt:         time.Now(),
-            }
-            
-            if warehouseID != "" {
-                fulfillment.WarehouseID = &warehouseID
-            }
-            
-            // Create fulfillment in transaction
-            if err := uc.repo.Create(ctx, fulfillment); err != nil {
-                return fmt.Errorf("failed to create fulfillment: %w", err)
-            }
-            
-            fulfillments = append(fulfillments, fulfillment)
-            
-            // Create outbox event IN SAME TRANSACTION
-            payload, _ := json.Marshal(map[string]interface{}{
-                "fulfillment_id": fulfillment.ID,
-                "order_id":       orderID,
-                "status":         "pending",
-            })
-            
-            event := &OutboxEvent{
-                AggregateType: "fulfillment",
-                AggregateID:   fulfillment.ID,
-                EventType:     "fulfillment.status_changed",
-                Payload:       payload,
-                Status:        "PENDING",
-            }
-            
-            if err := uc.outboxRepo.Create(ctx, event); err != nil {
-                return fmt.Errorf("failed to create outbox event: %w", err)
-            }
-        }
-        
-        return nil
-        // ← All succeed or all fail together!
-    })
-    
+// fulfillment/internal/service/fulfillment_service.go
+type FulfillmentService struct {
+    v1.UnimplementedFulfillmentServiceServer
+    uc  *fulfillment.FulfillmentUseCase
+    log *log.Helper
+}
+
+func (s *FulfillmentService) CreateFulfillment(ctx context.Context, req *v1.CreateFulfillmentRequest) (*v1.CreateFulfillmentResponse, error) {
+    orderData := fulfillment.OrderData{
+        OrderNumber: req.OrderNumber,
+        Items:       convertOrderItemsFromProto(req.Items),
+    }
+    f, err := s.uc.CreateFromOrder(ctx, req.OrderId, orderData)
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("failed to create fulfillment: %w", err)
     }
-    
-    return fulfillments, nil
+    return &v1.CreateFulfillmentResponse{
+        Fulfillment: convertFulfillmentToProto(f),
+    }, nil
 }
 ```
 
-**Implementation Steps**:
-1. Add `TransactionFunc` to FulfillmentUseCase
-2. Wrap multi-fulfillment creation in transaction
-3. Move event publishing to outbox (see P0-2)
-4. Remove manual rollback logic
-5. Add integration test with failure scenarios
-6. Verify all-or-nothing behavior
+**Tốt**: 
+- Proto-based contract với versioning (v1)
+- Thin service layer chỉ convert proto ↔ domain model
 
-**Testing**:
-- [ ] Create order with 3 warehouses
-- [ ] Simulate failure on 3rd fulfillment
-- [ ] Verify NO fulfillments created (rollback)
-- [ ] Verify no phantom records in database
+#### ⚠️ VẤN ĐỀ P2: Missing API Documentation
 
-**Rubric Violation**: #4 (Data Layer - Transaction Boundaries), #3 (Business Logic - Atomicity)
+**Hiện tại**: Không có OpenAPI/Swagger docs cho HTTP endpoints
+
+**Nên có**:
+```go
+// api/fulfillment/v1/fulfillment.proto
+// Add swagger annotations
+service FulfillmentService {
+  // CreateFulfillment creates a new fulfillment from order
+  // @Summary Create fulfillment
+  // @Tags Fulfillment
+  // @Accept json
+  // @Produce json
+  rpc CreateFulfillment(CreateFulfillmentRequest) returns (CreateFulfillmentResponse);
+}
+```
 
 ---
 
-### P0-2: Missing Transactional Outbox Pattern (8h) ⚠️
+### 3. BUSINESS LOGIC & CONCURRENCY ⭐⭐⭐⭐ (80%)
 
-**File**: `internal/biz/fulfillment/fulfillment.go` (multiple locations)  
-**Severity**: 🔴 CRITICAL  
-**Impact**: Event loss on crashes - downstream services miss updates
+#### ✅ ĐÚNG: Status Transition Validation
 
-**Current State**:
 ```go
-// ❌ EVENTS PUBLISHED OUTSIDE TRANSACTION
+// fulfillment/internal/constants/status.go (inferred)
+func ValidateStatusTransition(from, to FulfillmentStatus) error {
+    // Validates allowed state transitions
+    // pending → planning → picking → packing → ready → shipped → completed
+}
+
+// fulfillment/internal/biz/fulfillment/fulfillment.go:1000
 func (uc *FulfillmentUseCase) UpdateStatus(ctx context.Context, id string, newStatus constants.FulfillmentStatus, reason string) error {
-    // ... update fulfillment in DB ...
-    if err := uc.repo.Update(ctx, fulfillment); err != nil {
-        return fmt.Errorf("failed to update fulfillment status: %w", err)
-    }
-    
-    // ❌ EVENT PUBLISHED AFTER DB COMMIT
-    if uc.eventPub != nil {
-        if err := uc.eventPub.PublishFulfillmentStatusChanged(ctx, fulfillment, oldStatus, string(newStatus), reason); err != nil {
-            uc.log.WithContext(ctx).Warnf("Failed to publish event: %v", err)
-            // ❌ ONLY LOGS WARNING - EVENT LOST!
-        }
-    }
-    
-    return nil
-}
-```
-
-**Problem**:
-- DB write commits BEFORE event publish
-- If event publish fails → event lost forever
-- If service crashes between DB commit and event publish → event lost
-- Downstream services (order, notification, analytics) miss critical updates
-- No retry mechanism for failed events
-- Classic dual-write problem
-
-**Affected Methods** (17 locations):
-1. `CreateFromOrderMulti` - fulfillment.created event
-2. `StartPlanning` - status_changed event
-3. `GeneratePicklist` - status_changed event
-4. `ConfirmPicked` - status_changed event
-5. `ConfirmPacked` - status_changed + package.created events
-6. `MarkReadyToShip` - status_changed event
-7. `CancelFulfillment` - status_changed event
-8. `MarkPickFailed` - status_changed + error events
-9. `MarkPackFailed` - status_changed + error events
-10. `RetryPick` - status_changed event
-11. `RetryPack` - status_changed event
-12. `UpdateStatus` - status_changed event
-
-**Scenario**:
-1. Fulfillment status updated: pending → picking
-2. DB transaction commits successfully
-3. Service crashes before publishing event
-4. Order service never receives update
-5. Customer sees stale status in UI
-6. Notification service doesn't send SMS
-7. Analytics dashboard shows wrong metrics
-
-**Fix** (8 hours) - Implement Transactional Outbox:
-
-**Step 1**: Create Outbox Table (1h)
-```sql
--- migrations/000X_create_outbox.up.sql
-CREATE TABLE outbox_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    aggregate_type VARCHAR(50) NOT NULL,
-    aggregate_id VARCHAR(255) NOT NULL,
-    event_type VARCHAR(100) NOT NULL,
-    payload JSONB NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    retry_count INT NOT NULL DEFAULT 0,
-    max_retries INT NOT NULL DEFAULT 5,
-    error_message TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    processed_at TIMESTAMP,
-    INDEX idx_outbox_status (status, created_at),
-    INDEX idx_outbox_aggregate (aggregate_type, aggregate_id)
-);
-```
-
-**Step 2**: Create Outbox Repository (1h)
-```go
-// internal/data/outbox/outbox.go
-type OutboxEvent struct {
-    ID            string
-    AggregateType string
-    AggregateID   string
-    EventType     string
-    Payload       json.RawMessage
-    Status        string // PENDING, PROCESSING, COMPLETED, FAILED
-    RetryCount    int
-    MaxRetries    int
-    ErrorMessage  string
-    CreatedAt     time.Time
-    ProcessedAt   *time.Time
-}
-
-type OutboxRepo interface {
-    Create(ctx context.Context, event *OutboxEvent) error
-    FindPending(ctx context.Context, limit int) ([]*OutboxEvent, error)
-    MarkProcessing(ctx context.Context, id string) error
-    MarkCompleted(ctx context.Context, id string) error
-    MarkFailed(ctx context.Context, id string, errorMsg string) error
-}
-```
-
-**Step 3**: Update UseCase to Use Outbox (3h)
-```go
-// ✅ ATOMIC EVENT CREATION
-func (uc *FulfillmentUseCase) UpdateStatus(ctx context.Context, id string, newStatus constants.FulfillmentStatus, reason string) error {
-    var fulfillment *model.Fulfillment
-    
-    // Use transaction to ensure atomicity
-    err := uc.tx.InTx(ctx, func(ctx context.Context) error {
-        // Get fulfillment
-        var err error
-        fulfillment, err = uc.repo.FindByID(ctx, id)
+    return uc.tx.InTx(ctx, func(ctx context.Context) error {
+        fulfillment, err := uc.repo.FindByID(ctx, id)
         if err != nil {
-            return fmt.Errorf("failed to get fulfillment: %w", err)
+            return err
         }
         
-        oldStatus := string(fulfillment.Status)
-        
-        // Validate and update status
+        // Validate status transition
         if err := constants.ValidateStatusTransition(fulfillment.Status, newStatus); err != nil {
             return err
         }
         
         fulfillment.Status = newStatus
-        fulfillment.UpdatedAt = time.Now()
-        
-        // Update in DB
-        if err := uc.repo.Update(ctx, fulfillment); err != nil {
-            return fmt.Errorf("failed to update fulfillment: %w", err)
-        }
-        
-        // Create outbox event IN SAME TRANSACTION
-        payload, _ := json.Marshal(map[string]interface{}{
-            "fulfillment_id": fulfillment.ID,
-            "order_id":       fulfillment.OrderID,
-            "old_status":     oldStatus,
-            "new_status":     string(newStatus),
-            "reason":         reason,
-        })
-        
-        event := &OutboxEvent{
-            AggregateType: "fulfillment",
-            AggregateID:   fulfillment.ID,
-            EventType:     "fulfillment.status_changed",
-            Payload:       payload,
-            Status:        "PENDING",
-        }
-        
-        if err := uc.outboxRepo.Create(ctx, event); err != nil {
-            return fmt.Errorf("failed to create outbox event: %w", err)
-        }
-        
-        return nil
-        // ← Both succeed or both fail together!
+        return uc.repo.Update(ctx, fulfillment)
     })
-    
-    if err != nil {
-        return err
-    }
-    
-    return nil
 }
 ```
 
-**Step 4**: Create Outbox Worker (3h)
+**Tốt**: State machine validation prevents invalid transitions
+
+#### ✅ ĐÚNG: Retry Mechanism với Max Retries
+
 ```go
-// cmd/worker/outbox_worker.go
-type OutboxWorker struct {
-    outboxRepo  OutboxRepo
-    eventPub    EventPublisher
-    pollInterval time.Duration
-    batchSize    int
-}
-
-func (w *OutboxWorker) Run(ctx context.Context) error {
-    ticker := time.NewTicker(w.pollInterval)
-    defer ticker.Stop()
-    
-    for {
-        select {
-        case <-ctx.Done():
-            return nil
-        case <-ticker.C:
-            if err := w.processBatch(ctx); err != nil {
-                log.Errorf("Failed to process batch: %v", err)
-            }
-        }
-    }
-}
-
-func (w *OutboxWorker) processBatch(ctx context.Context) error {
-    // Get pending events
-    events, err := w.outboxRepo.FindPending(ctx, w.batchSize)
-    if err != nil {
-        return err
-    }
-    
-    // Process each event with retry
-    for _, event := range events {
-        if err := w.processEvent(ctx, event); err != nil {
-            log.Errorf("Failed to process event %s: %v", event.ID, err)
-        }
-    }
-    
-    return nil
-}
-
-func (w *OutboxWorker) processEvent(ctx context.Context, event *OutboxEvent) error {
-    // Mark as processing
-    if err := w.outboxRepo.MarkProcessing(ctx, event.ID); err != nil {
-        return err
-    }
-    
-    // Publish event
-    if err := w.eventPub.Publish(ctx, event.EventType, event.Payload); err != nil {
-        // Increment retry count
-        event.RetryCount++
-        if event.RetryCount >= event.MaxRetries {
-            // Move to DLQ
-            return w.outboxRepo.MarkFailed(ctx, event.ID, err.Error())
-        }
-        return err
-    }
-    
-    // Mark as completed
-    return w.outboxRepo.MarkCompleted(ctx, event.ID)
-}
-```
-
-**Implementation Steps**:
-1. Create outbox table migration
-2. Implement OutboxRepo interface
-3. Add TransactionFunc to FulfillmentUseCase
-4. Update all 12 methods to use outbox
-5. Create outbox worker with retry logic
-6. Add monitoring for outbox queue depth
-7. Test failure scenarios
-
-**Testing**:
-- [ ] Create fulfillment → verify outbox event created
-- [ ] Simulate event publish failure → verify retry
-- [ ] Simulate service crash → verify event processed after restart
-- [ ] Verify no duplicate events
-- [ ] Monitor outbox queue depth
-
-**Reference Implementation**: See `catalog/internal/biz/product/product_write.go` for working example
-
-**Rubric Violation**: #4 (Data Layer - Transaction Boundaries), #7 (Observability - Event Reliability)
-
----
-### P1-1: Missing Middleware Stack (3h) 🟡
-
-**File**: `internal/server/http.go:48-50`  
-**Severity**: 🟡 HIGH  
-**Impact**: No metrics collection, no distributed tracing
-
-**Current State**:
-```go
-var opts = []krathttp.ServerOption{
-    krathttp.Middleware(
-        recovery.Recovery(),
-        // ❌ MISSING: metrics.Server()
-        // ❌ MISSING: tracing.Server()
-    ),
-}
-```
-
-**Problem**:
-- `/metrics` endpoint registered but middleware NOT collecting
-- No OpenTelemetry spans for requests
-- Cannot trace cross-service calls (order → fulfillment → warehouse)
-- Cannot correlate logs across services
-- No RED metrics (Rate, Errors, Duration)
-
-**Fix** (3 hours):
-```go
-import (
-    "github.com/go-kratos/kratos/v2/middleware/metrics"
-    "github.com/go-kratos/kratos/v2/middleware/tracing"
-)
-
-var opts = []krathttp.ServerOption{
-    krathttp.Middleware(
-        recovery.Recovery(),
-        metrics.Server(),      // ← ADD THIS
-        tracing.Server(),      // ← ADD THIS
-    ),
-}
-```
-
-**Testing**:
-1. Build: `make build`
-2. Run: `make run`
-3. Metrics: `curl http://localhost:8080/metrics | grep http_requests`
-4. Tracing: Open Jaeger `http://localhost:16686`
-   - Search for "fulfillment" service
-   - Make request: `curl http://localhost:8080/v1/fulfillments`
-   - Should see span in Jaeger
-
-**Rubric Violation**: #7 (Observability - Metrics & Tracing)
-
----
-### P1-2: ConfirmPicked Status Update Not Atomic (4h) 🟡
-
-**File**: `internal/biz/fulfillment/fulfillment.go:350-410`  
-**Severity**: 🟡 HIGH  
-**Impact**: Inconsistent state between fulfillment and picklist
-
-**Current State**:
-```go
-// ❌ TWO SEPARATE UPDATES - NOT ATOMIC
-func (uc *FulfillmentUseCase) ConfirmPicked(ctx context.Context, id string, pickedItems []PickedItem) error {
-    // Update fulfillment items
-    for _, pickedItem := range pickedItems {
-        for i := range fulfillment.Items {
-            if fulfillment.Items[i].ID == pickedItem.FulfillmentItemID {
-                fulfillment.Items[i].QuantityPicked = pickedItem.QuantityPicked
-                break
-            }
-        }
-    }
-    
-    // ❌ FIRST UPDATE: Picklist (separate transaction)
-    if uc.picklistUsecase != nil {
-        if err := uc.picklistUsecase.ConfirmPickedItems(ctx, *fulfillment.PicklistID, picklistPickedItems); err != nil {
-            return fmt.Errorf("failed to update picklist: %w", err)
-        }
-    }
-    
-    // ❌ SECOND UPDATE: Fulfillment (separate transaction)
-    fulfillment.Status = constants.FulfillmentStatusPicked
-    if err := uc.repo.Update(ctx, fulfillment); err != nil {
-        return fmt.Errorf("failed to update fulfillment: %w", err)
-    }
-    
-    // ❌ THIRD OPERATION: Event publish (outside transaction)
-    if uc.eventPub != nil {
-        uc.eventPub.PublishFulfillmentStatusChanged(ctx, fulfillment, oldStatus, string(fulfillment.Status), "")
-    }
-}
-```
-
-**Problem**:
-- Picklist updated in one transaction
-- Fulfillment updated in another transaction
-- If fulfillment update fails → picklist already marked complete
-- Inconsistent state: picklist says "picked" but fulfillment says "picking"
-- No rollback mechanism
-
-**Fix** (4 hours):
-```go
-// ✅ ATOMIC UPDATE WITH TRANSACTION
-func (uc *FulfillmentUseCase) ConfirmPicked(ctx context.Context, id string, pickedItems []PickedItem) error {
-    err := uc.tx.InTx(ctx, func(ctx context.Context) error {
-        // Get fulfillment
+// fulfillment/internal/biz/fulfillment/fulfillment.go:750
+func (uc *FulfillmentUseCase) FailPick(ctx context.Context, id string, reason string, severity string) error {
+    return uc.tx.InTx(ctx, func(ctx context.Context) error {
         fulfillment, err := uc.repo.FindByID(ctx, id)
         if err != nil {
-            return fmt.Errorf("failed to get fulfillment: %w", err)
+            return err
         }
         
-        // Validate status
-        if fulfillment.Status != constants.FulfillmentStatusPicking {
-            return constants.ErrInvalidStatusTransition
+        // Increment retry count
+        fulfillment.PickRetryCount++
+        
+        // Check max retries
+        if fulfillment.PickRetryCount >= fulfillment.MaxRetries {
+            fulfillment.Status = constants.FulfillmentStatusCancelled
+            fulfillment.CancelledAt = &now
+        } else {
+            fulfillment.Status = constants.FulfillmentStatusPickFailed
+            fulfillment.PickFailedAt = &now
+            fulfillment.PickFailedReason = reason
         }
         
-        // Update fulfillment items
-        for _, pickedItem := range pickedItems {
-            for i := range fulfillment.Items {
-                if fulfillment.Items[i].ID == pickedItem.FulfillmentItemID {
-                    fulfillment.Items[i].QuantityPicked = pickedItem.QuantityPicked
-                    break
-                }
-            }
-        }
-        
-        // Update picklist IN SAME TRANSACTION
-        if uc.picklistUsecase != nil {
-            picklistPickedItems := convertToPicklistItems(pickedItems)
-            if err := uc.picklistUsecase.ConfirmPickedItems(ctx, *fulfillment.PicklistID, picklistPickedItems); err != nil {
-                return fmt.Errorf("failed to update picklist: %w", err)
-            }
-        }
-        
-        // Update fulfillment status IN SAME TRANSACTION
-        oldStatus := string(fulfillment.Status)
-        now := time.Now()
-        fulfillment.PickedAt = &now
-        fulfillment.Status = constants.FulfillmentStatusPicked
-        fulfillment.UpdatedAt = time.Now()
-        
-        if err := uc.repo.Update(ctx, fulfillment); err != nil {
-            return fmt.Errorf("failed to update fulfillment: %w", err)
-        }
-        
-        // Create outbox event IN SAME TRANSACTION
-        payload, _ := json.Marshal(map[string]interface{}{
-            "fulfillment_id": fulfillment.ID,
-            "old_status":     oldStatus,
-            "new_status":     string(fulfillment.Status),
-        })
-        
-        event := &OutboxEvent{
-            AggregateType: "fulfillment",
-            AggregateID:   fulfillment.ID,
-            EventType:     "fulfillment.status_changed",
-            Payload:       payload,
-            Status:        "PENDING",
-        }
-        
-        return uc.outboxRepo.Create(ctx, event)
-        // ← All succeed or all fail together!
+        return uc.repo.Update(ctx, fulfillment)
     })
-    
-    return err
 }
 ```
 
-**Testing**:
-- [ ] Confirm picked items → verify both fulfillment and picklist updated
-- [ ] Simulate fulfillment update failure → verify picklist NOT updated
-- [ ] Simulate picklist update failure → verify fulfillment NOT updated
-- [ ] Verify event created atomically
+**Tốt**: Automatic cancellation after max retries
 
-**Rubric Violation**: #4 (Data Layer - Transaction Boundaries)
+#### ⚠️ VẤN ĐỀ P0 (BLOCKING): Warehouse selection “fail-open” khi `warehouseClient == nil`
+
+**Hiện tại (thực tế code)**:
+```go
+// fulfillment/internal/biz/fulfillment/fulfillment.go
+func (uc *FulfillmentUseCase) selectWarehouse(ctx context.Context, f *model.Fulfillment) (string, error) {
+    if uc.warehouseClient == nil {
+        uc.log.WithContext(ctx).Warn("Warehouse client not available, using placeholder")
+        return uuid.New().String(), nil
+    }
+    // ... list warehouses + capacity check (đang fail-closed đúng)
+}
+```
+
+**Vấn đề**:
+- Khi warehouse service/client unavailable, service vẫn trả về một `warehouse_id` ngẫu nhiên → fulfillment sẽ được assign vào warehouse không tồn tại.
+- Đây là “fail-open” ở boundary rất nguy hiểm vì downstream (warehouse/shipping) sẽ fail/dirty data.
+
+**Fix (khuyến nghị)**:
+- **P0**: Fail-closed: nếu `warehouseClient == nil` thì return error (e.g. `warehouse service unavailable`) và không tạo/không planning fulfillment.
+- **P1**: Nếu muốn graceful degradation, chỉ cho phép khi có `WarehouseID` đã được pre-assigned từ upstream, còn không thì fail.
+
+**Estimated Fix Time**: 1-2 giờ
+        availableWarehouses = append(availableWarehouses, warehouse)
+        continue
+    }
+}
+```
+
+**Vấn đề**: Nếu warehouse service down, sẽ assign fulfillment vào warehouse không có capacity → order fulfillment failure
+
+**Fix**:
+```go
+// ✅ ĐÚNG: Fail-closed với circuit breaker
+func (uc *FulfillmentUseCase) selectWarehouse(ctx context.Context, f *model.Fulfillment) (string, error) {
+    canHandle, err := uc.warehouseClient.CheckWarehouseCapacity(ctx, warehouse.Id, totalItemCount, selectedTimeSlotID)
+    if err != nil {
+        // Fail-closed: skip warehouse if capacity check fails
+        uc.log.Warnf("Failed to check capacity for warehouse %s, skipping: %v", warehouse.Id, err)
+        
+        // Track metric for monitoring
+        if uc.metrics != nil {
+            uc.metrics.WarehouseCapacityCheckFailures.Inc()
+        }
+        continue // Skip this warehouse
+    }
+    
+    if canHandle {
+        availableWarehouses = append(availableWarehouses, warehouse)
+    }
+}
+```
+
+**Priority**: P0 - BLOCKING  
+**Estimated Fix Time**: 2 giờ
 
 ---
-### P1-3: No Metrics Endpoint Registered (1h) 🟡
 
-**File**: `internal/server/http.go:82-87`  
-**Severity**: 🟡 MEDIUM  
-**Impact**: Metrics endpoint exists but not functional
 
-**Current State**:
+### 4. DATA LAYER & PERSISTENCE ⭐⭐⭐⭐ (85%)
+
+#### ✅ ĐÚNG: Repository Pattern với BaseRepo
+
 ```go
-// ❌ PLACEHOLDER ENDPOINT - NOT FUNCTIONAL
-srv.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-    // Prometheus metrics will be exposed via Kratos middleware
-    // This endpoint is registered for explicit access
-    w.Header().Set("Content-Type", "text/plain")
-    w.WriteHeader(http.StatusOK)
+// fulfillment/internal/data/postgres/fulfillment.go
+type fulfillmentRepo struct {
+    *commonRepo.BaseRepo
+    log       *log.Helper
+    generator sequence.SequenceGenerator
+}
+
+func NewFulfillmentRepo(logger log.Logger, db *gorm.DB, extractTx func(ctx context.Context) (*gorm.DB, bool), generator sequence.SequenceGenerator) repoFulfillment.FulfillmentRepo {
+    return &fulfillmentRepo{
+        BaseRepo:  commonRepo.NewBaseRepo(db, extractTx),
+        log:       log.NewHelper(logger),
+        generator: generator,
+    }
+}
+
+func (r *fulfillmentRepo) FindByID(ctx context.Context, id string) (*model.Fulfillment, error) {
+    var f model.Fulfillment
+    err := r.DB(ctx).Preload("Items").Where("id = ?", id).Take(&f).Error
+    if err == gorm.ErrRecordNotFound {
+        return nil, nil
+    }
+    return &f, err
+}
+```
+
+**Tốt**: 
+- BaseRepo provides transaction context extraction
+- Preload relationships to avoid N+1 queries
+- Returns nil for not found (not error)
+
+#### ✅ ĐÚNG: Sequence Generator cho Business Numbers
+
+```go
+// fulfillment/internal/data/postgres/fulfillment.go:120
+func (r *fulfillmentRepo) GenerateFulfillmentNumber(ctx context.Context) (string, error) {
+    db := r.DB(ctx)
+    dateFormat := constants.FulfillmentSequenceDateFormat
+    sequenceLength := int(constants.FulfillmentSequenceLength)
+    input := &sequence.SequenceNumberInput{
+        EntityKey:      constants.FulfillmentSequenceKey,
+        Prefix:         constants.FulfillmentSequencePrefix, // "FULF"
+        DateFormat:     &dateFormat,
+        SequenceLength: &sequenceLength,
+    }
+    
+    // Result format: "FULF-2501-000001"
+    fulfillmentNumber, err := sequence.GenerateSequenceNumberWithDate(r.generator, db, input, false)
+    if err != nil {
+        return "", fmt.Errorf("failed to generate sequence: %w", err)
+    }
+    return fulfillmentNumber, nil
+}
+```
+
+**Tốt**: 
+- Human-readable business numbers
+- Date-based partitioning (YYMM)
+- Consistent format across services
+
+#### ⚠️ VẤN ĐỀ P1: Repository Abstraction Leak (GORM Models)
+
+**Hiện tại**:
+```go
+// fulfillment/internal/model/fulfillment.go (inferred)
+type Fulfillment struct {
+    ID              string                  `gorm:"primaryKey"`
+    OrderID         string                  `gorm:"index"`
+    Status          FulfillmentStatus       `gorm:"type:varchar(50)"`
+    Items           []FulfillmentItem       `gorm:"foreignKey:FulfillmentID"`
+    // ... GORM tags leak into domain model
+}
+```
+
+**Vấn đề**: Domain model bị couple với GORM implementation
+
+**Fix**:
+```go
+// ✅ ĐÚNG: Separate domain model from persistence model
+// internal/model/fulfillment.go (domain model - no GORM tags)
+type Fulfillment struct {
+    ID              string
+    OrderID         string
+    Status          FulfillmentStatus
+    Items           []FulfillmentItem
+}
+
+// internal/data/postgres/model.go (persistence model)
+type FulfillmentPO struct {
+    ID              string                  `gorm:"primaryKey"`
+    OrderID         string                  `gorm:"index"`
+    Status          string                  `gorm:"type:varchar(50)"`
+    Items           []FulfillmentItemPO     `gorm:"foreignKey:FulfillmentID"`
+}
+
+// Mapper functions
+func (r *fulfillmentRepo) toDomain(po *FulfillmentPO) *model.Fulfillment {
+    return &model.Fulfillment{
+        ID:      po.ID,
+        OrderID: po.OrderID,
+        Status:  model.FulfillmentStatus(po.Status),
+    }
+}
+```
+
+**Priority**: P1 - HIGH  
+**Estimated Fix Time**: 4 giờ
+
+---
+
+### 5. SECURITY ⭐⭐⭐⭐⭐ (90%)
+
+#### ✅ ĐÚNG: Input Validation
+
+```go
+// fulfillment/internal/biz/fulfillment/fulfillment.go:200
+func (uc *FulfillmentUseCase) CreateFromOrder(ctx context.Context, orderID string, orderData OrderData) (*model.Fulfillment, error) {
+    // Validate order ID
+    if orderID == "" {
+        return nil, fmt.Errorf("order ID is required")
+    }
+    
+    // Validate items
+    if len(orderData.Items) == 0 {
+        return nil, fmt.Errorf("order must have at least one item")
+    }
+    
+    for _, item := range orderData.Items {
+        if item.Quantity <= 0 {
+            return nil, fmt.Errorf("item quantity must be greater than 0")
+        }
+    }
+}
+```
+
+**Tốt**: Validate business rules before processing
+
+#### ✅ ĐÚNG: Authorization Context (Inferred from Pattern)
+
+Service sử dụng context để pass user/tenant info từ gateway → không có hardcoded credentials
+
+**Note**: Không thấy SQL injection risk vì dùng GORM với parameterized queries
+
+---
+
+### 6. PERFORMANCE & SCALABILITY ⭐⭐⭐⭐ (85%)
+
+#### ✅ ĐÚNG: Preload Relationships
+
+```go
+// fulfillment/internal/data/postgres/fulfillment.go:30
+func (r *fulfillmentRepo) FindByID(ctx context.Context, id string) (*model.Fulfillment, error) {
+    var f model.Fulfillment
+    err := r.DB(ctx).Preload("Items").Where("id = ?", id).Take(&f).Error
+    return &f, err
+}
+```
+
+**Tốt**: Avoid N+1 queries
+
+#### ✅ ĐÚNG: Pagination Support
+
+```go
+// fulfillment/internal/data/postgres/fulfillment.go:60
+func (r *fulfillmentRepo) List(ctx context.Context, filters map[string]interface{}, page, pageSize int) ([]*model.Fulfillment, int64, error) {
+    offset := (page - 1) * pageSize
+    err := query.
+        Preload("Items").
+        Offset(offset).
+        Limit(pageSize).
+        Order("created_at DESC").
+        Find(&fulfillments).Error
+    return fulfillments, total, err
+}
+```
+
+**Tốt**: Pagination prevents memory issues
+
+#### ⚠️ VẤN ĐỀ P2: Missing Index Hints
+
+**Hiện tại**: Queries không có index hints cho complex filters
+
+**Nên có**:
+```go
+// ✅ ĐÚNG: Add index hints for performance
+func (r *fulfillmentRepo) FindByStatusAndWarehouse(ctx context.Context, status string, warehouseID string) ([]*model.Fulfillment, error) {
+    var fulfillments []*model.Fulfillment
+    err := r.DB(ctx).
+        // Use composite index: idx_fulfillments_status_warehouse_created
+        Where("status = ? AND warehouse_id = ?", status, warehouseID).
+        Order("created_at DESC").
+        Find(&fulfillments).Error
+    return fulfillments, err
+}
+
+// Migration: Add composite index
+// CREATE INDEX idx_fulfillments_status_warehouse_created ON fulfillments(status, warehouse_id, created_at DESC);
+```
+
+**Priority**: P2 - NICE TO HAVE  
+**Estimated Fix Time**: 2 giờ
+
+---
+
+### 7. OBSERVABILITY ⭐⭐⭐ (70%)
+
+#### ✅ ĐÚNG: Structured Logging
+
+```go
+// fulfillment/internal/biz/fulfillment/fulfillment.go:120
+func (uc *FulfillmentUseCase) CreateFromOrder(ctx context.Context, orderID string, orderData OrderData) (*model.Fulfillment, error) {
+    uc.log.WithContext(ctx).Infof("Creating fulfillment for order: %s", orderID)
+    // ... business logic
+    uc.log.WithContext(ctx).Infof("Successfully created fulfillment: %s", fulfillment.ID)
+}
+```
+
+**Tốt**: Context-aware logging with trace IDs
+
+#### ✅ ĐÚNG (thực tế code): Business Metrics đã được wiring, nhưng có bug về semantics
+
+**Hiện tại (thực tế code)**:
+- `FulfillmentUseCase.CreateFromOrder` đã gọi `uc.metrics.RecordFulfillmentOperation(...)`.
+- Có `uc.metrics.RecordWarehouseCapacityFailure()` trong `selectWarehouse`.
+- Tuy nhiên có đoạn `uc.metrics.SetTotalFulfillments("created", 1)` với comment `// Increment total count (gauge fix later)` → **đang dùng Gauge như Counter**, dễ làm sai số liệu.
+
+**Gap (P2)**:
+- Review lại toàn bộ `FulfillmentServiceMetrics`:
+  - Metric nào là counter/histogram/gauge.
+  - Tránh gọi `Set` để “increment”.
+
+**Concrete Actions**:
+- **P2**: Đổi `SetTotalFulfillments("created", 1)` thành `Inc` trên Counter (hoặc implement đúng semantics nếu muốn gauge là “current in-flight/total current”).
+
+#### ✅ ĐÚNG (thực tế code): Distributed Tracing spans đã có
+
+- `CreateFromOrder`, `StartPlanning` đã tạo span qua `otel.Tracer("fulfillment").Start(...)` và set attributes.
+- Cần đảm bảo propagation middleware ở transport layer để trace context xuyên service.
+
+**Fix**:
+```go
+// ✅ ĐÚNG: Add tracing spans
+import "go.opentelemetry.io/otel"
+
+func (uc *FulfillmentUseCase) CreateFromOrder(ctx context.Context, orderID string, orderData OrderData) (*model.Fulfillment, error) {
+    ctx, span := otel.Tracer("fulfillment").Start(ctx, "FulfillmentUseCase.CreateFromOrder")
+    defer span.End()
+    
+    span.SetAttributes(
+        attribute.String("order.id", orderID),
+        attribute.Int("order.items_count", len(orderData.Items)),
+    )
+    
+    // ... business logic
+    
+    span.SetAttributes(
+        attribute.String("fulfillment.id", fulfillment.ID),
+        attribute.String("fulfillment.status", string(fulfillment.Status)),
+    )
+}
+```
+
+**Priority**: P1 - HIGH  
+**Estimated Fix Time**: 2 giờ
+
+---
+
+
+### 8. TESTING & QUALITY ⭐⭐⭐⭐ (80%)
+
+#### ✅ ĐÚNG: Testable Architecture
+
+```go
+// fulfillment/internal/biz/fulfillment/fulfillment.go
+// All dependencies are interfaces → easy to mock
+type FulfillmentUseCase struct {
+    repo            FulfillmentRepo            // Interface
+    picklistUsecase PicklistUsecase            // Interface
+    warehouseClient WarehouseClient            // Interface
+    eventPub        EventPublisher             // Interface
+    tx              Transaction                // Interface
+    log             *log.Helper
+}
+
+// Test example (inferred)
+func TestCreateFromOrder(t *testing.T) {
+    mockRepo := &MockFulfillmentRepo{}
+    mockWarehouse := &MockWarehouseClient{}
+    mockEventPub := &MockEventPublisher{}
+    mockTx := &MockTransaction{}
+    
+    uc := NewFulfillmentUseCase(mockRepo, nil, mockWarehouse, mockEventPub, mockTx, logger)
+    
+    // Test business logic without real DB/gRPC
+    fulfillment, err := uc.CreateFromOrder(ctx, "order-123", orderData)
+    assert.NoError(t, err)
+    assert.Equal(t, "order-123", fulfillment.OrderID)
+}
+```
+
+**Tốt**: Interface-based design enables unit testing
+
+#### ⚠️ VẤN ĐỀ: Missing Test Coverage
+
+**Hiện tại**: Không thấy test files trong codebase
+
+**Nên có**:
+```bash
+# Test structure
+fulfillment/
+├── internal/
+│   ├── biz/
+│   │   ├── fulfillment/
+│   │   │   ├── fulfillment.go
+│   │   │   └── fulfillment_test.go          # ← Missing
+│   │   ├── picklist/
+│   │   │   ├── picklist.go
+│   │   │   └── picklist_test.go             # ← Missing
+│   ├── data/
+│   │   └── postgres/
+│   │       ├── fulfillment.go
+│   │       └── fulfillment_test.go          # ← Missing (integration tests)
+```
+
+**Recommendation**: Add unit tests cho business logic (target: 80% coverage)
+
+---
+
+### 9. CONFIGURATION & RESILIENCE ⭐⭐⭐⭐ (85%)
+
+#### ✅ ĐÚNG: Retry Configuration
+
+```go
+// fulfillment/internal/model/fulfillment.go (inferred)
+type Fulfillment struct {
+    MaxRetries      int    // Configurable max retries
+    PickRetryCount  int    // Current retry count
+    PackRetryCount  int
+}
+
+// fulfillment/internal/biz/fulfillment/fulfillment.go:750
+func (uc *FulfillmentUseCase) FailPick(ctx context.Context, id string, reason string, severity string) error {
+    if fulfillment.PickRetryCount >= fulfillment.MaxRetries {
+        // Auto-cancel after max retries
+        fulfillment.Status = constants.FulfillmentStatusCancelled
+    }
+}
+```
+
+**Tốt**: Configurable retry limits prevent infinite loops
+
+#### ✅ ĐÚNG: Graceful Degradation (Event Publishing)
+
+```go
+// fulfillment/internal/biz/fulfillment/fulfillment.go:200
+if uc.eventPub != nil {
+    if err := uc.eventPub.PublishFulfillmentCreated(ctx, fulfillment); err != nil {
+        // ✅ Log warning but don't fail transaction
+        uc.log.WithContext(ctx).Warnf("Failed to publish event: %v", err)
+    }
+}
+```
+
+**Tốt**: Event publishing failure không block fulfillment creation (eventual consistency via outbox)
+
+#### ⚠️ VẤN ĐỀ: Missing Circuit Breaker cho Warehouse Client
+
+**Hiện tại**: Warehouse client calls không có circuit breaker
+
+**Fix**:
+```go
+// ✅ ĐÚNG: Add circuit breaker
+import "github.com/sony/gobreaker"
+
+type warehouseClientWithCB struct {
+    client WarehouseClient
+    cb     *gobreaker.CircuitBreaker
+}
+
+func (c *warehouseClientWithCB) CheckWarehouseCapacity(ctx context.Context, warehouseID string, itemCount int32, timeSlotID *string) (bool, error) {
+    result, err := c.cb.Execute(func() (interface{}, error) {
+        return c.client.CheckWarehouseCapacity(ctx, warehouseID, itemCount, timeSlotID)
+    })
+    
+    if err != nil {
+        // Circuit breaker open → fail fast
+        return false, fmt.Errorf("warehouse service unavailable (circuit breaker open): %w", err)
+    }
+    
+    return result.(bool), nil
+}
+
+// Configuration
+cb := gobreaker.NewCircuitBreaker(gobreaker.Settings{
+    Name:        "warehouse-client",
+    MaxRequests: 3,
+    Interval:    10 * time.Second,
+    Timeout:     30 * time.Second,
+    ReadyToTrip: func(counts gobreaker.Counts) bool {
+        failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+        return counts.Requests >= 3 && failureRatio >= 0.6
+    },
 })
 ```
 
-**Problem**:
-- Endpoint returns 200 but no metrics data
-- Prometheus cannot scrape metrics
-- No visibility into service health
-- Cannot monitor request rate, errors, latency
+**Note**: Đây là enhancement, không phải critical issue vì đã có fail-closed logic
 
-**Fix** (1 hour):
+---
+
+### 10. DOCUMENTATION & MAINTENANCE ⭐⭐⭐⭐ (80%)
+
+#### ✅ ĐÚNG: Clear Function Documentation
+
 ```go
-import (
-    "github.com/prometheus/client_golang/prometheus/promhttp"
-)
-
-// ✅ PROPER METRICS ENDPOINT
-srv.Handle("/metrics", promhttp.Handler())
+// fulfillment/internal/biz/fulfillment/fulfillment.go:750
+// FailPick marks fulfillment as pick failed and increments retry count
+// If max retries exceeded, automatically cancels the fulfillment
+func (uc *FulfillmentUseCase) FailPick(ctx context.Context, id string, reason string, severity string) error
 ```
 
-**Testing**:
-- [ ] `curl http://localhost:8080/metrics` returns Prometheus format
-- [ ] Verify metrics include: `http_requests_total`, `http_request_duration_seconds`
-- [ ] Configure Prometheus to scrape endpoint
-- [ ] Verify metrics appear in Grafana
+**Tốt**: Function comments explain behavior
 
-**Rubric Violation**: #7 (Observability - Metrics)
+#### ✅ ĐÚNG: README Documentation
 
----
-### P1-4: Worker Implementation Needs Verification (2h) 🟡
-
-**File**: `cmd/worker/main.go`  
-**Severity**: 🟡 MEDIUM  
-**Impact**: Potential goroutine leaks or lost events
-
-**What to Check**:
-
-The Outbox worker runs background job that:
-1. Polls OutboxEvent table for PENDING events
-2. Publishes to event bus
-3. Marks as COMPLETED
-
-**Audit Checklist** - verify worker implements these 7 patterns:
-
-```
-Worker Implementation Review (cmd/worker/main.go)
-
-Pattern 1: Bounded Goroutines ✓
-  Look for: errgroup.WithContext() + eg.SetLimit()
-  Expected: eg.SetLimit(5-10)  // Max concurrent workers
-  Status: ? To verify
-
-Pattern 2: Exponential Backoff ✓
-  Look for: math.Pow(2, float64(attempt))
-  Expected: retry = 2^attempt seconds
-  Status: ? To verify
-
-Pattern 3: Proper Context ✓
-  Look for: context.WithTimeout() or timeout set
-  Expected: ctx with timeout (e.g., 30s)
-  Status: ? To verify
-
-Pattern 4: Metrics Collection ✓
-  Look for: prometheus metrics (events_processed, events_failed)
-  Expected: metrics.Counter / metrics.Histogram
-  Status: ? To verify
-
-Pattern 5: Tracing Spans ✓
-  Look for: tracer.Start(ctx, "ProcessEvent")
-  Expected: defer span.End()
-  Status: ? To verify
-
-Pattern 6: Dead Letter Queue ✓
-  Look for: moveToDLQ() or error_outbox table
-  Expected: After max retries, store in DLQ
-  Status: ? To verify
-
-Pattern 7: Graceful Shutdown ✓
-  Look for: eg.Wait() before os.Exit
-  Expected: Wait for in-flight events
-  Status: ✓ Found (registry.StopAll())
+```bash
+fulfillment/
+├── README.md                    # Service overview
+├── docs/
+│   └── (architecture docs)
 ```
 
-**Current State**:
-```go
-// Worker uses common/worker registry pattern
-registry := worker.NewContinuousWorkerRegistry(logger)
+#### ⚠️ VẤN ĐỀ: Missing Architecture Decision Records (ADRs)
 
-// Starts workers with context
-if err := registry.StartAll(ctx, activeWorkersMap); err != nil {
-    logHelper.Fatalf("Failed to start workers: %v", err)
-}
+**Nên có**:
+```markdown
+# docs/adr/001-transactional-outbox-pattern.md
+## Context
+Fulfillment service needs to ensure eventual consistency between DB writes and event publishing.
 
-// Graceful shutdown
-if err := registry.StopAll(); err != nil {
-    logHelper.Errorf("Error stopping workers: %v", err)
-}
+## Decision
+Use Transactional Outbox pattern with outbox_worker polling.
+
+## Consequences
+- ✅ Guaranteed event delivery
+- ✅ No dual-write problem
+- ⚠️ Slight delay in event propagation (polling interval)
 ```
 
-**Fix if Issues Found**:
-1. Implement missing patterns
-2. Add metrics/tracing
-3. Test failure scenarios
-4. Document DLQ handling
-
-**Testing**:
-- [ ] Worker starts without errors
-- [ ] Events are processed
-- [ ] Failed events go to DLQ
-- [ ] Retry logic works
-- [ ] Graceful shutdown waits for in-flight
-
-**Rubric Violation**: #3 (Business Logic - Concurrency), #9 (Configuration - Resilience)
-
 ---
-## 📊 Rubric Compliance Matrix
 
-| Rubric Item | Score | Status | Notes |
-|-------------|-------|--------|-------|
-| 1️⃣ Architecture & Clean Code | 9/10 | ✅ | Clean DDD, proper separation |
-| 2️⃣ API & Contract | 9/10 | ✅ | Proto standards followed |
-| 3️⃣ Business Logic & Concurrency | 7/10 | ⚠️ | Non-atomic operations (P0-1, P1-2) |
-| 4️⃣ Data Layer & Persistence | 6/10 | ⚠️ | Missing transactions (P0-1, P0-2) |
-| 5️⃣ Security | 9/10 | ✅ | Proper validation, no leaks |
-| 6️⃣ Performance & Scalability | 8/10 | ✅ | Multi-warehouse support |
-| 7️⃣ Observability | 6/10 | ⚠️ | Missing middleware (P1-1), no outbox (P0-2) |
-| 8️⃣ Testing & Quality | 7/10 | ⚠️ | Unit tests present, integration limited |
-| 9️⃣ Configuration & Resilience | 8/10 | ✅ | Good retry logic, health checks |
-| 🔟 Documentation & Maintenance | 8/10 | ✅ | Good README, OpenAPI specs |
-| **OVERALL** | **7.2/10** | **⚠️** | **Needs P0 fixes** |
+## 🚨 CRITICAL ISSUES SUMMARY
+
+### P0 - BLOCKING (Must Fix Before Production)
+
+#### 1. Warehouse selection “fail-open” khi `warehouseClient == nil`
+**File**: `fulfillment/internal/biz/fulfillment/fulfillment.go`  
+**Issue**: Nếu `warehouseClient == nil` thì `selectWarehouse` trả về UUID random → fulfillment có `warehouse_id` không tồn tại (dirty data)  
+**Impact**: Downstream fail (warehouse/shipping), data integrity issues  
+**Fix Time**: 1-2 giờ
+
+**Fix (khuyến nghị)**:
+- Fail-closed: trả error khi không có warehouse client (trừ khi upstream đã pre-assign warehouse_id hợp lệ).
+
 
 ---
 
-## 🚀 Implementation Roadmap
+## ⚠️ HIGH PRIORITY ISSUES (P1)
 
-### Phase 1: Fix P0-1 - Atomic Multi-Fulfillment Creation (8 hours)
+### 1. Event Publishing chưa đảm bảo delivery (post-commit publish, không outbox)
+**Files**: `internal/biz/fulfillment/fulfillment.go` (+ event publisher)  
+**Issue**: `CreateFromOrderMulti` tạo fulfillment trong transaction nhưng publish event sau commit; publish fail chỉ log warn  
+**Impact**: Lost event → downstream không sync state  
+**Fix Time**: 4-8 giờ (tùy hướng outbox)
 
-**What**: Wrap CreateFromOrderMulti in single transaction  
-**Why**: Prevent phantom fulfillments on partial failures  
-**Time**: 8 hours (4h code + 2h testing + 2h review)
+**Solution**:
+- Ghi outbox event trong cùng DB transaction.
+- Worker publish + retry + DLQ.
 
-**Steps**:
-1. Add `TransactionFunc` interface to FulfillmentUseCase
-2. Inject transaction manager via Wire
-3. Wrap fulfillment creation loop in `tx.InTx()`
-4. Remove manual rollback logic
-5. Add integration test with failure injection
-6. Verify rollback behavior
+### 2. Missing Idempotency/Uniqueness cho “Create fulfillment from order”
+**Files**: `internal/biz/fulfillment/fulfillment.go`, repo/migrations  
+**Issue**: Không thấy guard DB-level chống tạo nhiều fulfillments cho cùng `order_id` (đặc biệt khi retry từ Order service / event re-delivery)  
+**Impact**: Duplicate fulfillments/picklists/packages  
+**Fix Time**: 2-6 giờ
 
-**Completion Checklist**:
-- [ ] Transaction manager injected
-- [ ] CreateFromOrderMulti uses transaction
-- [ ] Manual rollback removed
-- [ ] Integration test passes
-- [ ] Verified in staging
+**Solution**:
+- Add unique constraint/index phù hợp (ví dụ `(order_id, warehouse_id)` nếu multi-warehouse; hoặc một bảng mapping idempotency).
+- Trên conflict: read existing + return.
 
----
+### 3. Repository Abstraction Leak (GORM Models)
+**Files**: `internal/model/*.go`  
+**Issue**: Domain models có GORM tags  
+**Impact**: Domain layer coupled với persistence  
+**Fix Time**: 4 giờ
 
-### Phase 2: Fix P0-2 - Implement Transactional Outbox (8 hours)
+**Solution**: Separate domain models from persistence models
 
-**What**: Replace direct event publishing with outbox pattern  
-**Why**: Guarantee event delivery, prevent event loss  
-**Time**: 8 hours (1h table + 1h repo + 3h usecase + 3h worker)
+### 4. Observability metrics semantics bug
+**Files**: `internal/observability/prometheus/*`, `internal/biz/fulfillment/fulfillment.go`  
+**Issue**: Gauge đang được `Set` để “increment” (`SetTotalFulfillments("created", 1)`)  
+**Impact**: Dashboard/alert sai số liệu  
+**Fix Time**: 1-2 giờ
 
-**Steps**:
-1. Create outbox_events table migration
-2. Implement OutboxRepo interface
-3. Update all 12 methods to create outbox events
-4. Create outbox worker with retry logic
-5. Add monitoring for queue depth
-6. Test failure scenarios
-
-**Completion Checklist**:
-- [ ] Outbox table created
-- [ ] OutboxRepo implemented
-- [ ] All methods use outbox
-- [ ] Worker processes events
-- [ ] Monitoring configured
-- [ ] Deployed to staging
-
-**Reference**: See `catalog/internal/biz/product/product_write.go`
+**Solution**: Dùng Counter cho “total created” hoặc redesign gauge semantics.
 
 ---
 
-### Phase 3: Fix P1 Issues (10 hours)
+## 💡 NICE TO HAVE (P2)
 
-**P1-1: Add Middleware Stack (3h)**
-- Add `metrics.Server()` + `tracing.Server()`
-- Verify `/metrics` endpoint works
-- Verify Jaeger traces appear
+### 1. Missing API Documentation
+**Fix Time**: 1 giờ  
+**Solution**: Add Swagger annotations to proto files
 
-**P1-2: Atomic ConfirmPicked (4h)**
-- Wrap picklist + fulfillment updates in transaction
-- Add outbox event creation
-- Test rollback scenarios
-
-**P1-3: Fix Metrics Endpoint (1h)**
-- Replace placeholder with `promhttp.Handler()`
-- Verify Prometheus scraping
-
-**P1-4: Audit Worker (2h)**
-- Verify 7 concurrency patterns
-- Document findings
-- Create implementation plan if needed
+### 2. Missing Database Index Hints
+**Fix Time**: 2 giờ  
+**Solution**: Add composite indexes for common query patterns
 
 ---
 
-## ✅ Success Criteria
+## 📋 ACTION PLAN
 
-### Phase 1 Complete When
-- [ ] CreateFromOrderMulti uses single transaction
-- [ ] All fulfillments created or none
-- [ ] No phantom records on failure
-- [ ] Integration test passes
-- [ ] Deployed to staging
+### Sprint 1 (Week 1) - Critical Fixes
+**Total: 6 giờ**
 
-### Phase 2 Complete When
-- [ ] Outbox table exists
-- [ ] All events go through outbox
-- [ ] Worker processes events reliably
-- [ ] No event loss on crashes
-- [ ] Monitoring shows queue depth
-- [ ] Deployed to staging
+1. **Fix Warehouse Client Fail-Open** (2h) - P0
+   - Change fail-open to fail-closed
+   - Add capacity check failure metrics
+   - Test with warehouse service down
 
-### Phase 3 Complete When
-- [ ] Middleware stack complete
-- [ ] Metrics endpoint functional
-- [ ] ConfirmPicked is atomic
-- [ ] Worker audit complete
-- [ ] All tests passing
+2. **Add Business Metrics** (4h) - P1
+   - Define metrics interface
+   - Implement Prometheus metrics
+   - Add metrics to all business operations
+   - Create Grafana dashboard
 
-### Overall Complete When
-- [ ] All P0 issues fixed
-- [ ] All P1 issues fixed
-- [ ] Score ≥ 9.0/10
-- [ ] All tests passing
-- [ ] Deployed to production
-- [ ] Team signs off
+### Sprint 2 (Week 2) - Observability
+**Total: 6 giờ**
 
----
-## 📚 Production Readiness
+3. **Add Distributed Tracing** (2h) - P1
+   - Add OpenTelemetry spans
+   - Add span attributes for business context
+   - Test with Jaeger
 
-### Current Status: ⚠️ NOT PRODUCTION READY
-Cannot deploy until P0 issues fixed.
+4. **Fix Repository Abstraction** (4h) - P1
+   - Create separate persistence models (PO)
+   - Add mapper functions
+   - Update repository implementations
+   - Update tests
 
-### Blockers:
-1. **P0-1**: Phantom fulfillments risk (8h fix)
-2. **P0-2**: Event loss risk (8h fix)
+### Sprint 3 (Week 3) - Enhancements
+**Total: 3 giờ**
 
-### Timeline to Production Ready
-- **Phase 1 (P0-1)**: 8 hours → 1 business day
-- **Phase 2 (P0-2)**: 8 hours → 1 business day
-- **Phase 3 (P1)**: 10 hours → 1-2 business days
-- **Total**: 26 hours → 3-4 business days
+5. **Add API Documentation** (1h) - P2
+   - Add Swagger annotations
+   - Generate OpenAPI spec
+   - Deploy Swagger UI
 
-### Post-Fix Quality
-- **Score**: 72% → 90%+
-- **Status**: ⚠️ NOT READY → ✅ PRODUCTION READY
+6. **Add Database Indexes** (2h) - P2
+   - Analyze query patterns
+   - Create composite indexes
+   - Test query performance
 
 ---
 
-## 🔍 Code Locations
+## 📊 METRICS TO TRACK
 
-**Key Files**:
-- `internal/biz/fulfillment/fulfillment.go` - Main business logic (P0-1, P0-2, P1-2)
-- `internal/server/http.go` - HTTP setup (P1-1, P1-3)
-- `cmd/worker/main.go` - Worker implementation (P1-4)
-- `internal/data/postgres/fulfillment.go` - Repository
-- `internal/constants/status.go` - Status machine
+### Business Metrics
+```promql
+# Fulfillment creation rate
+rate(fulfillments_created_total[5m])
 
-**Files to Create**:
-- `internal/data/outbox/outbox.go` - Outbox repository
-- `internal/data/postgres/outbox.go` - Outbox implementation
-- `cmd/worker/outbox_worker.go` - Outbox worker
-- `migrations/000X_create_outbox.up.sql` - Outbox table
+# Fulfillment completion rate
+rate(fulfillments_completed_total[5m])
 
----
+# Pick retry rate
+rate(fulfillments_pick_retries_total[5m])
 
-## 💡 Reference Implementation
+# Warehouse capacity check failures
+rate(warehouse_capacity_check_failures_total[5m])
 
-Fulfillment should follow **catalog service** for:
-1. **Transactional Outbox Pattern** - Event reliability
-2. **Transaction Boundaries** - Atomic operations
-3. **Standard Middleware Stack** - Observability
+# Status transition distribution
+fulfillment_status_changes_total{from_status="picking", to_status="packing"}
+```
 
-**Reference Files**:
-- `catalog/internal/biz/product/product_write.go` - Outbox pattern
-- `catalog/internal/data/outbox/` - Outbox implementation
-- `catalog/cmd/worker/main.go` - Worker pattern
+### SLIs/SLOs
+- **Fulfillment Creation Success Rate**: > 99.9%
+- **Warehouse Selection Time**: p95 < 500ms
+- **Picklist Generation Time**: p95 < 1s
+- **Pick Retry Rate**: < 5%
 
 ---
 
-## ❓ FAQ
+## ✅ REVIEW CHECKLIST
 
-**Q: Can we deploy now?**  
-A: NO. 2 P0 blockers must be fixed first.
+- [x] 1. Architecture & Clean Code - 95%
+- [x] 2. API & Contract - 85%
+- [x] 3. Business Logic & Concurrency - 80%
+- [x] 4. Data Layer & Persistence - 85%
+- [x] 5. Security - 90%
+- [x] 6. Performance & Scalability - 85%
+- [x] 7. Observability - 70%
+- [x] 8. Testing & Quality - 80%
+- [x] 9. Configuration & Resilience - 85%
+- [x] 10. Documentation & Maintenance - 80%
 
-**Q: What's the biggest risk?**  
-A: P0-1 (phantom fulfillments) and P0-2 (event loss) are critical data integrity issues.
-
-**Q: How long to fix?**  
-A: 16 hours for P0 fixes (2 business days) + 10 hours for P1 (1-2 days) = 3-4 business days total.
-
-**Q: Should we follow catalog service?**  
-A: YES! Catalog has working Transactional Outbox - copy that pattern.
-
-**Q: What's the priority?**  
-A: P0-1 (atomicity) > P0-2 (outbox) > P1-1 (observability) > P1-2 (atomic picked) > P1-3 (metrics) > P1-4 (worker audit)
+**Overall Score**: TBD (needs recalibration after correcting Outbox/Idempotency findings)
 
 ---
 
-## 📝 Detailed Checklist
+## 🎯 FINAL RECOMMENDATIONS
 
-**Review Complete When**:
-- [x] Architecture analyzed
-- [x] Issues identified + prioritized
-- [x] Code examples provided
-- [x] Time estimates realistic
-- [x] Implementation steps clear
-- [x] Testing procedures defined
-- [x] Success criteria specified
-- [x] Reference implementation noted
+### Immediate Actions (This Week)
+1. Fix warehouse client fail-open (P0) - 2h
+2. Add business metrics (P1) - 4h
 
-**Implementation Complete When**:
-- [ ] P0-1 fixed (atomic multi-fulfillment)
-- [ ] P0-2 fixed (transactional outbox)
-- [ ] P1-1 fixed (middleware stack)
-- [ ] P1-2 fixed (atomic ConfirmPicked)
-- [ ] P1-3 fixed (metrics endpoint)
-- [ ] P1-4 complete (worker audit)
-- [ ] All tests passing
-- [ ] Deployed to staging
-- [ ] Deployed to production
-- [ ] Team signs off
+### Short Term (Next 2 Weeks)
+3. Add distributed tracing (P1) - 2h
+4. Fix repository abstraction (P1) - 4h
 
-**Status**: ✅ READY FOR TEAM IMPLEMENTATION
+### Long Term (Next Month)
+5. Add comprehensive test coverage (target: 80%)
+6. Add circuit breaker for warehouse client
+7. Document architecture decisions (ADRs)
+
+### Monitoring Setup
+- Create Grafana dashboard for fulfillment metrics
+- Set up alerts for:
+  - High pick/pack retry rate (> 10%)
+  - Warehouse capacity check failures (> 5%)
+  - Fulfillment creation failures (> 1%)
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: January 14, 2026  
-**Status**: ⚠️ NOT PRODUCTION READY - Requires P0 Fixes  
-**Next Phase**: Implementation of P0-1 + P0-2 (16 hours)
+**Review Completed**: 2026-01-16  
+**Next Review**: After P0/P1 fixes completed  
+**Reviewer**: Senior Lead
+

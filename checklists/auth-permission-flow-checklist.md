@@ -1,226 +1,184 @@
-# Auth & Permission Flow - Optimized Solution
+# Auth & Permission Flow Checklist
 
-## 📋 Tổng Quan
-
-Document này đưa ra solution tối ưu cho authentication flow dựa trên phân tích chi tiết hệ thống hiện tại.
-
-**Last Updated**: 2026-01-13
-**Status**: 🚧 Implementation In Progress
+**Last Updated**: 2026-01-16
+**Scope**: `auth`, `user`, `customer` services (paths per `docs/CODEBASE_INDEX.md`) + Gateway trust boundary notes.
 
 ---
 
-## 🏗️ Current Architecture Analysis
+## 1) Service Paths (per CODEBASE_INDEX.md)
 
-### Strengths
-✅ **Clean Separation**: Auth Service chỉ lo token/session, không lưu user profile  
-✅ **Circuit Breaker**: Customer Service có protection khi gọi Auth Service  
-✅ **Session Management**: Giới hạn 5 session/user, auto cleanup  
-✅ **Security**: JWT + HMAC-SHA256, bcrypt, rate limiting  
-✅ **Unified Password Management**: All services use `common/security` package  
-
-### Critical Issues
-🔴 **Single Point of Failure**: Auth Service down → toàn bộ login fail (plan: improved fallback)  
-🔴 **Token Dependency**: Redis được dùng cho cache/blacklist; DB vẫn là source of truth — khuyến nghị migrate session primary sang Redis (để giảm độ trễ và tăng availability).  
-🔴 **Fallback / Emergency**: Gateway có cơ chế local validation/fallback nhưng cần đảm bảo blacklist/short TTL và rõ ràng trong runbook.  
-🔴 **Security Gaps**: 
-  - Login endpoints: verify rate limiting & brute force protections are enabled (account lock already available).
-  - Refresh Token Rotation: rotation implemented (revokes old session) but currently logs warning if revoke fails — khuyến nghị *fail* refresh on revoke failure to tránh token reuse.
-  - Customer Service `AuthUsecase` hiện sử dụng `common/security` PasswordManager (✅) — verify and remove any legacy direct bcrypt copies.
-  - Gateway token revocation: Gateway tích hợp blacklist (`jwt_blacklist.go`) và `jwt_validator_wrapper.go` — verify Redis integration & metrics (cache hit rate, blacklist checks).
+- **Auth Service**: `/auth`
+  - Key server file: `auth/internal/server/http.go`
+- **User Service**: `/user`
+  - Key server file: `user/internal/server/http.go`
+- **Customer Service**: `/customer`
+  - Key server file: `customer/internal/server/http.go`
 
 ---
 
-## 🎯 Optimized Solution
+## 2) Current Flow (Observed in Code)
 
-### 1. Hybrid Authentication Architecture
+### 2.1 Client → Gateway → Services
 
-**Core Principle**: Maintain centralized Auth Service với local fallback capabilities
+- Client calls APIs through **Gateway**.
+- Gateway is expected to:
+  - Validate JWT / session (depending on route)
+  - Inject trusted identity headers (e.g. `x-user-id`, `x-user-role`, etc.)
+  - Strip any client-supplied identity headers
+- Services read identity context mainly via Kratos **metadata middleware**.
 
-**Status Check (2026-01-13)**: 
-- ⚠️ **Hybrid/Fallback partially implemented**: Gateway provides local validation fallback but services still rely on Auth Service for token generation/refresh; recommend formalize emergency flow with short TTL tokens and sync/safety checks.
-- ✅ **Gateway Revocation Fix**: Gateway checks token blacklist via Redis (see `jwt_blacklist.go`) — verify configured and covered by tests/metrics.
+### 2.2 Auth responsibilities (`/auth`)
 
-```mermaid
-graph TD
-    A[Client] --> B[Gateway]
-    B --> C{Auth Service Available?}
-    C -->|Yes| D[Auth Service]
-    C -->|No| E[Local Fallback]
-    D --> F[Generate Token]
-    E --> G[Generate Temp Token]
-    F --> H[Return Token]
-    G --> I[Sync Later]
-    I --> H
-```
+- Auth service is responsible for **token/session**.
+- HTTP server middleware stack (from `auth/internal/server/http.go`):
+  - `recovery.Recovery()`
+  - `logging.Server(logger)`
+  - `metadata.Server()`
+  - `metrics.Server()`
+  - `tracing.Server()`
+  - plus custom `middleware.ErrorEncoder()` (HTTP error mapping)
+- Operational endpoints:
+  - `/health`, `/health/ready`, `/health/live`, `/health/detailed` via `common/observability/health`
+  - `/metrics` via `promhttp.Handler()`
+  - Swagger UI `/docs/` and OpenAPI `/docs/openapi.yaml`
 
-#### 1.1. Enhanced Auth Service
-```yaml
-Features:
-  - Primary token generation & validation
-  - Session management (Currently DB-based, planned migration to Redis)
-  - Token blacklist (Planned)
-  - Health check endpoints
-  - Metrics & monitoring
-```
+### 2.3 User responsibilities (`/user`)
 
-#### 1.2. Service-Level Fallback
-```yaml
-Customer/User Services:
-  - Local token generation capability (emergency only)
-  - Cached user credentials (encrypted)
-  - Temporary token với short TTL (5-15 minutes)
-  - Auto-sync với Auth Service khi available
-```
+- User service exposes user/identity management.
+- HTTP server middleware stack (from `user/internal/server/http.go`):
+  - `recovery.Recovery()`
+  - `metadata.Server()`
+  - `metrics.Server()`
+  - `tracing.Server()`
+  - plus custom `middleware.ErrorEncoder()`
+- Health endpoints are available via `common/observability/health`.
 
-### 2. Unified Password Management Strategy
+### 2.4 Customer responsibilities (`/customer`)
 
-**Status**: ✅ **Implemented** (User Service), ⚠️ **Partial** (Customer Service)
-**Solution**: `common/security` Package + Centralized Storage
-
-#### 2.1. Password Generation & Validation (Common Package)
-Using `common/security` package with `PasswordManager`.
-
-#### 2.2. Centralized Storage (Auth Service)
-Implementation pending full migration of data. Currently code is unified, but legacy data migration is a separate operational step.
-
-### 3. Resilient Token Management
-
-#### 3.1. Multi-Layer Token Validation
-**Status**: 🚧 **Pending** (Currently Layer 3 only)
-```go
-type TokenValidator struct {
-    primary   *AuthServiceClient    // Auth Service gRPC
-    fallback  *LocalTokenValidator  // Local JWT validation
-    cache     *RedisCache          // Token cache
-    blacklist *TokenBlacklist      // Revoked tokens
-}
-```
-
-### 4. Enhanced Session Management
-
-#### 4.1. Distributed Session Store
-**Status**: 🚧 **Pending** (Currently PostgreSQL primary)
-```yaml
-Target:
-  Primary: Redis Cluster
-  Fallback: Database
-```
-
-### 5. Permission System Optimization
-
-#### 5.1. Permission Caching Strategy
-**Status**: 🚧 **Pending** (Currently Direct DB Query)
-
-### 6. Service-to-Service Authentication
-**Status**: 🚧 **Pending**
+- Customer service is customer-facing and includes **ownership authorization** at HTTP layer.
+- HTTP server middleware stack (from `customer/internal/server/http.go`):
+  - `recovery.Recovery()`
+  - `metadata.Server(metadata.WithPropagatedPrefix("x-md-", "x-client-", "x-user-"))`
+  - `metrics.Server()`
+  - `tracing.Server()`
+  - `middleware.CustomerAuthorization()`
+- Health endpoints are available via `common/observability/health`.
 
 ---
 
-## 🚀 Implementation Roadmap
+## 3) AuthN/AuthZ Checklist (Must Hold)
 
-### Phase 1: Foundation (Week 1-2)
-- [x] **Create Common Security Package**
-  - [x] Implement `common/security/provider.go`
-  - [x] Implement PasswordManager logic
-  - [x] Add wire providers
+### 3.1 Trust boundary: identity headers are trusted only if injected by Gateway
 
-- [x] **Refactor Service Password Logic**
-  - [x] Update `auth` service to use `common/security`
-  - [x] Update `user` service to use `common/security`
-  - [x] Update `customer` service to use `common/security` (Found direct bcrypt usage in `AuthUsecase`)
-  - [x] Remove duplicate bcrypt usage
+- [ ] Gateway strips client-supplied identity headers:
+  - [ ] `x-user-id`
+  - [ ] `x-user-role`
+  - [ ] any `x-user-*` keys
+- [ ] Gateway injects authoritative identity context after successful authentication.
+- [ ] Services do not treat arbitrary client headers as identity.
 
-- [ ] **Consolidate Password Storage (Data Migration)**
-  - [ ] Migrate passwords từ Customer Service → Auth Service (Data)
-  - [ ] Sync existing credentials
+### 3.2 Authentication (AuthN)
 
-- [ ] **Implement Fallback Mechanism**
-  - [ ] Local token generation capability
-  - [ ] Sync mechanism
+- [ ] Protected endpoints require valid identity.
+- [ ] Error mapping is consistent (gRPC/HTTP):
+  - [ ] Invalid/expired token → `Unauthenticated`
+  - [ ] Missing identity context on protected route → `Unauthenticated`
 
-### Phase 2: Resilience (Week 3-4)
-- [ ] **Fix Gateway Security** (Critical)
-  - [ ] Inject Redis into Gateway Middleware
-  - [ ] Configure `JWTBlacklist` in `JWTValidatorWrapper`
-  - [ ] Ensure `SetBlacklist` is called on startup
+### 3.3 Authorization (AuthZ)
 
-- [ ] **Multi-Layer Token Validation**
-  - [ ] Implement Token Cache Layer (Redis)
-  - [ ] Implement Blacklist Layer
-  - [ ] Implement Local Validation
-
-- [ ] **Enhanced Session Management**
-  - [ ] Migrate Session Primary Store to Redis
-  - [ ] Implement Database Fallback Sync
-
-### Phase 2.5: Security Hardening (New)
-- [x] **Login Protection**
-  - [x] Implement Rate Limiting middleware (Login endpoints)
-  - [x] Implement Account Locking (Max failed attempts)
-  - [ ] Add Brute Force detection events
-
-- [x] **Token Security**
-  - [x] Implement Refresh Token Rotation (Revoke old tokens)
-  - [ ] Detect Token Reuse (Family revocation)
-
-### Phase 3: Optimization (Week 5-6)
-- [ ] **Permission Caching**
-  - [ ] Implement L1/L2 Cache for Permissions
-  - [ ] Cache Invalidation Logic
-  - [ ] Permission Versioning (`permissions_version` column)
-
-- [ ] **Query Optimization**
-  - [ ] Single query permission aggregation (Refine current Join logic)
-
-### Phase 4: Service-to-Service (Week 7-8)
-- [ ] **Service Token System**
-  - [ ] Token generation/validation
-  - [ ] Permission middleware
+- [ ] Customer service enforces ownership consistently via `CustomerAuthorization()`.
+- [ ] User service enforces RBAC (roles/permissions) consistently for admin operations.
+- [ ] Forbidden access is returned as `PermissionDenied` (not `Unauthenticated`).
 
 ---
 
-## 🔧 Common Package Extraction Checklist
+## 4) Session / Token Semantics Checklist (AuthN focus)
 
-### **Phase 1: Foundation**
-- [x] **Create Generic Cache Interface**
-  - [x] Implement `common/utils/cache`
-  - [x] Add Redis implementation
+### 4.1 Token issuance
 
-- [x] **Create Generic Event Helper**
-  - [x] Implement `common/events/entity_event_helper.go`
+- [ ] Token minting creates a session first (single source of session id):
+  - Reference: `auth/internal/biz/token/token.go` → `TokenUsecase.GenerateToken()` calls `sessionUC.CreateSession()`.
+- [ ] Access token claims include:
+  - [ ] `user_id`
+  - [ ] `session_id`
+  - [ ] `type=access`
+  - [ ] `client_type` (primary)
+  - [ ] `user_type` only for backward compatibility
+  - Reference: `auth/internal/biz/token/token.go` → `generateAccessToken()`.
+- [ ] Refresh token claims include:
+  - [ ] `session_id`
+  - [ ] `user_id`
+  - [ ] `type=refresh`
+  - Reference: `auth/internal/biz/token/token.go` → `generateRefreshToken()`.
 
-### **Phase 2: Integration**
-- [x] **Update Customer Service**
-  - [x] Replace local cache with common
-  - [x] Replace local events with common
-  - [x] Update dependency injection
+### 4.2 Token validation
 
-- [x] **Update User Service**
-  - [x] Replace local cache with common
-  - [x] Replace local events with common
-  - [x] Update dependency injection
+- [ ] JWT validation enforces HMAC signing method and secret:
+  - Reference: `auth/internal/biz/token/token.go` → `TokenUsecase.ValidateToken()`.
+- [ ] Revocation/blacklist check order is consistent:
+  - [ ] Cache check first (if configured)
+  - [ ] Repo check fallback
+  - Reference: `auth/internal/biz/token/token.go` → `ValidateToken()` calls `cache.IsTokenRevoked()` then `repo.IsTokenRevoked()`.
+- [ ] Session active check is enforced during token validation:
+  - Reference: `auth/internal/biz/token/token.go` → `ValidateToken()` calls `sessionUC.IsSessionActive()`.
+  - [ ] Decide and document policy if `IsSessionActive` fails (currently **fail-open** with warn log).
 
-### **Phase 3: Server & Config**
-- [ ] **Standardize HTTP Server**
-- [ ] **Standardize Configuration**
+### 4.3 Refresh rotation (must be fail-safe)
 
-### **Phase 4: Validation & Polish**
-- [x] **Enhance Common Validation**
-  - [x] Implement `common/validation/validator.go` (Rich set of validators)
-  - [x] Update `user` service usage
-  - [x] Update `customer` service usage to full extent
-- [ ] **Monitoring**: Add metrics cho common package usage
+- [ ] Refresh verifies token type == `refresh`:
+  - Reference: `auth/internal/biz/token/token.go` → `TokenUsecase.RefreshToken()`.
+- [ ] Refresh verifies session exists and is active:
+  - Reference: `TokenUsecase.RefreshToken()` calls `sessionUC.GetSession()` and checks `IsActive`.
+- [ ] Rotation does **not** allow reuse if revoke fails (**fail-closed**):
+  - Reference: `TokenUsecase.RefreshToken()` calls `repo.RevokeTokenWithMetadata(...)` and returns error on failure.
 
-### **Success Metrics**
+### 4.4 Token storage & revocation persistence
 
-#### **Code Quality:**
-- [ ] **Duplicate Code Reduction**: Target 75%+ reduction
-- [ ] **Test Coverage**: Maintain 80%+ coverage
-- [ ] **Cyclomatic Complexity**: Reduce by 30%+
-- [ ] **Maintainability Index**: Improve by 25%+
+- [ ] Token metadata is dual-written:
+  - Reference: `auth/internal/data/postgres/token.go` → `StoreToken()` writes Redis + inserts into Postgres `tokens` table.
+- [ ] Revocation is persisted:
+  - Reference: `auth/internal/data/postgres/token.go` → `RevokeTokenWithMetadata()` writes Redis + inserts/updates Postgres `token_blacklist`.
+- [ ] `IsTokenRevoked()` supports DB fallback:
+  - Reference: `auth/internal/data/postgres/token.go` → `IsTokenRevoked()` checks Redis then Postgres `token_blacklist`.
 
-#### **Performance:**
-- [ ] **Cache Hit Rate**: Maintain current performance
-- [ ] **Event Publishing Latency**: No degradation
-- [ ] **Memory Usage**: Monitor generic type overhead
-- [ ] **Build Time**: Ensure no significant increase
+### 4.5 Session limits + revoke semantics
+
+- [ ] Session limits are enforced atomically in repo transaction:
+  - Reference: `auth/internal/data/postgres/session.go` → `CreateSessionWithLimit()`.
+- [ ] Revoke semantics are defined and consistent:
+  - Current behavior: `SessionUsecase.RevokeSession()` calls `repo.DeleteSession()` (hard delete).
+  - Reference: `auth/internal/biz/session/session.go` + `auth/internal/data/postgres/session.go`.
+  - [ ] If you require soft revoke/audit trail, migrate to `is_active=false` + `revoked_at/reason` columns.
+
+---
+
+## 5) Observability & Ops Checklist (aligned with BACKEND_SERVICES_REVIEW_CHECKLIST)
+
+- [ ] Standard middleware stack exists:
+  - [ ] recovery
+  - [ ] metadata propagation
+  - [ ] metrics
+  - [ ] tracing
+  - [ ] logging (at least at gateway / edge; auth already has it)
+- [ ] Health endpoints exist and are wired to DB/Redis checks.
+- [ ] `/metrics` endpoint exposure is standardized across services (auth has it; verify need for user/customer).
+- [ ] Logs include correlation fields (`trace_id`, `request_id`, `user_id` when available).
+
+---
+
+## 6) Security Hardening Checklist
+
+- [ ] Login endpoints have rate limiting + brute-force protection.
+- [ ] No secrets/tokens are hardcoded.
+- [ ] Input validation happens before business logic.
+
+---
+
+## 7) Verification Steps
+
+- [ ] Call `GET /health` for auth/user/customer and verify ready/live.
+- [ ] Call `GET /metrics` where exposed and verify RED metrics.
+- [ ] In staging, attempt sending spoofed `x-user-id` directly to services and verify:
+  - [ ] it is blocked by network policy OR
+  - [ ] gateway strips/overwrites so spoofing is ineffective.
+- [ ] Verify `CustomerAuthorization()` rejects cross-user access.
