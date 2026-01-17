@@ -50,7 +50,7 @@
   - Some cross-cutting concerns are duplicated across service/biz (e.g., admin detection checks headers + middleware). Consider centralizing.
 
 ### Score
-- **8.5/10**
+- **8.5/10****
 
 ---
 
@@ -84,7 +84,7 @@
 - **P2**: If keeping metadata query, make it deterministic and lighter (e.g. `ORDER BY created_at DESC LIMIT 1`, minimal preload) to avoid heavy loads.
 
 ### Score
-- **7/10
+- **7/10**
 
 ---
 
@@ -106,7 +106,7 @@
 - **P2**: Reduce the cost of idempotency lookup: deterministic `ORDER BY created_at DESC LIMIT 1` and avoid preloading unless the caller needs it.
 
 ### Score
-- **7/10**
+- **7/10****
 
 ---
 
@@ -127,7 +127,7 @@
 - **P1**: Add defense-in-depth authorization for admin-only endpoints (DLQ) at service layer (middleware/handler guard), in addition to Gateway enforcement.
 
 ### Score
-- **7/10**
+- **7/10****
 
 ---
 
@@ -142,7 +142,7 @@
   - Need explicit index review for key queries (`session_id`, `expires_at`, JSONB metadata).
 
 ### Score
-- **7/10**
+- **7/10****
 
 ---
 
@@ -163,10 +163,19 @@
 ## 8) 🧪 Testing & Quality
 
 ### Findings
-- Skipped in this review pass (per request: tạm thời bỏ qua testcase).
+- **Gap (P1)**: Không có thư mục `*_test.go` trong toàn bộ service (`grep -R "_test.go" order/internal` ⇒ none). Điều này trái với tiêu chí **"Linter Compliance & Unit test coverage ≥ 70 %"** trong hướng dẫn Team Lead.
+- **Gap (P1)**: Chưa có test e2e cho các luồng Checkout → Payment → Order → Outbox.
+- **Gap (P2)**: Thiếu mocks cho adapter bên ngoài (Payment, Catalog) ⇒ khó viết unit test.
+- **Good**:
+  - Mã nguồn đã tách interface rõ ràng (Repo, Usecase, Adapter) ⇒ thuận lợi cho mocking nếu bổ sung test sau.
+
+### Concrete Actions
+- **P1**: Bổ sung tối thiểu 30 % unit-test coverage cho `order/internal/biz/...` (CreateOrder, Checkout flow). Sử dụng `go test -coverprofile` + CI gate.
+- **P1**: Thêm workflow GitLab CI chạy `golangci-lint` & `go test ./...`.
+- **P2**: Viết test e2e dùng `testcontainers-go` spin-up Postgres + Redis để verify idempotency & outbox.
 
 ### Score
-- **N/A**
+- **4/10**
 
 ---
 
@@ -187,6 +196,22 @@
 ## 10) 📚 Documentation & Maintenance
 
 ### Findings
+- **Gap (P2)**: README chưa cập nhật flow mới (idempotency by DB constraint, outbox worker, status history).
+- **Gap (P2)**: `openapi.yaml` còn một số field `title:""`, version `0.0.1`, mô tả API sơ sài.
+- **Good**: Có tài liệu `docs/cart_implementation.md`, `docs/shipping_integration.md` chi tiết.
+
+### Concrete Actions
+- **P2**: Cập nhật README với 3 sơ đồ: Sequence Checkout, Outbox, Worker.
+- **P2**: Regenerate OpenAPI với `protoc-gen-openapi --tags=order` + viết mô tả summary, tags.
+
+### Score
+- **6/10**
+
+---
+
+## Cross-cutting Top Issues (P0/P1/P2)
+
+### Findings
 - **Pending audit**:
   - Need to review `order/README.md`, `order/openapi.yaml` completeness, and internal docs.
 
@@ -197,7 +222,7 @@
 
 ## Cross-cutting Top Issues (P0/P1/P2)
 
-### P0
+## 🔴 P0 Critical
 - **Payment capture before order creation** (already observed in checkout flow). Requires end-to-end hardening.
 
 ### P1

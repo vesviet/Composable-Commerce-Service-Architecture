@@ -1,7 +1,7 @@
 # 💳 PAYMENT SERVICE - DETAILED CODE REVIEW
 
 **Service**: Payment Service  
-**Review Date**: 2025-01-16  
+**Review Date**: 2026-01-17  
 **Reviewer**: Team Lead  
 **Review Standard**: [Team Lead Code Review Guide](./TEAM_LEAD_CODE_REVIEW_GUIDE.md)
 
@@ -69,6 +69,20 @@
 ### Không có P0 issues
 
 Service đã có Transactional Outbox và idempotency implemented. Các issues còn lại là P1 improvements.
+
+---
+
+## 🔍 HIDDEN RISKS & POTENTIAL ISSUES (New Findings)
+
+| ID | Priority | Area | Description | Evidence |
+|----|----------|------|-------------|----------|
+| HR1 | P1 | Idempotency | **Duplicate implementations**: cả `common/idempotency.go` (legacy, Redis-only) và `common/idempotency_enhanced.go` (DB-based) cùng tồn tại. Nếu wiring DI vẫn trỏ vào bản cũ ⇒ hành vi không nhất quán. | Files:<br>`internal/biz/common/idempotency.go` (legacy)<br>`internal/biz/common/idempotency_enhanced.go` (new) |
+| HR2 | P1 | Security / Webhook | **Webhook signature validation TODO** trong gateway MoMo/VNPay ⇒ có thể giả mạo notify → cập nhật trạng thái thanh toán sai. | `internal/biz/gateway/momo/webhook.go` line chứa `// TODO validate signature` |
+| HR3 | P1 | Compliance / Logging | **Sensitive card/token data có thể bị log**. Grep `Log().Infof(".*card.*")` thấy ở `gateway/stripe.go` dòng 120. Cần mask PAN/token trước log để tuân thủ PCI. | `internal/biz/gateway/stripe.go` |
+| HR4 | P2 | Resilience | **Chưa có circuit-breaker** quanh gateway calls (chỉ retry). Downstream gateway outage có thể gây cascade blocking. | Wrapper `gateway/wrapper.go` chỉ có `Retry(ctx)` |
+| HR5 | P2 | Concurrency | `PaymentReconciliationJob` sử dụng `time.Ticker` + goroutine nhưng `Stop()` chỉ `close(stopSignal)`; chưa đợi goroutine exit ⇒ leak possible. | `internal/worker/cron/payment_reconciliation.go` |
+| HR6 | P2 | Secrets Management | `configs/config.yaml` chứa placeholder `stripe_api_key: "sk_test_..."` đã commit. Yêu cầu move sang Vault / Kubernetes Secret. | `payment/configs/config.yaml` |
+
 
 ---
 
