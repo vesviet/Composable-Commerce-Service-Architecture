@@ -63,6 +63,7 @@ This section lists checklists that are **known to be not fully implemented yet**
 - [customer-account-management-checklist.md](./customer-account-management-checklist.md) - Customer operations, segmentation, privacy
 - [customer-service-business-review-and-developer-checklist.md](./customer-service-business-review-and-developer-checklist.md) - Tech lead review + developer checklist for Customer service
 - [auth-permission-flow-checklist.md](./auth-permission-flow-checklist.md) - Authentication and permissions
+- [🔐 Auth Service Code Review Report](../workflow/checklists/AUTH_SERVICE_CODE_REVIEW_REPORT.md) - **NEW** Production readiness review (Maturity: 7.5/10, 7 P0 issues, 4 P1 issues)
 - [security-fraud-prevention-checklist.md](./security-fraud-prevention-checklist.md) - Security and fraud prevention
 
 ### Product & Catalog

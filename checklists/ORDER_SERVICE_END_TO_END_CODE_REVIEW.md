@@ -45,12 +45,13 @@
 ### Findings
 - **Good**:
   - Standard layout present (`cmd/`, `api/`, `internal/biz`, `internal/data`, `internal/service`, `internal/server`).
-  - Biz layer does not import GORM (checked `gorm` usage under `order/internal/biz` → none).
+  - Biz layer does not import GORM directly (clean separation).
+  - DI via `wire` (`cmd/order/wire.go`, `cmd/worker/wire.go`) aligns with constructor injection guidance.
 - **Risk / Gap (P2)**:
-  - Some cross-cutting concerns are duplicated across service/biz (e.g., admin detection checks headers + middleware). Consider centralizing.
+  - Một số cross-cutting (admin detection/guard) có dấu hiệu trùng lặp giữa common middleware và local wrapper (`internal/server/admin_middleware.go`). Nên có **single source of truth**.
 
 ### Score
-- **8.5/10****
+- **8.5/10**
 
 ---
 
@@ -58,10 +59,12 @@
 
 ### Findings
 - **Good**:
-  - HTTP server registers Swagger/OpenAPI and `/docs/openapi.yaml`.
-  - Service handlers perform validation early (e.g. `CreateOrder`, `GetOrder`).
+  - HTTP server registers Swagger UI and exposes spec at `/docs/openapi.yaml` (`order/internal/server/http.go`).
+  - `ErrorEncoder` is configured in the HTTP server for consistent status mapping.
+  - AuthZ hooks exist via middleware utilities (`order/internal/middleware/auth.go`) and an explicit `AdminGuard` wrapper for DLQ.
 - **Gap (P1)**:
-  - Error mapping/encoder is not explicitly configured in `order/internal/server/http.go` (unlike some other services). Verify HTTP status mapping consistency.
+  - `ErrorEncoder` currently does `w.WriteHeader(int(se.Code))` assuming Kratos `Error.Code` == HTTP status. Nếu service tạo error codes theo business code (không phải HTTP status), mapping này sẽ sai. Nên map gRPC/kratos codes → HTTP status (hoặc enforce convention rõ ràng).
+  - `openapi.yaml` needs a quick contract quality pass (metadata/title/version/summary) để hỗ trợ gateway aggregation tốt hơn.
 
 ### Score
 - **8/10**
@@ -72,19 +75,21 @@
 
 ### Findings
 - **Good**:
-  - Checkout updates implement optimistic-lock retry loops.
-  - Background work primarily uses worker pattern (cron/outbox), not unmanaged goroutines.
+  - Checkout uses `errgroup` for parallel work (good pattern) instead of unmanaged goroutines for top-level fan-out.
+  - `CreateOrder` idempotency đã được harden bằng **DB unique constraint** (`orders.cart_session_id`) + recovery path on unique violation (`order/internal/biz/order/create.go`).
+  - Repo lookup for idempotency is deterministic and lightweight (`FindByCartSessionID` orders by `created_at DESC` and no preload).
 - **Gap (P1)**:
-  - Idempotency for `CreateOrder` is implemented as "query then return existing" based on `cart_session_id` stored in `orders.metadata`.
-  - This is **not race-safe** without a DB uniqueness guarantee: two concurrent requests can both not find an existing order and both create a new order.
-  - Current logic returns the *first* matched order if multiple exist (non-deterministic ordering).
+  - Trong `CheckoutPreview`, vẫn còn `go func(...)` per-item bên trong một `errgroup` task, nhưng không gắn với context cancel của `errgroup` (ngoài việc dùng `gCtx` khi call service). Nếu item goroutine bị leak khi upstream returns early, khó quản lý.
+  - Có hardcoded context (`"USD"`, `"VN"`) khi gọi pricing trong preview; dễ tạo sai lệch giá/thuế theo region.
+  - Logging: đang dùng `fmt.Printf` thay vì structured logger; thiếu `trace_id`.
 
 ### Concrete Actions
-- **P1**: Add DB-level uniqueness guarantee for `cart_session_id` (prefer a dedicated column; alternative: generated column from `metadata->>'cart_session_id'` + unique index) and handle unique-violation by re-reading and returning the existing order.
-- **P2**: If keeping metadata query, make it deterministic and lighter (e.g. `ORDER BY created_at DESC LIMIT 1`, minimal preload) to avoid heavy loads.
+- **P1**: Thay `go func` per-item bằng `errgroup.Group` (nested) hoặc worker-pool pattern có giới hạn concurrency + respect `gCtx`.
+- **P1**: Loại bỏ hardcode currency/country; lấy từ request/cart/session metadata.
+- **P2**: Chuẩn hoá logging (no `fmt.Printf`), dùng `uc.log.WithContext(ctx)`.
 
 ### Score
-- **7/10**
+- **7.5/10**
 
 ---
 
@@ -92,21 +97,19 @@
 
 ### Findings
 - **Good**:
-  - DB/Redis pools configured via `common/utils/database` in `order/internal/data/data.go`.
-  - TransactionManager abstraction exists (`order/internal/biz/transaction.go`) and is used in order creation.
-  - Transactional Outbox is used in `order/internal/biz/order/create.go` (order insert + outbox event in the same transaction).
+  - Transaction boundary exists via TransactionManager and is used for order creation + outbox save (Transactional Outbox pattern).
+  - Idempotency has moved to a dedicated column `orders.cart_session_id` + a partial unique index (`migrations/032_add_cart_session_id_to_orders.sql`).
+  - Repo has a dedicated `FindByCartSessionID` with deterministic ordering and minimal load (`internal/data/postgres/order.go`).
 - **Gap (P1)**:
-  - Idempotency relies on querying `orders.metadata` by JSONB (`metadata->>? = ?`) via `FindByMetadata`.
-    - Without an index/unique constraint, this can become slow and is not race-safe.
-    - Current repo method also preloads related entities (items/addresses), which is heavier than needed for idempotency checks.
-  - Migration numbering conflict risk: multiple `028_*.sql` files in `order/migrations/`.
+  - `orderRepo.Create` wraps a `Transaction(...)` internally, while the caller (`UseCase.CreateOrder`) also wraps a transaction via `tm.WithTransaction`. Nested transaction semantics in GORM can be subtle; ensure `getDB(ctx)` returns the transaction db and the inner `Transaction` doesn't inadvertently create a savepoint/commit boundary you didn't expect.
+  - `getDB(ctx)` relies on a magic string context key `"gorm:transaction_db"` → brittle and easy to drift across services.
 
 ### Concrete Actions
-- **P1**: Add a DB-level unique constraint for `cart_session_id` (prefer a dedicated column). This also enables returning the existing order on unique-violation.
-- **P2**: Reduce the cost of idempotency lookup: deterministic `ORDER BY created_at DESC LIMIT 1` and avoid preloading unless the caller needs it.
+- **P1**: Audit `tm.WithTransaction` + `orderRepo.Create` interaction; consider removing the inner `Transaction(...)` when already in a tx, or guarantee savepoints are acceptable.
+- **P2**: Replace magic context key with a typed key shared via common package.
 
 ### Score
-- **7/10****
+- **7.5/10**
 
 ---
 

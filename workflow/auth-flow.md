@@ -1,19 +1,19 @@
-# Luồng Xác Thực (Auth Flow)
+# Authentication Flow (Auth Flow)
 
-## 📌 Tổng quan
-Tài liệu này mô tả **luồng xác thực** chính của hệ thống (login, token refresh, token revocation, token validation), các thành phần liên quan, điểm lỗi thường gặp và cách xử lý. Nội dung bằng tiếng Việt, ngắn gọn và có tham chiếu mã nguồn để đội dev nhanh xác định vị trí thực thi.
+## Overview
+This document describes the main **authentication flow** of the system (login, token refresh, token revocation, token validation), related components, common failure points and their handling. The content is concise with source code references to help the dev team quickly identify execution locations.
 
 ---
 
-## 🧭 Thành phần chính
+## 🧭 Main Components
 - **Client**: Browser / Mobile / Service
-- **Gateway**: HTTP entrypoint, validate JWT, cache kết quả, kiểm tra blacklist
-- **Auth Service**: Quản lý session, phát/revoke access & refresh token, token rotation, blacklist
-- **User/Customer Service**: Endpoint đăng ký/đăng nhập (delegates token ops to Auth Service)
+- **Gateway**: HTTP entrypoint, validates JWT, caches results, checks blacklist
+- **Auth Service**: Manages sessions, issues/revokes access & refresh tokens, token rotation, blacklist
+- **User/Customer Service**: Registration/login endpoints (delegates token ops to Auth Service)
 - **Redis**: Cache (session cache, token blacklist, rate limiter)
-- **Postgres**: Persistent (user, sessions metadata)
+- **Postgres**: Persistent storage (user, sessions metadata)
 
-> Tham khảo mã: 
+> Code references: 
 - `auth/internal/biz/token/token.go` (refresh/rotate/revoke)
 - `gateway/internal/router/utils/jwt_validator_wrapper.go` (JWT + blacklist + cache)
 - `customer/internal/biz/customer/auth.go` (customer login flow)
@@ -21,7 +21,7 @@ Tài liệu này mô tả **luồng xác thực** chính của hệ thống (log
 
 ---
 
-## 🔁 Sequence (Luồng chính)
+## 🔁 Sequence Diagram (Main Flow)
 
 ```mermaid
 sequenceDiagram
@@ -55,20 +55,21 @@ sequenceDiagram
 ---
 
 ## ✅ Best practices & checks (Implementer checklist)
-- [ ] Gateway: **JWT secret** configured via env `JWT_SECRET` and same secret used by Auth Service
+- [ ] Gateway: **JWT secret** configured via env `JWT_SECRET`.
+- [ ] Auth Service: JWT secret prioritizes env `AUTH_JWT_SECRET` (fallback config `cfg.Auth.JWT.Secret`). **Must not use default secret** in production.
 - [ ] Gateway: Token cache + blacklist check before accepting token (implemented in `jwt_validator_wrapper.go`)
 - [ ] Auth Service: **Refresh token rotation** must revoke old token/session *and* fail the refresh if revoke fails (consider making revoke strict)
 - [ ] Auth Service: Publish `token.revoked` events after revoke for eventual consistency
 - [ ] Session store: Use Redis for fast checks (cache) with Postgres as source of truth; plan migration if needed
-- [ ] Login endpoints: Rate limiting + account lock on repeated failures (implementer to validate configs in `auth` and `customer` services)
+- [ ] Login endpoints: Rate limiting + account lock on repeated failures (implementer should validate configs in `auth` and `customer` services)
 - [ ] Add monitoring: JWT validation latency, token rotation failures, blacklist size, cache hit rate
 
 ---
 
-## ⚠️ Failure modes & Mitigations
-- Auth Service unavailable → Gateway fallback: local JWT validation only (short TTL) is allowed for emergency but must not bypass blacklist checks. Prefer failing fast for critical flows requiring revocation.
-- Redis unavailable → reduce to DB-backed session checks (graceful fallback) and alert on increased latency
-- Refresh rotation revoke fails → **risk of token reuse**, recommended to fail refresh and investigate revoke path
+## ⚠️ Failure Modes & Mitigations
+- Auth Service unavailable → Gateway can still validate JWT locally (using cache). For flows requiring stronger verification, Gateway can fallback to Auth Service validation via HTTP (see `ValidateTokenWithAuthService`).
+- Redis/blacklist unavailable → currently Gateway uses **fail-open** for blacklist check: if blacklist check fails, it still continues to validate JWT and allows the request through. Need to monitor metric `JWTBlacklistChecks{error}` and alert when increasing.
+- Refresh rotation revoke fails → **fail-closed** (test exists `FailClosedWhenRotationRevokeFails`); refresh request will fail if unable to revoke old token.
 
 ---
 
@@ -83,8 +84,8 @@ sequenceDiagram
 
 ## 💡 Notes & References
 - Keep the workflow doc short and link to detailed files (code + runbooks)
-- If bạn muốn, tôi có thể mở PR cập nhật `docs/checklists/auth-permission-flow-checklist.md` để align statuses/measures với trạng thái hiện tại của mã.
+- Consider updating `docs/checklists/auth-permission-flow-checklist.md` to align statuses/measures with current code state.
 
 ---
 
-_Last updated: 2026-01-14_
+_Last updated: 2026-01-18_
