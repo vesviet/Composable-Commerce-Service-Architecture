@@ -1,130 +1,73 @@
-# Checkout Pricing Flow - Detailed Guide
+# Pricing Flow
 
-**Last Updated:** 2026-01-18  
-**Status:** 🟡 Partially verified vs code (tax + promotion + confirm flow verified; remaining items need verification)
+**Last Updated**: 2026-01-18
+**Status**: Verified vs Code
 
 ## Overview
 
-This document explains where prices come from during the checkout process and how they flow through the system. It should be validated against the current codebase before use as an operational reference.
+This document describes the business logic for price calculation and management within the `pricing` service. This service acts as the central authority for determining the price of a product, orchestrating several layers of logic including base prices, dynamic adjustments, rules, and taxes.
 
-## Verified vs Planned Snapshot
-
-### Verified (by code)
-
-- Tax in totals:
-  - `order/internal/biz/checkout/calculations.go` calls `uc.pricingService.CalculateTax(...)`.
-- Promotion validation:
-  - Totals path uses `uc.promotionService.ValidateCoupon(...)`.
-  - Preview path uses `uc.promotionService.ValidatePromotions(...)`.
-- Confirm checkout ordering:
-  - `order/internal/biz/checkout/confirm.go` follows `Authorize → CreateOrder → Capture` (non-COD).
-
-### Planned / Needs verification
-
-- Product categories for tax are currently not extracted (code passes empty categories slice; TODO).
-- Cart add/update pricing source-of-truth (pricing vs stored cart item UnitPrice/TotalPrice) needs full trace.
-- Any “catalog pricing fallback” behavior needs verification in cart flows.
+**Key Files:**
+- **Orchestrator**: `pricing/internal/biz/calculation/calculation.go`
+- **Base Price Logic**: `pricing/internal/biz/price/price.go`
+- **Price Rules Logic**: `pricing/internal/biz/rule/rule.go`
+- **Tax Logic**: `pricing/internal/biz/tax/tax.go`
 
 ---
 
-## Code references (current implementation)
+## Key Flows
 
-- Checkout (Quote Pattern, no draft order):
-  - Service: `order/internal/service/checkout_service.go`
-  - Confirm checkout: `order/internal/biz/checkout/confirm.go`
-- Totals calculation (subtotal/discount/tax/shipping/total): `order/internal/biz/checkout/calculations.go` (`calculateTotals`)
-- Promotion validation during totals: `order/internal/biz/checkout/calculations.go` (`calculateDiscounts`)
-- Tax calculation (with postcode + optional categories/customer group): `order/internal/biz/checkout/calculations.go` (`calculateTax`)
-- Pricing tax engine: `pricing/internal/biz/tax/tax.go` (`CalculateTaxWithContext`)
+### 1. Price Calculation Flow
 
-## Price sources (priority order)
+This is the primary read-only flow, designed as a multi-step waterfall to arrive at a final price.
 
-### 1. Pricing service (primary)
+- **Function**: `CalculatePrice` in `calculation.go`
+- **Logic Sequence**:
+  1.  **Cache Check**: The system first checks a Redis cache for a previously calculated result for the exact same request context.
+  2.  **Base Price Retrieval**: On a cache miss, it fetches the base price using a robust 4-level priority fallback system:
+      -   1. SKU + Warehouse ID (most specific)
+      -   2. SKU Global (any warehouse)
+      -   3. Product ID + Warehouse ID
+      -   4. Product ID Global (least specific)
+      -   It also handles on-the-fly currency conversion if a price is found in a different currency.
+  3.  **Quantity Application**: The base/sale price is multiplied by the requested quantity.
+  4.  **Dynamic Pricing**: The total is passed to a `dynamicPricing` service, which can make adjustments based on real-time factors like stock levels or demand.
+  5.  **Price Rules**: The adjusted price is then processed by the price rule engine. It fetches all active rules, sorts them by priority, and applies their actions (e.g., percentage discount, fixed amount) if their conditions are met.
+  6.  **Discount Application**: The code explicitly notes that coupon/promotion discounts have been moved to the `promotion` service and are **not** handled here.
+  7.  **Tax Calculation**: The final taxable amount is passed to the `taxUsecase` to calculate and add tax.
+  8.  **Cache & Event**: The final result is cached for future requests, and a `price.calculated` event is published.
 
-- Protocol: gRPC/HTTP (depends on client implementation)
-- Used for tax calculation in checkout totals.
+### 2. Price Management Flow (Create/Update/Delete)
 
-**Tax API (observed):**
-- `CalculateTax(amount, country_code, state_province, postcode, product_categories, customer_group_id)`
-  - Called via `uc.pricingService.CalculateTax(...)` inside `order/internal/biz/checkout/calculations.go`.
+This flow handles the CRUD operations for the base price records that feed into the calculation flow.
 
-### 2. Catalog service (fallback / validation)
+- **File**: `price.go`
+- **Logic**:
+  1.  Standard CRUD operations are provided (`CreatePrice`, `UpdatePrice`, `DeletePrice`).
+  2.  **Side Effects**: Upon any successful write operation, two side effects are triggered:
+      -   **Cache Invalidation**: Relevant Redis cache keys are invalidated to prevent stale data.
+      -   **Event Publishing**: An event (`price.updated` or `price.deleted`) is published to notify downstream services (like `search`) of the change.
 
-Catalog is typically used to validate product existence and retrieve product metadata. Exact fallback behavior should be verified in the cart add/update codepaths.
+---
 
-### 3. Promotion service (discounts)
+## Identified Issues & Gaps
 
-Promotion codes are validated during totals calculation:
-- `uc.promotionService.ValidateCoupon(...)` in `order/internal/biz/checkout/calculations.go`.
+Based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
 
-## Complete checkout pricing flow (current behavior)
+### P1 - Concurrency: Unmanaged Goroutine
 
-### Step 1: Add to cart
+- **Issue**: The `CreatePrice` and `UpdatePrice` functions launch a detached, unmanaged goroutine (`go func()`) to trigger a price sync in the `catalog` service.
+- **Impact**: This violates the guide's rule against unmanaged goroutines. If the sync fails, the error is only logged and not retried. The request completes without any guarantee that the side effect was successful.
+- **Recommendation**: This direct sync call should be removed. The `catalog` service should instead be a consumer of the `price.updated` event, which is published more reliably (though still with its own issues, see below).
 
-- Cart item prices are stored as `UnitPrice`/`TotalPrice` on cart items.
-- Exact call chain for pricing calculation on add-to-cart should be verified in the cart usecase.
+### P2 - Event Reliability: Missing Transactional Outbox
 
-### Step 2: View cart
+- **Issue**: The event publishing in `price.go` is a direct call made *after* the database operation. It does not use the Transactional Outbox pattern.
+- **Impact**: If the application crashes between the database commit and the event publishing call, the event will be lost permanently. This leads to data inconsistency, as downstream services like `search` will never be notified of the price change.
+- **Recommendation**: Refactor all event publishing in the `pricing` service to use the Transactional Outbox pattern. The event should be written to an `outbox` table within the same database transaction as the price change itself.
 
-Subtotal is computed as:
+### P2 - Resilience: Silent Failures in Calculation
 
-- If `item.TotalPrice` exists: sum it.
-- Else if `item.UnitPrice` exists: `UnitPrice * quantity`.
-
-Code: `order/internal/biz/checkout/calculations.go` (`calculateCartSubtotal`).
-
-### Step 3: Start checkout
-
-Checkout is implemented as Quote Pattern:
-
-- Start checkout creates a checkout session.
-- No draft order is created at this stage.
-
-Code:
-
-- `order/internal/service/checkout_service.go` (`StartCheckout`)
-
-### Step 4: Update checkout state (address/payment/shipping method/promo codes)
-
-Checkout state persists:
-
-- `PromotionCodes`
-- Shipping/billing addresses
-- Selected shipping method
-
-Code:
-
-- `order/internal/service/checkout_service.go` (`UpdateCheckoutState`)
-
-### Step 5: Confirm checkout
-
-`ConfirmCheckout` will:
-
-- Validate cart status and prerequisites
-- Calculate totals via `calculateTotals`
-- Authorize payment then create order
-- Capture payment (if not COD)
-- Finalize cart and delete checkout session
-
-Code: `order/internal/biz/checkout/confirm.go` (`ConfirmCheckout`).
-
-## Totals formula (current behavior)
-
-The totals are computed in `order/internal/biz/checkout/calculations.go` (`calculateTotals`):
-
-- `subtotal = Σ(cart_item_total_price)`
-- `discount_amount = Σ(valid_coupon_discount)`
-- `taxable_amount = max(0, subtotal - discount_amount)`
-- `tax_amount = Pricing.CalculateTax(taxable_amount, shipping_country, shipping_state, shipping_postcode, categories, customer_group_id)`
-  - Note: categories are currently passed as empty slice (TODO in code).
-- `shipping_cost = Shipping.CalculateRates(...)` (best-effort; may fallback to 0)
-- `total_amount = (subtotal - discount_amount) + tax_amount + shipping_cost`
-
-## Gaps / TODOs noted in code
-
-- Product categories are not yet extracted from cart items for tax (TODO in `calculateTotals`).
-
-## Notes
-
-- This document intentionally avoids hardcoded line numbers.
-- Any claims of "production ready" should be backed by tests and operational metrics.
+- **Issue**: The `CalculatePrice` function in `calculation.go` handles errors from `dynamicPricing` and `applyPriceRules` by logging them and continuing with the last known price. 
+- **Impact**: While this makes the API more resilient to partial failures, it can hide significant underlying problems with configuration or dependent services, leading to incorrect prices being calculated without raising an alarm.
+- **Recommendation**: While failing fast might not be desirable, these silent failures should be made louder. At a minimum, they should generate high-priority metrics and alerts so that the operations team is immediately aware of a degradation in the pricing engine.

@@ -1,75 +1,145 @@
-# Order Fulfillment & Tracking Flow
+# 🚚 Order → Fulfillment → Shipping Flow
 
-**Last Updated**: 2026-01-18
-**Status**: Verified vs Code
+**Last Updated**: January 18, 2026  
+**Scope**: Order, Fulfillment, Shipping, Warehouse (event-driven + outbox)  
 
-## Overview
+This document describes the end-to-end fulfillment flow as implemented today: when an Order reaches a “processable” state, Fulfillment creates warehouse work (pick/pack), emits status events, Shipping reacts to packages and emits shipment events, and Order updates customer-facing status.
 
-This document describes the event-driven workflow between the `order` and `fulfillment` services, which handles order processing from confirmation to completion. The flow ensures that order status is kept in sync with the physical fulfillment process.
-
-**Key Services & Files:**
-- **Order Service**:
-  - `order/internal/service/event_handler.go`: Consumes events from other services.
-  - `order/internal/biz/status/status.go`: Manages order status transitions and publishes events.
-- **Fulfillment Service**:
-  - `fulfillment/internal/biz/fulfillment/fulfillment.go`: Core fulfillment logic.
-  - `fulfillment/internal/biz/fulfillment/order_status_handler.go`: Consumes order events.
+If you want the open problems / gaps, keep them in the checklist: [docs/workflow/checklists/fulfillment-flow-issues.md](checklists/fulfillment-flow-issues.md)
 
 ---
 
-## Core Workflows
+## Event Topics (Observed)
 
-### 1. Flow Initiation: Order Confirmed → Fulfillment Created
-
-This flow starts when an order is ready to be processed by the warehouse.
-
-1.  **Order Confirmed**: An order's status is updated to `confirmed` in the `order` service (typically after successful payment).
-2.  **Event Published**: The `order` service's `StatusUsecase` publishes an `order.status_changed` event. This is done via the Transactional Outbox pattern, ensuring the event is sent reliably.
-3.  **Event Consumed**: The `fulfillment` service listens for this topic. Its `order_status_handler.go` processes the event.
-4.  **Fulfillment Created**: The handler calls `CreateFromOrderMulti`, which creates one or more `Fulfillment` records (one for each warehouse involved in the order).
-5.  **Planning Started**: Immediately after creation, `StartPlanning` is called for each new fulfillment, which assigns a warehouse if needed and moves the status to `planning`.
-6.  **Fulfillment Event Published**: The `fulfillment` service then publishes its own `fulfillment.status_changed` event to notify other services that the fulfillment process has begun.
-
-### 2. Internal Fulfillment Lifecycle
-
-Once created, a fulfillment record moves through a detailed status machine within the `fulfillment` service.
-
--   **Status Machine**: `pending` → `planning` → `picking` → `picked` → `packing` → `packed` → `ready` → `shipped` → `completed`.
--   **Atomicity**: Each status transition is wrapped in a database transaction (`tx.InTx(...)`) to ensure atomicity.
--   **Event-Driven**: Every successful status change publishes a `fulfillment.status_changed` event, allowing other services to react to the fulfillment progress in real-time.
-
-### 3. Synchronization: Fulfillment Status → Order Status
-
-This flow keeps the customer-facing order status updated based on the internal warehouse progress.
-
-1.  **Event Consumed**: The `order` service's `event_handler.go` subscribes to and processes `fulfillment.status_changed` events.
-2.  **Status Mapping**: The `HandleFulfillmentStatusChanged` function uses a mapping (`mapFulfillmentStatusToOrderStatus`) to translate the detailed fulfillment status into a more general order status:
-    -   `planning`, `picking`, `picked`, `packing`, `packed`, `ready` → **`processing`**
-    -   `shipped` → **`shipped`**
-    -   `completed` → **`delivered`**
-    -   `cancelled` → **`cancelled`**
-3.  **State Guard**: A `shouldSkipStatusUpdate` function prevents the order status from regressing (e.g., moving from `shipped` back to `processing`).
+- Order → downstream: `orders.order.status_changed` (published by Order)
+- Fulfillment → downstream: `fulfillments.fulfillment.status_changed` (published by Fulfillment)
+- Fulfillment → downstream: `packages.package.status_changed` (published by Fulfillment)
+- Shipping → downstream: shipment lifecycle events (published by Shipping outbox; e.g. `shipment.created`, `shipment.status_changed`, `shipment.delivered`)
 
 ---
 
-## Identified Issues & Gaps
+## High-Level Sequence
 
-Based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Order as Order Service
+  participant Fulfillment as Fulfillment Service
+  participant Warehouse as Warehouse Service
+  participant Shipping as Shipping Service
+  participant PubSub as Dapr Pub/Sub
 
-### P1/P2 - Semantics: `fulfillment.completed` vs `order.delivered`
+  Note over Order: Order becomes processable
+  Order->>Order: Update status to confirmed
+  Order->>PubSub: Publish orders.order.status_changed (outbox-backed)
 
-- **Issue**: The `order` service maps the `fulfillment.completed` status to `order.delivered`. This is a potential semantic conflict.
-- **Impact**: `fulfillment.completed` signifies the warehouse has finished its process. `order.delivered` implies the customer has received the package, which is information that should come from the `shipping` service (e.g., from a carrier webhook). This creates ambiguity and a potential race condition, as the `order` service also listens for a `delivery.confirmed` event.
-- **Recommendation**: Change the mapping. `fulfillment.completed` should perhaps trigger no status change on the order, or a new internal status. The `order.delivered` status should **only** be set by an event from the `shipping` service, such as `delivery.confirmed`.
+  PubSub->>Fulfillment: Deliver orders.order.status_changed
+  Fulfillment->>Fulfillment: Create fulfillments (multi-warehouse)
+  Fulfillment->>Warehouse: (Optional) select/check warehouse capacity
+  Fulfillment->>Fulfillment: StartPlanning → Picking → Packing
+  Fulfillment->>PubSub: Publish fulfillments.fulfillment.status_changed (outbox-backed)
 
-### P1 - Resilience: Silent Error Handling in Event Consumer
+  Note over Fulfillment,Shipping: When packed, create package(s)
+  Fulfillment->>PubSub: Publish packages.package.status_changed (outbox-backed)
+  PubSub->>Shipping: Deliver packages.package.status_changed
+  Shipping->>Shipping: Create shipment + label/tracking
+  Shipping->>PubSub: Publish shipment.created / shipment.status_changed
 
-- **Issue**: The `HandleFulfillmentStatusChanged` handler in the `order` service intentionally ignores errors (`return nil`) when it fails to update an order's status.
-- **Impact**: While this prevents a poison message from blocking the event queue, it hides underlying issues (e.g., invalid status transitions, database problems) that could lead to data inconsistency. These failures are only logged and not sent to a Dead-Letter Queue (DLQ) for reprocessing or alerting.
-- **Recommendation**: Enhance the handler to push failing messages to a DLQ and trigger a high-priority alert for manual investigation.
+  Note over Order,PubSub: Order updates customer-facing status
+  PubSub->>Order: Deliver fulfillment/shipping events
+  Order->>Order: Update order.status to processing/shipped/delivered
+```
 
-### P2 - Event Reliability: Missing Transactional Outbox in Fulfillment
+---
 
-- **Issue**: The `fulfillment` service publishes events *after* the database transaction commits. A `TODO` in the code confirms this needs to be moved to the Transactional Outbox pattern.
-- **Impact**: If the service crashes between the DB commit and the event publish, the event is lost, and downstream services (like `order`) will not be updated.
-- **Recommendation**: Refactor the event publishing logic in the `fulfillment` service to use the same Transactional Outbox pattern that the `order` service uses.
+## Step-by-Step Flow
+
+### 1) Order confirmed → publish `orders.order.status_changed`
+
+- Trigger: Order transitions to `confirmed` (online payment confirmed, or COD auto-confirm flow).
+- Action: Order publishes one unified event: `orders.order.status_changed`.
+
+Code map:
+- [Order publishes order status events](../..//order/internal/biz/order/events.go)
+- [Order publishes order status events](../../order/internal/biz/order/events.go)
+- [Order event publisher (topic: orders.order.status_changed)](../../order/internal/events/publisher.go)
+- [Order constants (topics)](../../order/internal/constants/constants.go)
+
+### 2) Fulfillment consumes `orders.order.status_changed` → create fulfillment(s)
+
+- Trigger: Fulfillment receives `orders.order.status_changed` where `new_status == confirmed`.
+- Action:
+  - Create one fulfillment per warehouse (multi-warehouse supported).
+  - Immediately call `StartPlanning()` for each fulfillment.
+
+Code map:
+- [Fulfillment consumes order_status_changed](../../fulfillment/internal/data/eventbus/order_status_consumer.go)
+- [Observer → Biz delegation](../../fulfillment/internal/observer/order_status_changed/fulfillment_sub.go)
+- [Biz: order status handler](../../fulfillment/internal/biz/fulfillment/order_status_handler.go)
+- [Biz: CreateFromOrderMulti (multi-warehouse)](../../fulfillment/internal/biz/fulfillment/fulfillment.go)
+
+### 3) Fulfillment lifecycle (pick/pack) → publish `fulfillments.fulfillment.status_changed`
+
+Fulfillment state machine (see also the source of truth in constants):
+
+```mermaid
+stateDiagram-v2
+  [*] --> pending
+  pending --> planning
+  planning --> picking
+  picking --> picked
+  picking --> pick_failed
+  pick_failed --> picking
+  picked --> packing
+  packing --> packed
+  packing --> pack_failed
+  pack_failed --> packing
+  packed --> ready
+  ready --> shipped
+  shipped --> completed
+  pending --> cancelled
+  planning --> cancelled
+  picking --> cancelled
+  picked --> cancelled
+  packing --> cancelled
+  packed --> cancelled
+  ready --> cancelled
+```
+
+Every successful transition publishes a unified status event for downstream consumers.
+
+Code map:
+- [Fulfillment status transitions (source of truth)](../../fulfillment/internal/constants/fulfillment_status.go)
+- [Fulfillment event topics/types](../../fulfillment/internal/constants/event_topics.go)
+- [Biz: publishes fulfillment status changed](../../fulfillment/internal/biz/fulfillment/fulfillment.go)
+- [Outbox-backed publisher (writes to outbox)](../../fulfillment/internal/events/outbox_publisher.go)
+- [Outbox worker (publishes to Dapr pub/sub)](../../fulfillment/internal/worker/outbox/outbox_worker.go)
+
+### 4) Packed → publish `packages.package.status_changed` → Shipping reacts
+
+- Trigger: Fulfillment creates/updates packages as part of pack/ready-to-ship stages.
+- Action: Fulfillment publishes `packages.package.status_changed` (package status lifecycle: created/labeled/ready/shipped/cancelled).
+- Shipping consumes package events and creates/updates shipment records.
+
+Code map:
+- [Fulfillment publishes package status changed](../../fulfillment/internal/events/publisher.go)
+- [Shipping consumes packages.package.status_changed](../../shipping/internal/data/eventbus/package_status_consumer.go)
+- [Shipping outbox helpers for shipment events](../../shipping/internal/biz/shipment/outbox_helpers.go)
+
+### 5) Order status tracking (processing → shipped → delivered)
+
+Order can update its customer-facing status based on:
+- Fulfillment status events (e.g. planning/picking/packed/ready → processing; shipped → shipped)
+- Shipping delivery confirmation events (delivered)
+
+Code map:
+- [Order HTTP event handler (shipment + delivery + fulfillment)](../../order/internal/service/event_handler.go)
+- [Order worker consumer (fulfillment.status_changed mapping)](../../order/internal/data/eventbus/fulfillment_consumer.go)
+
+---
+
+## Notes on Outbox Pattern
+
+- Fulfillment uses an outbox-backed `EventPublisher` that persists event payloads to the outbox table; a worker publishes them to Dapr pub/sub.
+- Shipping uses an outbox table for shipment events as well.
+
