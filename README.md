@@ -7,6 +7,26 @@ This directory contains the comprehensive documentation for the Microservices pr
 
 ---
 
+## 🚀 Project Overview
+
+**E-Commerce Microservices Platform** (2025 - Present)
+A comprehensive, production-grade e-commerce ecosystem designed for scale and high availability.
+
+- **Architecture**: Microservices (21+ services), Event-Driven, Clean Architecture.
+- **Tech Stack**:
+    - **Backend**: Go 1.25+ (Kratos Framework), gRPC, Wire.
+    - **Frontend**: Next.js, React, TypeScript.
+    - **Infrastructure**: Kubernetes, Dapr (Service Mesh), ArgoCD (GitOps), Docker.
+    - **Data & Search**: PostgreSQL, Redis, Elasticsearch.
+    - **Observability**: Prometheus, Grafana, Jaeger.
+- **Key Modules**:
+    - **Core**: Auth, User, Customer, Catalog (25k+ SKUs), Order Management.
+    - **Commerce**: Payment (Multi-gateway), Pricing, Cart, Checkout.
+    - **Operations**: Multi-warehouse Inventory, Shipping & Logistics, Fulfillment.
+    - **Engagement**: Loyalty Rewards, Review System, AI-powered Search, Notifications.
+
+---
+
 ## 🎯 Quick Access
 
 ### 🏗 Architecture & Core Concepts
