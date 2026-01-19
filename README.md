@@ -1,145 +1,119 @@
 # Documentation Index
 
-**Last Updated**: 2025-12-30  
-**Status**: ✅ Recently consolidated (244 → 62 files, 75% reduction)
+**Last Updated**: 2026-01-19
+**Status**: ✅ Current
+
+This directory contains the comprehensive documentation for the Microservices project, including architectural overviews, detailed implementation guides, workflows, runbooks, and checklists.
 
 ---
 
-## 🎯 Quick Navigation
+## 🎯 Quick Access
 
-### For Developers (MUST READ)
-→ **[GRPC_PROTO_AND_VERSIONING_RULES.md](./GRPC_PROTO_AND_VERSIONING_RULES.md)** - Rules for internal gRPC API changes and versioning.
+### 🏗 Architecture & Core Concepts
+- **[SYSTEM_ARCHITECTURE_OVERVIEW.md](./SYSTEM_ARCHITECTURE_OVERVIEW.md)**: The high-level architectural diagram and explanation.
+- **[EVENTS_REFERENCE.md](./EVENTS_REFERENCE.md)**: Reference guide for system-wide events.
+- **[GRPC_PROTO_AND_VERSIONING_RULES.md](./GRPC_PROTO_AND_VERSIONING_RULES.md)**: Guidelines for gRPC API development and versioning.
+- **[CODEBASE_INDEX.md](./CODEBASE_INDEX.md)**: Guide to the codebase structure.
 
+### 🚀 Operations & Runbooks
+- **[sre-runbooks/](./sre-runbooks/)**: Operational guides for each service (Alerts, Troubleshooting).
+- **[deployment/](./deployment/)**: Deployment guides and checklists.
+- **[k8s/](./k8s/)**: Kubernetes cluster setup, configuration, and migration guides.
 
-### For Business Logic & Features
-→ **[checklists/](./checklists/)** (40 files)
-- Business logic implementation checklists
-- Sprint trackers and roadmaps
-- Service-specific implementation guides
-
-### For Infrastructure & Technical Debt
-→ **[platform-engineering/](./platform-engineering/)** (22 files)
-- Common code migration
-- gRPC standardization
-- Infrastructure improvements
-
----
-
-## 📊 Directory Structure
-
-```
-docs/
-├── README.md (this file)
-│
-├── checklists/ (40 files)
-│   ├── PROJECT_STATUS.md  (78% complete, canonical status)
-│   ├── SPRINT_TRACKER.md  (master sprint checklist)
-│   ├── ROADMAP.md  (priority roadmap)
-│   ├── SPRINT_*_CHECKLIST.md  (6 sprint files)
-│   └── *-checklist.md  (24 business logic checklists)
-│
-├── platform-engineering/ (22 files)
-│   ├── common-code consolidation
-│   ├── gRPC migration guides
-│   ├── ArgoCD standardization
-│   └── Infrastructure checklists
-│
-└── Other documentation directories:
-    ├── adr/ - Architecture Decision Records
-    ├── argocd/ - ArgoCD deployment guides
-    ├── design/ - System design documents
-    ├── processes/ - Business process documentation
-    └── sre-runbooks/ - SRE operational guides
-```
+### 🛠 Development & Implementation
+- **[platform-engineering/](./platform-engineering/)**: Common code, library usage, and engineering standards.
+- **[checklists/](./checklists/)**: Implementation checklists, sprint trackers, and service reviews.
+- **[templates/](./templates/)**: Templates for issues, features, and new services.
 
 ---
 
-## 🚀 Getting Started
+## 🔄 Business Workflows
+*Detailed logic flows and sequence diagrams for core business processes.*
 
-### New Team Members
-1. **Start**: [checklists/README.md](./checklists/README.md)
-2. **Status**: [checklists/PROJECT_STATUS.md](./checklists/PROJECT_STATUS.md)
-3. **Sprints**: [checklists/SPRINT_TRACKER.md](./checklists/SPRINT_TRACKER.md)
+> Located in **[workflow/](./workflow/)**
 
-### Business Logic Implementation
-1. Review [checklists/](./checklists/) for feature checklists
-2. Check [checklists/ROADMAP.md](./checklists/ROADMAP.md) for priorities
-3. Follow specific service checklist (e.g., cart, checkout, payment)
+- **Auth & Identity**
+    - [Auth Flow](./workflow/auth-flow.md)
+    - [Customer Account Flow](./workflow/customer_account_flow.md)
+    - [Gateway Flow](./workflow/gateway_flow.md)
 
-### Platform Engineering
-1. Review [platform-engineering/README.md](./platform-engineering/README.md)
-2. Check gRPC migration status
-3. Follow common code consolidation guides
+- **Product & Catalog**
+    - [Catalog Flow](./workflow/catalog_flow.md)
+    - [Inventory Flow](./workflow/inventory-flow.md)
+    - [Search & Discovery](./workflow/search-product-discovery-flow.md)
+    - [Search Visibility](./workflow/search-product-visibility-filtering.md)
+    - [Search Sellable View](./workflow/search-sellable-view-per-warehouse-complete.md)
 
----
+- **Order & Checkout**
+    - [Cart Flow](./workflow/cart_flow.md)
+    - [Checkout Flow](./workflow/checkout_flow.md)
+    - [Order Flow](./workflow/order-flow.md)
+    - [Payment Flow](./workflow/payment-flow.md)
+    - [Tax Flow](./workflow/tax_flow.md)
 
-## 📋 Top-Level Documentation
+- **Fulfillment & Shipping**
+    - [Order Fulfillment](./workflow/order_fulfillment_flow.md)
+    - [Shipping Flow](./workflow/shipping_flow.md)
+    - [Return & Refund](./workflow/return_refund_flow.md)
 
-| Document | Purpose |
-|----------|---------|
-| [SYSTEM_ARCHITECTURE_OVERVIEW.md](./SYSTEM_ARCHITECTURE_OVERVIEW.md) | Complete system architecture (19KB) |
-| [CONSOLIDATION_IMPLEMENTATION_GUIDE.md](./CONSOLIDATION_IMPLEMENTATION_GUIDE.md) | Service consolidation guide (31KB) |
-| [MIGRATION_SUMMARY.md](./MIGRATION_SUMMARY.md) | Migration progress summary |
-| [K8S_MIGRATION_QUICK_GUIDE.md](./K8S_MIGRATION_QUICK_GUIDE.md) | Kubernetes migration guide |
-| [K8S_CONFIG_STANDARDIZATION_CHECKLIST.md](./K8S_CONFIG_STANDARDIZATION_CHECKLIST.md) | K8s config standards |
-| [CUSTOMER_GROUP_IMPLEMENTATION_PLAN.md](./CUSTOMER_GROUP_IMPLEMENTATION_PLAN.md) | Customer groups feature plan |
-| [DOCUMENTATION_REVIEW_REPORT.md](./DOCUMENTATION_REVIEW_REPORT.md) | Docs review findings |
+- **Pricing & Promotions**
+    - [Pricing Flow](./workflow/PRICING_FLOW.md)
+    - [Promotion Flow](./workflow/promotion_flow.md)
+    - [Pricing & Promotion Integration](./workflow/pricing-promotion-flow.md)
 
----
+- **Communication**
+    - [Notification Flow](./workflow/notification_flow.md)
 
-## 📊 Project Health
-
-**Overall Completion:** 78%  
-**Services Operational:** 19/19 (100%)  
-**Production Ready:** 12/19 (63%)  
-**Timeline to 95%:** 6-8 weeks
-
-**Recent Changes (Dec 30, 2025):**
-- ✅ Consolidated 244 files → 62 files (75% reduction)
-- ✅ Removed outdated backup-2025-11-17/ archive
-- ✅ Merged checklists-v2 sprint trackers into checklists/
-- ✅ Renamed checklists-daily to platform-engineering/
-- ✅ Removed duplicate checklists-implement/
+- **Status & Roadmap**
+    - [ROADMAP](./workflow/ROADMAP.md)
+    - [PROJECT_STATUS](./workflow/PROJECT_STATUS.md)
 
 ---
 
-## 🔄 Consolidation Summary
+## 📚 Detailed Directory Index
 
-### Before (Dec 30, 2025 morning)
-```
-docs/
-├── backup-2025-11-17/ (154 files) - OLD
-├── checklists/ (28 files)
-├── checklists-v2/ (29 files) - DUPLICATE
-├── checklists-daily/ (22 files)
-└── checklists-implement/ (11 files) - DUPLICATE
+### [adr/](./adr/)
+Architecture Decision Records (ADRs) documenting significant architectural choices.
 
-Total: 244 files
-```
+### [argocd/](./argocd/)
+ArgoCD configuration and deployment guides.
 
-### After (Dec 30, 2025 afternoon)
-```
-docs/
-├── checklists/ (40 files) ✅
-└── platform-engineering/ (22 files) ✅
+### [checklists/](./checklists/)
+Tracks the progress of service implementation, migrations, and code reviews.
+- Key file: `PROJECT_STATUS.md`
 
-Total: 62 files (75% reduction)
-```
+### [ddd/](./ddd/)
+Domain-Driven Design artifacts, including context maps and domain definitions.
 
-**Archived:** backup-2025-11-17-archive.tar.gz (655KB)
+### [design/](./design/)
+Specific feature designs and technical specifications.
 
----
+### [json-schema/](./json-schema/)
+JSON schemas for domain events and data validation.
 
-## 📞 Support
+### [openapi/](./openapi/)
+OpenAPI (Swagger) specifications for service APIs.
 
-### Questions about:
-- **Business Features**: Check [checklists/](./checklists/)
-- **Infrastructure**: Check [platform-engineering/](./platform-engineering/)
-- **Deployment**: Check [argocd/](./argocd/)
-- **Architecture**: Check [design/](./design/)
+### [platform-engineering/](./platform-engineering/)
+Guides for the platform team, including common libraries `common/*` and standardization efforts.
+
+### [services/](./services/)
+Service-specific detailed documentation (e.g., specific quirks or local docs).
 
 ---
 
-**Maintained By**: Platform Architecture Team  
-**Last Major Update**: 2025-12-30 (Documentation Consolidation)  
-**Next Review**: Weekly
+## 📃 Other Top-Level Documents
+- **[CONSOLIDATION_IMPLEMENTATION_GUIDE.md](./CONSOLIDATION_IMPLEMENTATION_GUIDE.md)**: Guide for the recent service consolidation.
+- **[CUSTOMER_GROUP_IMPLEMENTATION_PLAN.md](./CUSTOMER_GROUP_IMPLEMENTATION_PLAN.md)**: Plan for customer groups feature.
+- **[DEBUGGING_PRICE_UPDATES.md](./DEBUGGING_PRICE_UPDATES.md)**: Troubleshooting guide for price updates.
+- **[DEPLOYMENT_STATUS_REVIEW.md](./DEPLOYMENT_STATUS_REVIEW.md)**: Status of deployments.
+- **[DOCUMENTATION_REVIEW_REPORT.md](./DOCUMENTATION_REVIEW_REPORT.md)**: Report on documentation quality.
+- **[FRONTEND_AUTH_README.md](./FRONTEND_AUTH_README.md)**: Frontend authentication details.
+- **[K8S_CONFIG_STANDARDIZATION_CHECKLIST.md](./K8S_CONFIG_STANDARDIZATION_CHECKLIST.md)**: Checklist for K8s config.
+- **[K8S_MIGRATION_QUICK_GUIDE.md](./K8S_MIGRATION_QUICK_GUIDE.md)**: Quick guide for K8s migration.
+- **[MIGRATION_SUMMARY.md](./MIGRATION_SUMMARY.md)**: Summary of migration efforts.
+- **[TEAM_LEAD_CODE_REVIEW_GUIDE.md](./TEAM_LEAD_CODE_REVIEW_GUIDE.md)**: Guide for team leads performing code reviews.
+
+---
+
+**Note**: The directory `workfllow/` appears to be a legacy typo directory and should be ignored in favor of `workflow/`.
