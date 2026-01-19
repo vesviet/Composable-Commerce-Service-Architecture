@@ -27,7 +27,7 @@
 
 ### Warehouse Service Critical Issues
 
-#### WH-P0-01: Atomic Stock Update Race Condition
+#### WH-P0-01: Atomic Stock Update Race Condition [DONE]
 - **File**: `warehouse/internal/biz/inventory/inventory.go:156`
 - **Issue**: Stock level updates not using database atomic operations
 - **Impact**: Inventory level corruption during concurrent updates
@@ -45,7 +45,7 @@
 - **Effort**: 2 days
 - **Testing**: Reservation lifecycle and expiration validation
 
-#### WH-P0-03: Negative Stock Levels Allowed
+#### WH-P0-03: Negative Stock Levels Allowed [DONE]
 - **File**: `warehouse/internal/biz/inventory/inventory.go:189`
 - **Issue**: No database constraints preventing negative available_quantity
 - **Impact**: Data inconsistency, phantom inventory
@@ -54,7 +54,7 @@
 - **Effort**: 1.5 days
 - **Testing**: Edge case testing with concurrent operations
 
-#### WH-P0-04: Transactional Outbox Event Loss
+#### WH-P0-04: Transactional Outbox Event Loss [DONE]
 - **File**: `warehouse/internal/biz/inventory/inventory.go:345`
 - **Issue**: Outbox event creation not guaranteed to be atomic with inventory updates
 - **Impact**: Lost events leading to cache inconsistency and stale product data
@@ -65,7 +65,7 @@
 
 ### Catalog Service Critical Issues
 
-#### CAT-P0-01: Stock Cache Poisoning Vulnerability
+#### CAT-P0-01: Stock Cache Poisoning Vulnerability [DONE]
 - **File**: `catalog/internal/biz/product/product_price_stock.go:25`
 - **Issue**: Cache keys predictable, potential for malicious cache injection
 - **Impact**: Wrong stock levels shown, customer confusion, overselling
@@ -74,7 +74,7 @@
 - **Effort**: 2 days
 - **Testing**: Cache security penetration testing
 
-#### CAT-P0-02: Cache Invalidation Failure Handling
+#### CAT-P0-02: Cache Invalidation Failure Handling [DONE]
 - **File**: `catalog/internal/biz/product/product_price_stock.go:45`
 - **Issue**: No fallback when cache invalidation via events fails
 - **Impact**: Stale stock data persists, customers see incorrect availability
@@ -83,7 +83,7 @@
 - **Effort**: 2 days
 - **Testing**: Event failure scenarios and cache recovery
 
-#### CAT-P0-03: Zero Stock TTL Exploitation
+#### CAT-P0-03: Zero Stock TTL Exploitation [DONE]
 - **File**: `catalog/internal/biz/product/product_price_stock.go:67`
 - **Issue**: Zero stock cached for only 5 minutes, easy to exploit timing
 - **Impact**: Flash sale exploitation, rapid stock level changes
@@ -94,7 +94,7 @@
 
 ### Order Service Critical Issues
 
-#### ORD-P0-01: Cart Stock Validation Race Condition
+#### ORD-P0-01: Cart Stock Validation Race Condition [DONE]
 - **File**: `order/internal/biz/cart/stock.go:24`
 - **Issue**: Stock validation happens outside order creation transaction
 - **Impact**: Overselling between cart validation and order confirmation
@@ -103,7 +103,7 @@
 - **Effort**: 3 days
 - **Testing**: Concurrent order creation with limited stock
 
-#### ORD-P0-02: Warehouse ID Validation Bypass
+#### ORD-P0-02: Warehouse ID Validation Bypass [DONE]
 - **File**: `order/internal/biz/cart/stock.go:8`
 - **Issue**: Missing warehouse ID marks items as out-of-stock but allows adding to cart
 - **Impact**: Cart pollution with undeliverable items
@@ -123,7 +123,7 @@
 
 ### Fulfillment Service Critical Issues
 
-#### FULF-P0-01: Stock Consumption Atomicity
+#### FULF-P0-01: Stock Consumption Atomicity [DONE]
 - **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go:234`
 - **Issue**: Stock consumption during fulfillment not atomic with order updates
 - **Impact**: Stock levels and order status inconsistency
@@ -141,7 +141,7 @@
 - **Effort**: 3 days
 - **Testing**: Multi-warehouse allocation algorithm validation
 
-#### FULF-P0-03: Reservation Validation Bypass
+#### FULF-P0-03: Reservation Validation Bypass [DONE]
 - **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go:189`
 - **Issue**: Fulfillment creation doesn't validate reservation still exists
 - **Impact**: Fulfillment processing without guaranteed stock
@@ -152,7 +152,7 @@
 
 ### Review Service Critical Issues
 
-#### REV-P0-01: Purchase Verification Bypass
+#### REV-P0-01: Purchase Verification Bypass [DONE]
 - **File**: `review/internal/biz/review/review.go:67`
 - **Issue**: Purchase verification can be bypassed with missing order validation
 - **Impact**: Fake reviews for products never purchased
@@ -167,35 +167,35 @@
 
 ### Warehouse Service High Priority
 
-#### WH-P1-01: Inventory Audit Trail Gaps
+#### WH-P1-01: Inventory Audit Trail Gaps [DONE]
 - **File**: `warehouse/internal/biz/inventory/inventory.go:345`
 - **Issue**: Not all inventory changes tracked in audit trail
 - **Impact**: Accountability issues, difficult reconciliation
 - **Fix**: Implement comprehensive audit logging for all stock movements
 - **Effort**: 3 days
 
-#### WH-P1-02: Bulk Stock Operations Missing
+#### WH-P1-02: Bulk Stock Operations Missing [DONE]
 - **File**: `warehouse/internal/biz/inventory/inventory.go`
 - **Issue**: No support for bulk stock adjustments or imports
 - **Impact**: Operational inefficiency for large inventory updates
 - **Fix**: Implement batch operations with progress tracking
 - **Effort**: 4 days
 
-#### WH-P1-03: Stock Alert Configuration
+#### WH-P1-03: Stock Alert Configuration [DONE]
 - **File**: `warehouse/internal/biz/inventory/inventory.go:567`
 - **Issue**: Hard-coded alert thresholds, no per-product configuration
 - **Impact**: Ineffective stock management for different product categories
 - **Fix**: Implement configurable alert thresholds per product
 - **Effort**: 2 days
 
-#### WH-P1-04: Warehouse Capacity Management
+#### WH-P1-04: Warehouse Capacity Management [DEFERRED]
 - **File**: `warehouse/internal/biz/inventory/inventory.go`
 - **Issue**: No capacity constraints or space management
 - **Impact**: Overstock situations without warning
 - **Fix**: Implement warehouse capacity tracking and alerts
 - **Effort**: 3 days
 
-#### WH-P1-05: Expiry Date Management
+#### WH-P1-05: Expiry Date Management [DONE]
 - **File**: `warehouse/internal/biz/inventory/inventory.go:234`
 - **Issue**: Expiry date tracking exists but no FIFO enforcement
 - **Impact**: Expired products shipped, compliance issues
@@ -204,28 +204,28 @@
 
 ### Catalog Service High Priority
 
-#### CAT-P1-01: Price-Stock Consistency
+#### CAT-P1-01: Price-Stock Consistency [DONE]
 - **File**: `catalog/internal/biz/product/product_price_stock.go:123`
 - **Issue**: Price and stock cached separately, can become inconsistent
 - **Impact**: Wrong price-stock combinations displayed
 - **Fix**: Implement atomic price-stock cache updates
 - **Effort**: 2 days
 
-#### CAT-P1-02: Multi-Warehouse Stock Aggregation
+#### CAT-P1-02: Multi-Warehouse Stock Aggregation [DONE]
 - **File**: `catalog/internal/biz/product/product_price_stock.go:234`
 - **Issue**: Total stock calculation doesn't handle warehouse-specific scenarios properly
 - **Impact**: Incorrect total stock shown for multi-warehouse products
 - **Fix**: Implement sophisticated stock aggregation logic
 - **Effort**: 3 days
 
-#### CAT-P1-03: Stock Synchronization Performance
+#### CAT-P1-03: Stock Synchronization Performance [DONE]
 - **File**: `catalog/internal/biz/product/product_price_stock.go:178`
 - **Issue**: Stock sync operations not optimized for batch processing
 - **Impact**: Poor performance during bulk stock updates
 - **Fix**: Implement batch stock synchronization with rate limiting
 - **Effort**: 2 days
 
-#### CAT-P1-04: Cache Warming Strategy
+#### CAT-P1-04: Cache Warming Strategy [DONE]
 - **File**: `catalog/internal/biz/product/product_price_stock.go`
 - **Issue**: No proactive cache warming for popular products
 - **Impact**: Cache misses for high-traffic products cause latency
