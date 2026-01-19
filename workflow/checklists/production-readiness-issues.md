@@ -1,6 +1,6 @@
 # 🔍 CODE REVIEW ISSUES CHECKLIST
 
-**Review Date**: January 18, 2026  
+**Review Date**: January 19, 2026  
 **Reviewer**: Senior Team Lead  
 **Services Reviewed**: Catalog, Order, Warehouse  
 **Total Issues Found**: 45 issues (8 P0, 16 P1, 21 P2)  
@@ -29,6 +29,21 @@ P2 (Normal):          ███████████████████�
 
 ---
 
+## 🔎 Re-review (2026-01-19) - Unfixed & New Issues (Moved to Top)
+
+### Unfixed Issues
+- **P0-1**: Catalog write endpoints still missing auth/role checks.
+- **P0-2**: Catalog admin endpoints still unprotected.
+- **P0-3**: Cart optimistic locking not enforced (version field exists but not checked on updates).
+- **P0-4**: Payment authorization still lacks idempotency key.
+- **P0-5**: ReserveStock still vulnerable to TOCTOU race (no transaction around reservation + inventory update).
+
+### New Issues
+- **P1-N1 (New)**: Warehouse-specific stock lookup returns 0 on error, causing false out-of-stock.
+    - **File**: `catalog/internal/biz/product/product_price_stock.go`
+    - **Impact**: Incorrect stock state when warehouse service is temporarily unavailable.
+    - **Fix**: Return error or last known cached value; avoid silent 0.
+
 ## 🔴 CRITICAL ISSUES (P0 - BLOCKING) - 8 ISSUES
 
 ### **P0-1: [CATALOG] Missing Authentication/Authorization** ⚠️ CRITICAL
@@ -37,6 +52,7 @@ P2 (Normal):          ███████████████████�
 **Impact**: HIGH - Any unauthenticated user can create/update/delete products  
 **Effort**: 2 days  
 **Assignee**: Backend Team
+**Status**: ❌ **NOT FIXED** (no auth middleware applied in HTTP registration)
 
 **Files Affected**:
 - `catalog/internal/service/product_write.go:12-299`
@@ -114,6 +130,7 @@ func TestCreateProduct_NonAdmin(t *testing.T) {
 **Impact**: HIGH - Mutation operations exposed without admin protection  
 **Effort**: 1 day  
 **Assignee**: Backend Team
+**Status**: ❌ **NOT FIXED** (admin handlers registered without auth guard)
 
 **Files Affected**:
 - `catalog/internal/server/http.go:150-233`
@@ -135,6 +152,7 @@ See P0-1 fix above (same solution)
 **Impact**: HIGH - Concurrent updates cause incorrect cart totals  
 **Effort**: 3 days  
 **Assignee**: Backend Team
+**Status**: ❌ **NOT FIXED** (version fields exist but no version check on update)
 
 **Files Affected**:
 - `order/internal/biz/cart/update.go:1-110`
@@ -265,6 +283,7 @@ func TestUpdateCartItem_ConcurrentUpdates(t *testing.T) {
 **Impact**: HIGH - Duplicate payment charges on retry  
 **Effort**: 1 day  
 **Assignee**: Backend Team
+**Status**: ❌ **NOT FIXED** (authorize request lacks idempotency key)
 
 **Files Affected**:
 - `order/internal/biz/checkout/payment.go:26-60`
@@ -363,6 +382,7 @@ func TestAuthorizePayment_Idempotent(t *testing.T) {
 **Impact**: CRITICAL - Potential stock overbooking, customer order cancellations  
 **Effort**: 3 days  
 **Assignee**: Backend Team
+**Status**: ❌ **NOT FIXED** (reservation + inventory update not wrapped in transaction)
 
 **Files Affected**:
 - `warehouse/internal/biz/reservation/reservation.go:58-150`

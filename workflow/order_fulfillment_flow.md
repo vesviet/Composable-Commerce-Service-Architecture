@@ -5,7 +5,7 @@
 
 This document describes the end-to-end fulfillment flow as implemented today: when an Order reaches a “processable” state, Fulfillment creates warehouse work (pick/pack), emits status events, Shipping reacts to packages and emits shipment events, and Order updates customer-facing status.
 
-If you want the open problems / gaps, keep them in the checklist: [docs/workflow/checklists/fulfillment-flow-issues.md](checklists/fulfillment-flow-issues.md)
+If you want the open problems / gaps, keep them in the checklist: [docs/workflow/checklists/order_fufillment_issues.md](checklists/order_fufillment_issues.md)
 
 ---
 

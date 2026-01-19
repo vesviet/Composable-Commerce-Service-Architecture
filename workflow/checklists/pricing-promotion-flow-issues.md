@@ -240,13 +240,19 @@ if err != nil {
 
 ## 🟡 HIGH PRIORITY P1 ISSUES (24 Total) - PLAN FOR NEXT SPRINT
 
-### Pricing Service (8 P1 Issues)
+### Pricing Service (9 P1 Issues)
 
 #### P1-1: Price Rule Engine Performance 🟡
 **File**: `pricing/internal/biz/rule/rule.go:80-120`  
 **Impact**: Slow pricing calculations with many rules  
 **Fix**: Cache compiled rule conditions, optimize evaluation order  
 **Effort**: 12 hours  
+
+#### P1-9: Unmanaged Goroutine for Catalog Sync 🟡
+**File**: `pricing/internal/biz/price/price.go` (`CreatePrice`, `UpdatePrice`)  
+**Impact**: Detached goroutine triggers catalog sync without retry or visibility; may cause stale pricing in catalog.  
+**Fix**: Remove direct goroutine and rely on outbox + catalog event consumer.  
+**Effort**: 6 hours  
 
 #### P1-2: Missing Pricing Analytics Events 🟡
 **File**: `pricing/internal/biz/calculation/calculation.go:300-350`  

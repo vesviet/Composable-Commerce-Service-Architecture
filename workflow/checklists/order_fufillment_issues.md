@@ -1,17 +1,69 @@
-# Order Flow Implementation Issues & Checklist
+# 🧾 Order & Fulfillment Combined Issues & Checklist
 
-> **Purpose**: Comprehensive analysis of Order ecosystem issues across Gateway, Customer, Order, Warehouse, Pricing, Promotion, and Review services  
-> **Date**: January 18, 2026  
-> **Services Analyzed**: 7 services, 50+ files reviewed  
+> **Purpose**: Consolidated issues for Order Flow + Fulfillment Flow + Order Fulfillment & Tracking
+> **Date**: January 19, 2026
+> **Sources**:
+> - `order-flow-issues.md`
+> - `fulfillment-flow-issues.md`
+> - `order_fulfillment_issues.md`
 > **Priority**: P0 (Blocking), P1 (High), P2 (Normal)
 
 ---
 
 ## 📊 Executive Summary
 
+This is a merged checklist. Severity counts are preserved in each section below.
+
+---
+
+## 🔎 Re-review (2026-01-19) - Unfixed & New Issues (Moved to Top)
+
+### Unfixed Issues
+- **OR-P0-02**: Cart session hijacking remains possible if only `session_id` is supplied (no customer/guest binding enforced in all paths).
+- **OR-P0-03**: Stock reservation happens outside order DB transaction (oversell race persists).
+- **OR-P0-04**: Payment status updates still lack gateway signature validation.
+- **ORD-P0-02**: fulfillment.completed → order.delivered mapping still present. See `order/internal/data/eventbus/fulfillment_consumer.go`.
+
+### New Issues
+- **OR-P1-05 (New)**: Order creation hardcodes currency to USD and uses Catalog price instead of Pricing rules.
+  - **File**: `order/internal/biz/order/create_helpers.go`
+  - **Impact**: Incorrect totals for non-USD orders; bypasses Pricing service discounts/taxes.
+  - **Fix**: Use pricing results (or totals from checkout) and propagate currency from request/session.
+
+- **OR-P1-06 (New)**: N+1 remote calls when fetching products during order creation.
+  - **File**: `order/internal/biz/order/create_helpers.go`
+  - **Impact**: Slow order creation for large carts.
+  - **Fix**: Add bulk product fetch or batch pricing call.
+
+- **ORD-P1-04 (New)**: Fulfillment consumer skips subscription when config is nil.
+  - **File**: `order/internal/data/eventbus/fulfillment_consumer.go`
+  - **Impact**: Order status never updates from fulfillment events in misconfigured environments.
+  - **Fix**: Fail fast on missing eventbus config or enforce required config at startup.
+
+- **FUL-P0-04 (New)**: Fulfillment status events are published outside transaction (no outbox).
+  - **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go`
+  - **Impact**: Event loss on crash → order status desync.
+  - **Fix**: Persist outbox events inside the same transaction.
+
+- **FUL-P0-05 (New)**: Batch picklist creation is not transactional.
+  - **File**: `fulfillment/internal/biz/picklist/batch_picking.go`
+  - **Impact**: Partial data persisted if any step fails (orphaned picklists/items).
+  - **Fix**: Wrap multi-write operations in a single `InTx` and use outbox for events.
+
+---
+
+# 🧩 Order Flow Implementation Issues & Checklist
+
+> **Purpose**: Comprehensive analysis of Order ecosystem issues across Gateway, Customer, Order, Warehouse, Pricing, Promotion, and Review services
+> **Date**: January 18, 2026
+> **Services Analyzed**: 7 services, 50+ files reviewed
+> **Priority**: P0 (Blocking), P1 (High), P2 (Normal)
+
+## 📊 Executive Summary
+
 **Total Issues Identified**: 51 Issues
 - **🔴 P0 (Critical)**: 19 issues - Require immediate attention
-- **🟡 P1 (High)**: 21 issues - Complete within 2 weeks  
+- **🟡 P1 (High)**: 21 issues - Complete within 2 weeks
 - **🟢 P2 (Normal)**: 11 issues - Complete within 4 weeks
 
 **Estimated Implementation Time**: 12-14 weeks total
@@ -33,7 +85,7 @@
 - **Effort**: 2 days
 - **Testing**: Load test with service failures
 
-#### GW-P0-02: Rate Limiting Bypass Vulnerability  
+#### GW-P0-02: Rate Limiting Bypass Vulnerability
 - **File**: `gateway/internal/router/auto_router.go:156`
 - **Issue**: Rate limiter can be bypassed using different HTTP methods or case variations
 - **Impact**: API abuse, DDoS attacks possible
@@ -84,6 +136,7 @@
 - **Fix**: Use database-level transaction for both operations
 - **Effort**: 3 days
 - **Testing**: Chaos testing with database failures
+- **Status**: ✅ **DONE** (order creation + outbox wrapped in transaction)
 
 #### OR-P0-02: Cart Session Hijacking Vulnerability
 - **File**: `order/internal/biz/cart/cart.go`
@@ -179,8 +232,6 @@
 - **Effort**: 1 day
 - **Testing**: Edge case testing with extreme discount values
 
----
-
 ## 🟡 P1 - High Priority Issues (21 Issues)
 
 ### Gateway Service High Priority
@@ -237,6 +288,7 @@
 - **Impact**: Database bloat, performance degradation
 - **Fix**: Implement cart cleanup cron job (30-day retention)
 - **Effort**: 2 days
+- **Status**: ✅ **DONE** (`order/internal/worker/cron/cart_cleanup.go`)
 
 #### OR-P1-02: Order Status Transition Validation
 - **File**: `order/internal/biz/order/create.go:234`
@@ -244,6 +296,7 @@
 - **Impact**: Invalid order states, business logic violations
 - **Fix**: Implement state machine with transition validation
 - **Effort**: 3 days
+- **Status**: ✅ **DONE** (validated via `status.ValidateStatusTransition`)
 
 #### OR-P1-03: Bulk Order Operations Missing
 - **File**: `order/internal/biz/order/create.go`
@@ -257,6 +310,20 @@
 - **Issue**: No time-based restrictions on order cancellations
 - **Impact**: Operational complexity, fulfillment conflicts
 - **Fix**: Implement cancellation window business rules
+- **Effort**: 2 days
+
+#### OR-P1-05: Order Currency & Pricing Source Mismatch
+- **File**: `order/internal/biz/order/create_helpers.go`
+- **Issue**: Currency hardcoded to USD and totals derived from Catalog price instead of Pricing rules
+- **Impact**: Incorrect totals for non-USD orders; discounts/taxes may be skipped
+- **Fix**: Use pricing results or checkout totals and propagate currency from request/session
+- **Effort**: 2 days
+
+#### OR-P1-06: N+1 Product Fetch During Order Creation
+- **File**: `order/internal/biz/order/create_helpers.go`
+- **Issue**: Products fetched one-by-one per item
+- **Impact**: Slow order creation for large carts
+- **Fix**: Add bulk fetch (`FindByIDs`) or batch pricing call
 - **Effort**: 2 days
 
 ### Warehouse Service High Priority
@@ -343,8 +410,6 @@
 - **Impact**: Fake reviews, unreliable product ratings
 - **Fix**: Enhance purchase verification and implement review authenticity checks
 - **Effort**: 3 days
-
----
 
 ## 🟢 P2 - Normal Priority Issues (11 Issues)
 
@@ -437,184 +502,195 @@
 
 ---
 
-## 📅 Implementation Roadmap
+# 🚚 Fulfillment Flow Implementation Issues & Checklist
 
-### Phase 1: Critical Fixes (Weeks 1-5)
-**Focus**: P0 Issues - System Stability and Security
+> **Purpose**: Comprehensive analysis of Fulfillment ecosystem issues across Order, Warehouse, Payment, Shipping, and Fulfillment services
+> **Date**: January 18, 2026
+> **Services Analyzed**: 5 services, 76+ files reviewed
+> **Priority**: P0 (Blocking), P1 (High), P2 (Normal)
 
-#### Week 1-2: Security Critical
-- GW-P0-02: Rate limiting bypass vulnerability
-- CS-P0-02: Hardcoded credentials
-- CS-P0-03: Input sanitization  
-- OR-P0-02: Cart session security
-- OR-P0-04: Payment status security
+## 📊 Executive Summary
 
-#### Week 3-4: Data Integrity Critical
-- CS-P0-01: Customer profile race conditions
-- OR-P0-01: Transactional outbox fixes
-- OR-P0-03: Stock validation atomicity
-- WH-P0-01: Inventory corruption fixes
-- PR-P0-01: Price cache security
+**Total Issues Identified**: 65 Issues
+- **🔴 P0 (Critical)**: 23 issues - Require immediate attention (1 resolved, 2 new found)
+- **🟡 P1 (High)**: 24 issues - Complete within 2 weeks
+- **🟢 P2 (Normal)**: 18 issues - Complete within 4 weeks
 
-#### Week 5: Service Reliability Critical
-- GW-P0-01: Circuit breaker implementation
-- WH-P0-02: Reservation timeout enforcement
-- WH-P0-03: Negative stock prevention
-- PR-P0-02: Currency rate freshness
-- PM-P0-01: Promotion counter atomicity
+**Estimated Implementation Time**: 16-18 weeks total
+- **P0 Critical Fixes**: 6-7 weeks
+- **P1 High Priority**: 8-9 weeks
+- **P2 Normal Priority**: 2-3 weeks
 
-### Phase 2: High Priority Features (Weeks 6-12)
-**Focus**: P1 Issues - Business Logic and Performance
-
-#### Week 6-7: Service Discovery & Integration
-- GW-P1-02: Service discovery implementation
-- CS-P1-01: Customer segmentation cache
-- OR-P1-02: Order state machine
-- WH-P1-01: Multi-warehouse optimization
-
-#### Week 8-9: Business Logic Enhancements
-- CS-P1-02: Address validation
-- OR-P1-03: Bulk operations
-- OR-P1-04: Cancellation windows
-- PM-P1-01: Promotion conflict detection
-
-#### Week 10-11: Analytics and Monitoring
-- WH-P1-03: Inventory audit trail
-- PR-P1-01: Price history tracking
-- PM-P1-02: Promotion analytics
-- RV-P1-01: Review moderation
-
-#### Week 12: Performance & Operations
-- OR-P1-01: Cart cleanup processes
-- PR-P1-02: Bulk price operations
-- PM-P1-03: Dynamic promotion rules
-- RV-P1-02: Review authenticity
-
-### Phase 3: Normal Priority (Weeks 13-15)
-**Focus**: P2 Issues - Polish and Optimization
-
-#### Week 13: Standardization
-- CS-P2-01: Health check standardization
-- CS-P2-03: Configuration management
-- SE-P2-02: Input validation standardization
-
-#### Week 14: Performance & Monitoring
-- PE-P2-01: Database optimization
-- PE-P2-02: Cache strategy improvements
-- DO-P2-02: Business metrics dashboard
-
-#### Week 15: Documentation & Operations
-- DO-P2-01: API documentation
-- DM-P2-01: Data retention policies
-- DM-P2-02: Backup procedures
+**Risk Level**: 🔴 HIGH - Critical workflow orchestration and event consistency issues identified
 
 ---
 
-## 🧪 Testing Strategy
+## 🔴 P0 - Critical Issues (21 Issues)
 
-### Critical Issue Testing (P0)
-1. **Security Testing**
-   - Penetration testing for input validation
-   - Authentication and authorization testing
-   - Rate limiting bypass testing
+### Order Service Critical Issues
 
-2. **Data Integrity Testing**
-   - Concurrent update stress testing
-   - Transaction rollback testing
-   - Race condition simulation
+#### ORD-P0-01: Missing FulfillmentConsumer in Order Worker ⚠️ CRITICAL GAP [DONE]
+- **File**: `order/cmd/worker/wire.go`
+- **Issue**: Order Service does NOT have a consumer for `fulfillment.status_changed` events
+- **Impact**: Order status never gets updated when fulfillment progresses (planning, picking, packing, completed)
+- **Root Cause**: Documentation shows flow exists, but code implementation missing
+- **Current State**: Only PaymentConsumer exists, NO FulfillmentConsumer
+- **Fix**: Create `internal/data/eventbus/fulfillment_consumer.go` and wire into WorkerManager
+- **Effort**: 3 days (existing deployment shows this was implemented)
+- **Testing**: Event flow integration tests
+- **Status**: ✅ **ALREADY IMPLEMENTED** (deployment notes show completion)
 
-3. **Service Reliability Testing**
-   - Circuit breaker failure scenarios
-   - Timeout and recovery testing
-   - Service unavailability simulation
+#### ORD-P0-02: Order Status Semantics Conflict - fulfillment.completed → order.delivered [NOT FIXED]
+- **File**: `order/internal/biz/status/status.go`
+- **Issue**: `fulfillment.completed` is mapped to `order.delivered` which is semantically incorrect
+- **Impact**: Customer sees "delivered" when package only left warehouse, not actually delivered
+- **Root Cause**: Conflating warehouse completion with customer delivery
+- **Fix**: Map `fulfillment.completed` to `order.shipped`, only `delivery.confirmed` from shipping should trigger `delivered`
+- **Effort**: 1 day
+- **Testing**: Status transition validation
 
-### High Priority Testing (P1)
-1. **Business Logic Testing**
-   - End-to-end order flow testing
-   - Promotion rule conflict testing
-   - Multi-warehouse allocation testing
+#### ORD-P0-03: Transactional Outbox Race Condition in Order Creation
+- **File**: `order/internal/biz/order/create.go:45`
+- **Issue**: Event publishing not guaranteed to be atomic with order creation
+- **Impact**: Lost events leading to fulfillment service not receiving order confirmation
+- **Root Cause**: Event creation in separate transaction from order creation
+- **Fix**: Ensure outbox event creation within same database transaction
+- **Effort**: 2 days
+- **Testing**: Chaos engineering with database failures
 
-2. **Performance Testing**
-   - Load testing under peak conditions
-   - Cache performance validation
-   - Database query performance
+### Warehouse Service Critical Issues
 
-### Normal Priority Testing (P2)
-1. **Integration Testing**
-   - Cross-service communication validation
-   - Configuration change testing
-   - Monitoring and alerting validation
+#### WH-P0-01: Stock Reservation Confirmation Race Condition
+- **File**: `warehouse/internal/biz/reservation/reservation.go`
+- **Issue**: Stock reservation confirmation not atomic with payment confirmation
+- **Impact**: Reserved stock may be released while payment is being processed
+- **Root Cause**: Payment and reservation confirmation in separate transactions
+- **Fix**: Implement two-phase confirmation with timeout
+- **Effort**: 3 days
+- **Testing**: Concurrent payment and timeout scenarios
 
-2. **Operational Testing**
-   - Backup and recovery validation
-   - Data retention policy testing
-   - Documentation accuracy validation
+#### WH-P0-02: FulfillReservation Missing Idempotency Protection
+- **File**: `warehouse/internal/biz/inventory/inventory.go:295`
+- **Issue**: Multiple fulfillment events can cause duplicate stock deduction
+- **Impact**: Negative inventory levels from duplicate processing
+- **Root Cause**: No idempotency key on FulfillReservation operations
+- **Fix**: Add idempotency tracking with fulfillment_id + item_id composite key
+- **Effort**: 2 days
+- **Testing**: Duplicate event processing tests
+
+#### WH-P0-03: Warehouse Selection Logic Missing Capacity Check
+- **File**: `warehouse/internal/biz/inventory/inventory.go`
+- **Issue**: Warehouse assignment doesn't verify actual capacity availability
+- **Impact**: Over-allocation of orders to warehouses, fulfillment bottlenecks
+- **Root Cause**: Simple distance-based selection without capacity validation
+- **Fix**: Integrate CheckWarehouseCapacity into selection algorithm
+- **Effort**: 2 days
+- **Testing**: Capacity edge cases and overflow scenarios
+
+### Payment Service Critical Issues
+
+#### PAY-P0-01: Payment Authorization Timeout Handling
+- **File**: `payment/internal/biz/gateway/stripe.go`
+- **Issue**: Long-running payment authorizations not handled properly
+- **Impact**: Order stuck in "payment pending" state when gateway times out
+- **Root Cause**: No timeout handling or retry mechanism for slow gateways
+- **Fix**: Implement circuit breaker with exponential backoff
+- **Effort**: 2 days
+- **Testing**: Gateway timeout simulation
+
+#### PAY-P0-02: Webhook Idempotency Missing
+- **File**: `payment/internal/biz/gateway/stripe.go:450`
+- **Issue**: Payment webhook processing lacks idempotency protection
+- **Impact**: Duplicate payment confirmations can trigger multiple order confirmations
+- **Root Cause**: No webhook event ID tracking
+- **Fix**: Store and check webhook event IDs before processing
+- **Effort**: 1.5 days
+- **Testing**: Duplicate webhook delivery tests
+
+### Shipping Service Critical Issues
+
+#### SHIP-P0-01: Carrier Integration Failure Handling
+- **File**: `shipping/internal/biz/shipment/shipment.go`
+- **Issue**: Failed carrier API calls block entire shipment creation
+- **Impact**: Orders stuck in "fulfillment completed" when shipping fails
+- **Root Cause**: Synchronous carrier integration without fallback
+- **Fix**: Implement async carrier processing with fallback to manual processing
+- **Effort**: 3 days
+- **Testing**: Carrier API failure scenarios
+
+#### SHIP-P0-02: Tracking Number Uniqueness Not Enforced
+- **File**: `shipping/internal/model/shipment.go`
+- **Issue**: Database allows duplicate tracking numbers across carriers
+- **Impact**: Customer confusion and tracking conflicts
+- **Root Cause**: Missing unique constraint on tracking_number
+- **Fix**: Add database constraint and validation layer
+- **Effort**: 1 day
+- **Testing**: Duplicate tracking number scenarios
+
+### Fulfillment Service Critical Issues
+
+#### FUL-P0-01: Multi-Warehouse Fulfillment Consistency
+- **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go:471`
+- **Issue**: Multi-warehouse orders may have partial fulfillments not properly tracked
+- **Impact**: Inconsistent order completion status across warehouses
+- **Root Cause**: Individual fulfillment status not aggregated correctly
+- **Fix**: Implement fulfillment aggregation logic with completion threshold
+- **Effort**: 3 days
+- **Testing**: Multi-warehouse completion scenarios
+
+#### FUL-P0-02: Fulfillment Status Transition Validation Gaps
+- **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go:1000`
+- **Issue**: Status transitions allow invalid state changes (e.g., completed → picking)
+- **Impact**: Data corruption and workflow confusion
+- **Root Cause**: Incomplete transition validation matrix
+- **Fix**: Implement comprehensive state machine with validation
+- **Effort**: 2 days
+- **Testing**: Invalid transition attempts
+
+#### FUL-P0-03: Warehouse Capacity Integration Missing [NOT FIXED]
+- **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go` (selectWarehouse method)
+- **Issue**: Fulfillment creation doesn't verify warehouse capacity before assignment
+- **Impact**: Over-allocation leading to fulfillment delays
+- **Root Cause**: Capacity check implementation incomplete
+- **Fix**: Complete integration with warehouse capacity API
+- **Effort**: 1 day
+- **Testing**: Capacity overflow scenarios
+
+#### FUL-P0-05: Batch Picklist Creation Lacks Transactional Boundaries
+- **File**: `fulfillment/internal/biz/picklist/batch_picking.go`
+- **Issue**: Batch picklist creation writes picklist + items + fulfillment updates without a transaction
+- **Impact**: Partial data persisted if any step fails (orphaned picklists/items, inconsistent fulfillment states)
+- **Root Cause**: No `InTx` wrapper around multi-write operations
+- **Fix**: Wrap picklist + items + fulfillment updates in a single transaction; use outbox for events
+- **Effort**: 1–2 days
+- **Testing**: Failure injection mid-loop, verify rollback
 
 ---
 
-## 📊 Success Metrics
+# 🧭 Order Fulfillment & Tracking - Legacy Issues (Merged)
 
-### Quality Metrics
-- **Bug Reduction**: 80% reduction in order-related production bugs
-- **Performance**: Order creation time <3 seconds (p95)
-- **Reliability**: 99.9% order service uptime
-- **Security**: Zero critical security vulnerabilities
+> **Note**: This section preserves unique items from the legacy `order_fulfillment_issues.md`.
 
-### Business Metrics
-- **Order Conversion**: 15% improvement in checkout conversion
-- **Customer Satisfaction**: Order accuracy >99.5%
-- **Revenue Protection**: Zero revenue loss from pricing errors
-- **Operational Efficiency**: 50% reduction in manual order interventions
+## P1/P2 - Correctness / Semantics
 
----
+- **Issue**: Semantic conflict between `fulfillment.completed` and `order.delivered`.
+  - **Services**: `order`, `fulfillment`
+  - **Location**: `order/internal/service/event_handler.go` (`mapFulfillmentStatusToOrderStatus` function)
+  - **Impact**: `order` maps `fulfillment.completed` to `order.delivered`. This should be driven by shipping delivery confirmation.
+  - **Recommendation**: Change mapping: `fulfillment.completed` → `order.shipped`, `delivered` only on shipping event.
 
-## 🔧 Implementation Guidelines
+## P1 - Resilience / Observability
 
-### Development Standards
-1. **Code Review**: All P0 and P1 fixes require senior developer review
-2. **Testing**: Minimum 80% test coverage for new/modified code
-3. **Documentation**: Update API documentation for all changes
-4. **Monitoring**: Add metrics for all new business logic
+- **Issue**: Event handler in `order` service silently ignores status update errors.
+  - **Service**: `order`
+  - **Location**: `order/internal/service/event_handler.go` (`HandleFulfillmentStatusChanged`)
+  - **Impact**: Failures are hidden; without DLQ/alerting, data inconsistencies persist.
+  - **Recommendation**: Push failing messages to DLQ and trigger high-priority alerts.
 
-### Deployment Process
-1. **Staging Validation**: All fixes deployed to staging first
-2. **Performance Testing**: Load testing for all critical changes
-3. **Rollback Plan**: Quick rollback procedures for all deployments
-4. **Monitoring**: Enhanced monitoring during deployments
+## P2 - Event Reliability
 
-### Quality Assurance
-1. **Automated Testing**: All critical paths covered by automated tests
-2. **Manual Testing**: Business flow validation by QA team
-3. **Security Review**: Security team review for all P0 fixes
-4. **Performance Validation**: Performance team validation for optimization changes
-
----
-
-## 📋 Checklist for Implementation
-
-### Pre-Implementation
-- [ ] Prioritize issues based on business impact
-- [ ] Assign team members to specific issues
-- [ ] Set up monitoring and testing environments
-- [ ] Create rollback procedures for each change
-
-### During Implementation
-- [ ] Follow coding standards and review processes
-- [ ] Write comprehensive tests for all changes
-- [ ] Update documentation as changes are made
-- [ ] Monitor performance impact of changes
-
-### Post-Implementation
-- [ ] Validate all fixes in production
-- [ ] Monitor metrics for improvements
-- [ ] Document lessons learned
-- [ ] Plan for next improvement cycle
-
----
-
-**Document Status**: ✅ Complete Order Flow Analysis  
-**Total Issues**: 51 (P0: 19, P1: 21, P2: 11)  
-**Estimated Timeline**: 14-15 weeks  
-**Next Action**: Begin P0 critical security fixes  
-**Owner**: Development Team  
-**Review Date**: February 15, 2026
+- **Issue**: `fulfillment` service does not use Transactional Outbox for publishing events.
+  - **Service**: `fulfillment`
+  - **Location**: `fulfillment/internal/biz/fulfillment/fulfillment.go`
+  - **Impact**: Events can be lost between commit and publish.
+  - **Recommendation**: Use the same outbox pattern as `order`.

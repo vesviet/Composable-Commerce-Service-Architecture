@@ -1,25 +1,118 @@
-# Cart Management Flow - Code Review Issues
+# Cart Management Flow - Issues, Index, Plan & Fixes
 
-**Last Updated**: 2026-01-18
+**Last Updated**: 2026-01-19  
+**Scope**: Order Service cart/checkout flow (`order/internal/biz/cart/*`)
 
-This document lists issues found during the review of the Cart Management Flow, based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
+This document tracks review findings for the Cart Management Flow and provides a **repeatable verification plan** (API calls, required headers, expected outcomes).
 
 ---
 
-## P1 - Concurrency / Data Integrity
+## Index
 
-- **Issue**: Cart item updates are not atomic and are vulnerable to race conditions.
+- **P0**
+  - **P0-01**: Unmanaged goroutine for event publishing in AddToCart (**Status: ✅ Not applicable / already fixed**)
+- **P1**
+  - **P1-01**: Cart item updates not atomic under concurrency (**Status: ✅ Fixed**)
+  - **P1-02**: Cart totals calculation silently ignores dependency failures (**Status: ✅ Fixed**)
+- **P2**
+  - **P2-01**: CountryCode defaults hardcoded to `VN` causing pricing/tax mismatch (**Status: ✅ Fixed**)
+
+---
+
+## P0-01 - Concurrency / Reliability
+
+- **Issue**: Unmanaged goroutine for event publishing in AddToCart.
+  - **Service**: `order`
+  - **Location**: `order/internal/biz/cart/add.go`
+  - **Status**: ✅ **Not applicable / already fixed**
+  - **Evidence**:
+    - `AddToCart` publishes via `context.WithTimeout(..., 5s)` (synchronous call).
+    - `publishAddToCartEvents(...)` is currently a no-op (kept for backward compatibility).
+  - **Action**: None (keep doc in sync with code).
+
+---
+
+## P2-01 - Correctness / Context (CountryCode propagation)
+
+- **Issue**: CountryCode default was hardcoded to `VN` in multiple cart flows, which can produce incorrect pricing/tax for non-VN customers.
+  - **Service**: `order`
+  - **Locations (before fix)**:
+    - `order/internal/biz/cart/add.go`
+    - `order/internal/biz/cart/helpers_internal.go` (new session defaults)
+    - `order/internal/biz/cart/validate.go`
+    - `order/internal/biz/cart/totals.go`
+    - `order/internal/biz/cart/update.go`
+    - `order/internal/biz/cart/sync.go`
+  - **Impact**:
+    - Wrong pricing rules (final price, discounts) for non-VN.
+    - Wrong tax jurisdiction (compliance/revenue risk).
+  - **Fix Applied (2026-01-19)**:
+    - Centralized fallback into `order/internal/constants/constants.go` as `constants.DefaultCountryCode`.
+    - `AddToCart` now **prefers `req.CountryCode`**, then cart session, then fallback constant.
+    - All other cart flows now use `constants.DefaultCountryCode` (no hardcoded `"VN"`).
+
+### Verification Plan
+
+**Preconditions**
+- Gateway routes are available for Order Service.
+- Pricing service is reachable and returns different results for different country codes (or at minimum logs/accepts the country code parameter).
+
+**Test A: AddToCart respects request country code**
+- Call `POST /api/v1/cart/items`
+- Headers:
+  - `X-Session-ID`: `<session-id>`
+  - `X-Guest-Token`: `<guest-token>` (if guest)
+  - (optional) `X-Customer-ID`: `<customer-uuid>` (if authenticated)
+- Body:
+  - `product_sku`: `<sku>`
+  - `quantity`: 1
+  - `warehouse_id`: `<warehouse-uuid>`
+  - `currency`: `USD`
+  - `country_code`: `US`
+- Expected:
+  - Pricing service receives `countryCode=US` (verify via logs or mock).
+  - Response 200 and cart item reflects the calculated unit/total prices.
+
+**Test B: ValidateCart uses cart CountryCode**
+- Call `GET /api/v1/cart/validate`
+- Expected:
+  - Pricing checks use `cart.CountryCode` or fallback constant if missing.
+
+**Test C: Totals uses country code and fails on tax error**
+- Ensure shipping address has a non-VN country code and run:
+  - `POST /api/v1/cart/refresh` (or totals-calculation path used by UI)
+- Expected:
+  - Tax calculation uses shipping country/state/postcode when present.
+  - If tax dependency fails, the endpoint returns an error (not silent 0).
+
+---
+
+## P1-01 - Concurrency / Data Integrity
+
+- **Issue**: Cart item updates are not atomic and are vulnerable to race conditions. **Status: ✅ Fixed**
   - **Service**: `order`
   - **Location**: `order/internal/biz/cart/add.go`, `order/internal/biz/cart/update.go`
-  - **Impact**: The `Read-Then-Write` pattern is used without locking, which can lead to incorrect cart quantities and totals under concurrent requests.
-  - **Recommendation**: Implement optimistic locking with a `version` field on the `cart_items` table. The `UPDATE` query should check `WHERE version = ?` and the application should retry the logic if the version has changed.
+  - **Impact**: The `Read-Then-Write` pattern can lead to incorrect quantities and totals under concurrent requests.
+  - **Fix**: Transaction + `LoadCartForUpdate` lock for serialized updates in add/update flows.
+
+### Verification Plan (Concurrency)
+- Fire 20 parallel `POST /api/v1/cart/items` requests adding the same SKU to the same session.
+- Expected:
+  - No duplicate cart items for same (cart_id, product_id, warehouse_id).
+  - Final quantity equals sum of increments.
+  - No unique constraint violations / race errors.
 
 ---
 
-## P1/P2 - Resilience / Correctness
+## P1-02 - Resilience / Correctness
 
-- **Issue**: Cart totals calculation has silent failures.
+- **Issue**: Cart totals calculation has silent failures. **Status: ✅ Fixed**
   - **Service**: `order`
   - **Location**: `order/internal/biz/cart/totals.go`
-  - **Impact**: When calls to dependent services (shipping, promotion, tax) fail, the logic logs a warning and continues with a default value of `0`. This can lead to incorrect pricing and compliance/revenue risks (especially for tax, which is a P1 risk).
-  - **Recommendation**: For critical dependencies like Tax, the calculation should fail fast and return an error. For non-critical dependencies like promotions, the current behavior might be acceptable but should be explicitly monitored.
+  - **Impact**: Continuing with default `0` for tax/shipping/promotions can cause incorrect totals and compliance risks.
+  - **Fix**: Current implementation returns errors when shipping/promotions/tax calls fail.
+
+### Verification Plan
+- Temporarily simulate downstream failure (e.g., block pricing/shipping/promotion dependency in dev).
+- Expected:
+  - Totals calculation endpoints return error (non-200) instead of returning 0’d fields.

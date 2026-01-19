@@ -1,7 +1,7 @@
 # Inventory Management Issues & Production Readiness Checklist
 
 > **Purpose**: Comprehensive analysis of inventory ecosystem issues across Warehouse, Catalog, Order, Fulfillment, and Review services  
-> **Date**: January 18, 2026  
+> **Date**: January 19, 2026  
 > **Services Analyzed**: 5 services, 89+ files reviewed  
 > **Priority**: P0 (Blocking), P1 (High), P2 (Normal)
 
@@ -9,8 +9,8 @@
 
 ## 📊 Executive Summary
 
-**Total Issues Identified**: 47 Issues
-- **🔴 P0 (Critical)**: 16 issues - Require immediate attention
+**Total Issues Identified**: 45 Issues
+- **🔴 P0 (Critical)**: 14 issues - Require immediate attention
 - **🟡 P1 (High)**: 19 issues - Complete within 2 weeks  
 - **🟢 P2 (Normal)**: 12 issues - Complete within 4 weeks
 
@@ -20,6 +20,37 @@
 - **P2 Normal Priority**: 2-3 weeks
 
 **Risk Level**: 🔴 HIGH - Critical inventory corruption and overselling risks identified
+
+---
+
+## 🔎 Re-review (2026-01-19) - Unfixed & New Issues (Moved to Top)
+
+### Unfixed Issues
+- **ORD-P0-03**: Stock service fallback logic still marks items out-of-stock when warehouse service fails (no stale cache fallback). See `order/internal/biz/cart/stock.go`.
+- **CAT-P1-05**: Warehouse stock error returns 0, causing false out-of-stock in catalog view. See `catalog/internal/biz/product/product_price_stock.go`.
+- **ORD-P1-04**: Default warehouse ID is hardcoded and used in checkout preview/stock checks. See `order/internal/biz/biz.go`, `order/internal/biz/checkout/preview.go`.
+- **ORD-P1-07**: Checkout fallback uses catalog cached stock without staleness guard. See `order/internal/biz/checkout/validation_helpers.go`.
+- **ORD-P1-08**: Reservation cleanup job assumes warehouse client is configured. See `order/internal/worker/cron/reservation_cleanup.go`.
+- **WH-P0-05**: Reservation confirmation is not fully transactional with inventory decrement. See `warehouse/internal/biz/reservation/reservation.go`.
+- **WH-P1-07**: Reservation confirmation publishes event directly (no outbox). See `warehouse/internal/biz/reservation/reservation.go`.
+- **WH-P1-06**: Unmanaged goroutine for alert checks in inventory update. See `warehouse/internal/biz/inventory/inventory.go`.
+- **FULF-P0-04**: Fulfillment status events are published outside the transaction (no outbox). See `fulfillment/internal/biz/fulfillment/fulfillment.go`.
+- **FULF-P1-05**: Warehouse selection prioritization is TODO (stock/distance not considered). See `fulfillment/internal/biz/fulfillment/fulfillment.go`.
+- **FULF-P1-06**: Event subscriptions skipped when config is nil (order/picklist status consumers). See `fulfillment/internal/data/eventbus/order_status_consumer.go`, `fulfillment/internal/data/eventbus/picklist_status_consumer.go`.
+- **SEARCH-P1-01**: Stock/price consumers skip subscription when config is nil. See `search/internal/data/eventbus/stock_consumer.go`, `search/internal/data/eventbus/price_consumer.go`.
+- **SEARCH-P2-01**: No-op warehouse client returns empty inventory results. See `search/internal/client/noop_clients.go`.
+- **PRICING-P1-01**: Stock consumer skips subscription when config is nil. See `pricing/internal/data/eventbus/stock_consumer.go`.
+- **PRICING-P2-01**: No-op warehouse client returns zero stock. See `pricing/internal/client/warehouse_client.go`.
+- **PROMO-P2-01**: No-op clients return empty data for customer/catalog/pricing. See `promotion/internal/client/noop_clients.go`.
+- **REV-P0-01**: Purchase verification still relies on stub order client (verified reviews not trustworthy). See `review/internal/client/order_client.go`.
+
+### Fixed Issues
+- **CAT-P0-03**: Zero stock TTL now uses adaptive randomized TTL in `catalog/internal/biz/product/product_price_stock.go`.
+- **ORD-P1-05**: Checkout preview now uses request/config defaults instead of hardcoded currency/country. See `order/internal/biz/checkout/preview.go`.
+- **ORD-P1-06**: Checkout preview now guards nil warehouse service. See `order/internal/biz/checkout/preview.go`.
+
+### New Issues
+- None in this pass.
 
 ---
 
@@ -36,7 +67,7 @@
 - **Effort**: 3 days
 - **Testing**: High-concurrency stock update stress tests
 
-#### WH-P0-02: Reservation Timeout Memory Leak
+#### WH-P0-02: Reservation Timeout Memory Leak [DONE]
 - **File**: `warehouse/internal/biz/inventory/inventory.go:234`
 - **Issue**: Stock reservations created with expiration but no cleanup process
 - **Impact**: Permanent stock lockup, leading to artificial stock-outs
@@ -84,12 +115,11 @@
 - **Testing**: Event failure scenarios and cache recovery
 
 #### CAT-P0-03: Zero Stock TTL Exploitation [DONE]
-- **File**: `catalog/internal/biz/product/product_price_stock.go:67`
+- **File**: `catalog/internal/biz/product/product_price_stock.go`
 - **Issue**: Zero stock cached for only 5 minutes, easy to exploit timing
 - **Impact**: Flash sale exploitation, rapid stock level changes
 - **Root Cause**: Fixed TTL without dynamic adjustment
-- **Fix**: Implement adaptive TTL based on stock volatility
-- **Effort**: 2 days
+- **Fix**: Adaptive randomized TTL is implemented for zero stock cache entries.
 - **Testing**: Stock level change pattern analysis
 
 ### Order Service Critical Issues
@@ -112,7 +142,7 @@
 - **Effort**: 1 day
 - **Testing**: Invalid warehouse ID edge cases
 
-#### ORD-P0-03: Stock Service Fallback Logic
+#### ORD-P0-03: Stock Service Fallback Logic [NOT FIXED]
 - **File**: `order/internal/biz/cart/stock.go:35`
 - **Issue**: When warehouse service unavailable, all items marked out-of-stock
 - **Impact**: Complete service degradation on warehouse service issues
@@ -152,12 +182,12 @@
 
 ### Review Service Critical Issues
 
-#### REV-P0-01: Purchase Verification Bypass [DONE]
-- **File**: `review/internal/biz/review/review.go:67`
-- **Issue**: Purchase verification can be bypassed with missing order validation
-- **Impact**: Fake reviews for products never purchased
-- **Root Cause**: Insufficient order-product relationship validation
-- **Fix**: Enhance purchase verification with delivery confirmation
+#### REV-P0-01: Purchase Verification Bypass [NOT FIXED]
+- **File**: `review/internal/biz/review/review.go`, `review/internal/client/order_client.go`
+- **Issue**: Purchase verification relies on stub order client and is not reliable
+- **Impact**: Fake “verified” reviews or false negatives for real orders
+- **Root Cause**: Order client is a stub (no real gRPC calls)
+- **Fix**: Implement real Order service gRPC calls and enforce delivery/completion status
 - **Effort**: 2 days
 - **Testing**: Review fraud scenarios and verification strength
 
@@ -225,7 +255,7 @@
 - **Fix**: Implement batch stock synchronization with rate limiting
 - **Effort**: 2 days
 
-#### CAT-P1-04: Cache Warming Strategy [DONE]
+#### CAT-P1-04: Cache Warming Strategy [NOT FIXED]
 - **File**: `catalog/internal/biz/product/product_price_stock.go`
 - **Issue**: No proactive cache warming for popular products
 - **Impact**: Cache misses for high-traffic products cause latency
@@ -234,7 +264,7 @@
 
 ### Order Service High Priority
 
-#### ORD-P1-01: Cart Session Cleanup
+#### ORD-P1-01: Cart Session Cleanup [DONE]
 - **File**: `order/internal/biz/cart/stock.go`
 - **Issue**: No cleanup process for abandoned carts with stock references
 - **Impact**: Database bloat and potential memory leaks
@@ -257,28 +287,28 @@
 
 ### Fulfillment Service High Priority
 
-#### FULF-P1-01: Picking Optimization
+#### FULF-P1-01: Picking Optimization [NOT FIXED]
 - **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go:345`
 - **Issue**: No picking path optimization or batch picking support
 - **Impact**: Inefficient warehouse operations
 - **Fix**: Implement picking route optimization
 - **Effort**: 4 days
 
-#### FULF-P1-02: Quality Control Integration
+#### FULF-P1-02: Quality Control Integration [NOT FIXED]
 - **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go:234`
 - **Issue**: QC process exists but not integrated with stock movement
 - **Impact**: Quality issues don't trigger stock adjustments
 - **Fix**: Integrate QC results with inventory adjustments
 - **Effort**: 3 days
 
-#### FULF-P1-03: Package Weight Validation
+#### FULF-P1-03: Package Weight Validation [NOT FIXED]
 - **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go:456`
 - **Issue**: Package weight verification exists but no automatic adjustment
 - **Impact**: Shipping cost discrepancies
 - **Fix**: Implement automatic weight-based adjustments
 - **Effort**: 2 days
 
-#### FULF-P1-04: Return Stock Processing
+#### FULF-P1-04: Return Stock Processing [NOT FIXED]
 - **File**: `fulfillment/internal/biz/fulfillment/fulfillment.go`
 - **Issue**: No automated stock restoration on returns
 - **Impact**: Manual intervention required for return processing
@@ -427,7 +457,7 @@
 - WH-P0-02: Reservation timeout cleanup
 - FULF-P0-03: Reservation validation
 - REV-P0-01: Purchase verification enhancement
-- CAT-P0-03: Zero stock TTL optimization
+- CAT-P0-03: Zero stock TTL optimization (DONE)
 
 ### Phase 2: Business Logic & Performance (Weeks 6-11)
 **Focus**: P1 Issues - Business Process Optimization
