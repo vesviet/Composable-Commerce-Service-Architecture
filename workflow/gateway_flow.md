@@ -1,6 +1,6 @@
 # Gateway Service Flow
 
-**Last Updated**: 2026-01-18
+**Last Updated**: 2026-01-20
 **Status**: Verified vs Code
 
 ## Overview
@@ -35,11 +35,77 @@ A typical request to a protected resource flows through the gateway as follows:
 
 4.  **Response**: The response from the downstream service is proxied back to the original client.
 
+---
+
+## Additional Flows (Currently Implemented)
+
+The gateway has several alternative routing paths that are not part of the basic proxy flow above. These are active in code and must be understood when debugging routing behavior.
+
+### A) Auto-Routing Flow (`/api/v1/{resource}/*`)
+
+**Purpose**: Dynamic mapping of resources to services without explicit route definitions.
+
+1. **URL Parsing**: The AutoRouter parses the request path and extracts `resource` and `remaining_path`.
+2. **Route Resolution**: The RouteResolver maps `resource` to a target service based on routing rules and cached resolution.
+3. **Middleware Chain**: The AutoRouter uses the centralized `MiddlewareManager` if available. Order is:
+    - `cors`
+    - `language` (if enabled)
+    - `rate_limit` (if enabled)
+    - `auth` (if route is not public)
+    - `warehouse_detection` (for `cart` and `orders` resources)
+    - `circuit_breaker` (if enabled)
+    - `monitoring` (if enabled)
+4. **Forwarding**: The request is proxied via the shared `ProxyHandler` using the resolved service URL.
+5. **CORS Preflight**: `OPTIONS` requests short-circuit at the start and return `204` with CORS headers.
+
+### B) Legacy URL Conversion Flow (`/api/{service-name}/v1/...`)
+
+**Purpose**: Backward compatibility for old service-specific URL formats.
+
+1. **Explicit Route Check**: If the path matches a registered exact route, the legacy handler returns 404 to prevent shadowing.
+2. **URL Conversion**: The LegacyRouter rewrites old URLs to the new `/api/v1/{resource}/*` format.
+3. **Deprecation Headers**: Adds `Deprecation`, `Sunset`, and `Link` headers pointing to the new URL.
+4. **Forward to AutoRouter**: The converted request is processed via the AutoRouter flow above.
+
+### C) BFF Handler Flow (Gateway-Owned Handlers)
+
+**Purpose**: Routes owned by the gateway itself, not proxied to other services.
+
+1. **Pattern Match**: Routes with `service: gateway` and `handler` defined in `routing.patterns` are treated as BFF routes.
+2. **Handler Selection**:
+    - `aggregation` → home aggregation endpoint (only `/api/v1/home`)
+    - `product` → product-specific aggregation (handles `/api/v1/products` and `/api/v1/products/*`)
+    - `admin` → admin-specific handler
+3. **Method Filter**: If `methods` are configured, non-matching methods return 405.
+4. **Middleware**: Pattern-specific middleware is applied, then the handler executes.
+
+### D) System & Ops Endpoints Flow (Gateway-Owned Utilities)
+
+**Purpose**: Operational endpoints served directly by the gateway, not proxied.
+
+1. **Gateway Info**: `/` returns gateway info (landing/metadata) via `gatewayInfoHandlerKratos`.
+2. **Health Checks**:
+    - `/health` → basic liveness
+    - `/dashboard/health` → health dashboard
+    - `/api/services/health` → aggregated downstream health
+3. **Docs/Swagger Aggregation**:
+    - `/docs` and `/docs/*` → Swagger UI aggregator
+    - `/swagger/links` and `/swagger/*` → per-service spec links and raw specs
+4. **Error Monitoring**:
+    - `/errors/stats` → aggregated error stats
+    - `/errors/details` → detailed error info
+    - `/test/error` → generates test errors for validation
+
+**Priority Rule**: These routes are registered before any prefix patterns and before auto-routing, so they always take precedence.
+
+---
+
 ### Key Architectural Patterns
 
 -   **Declarative Configuration**: Routing and middleware policies are declared in `gateway.yaml`, making the gateway's behavior easy to understand and audit.
 -   **Middleware Presets**: YAML anchors are used to define reusable middleware chains (e.g., `public`, `authenticated`, `admin`), which simplifies route configuration.
 -   **Optimized Middleware Manager**: The `MiddlewareManager` pre-builds and caches common middleware chains at startup to improve performance by avoiding repeated logic on every request.
+-   **Explicit Route Priority**: Exact routes are registered before prefix routes and auto-routing to avoid accidental shadowing.
 
 ---
 

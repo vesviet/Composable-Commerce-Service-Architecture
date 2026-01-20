@@ -1,7 +1,7 @@
 # Inventory Management Issues & Production Readiness Checklist
 
 > **Purpose**: Comprehensive analysis of inventory ecosystem issues across Warehouse, Catalog, Order, Fulfillment, and Review services  
-> **Date**: January 19, 2026  
+> **Date**: January 20, 2026  
 > **Services Analyzed**: 5 services, 89+ files reviewed  
 > **Priority**: P0 (Blocking), P1 (High), P2 (Normal)
 
@@ -23,34 +23,76 @@
 
 ---
 
-## 🔎 Re-review (2026-01-19) - Unfixed & New Issues (Moved to Top)
+## 🚩 PENDING ISSUES (Unfixed)
+- [Critical] REV-P0-01 Purchase Verification: Stub order client still allows fake “verified” reviews if gRPC connection fails (fail-open). Required: fail-closed or remove stub fallback. See `review/internal/client/order_client.go`.
 
-### Unfixed Issues
-- **ORD-P0-03**: Stock service fallback logic still marks items out-of-stock when warehouse service fails (no stale cache fallback). See `order/internal/biz/cart/stock.go`.
-- **CAT-P1-05**: Warehouse stock error returns 0, causing false out-of-stock in catalog view. See `catalog/internal/biz/product/product_price_stock.go`.
-- **ORD-P1-04**: Default warehouse ID is hardcoded and used in checkout preview/stock checks. See `order/internal/biz/biz.go`, `order/internal/biz/checkout/preview.go`.
-- **ORD-P1-07**: Checkout fallback uses catalog cached stock without staleness guard. See `order/internal/biz/checkout/validation_helpers.go`.
-- **ORD-P1-08**: Reservation cleanup job assumes warehouse client is configured. See `order/internal/worker/cron/reservation_cleanup.go`.
-- **WH-P0-05**: Reservation confirmation is not fully transactional with inventory decrement. See `warehouse/internal/biz/reservation/reservation.go`.
-- **WH-P1-07**: Reservation confirmation publishes event directly (no outbox). See `warehouse/internal/biz/reservation/reservation.go`.
-- **WH-P1-06**: Unmanaged goroutine for alert checks in inventory update. See `warehouse/internal/biz/inventory/inventory.go`.
-- **FULF-P0-04**: Fulfillment status events are published outside the transaction (no outbox). See `fulfillment/internal/biz/fulfillment/fulfillment.go`.
-- **FULF-P1-05**: Warehouse selection prioritization is TODO (stock/distance not considered). See `fulfillment/internal/biz/fulfillment/fulfillment.go`.
-- **FULF-P1-06**: Event subscriptions skipped when config is nil (order/picklist status consumers). See `fulfillment/internal/data/eventbus/order_status_consumer.go`, `fulfillment/internal/data/eventbus/picklist_status_consumer.go`.
-- **SEARCH-P1-01**: Stock/price consumers skip subscription when config is nil. See `search/internal/data/eventbus/stock_consumer.go`, `search/internal/data/eventbus/price_consumer.go`.
-- **SEARCH-P2-01**: No-op warehouse client returns empty inventory results. See `search/internal/client/noop_clients.go`.
-- **PRICING-P1-01**: Stock consumer skips subscription when config is nil. See `pricing/internal/data/eventbus/stock_consumer.go`.
-- **PRICING-P2-01**: No-op warehouse client returns zero stock. See `pricing/internal/client/warehouse_client.go`.
-- **PROMO-P2-01**: No-op clients return empty data for customer/catalog/pricing. See `promotion/internal/client/noop_clients.go`.
-- **REV-P0-01**: Purchase verification still relies on stub order client (verified reviews not trustworthy). See `review/internal/client/order_client.go`.
+- [High] ORD-P1-07 Checkout Fallback Staleness: Catalog cached stock used without staleness guard in checkout validation. Required: staleness metadata + fallback policy. See `order/internal/biz/checkout/validation_helpers.go`.
+- [High] ORD-P1-02 Stock Check Optimization: Serial checks are slow. Required: batch/parallel stock checks. See `order/internal/biz/cart/stock.go`.
+- [High] ORD-P1-03 Partial Stock Handling: All-or-nothing allocation. Required: partial allocation + customer choice. See `order/internal/biz/cart/stock.go`.
+- [High] WH-P1-04 Warehouse Capacity Management: No capacity tracking. Required: capacity model + alerts. See `warehouse/internal/biz/inventory/inventory.go`.
+- [High] FULF-P1-01 Picking Optimization: No route/batch picking. Required: picking optimization. See `fulfillment/internal/biz/fulfillment/fulfillment.go`.
+- [High] FULF-P1-02 QC Integration: QC results not tied to stock adjustment. Required: QC → inventory flow. See `fulfillment/internal/biz/fulfillment/fulfillment.go`.
+- [High] FULF-P1-03 Package Weight Validation: No auto-adjustment. Required: weight-based adjustments. See `fulfillment/internal/biz/fulfillment/fulfillment.go`.
+- [High] FULF-P1-04 Return Stock Processing: No automated return-to-stock. Required: return workflow. See `fulfillment/internal/biz/fulfillment/fulfillment.go`.
+- [High] INT-P1-01 Event Ordering Guarantees: No ordering. Required: sequence numbers or ordering keys.
+- [High] INT-P1-02 Circuit Breaker Implementation: Missing in inventory service calls. Required: circuit breakers + fallback.
+- [High] INT-P1-03 Distributed Transaction Monitoring: No monitoring for success rates. Required: distributed transaction metrics.
+- [High] CAT-P1-04 Cache Warming Strategy: No proactive warming. Required: pre-warm strategy for hot SKUs.
 
-### Fixed Issues
-- **CAT-P0-03**: Zero stock TTL now uses adaptive randomized TTL in `catalog/internal/biz/product/product_price_stock.go`.
-- **ORD-P1-05**: Checkout preview now uses request/config defaults instead of hardcoded currency/country. See `order/internal/biz/checkout/preview.go`.
-- **ORD-P1-06**: Checkout preview now guards nil warehouse service. See `order/internal/biz/checkout/preview.go`.
+- [Medium] PERF-P2-01 Database Query Optimization: Missing indexes in inventory queries. Required: query plan review + indexes.
+- [Medium] PERF-P2-02 Cache Hit Ratio Improvement: Improve caching strategy. Required: adaptive TTL + warmup.
+- [Medium] PERF-P2-03 Batch Processing Optimization: Improve throughput with parallelization.
+- [Medium] MON-P2-01 Inventory Metrics Dashboard: Missing business metrics. Required: add dashboard + KPIs.
+- [Medium] MON-P2-02 Stock Movement Analytics: No analytics on movement patterns. Required: movement analytics pipeline.
+- [Medium] MON-P2-03 Alert Configuration Management: Thresholds hardcoded. Required: dynamic alert config.
+- [Medium] DOC-P2-01 API Documentation Completeness: Incomplete inventory API docs. Required: complete OpenAPI.
+- [Medium] DOC-P2-02 Inventory Reconciliation Procedures: No reconciliation SOP. Required: documented procedure + automation.
+- [Medium] DATA-P2-01 Data Retention Policy: No lifecycle policy. Required: retention rules.
+- [Medium] DATA-P2-02 Backup Verification: No automated verification. Required: scheduled restore tests.
+- [Medium] DATA-P2-03 Historical Data Migration: No migration strategy. Required: migration framework.
+- [Medium] DATA-P2-04 Audit Data Export: No export/reporting. Required: audit export tooling.
 
-### New Issues
+## 🆕 NEWLY DISCOVERED ISSUES
 - None in this pass.
+
+## ✅ RESOLVED / FIXED
+- ~~[FIXED ✅] ORD-P0-03 Stock Service Fallback: Catalog cache fallback with staleness guard implemented in cart stock checks.~~
+- ~~[FIXED ✅] WH-P0-05 Reservation Confirm Atomicity: Confirm wrapped in transaction with inventory decrement + outbox.~~
+- ~~[FIXED ✅] FULF-P0-04 Fulfillment Event Outbox: Event publisher uses outbox repository (transactional).~~
+- ~~[FIXED ✅] FULF-P0-02 Multi-Warehouse Allocation: Warehouse selection now considers stock/capacity/location.~~
+- ~~[FIXED ✅] CAT-P1-05 Stock Error → Zero: Warehouse stock errors now return error and fallback to cache.~~
+- ~~[FIXED ✅] ORD-P1-04 Default Warehouse Hardcode: Removed hardcoded default; uses request/config context.~~
+- ~~[FIXED ✅] ORD-P1-08 Reservation Cleanup Assumes Client: Guard added for nil warehouse client.~~
+- ~~[FIXED ✅] WH-P1-06 Inventory Alert Goroutine: Background checks now guarded with timeout + panic recovery.~~
+- ~~[FIXED ✅] WH-P1-07 Reservation Event Outbox: Reservation confirmation writes to outbox in-transaction.~~
+- ~~[FIXED ✅] FULF-P1-05 Warehouse Selection TODO: Selection algorithm implemented (stock/capacity/distance).~~
+- ~~[FIXED ✅] FULF-P1-06 Event Subscriptions Nil Config: Fail-fast with explicit misconfiguration error.~~
+- ~~[FIXED ✅] SEARCH-P1-01 Event Subscriptions Nil Config: Fail-fast with explicit misconfiguration error.~~
+- ~~[FIXED ✅] SEARCH-P2-01 No-op Warehouse Client: Now returns error instead of empty inventory.~~
+- ~~[FIXED ✅] PRICING-P1-01 Event Subscriptions Nil Config: Fail-fast with explicit misconfiguration error.~~
+- ~~[FIXED ✅] PRICING-P2-01 No-op Warehouse Client: Now returns error instead of zero stock.~~
+- ~~[FIXED ✅] PROMO-P2-01 No-op Clients: Now return errors instead of empty data.~~
+- ~~[FIXED ✅] WH-P0-01 Atomic Stock Update Race Condition: Implemented atomic updates.~~
+- ~~[FIXED ✅] WH-P0-02 Reservation Timeout Memory Leak: Cleanup worker added.~~
+- ~~[FIXED ✅] WH-P0-03 Negative Stock Levels Allowed: Constraints/validation added.~~
+- ~~[FIXED ✅] WH-P0-04 Transactional Outbox Event Loss: Outbox atomicity ensured.~~
+- ~~[FIXED ✅] CAT-P0-01 Stock Cache Poisoning Vulnerability: Secure cache keys added.~~
+- ~~[FIXED ✅] CAT-P0-02 Cache Invalidation Failure Handling: Fallback/verification implemented.~~
+- ~~[FIXED ✅] CAT-P0-03 Zero Stock TTL Exploitation: Adaptive randomized TTL implemented.~~
+- ~~[FIXED ✅] ORD-P0-01 Cart Stock Validation Race Condition: Validation moved into transaction.~~
+- ~~[FIXED ✅] ORD-P0-02 Warehouse ID Validation Bypass: Strict validation added.~~
+- ~~[FIXED ✅] FULF-P0-01 Stock Consumption Atomicity: Saga/coordination added.~~
+- ~~[FIXED ✅] FULF-P0-03 Reservation Validation Bypass: Validation/renewal added.~~
+- ~~[FIXED ✅] WH-P1-01 Inventory Audit Trail Gaps: Audit logging implemented.~~
+- ~~[FIXED ✅] WH-P1-02 Bulk Stock Operations Missing: Batch operations implemented.~~
+- ~~[FIXED ✅] WH-P1-03 Stock Alert Configuration: Configurable thresholds added.~~
+- ~~[FIXED ✅] WH-P1-05 Expiry Date Management: FIFO enforcement implemented.~~
+- ~~[FIXED ✅] CAT-P1-01 Price-Stock Consistency: Atomic cache updates implemented.~~
+- ~~[FIXED ✅] CAT-P1-02 Multi-Warehouse Stock Aggregation: Aggregation logic improved.~~
+- ~~[FIXED ✅] CAT-P1-03 Stock Synchronization Performance: Batch sync added.~~
+- ~~[FIXED ✅] ORD-P1-01 Cart Session Cleanup: Cleanup cron job implemented.~~
+- ~~[FIXED ✅] ORD-P1-05 Checkout Preview Defaults: Config-based defaults applied.~~
+- ~~[FIXED ✅] ORD-P1-06 Nil Warehouse Guard: Guard added in preview.~~
 
 ---
 

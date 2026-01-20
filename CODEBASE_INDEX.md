@@ -1,15 +1,15 @@
 # 📚 MICROSERVICES CODEBASE INDEX
 
-**Last Updated**: January 11, 2026  
+**Last Updated**: January 20, 2026  
 **Project**: E-commerce Microservices Platform  
-**Total Services**: 18 Services (16 Go + 2 Node.js)  
+**Total Services**: 21 Services (19 Go + 2 Node.js)  
 **Platform Status**: 88% Complete, Production-Ready
 
 ---
 
 ## 📊 EXECUTIVE SUMMARY
 
-This is a comprehensive **microservices-based e-commerce platform** built with modern technologies and enterprise-grade architecture. The platform is **88% complete** with **14 out of 16 Go services ready for production deployment**.
+This is a comprehensive **microservices-based e-commerce platform** built with modern technologies and enterprise-grade architecture. The platform is **88% complete** with **17 out of 19 Go services ready for production deployment**.
 
 ### 🎯 Key Business Benefits
 - ✅ **Scalable**: Each service scales independently based on demand
@@ -34,9 +34,9 @@ This is a comprehensive **microservices-based e-commerce platform** built with m
 
 ## 🏗️ SERVICES ARCHITECTURE
 
-### 🚀 Go Microservices (16 Services)
+### 🚀 Go Microservices (19 Services)
 
-#### ✅ Production Ready (14 Services - 87.5%)
+#### ✅ Production Ready (17 Services - 89.5%)
 
 | Service | Purpose | Status | Completion | Path | Key Features |
 |---------|---------|--------|------------|------|--------------|
@@ -49,13 +49,16 @@ This is a comprehensive **microservices-based e-commerce platform** built with m
 | **🎯 Promotions** | Discount campaigns & coupons | ✅ Production | 92% | `/promotion` | Campaign management, discount rules, usage tracking |
 | **📊 Warehouse Management** | Inventory & stock management | ✅ Production | 90% | `/warehouse` | Real-time stock, reservations, multi-warehouse support |
 | **🛒 Order Management** | Cart & order processing | ✅ Production | 90% | `/order` | Cart sessions, checkout, order tracking, returns |
+| **📦 Fulfillment** | Pick/pack/ship execution | ✅ Production | 90% | `/fulfillment` | Picklists, packaging, fulfillment workflow |
+| **🚚 Shipping** | Carrier integrations & shipments | ✅ Production | 90% | `/shipping` | Rate quotes, label generation, tracking |
 | **🔍 Search Engine** | Product search & discovery | ✅ Production | 95% | `/search` | AI-powered search, filters, recommendations |
 | **📧 Notifications** | Multi-channel notifications | ✅ Production | 90% | `/notification` | Email, SMS, push notifications, templates |
 | **🚪 API Gateway** | Request routing & security | ✅ Production | 95% | `/gateway` | Load balancing, authentication, rate limiting |
 | **🗺️ Location Services** | Geographic data & zones | ✅ Production | 90% | `/location` | Vietnam location data, delivery zones |
 | **📈 Analytics** | Business intelligence | ✅ Production | 85% | `/analytics` | Sales analytics, customer insights, performance metrics |
+| **🧰 Common Operations** | Task orchestration & shared jobs | ✅ Production | 90% | `/common-operations` | Import/export, async tasks, file handling |
 
-#### 🟡 Near Production (2 Services - 12.5%)
+#### 🟡 Near Production (2 Services - 10.5%)
 
 | Service | Purpose | Status | Completion | Path | Remaining Work |
 |---------|---------|--------|------------|------|----------------|
@@ -144,6 +147,16 @@ This section captures the **actual source tree layout** observed in the reposito
 - **Notes**: contains `pkg/` (service-local utilities) and `go.mod.old`
 
 ### 🧩 Supporting Services
+
+#### `common-operations`
+- **Entrypoints**: `cmd/operations`, `cmd/worker`, `cmd/migrate`
+- **API**: `api/operations/v1`
+- **Internal**:
+  - `internal/biz/` (task orchestration)
+  - `internal/data/` (`postgres`, `redis`), `internal/storage/` (local/s3/minio)
+  - `internal/event/` (Dapr pub/sub), `internal/client/`
+  - plus standard layers: `internal/service/`, `internal/server/`, `internal/worker/`
+- **Migrations**: `migrations/`
 
 #### `notification`
 - **Entrypoints**: `cmd/notification`, `cmd/worker`, `cmd/migrate`
@@ -456,8 +469,8 @@ Each service maintains its own PostgreSQL database for data isolation:
 
 ## 🏆 PRODUCTION READINESS ASSESSMENT
 
-### ✅ Go Services: 87.5% Production Ready
-- **14 services** ready for immediate production deployment
+### ✅ Go Services: 89.5% Production Ready
+- **17 services** ready for immediate production deployment
 - **Comprehensive error handling** and structured logging
 - **Health checks** and monitoring endpoints
 - **Database migrations** and schema management
@@ -609,7 +622,7 @@ Each service includes comprehensive README.md with:
 
 ## 🏁 CONCLUSION
 
-This e-commerce microservices platform represents a **world-class implementation** of modern software architecture principles. With **88% completion** and **87.5% of Go services production-ready**, the platform is well-positioned for successful deployment and scaling.
+This e-commerce microservices platform represents a **world-class implementation** of modern software architecture principles. With **88% completion** and **89.5% of Go services production-ready**, the platform is well-positioned for successful deployment and scaling.
 
 **Key Strengths:**
 - ✅ **Solid Architecture**: Clean, maintainable, scalable design
@@ -623,7 +636,7 @@ This e-commerce microservices platform represents a **world-class implementation
 ---
 
 **Version**: 2.0.0  
-**Last Updated**: January 11, 2026  
+**Last Updated**: January 20, 2026  
 **Maintainer**: Platform Engineering Team
 - Redis
 - Consul
@@ -915,7 +928,7 @@ See [SERVICES_QUICK_STATUS.md](file:///Users/tuananh/Desktop/myproject/microserv
 ## 📊 CODEBASE STATISTICS
 
 ```
-Total Services:        18 (16 Go + 2 Node.js)
+Total Services:        21 (19 Go + 2 Node.js)
 Total Directories:     ~11,000+
 Common Package:        v1.2.7
 Go Version:            1.25++
@@ -933,7 +946,7 @@ Service Discovery:     Consul
 - **Commerce**: catalog, order, payment, pricing, promotion
 - **Inventory**: warehouse, shipping, fulfillment
 - **Customer**: customer, user, auth, loyalty-rewards, review
-- **System**: gateway, notification, search
+- **System**: gateway, notification, search, analytics, common-operations
 
 ### By Status
 - **Production**: All except review & loyalty-rewards

@@ -1,9 +1,31 @@
 # Checkout Process Flow - Issues, Index, Plan & Fixes
 
-**Last Updated**: 2026-01-19  
+**Last Updated**: 2026-01-20  
 **Scope**: Order Service checkout (`order/internal/biz/checkout/*`)
 
 This document tracks review findings for the Checkout flow and provides a **repeatable verification plan** (API calls, required headers, expected outcomes).
+
+---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- [High] [NEW ISSUE 🆕] CHECKOUT-P1-06 Payment Event Topic Mismatch: Consumer subscribes to `payment.confirmed`/`payment.failed` while constants define `payments.payment.confirmed`/`payments.payment.failed`. Required: align topics with constants to avoid missed events. See `order/internal/data/eventbus/payment_consumer.go`, `order/internal/constants/constants.go`.
+- [High] [NEW ISSUE 🆕] CHECKOUT-P1-07 Silent Subscription Skip: Payment consumer returns nil on missing config/pubsub, silently disabling critical capture events. Required: fail-fast or explicit disable flag. See `order/internal/data/eventbus/payment_consumer.go`.
+- [High] [NEW ISSUE 🆕] CHECKOUT-P1-08 Outbox Publisher No-Op Risk: If Dapr publisher fails init, it falls back to NoOp but outbox worker still marks events as published, losing critical payment events. Required: fail startup or keep events pending when publisher is NoOp. See `order/internal/events/publisher.go`, `order/internal/worker/outbox/worker.go`.
+- [Medium] [NEW ISSUE 🆕] CHECKOUT-P2-02 Outbox Status Semantics: Outbox worker uses status `published` while schema defaults to `pending` and no cleanup policy is defined. Required: unify status enum (pending/failed/completed) + add cleanup retention. See `order/internal/worker/outbox/worker.go`, `order/internal/data/postgres/outbox.go`.
+- [Medium] P2-01 ConfirmCheckout Complexity: `ConfirmCheckout` still overly long/complex. Required: refactor into smaller private methods. See `order/internal/biz/checkout/confirm.go`.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- [Reliability] [NEW ISSUE 🆕] CHECKOUT-P1-06 Payment event topic mismatch (confirmed/failed) can drop events.
+- [Reliability] [NEW ISSUE 🆕] CHECKOUT-P1-07 Payment consumer silently skips subscriptions when config is nil.
+- [Reliability] [NEW ISSUE 🆕] CHECKOUT-P1-08 Outbox publisher NoOp fallback causes event loss while marking as published.
+- [Maintainability] [NEW ISSUE 🆕] CHECKOUT-P2-02 Outbox status/cleanup semantics are inconsistent.
+
+## ✅ RESOLVED / FIXED
+- ~~[FIXED ✅] P1-01 Authorization currency fallback hardcoded to USD: now uses `constants.DefaultCurrency`.~~
+- ~~[FIXED ✅] P1-02 Capture failure wraps wrong error variable: already correct.~~
+- ~~[FIXED ✅] P1-03 Capture failure ignores order status update errors: now logs/alerts.~~
+- ~~[FIXED ✅] P1-04 Compensation errors ignored: now returned and alerted.~~
+- ~~[FIXED ✅] P1-05 Checkout confirm lacks durable Saga: outbox capture + consumer + retry worker implemented.~~
 
 ---
 
@@ -14,7 +36,7 @@ This document tracks review findings for the Checkout flow and provides a **repe
   - **P1-02**: Capture failure wraps wrong error variable (**Status: ✅ Not applicable / already correct**)  
   - **P1-03**: Capture failure ignores order status update errors (**Status: ✅ Fixed**)  
   - **P1-04**: Compensation (void/refund/release) errors ignored (**Status: ✅ Fixed**)  
-  - **P1-05**: Checkout confirm is a manual distributed transaction, lacks durable Saga (**Status: ❌ Not fixed**)  
+  - **P1-05**: Checkout confirm is a manual distributed transaction, lacks durable Saga (**Status: ✅ Fixed**)  
 - **P2**
   - **P2-01**: `ConfirmCheckout` overly long/complex (**Status: ❌ Not fixed**)  
 
@@ -96,9 +118,7 @@ This document tracks review findings for the Checkout flow and provides a **repe
 - **Issue**: Checkout confirm is a sequential distributed transaction (`Authorize -> Create Order -> Capture`) without a durable Saga/state machine.
   - **Service**: `order`
   - **Location**: `order/internal/biz/checkout/confirm.go`
-  - **Status**:
-    - ✅ **Phase 1 Completed (2026-01-19)**
-    - ✅ **Phase 2 (partial)**: Capture retry worker implemented
+  - **Status**: ✅ **Fixed** (Phase 1 + Phase 2 + Phase 3 implemented)
 
 ### Implementation Summary (Phase 1)
 - ✅ **Migration 035**: Added Saga state fields to `orders` table:
@@ -109,17 +129,12 @@ This document tracks review findings for the Checkout flow and provides a **repe
 - ✅ **Idempotent Capture**: `capturePayment` checks already-captured before calling payment service
 - ✅ **State Tracking**: Order creation sets `authorized`; capture sets `capture_pending` → `captured`/`capture_failed`
 
-### Implementation Summary (Phase 2 - partial)
+### Implementation Summary (Phase 2 - finished)
 - ✅ **Capture Retry Worker** (`capture-retry-job`):
   - Scans orders in `authorized` / `capture_failed` states
   - Applies exponential backoff (capped) + max retries
   - Idempotent capture using Saga state + authorization_id
   - Updates Saga state to `capture_pending` → `captured` or `capture_failed`
-- 🔜 **Remaining Phase 2 work**:
-  - Outbox-driven capture initiation (emit `orders.payment.capture_requested`)
-  - Emit `orders.payment.captured` / `orders.payment.capture_failed` events
-
-### Implementation Summary (Phase 2 - finished)
 - ✅ **Outbox-driven capture initiation**
   - On order creation with `payment_saga_state=authorized`, Order service enqueues outbox event:
     - topic: `orders.payment.capture_requested`
@@ -152,10 +167,6 @@ This document tracks review findings for the Checkout flow and provides a **repe
    - Authorize payment, stop service before capture
    - Restart worker; it retries capture using same `authorization_id`
    - Expect successful capture without duplication
-
-### Remaining Phases
-- **Phase 2 (finish)**: Outbox-driven capture orchestration + payment events
-- **Phase 3**: ✅ Compensation worker for stuck states (void auth, cancel order, DLQ + alerting)
 
 ### Phase 3 - Compensation + DLQ (Implemented)
 - ✅ **Compensation job**: `payment-compensation-job`

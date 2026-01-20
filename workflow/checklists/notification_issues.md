@@ -1,8 +1,46 @@
 # Notification Flow - Code Review Issues
 
-**Last Updated**: 2026-01-18
+**Last Updated**: 2026-01-20
 
 This document lists issues found during the review of the Notification Flow, based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
+
+---
+
+## Resolution Plan (Actionable Checklist)
+
+### 1) Durability & Retries for Notification Sends (P1)
+
+- [ ] **Add persistent queueing**: store a `pending` notification record and process via a background worker.
+- [ ] **Retry strategy**: exponential backoff with jitter; cap retries and mark `failed` with reason.
+- [ ] **Idempotency**: ensure repeated delivery attempts do not duplicate external sends.
+- [ ] **Observability**: metrics for `pending`, `sent`, `failed`, `retry_count`, and latency.
+
+**Acceptance Criteria**:
+- API returns after record creation only; delivery happens in worker.
+- If the service crashes after API returns, pending notifications are still delivered.
+- Transient failures are retried; permanent failures are surfaced with reason.
+
+### 2) Decouple via Events (P2)
+
+- [ ] **Publish events**: emit domain events from source services (e.g., `order.status_changed`).
+- [ ] **Subscribe**: notification service subscribes and determines if a notification is required.
+- [ ] **Schema**: add JSON schema under `docs/json-schema/` for each event.
+
+**Acceptance Criteria**:
+- Source services no longer call notification synchronously for status changes.
+- Notification service processes events asynchronously and independently.
+
+### 3) Complete Sender Implementations (P2)
+
+- [ ] **Email**: integrate provider (e.g., SendGrid) with retries and provider error mapping.
+- [ ] **SMS**: integrate provider (e.g., Twilio) with rate limits and failover handling.
+- [ ] **Push**: integrate provider (e.g., FCM/APNs) with token hygiene.
+
+**Acceptance Criteria**:
+- `email`, `sms`, `push` channels are fully implemented and tested.
+- Failures return actionable error types and are retried when transient.
+
+---
 
 ---
 

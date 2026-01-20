@@ -1,22 +1,35 @@
 # Common-Operations Flow - Issues Checklist
 
-## ✅ Reviewed Areas
-- Service APIs
-- Task usecase
-- Worker/consumer pipeline
+**Last Updated**: 2026-01-20
 
-## 🔎 Re-review (2026-01-19)
+## Codebase Index (Common Package)
+- common/worker: base & continuous workers, registry, metrics
+- common/events: Dapr consumer/publisher (gRPC), helpers
+- common/observability: health, metrics interfaces, tracing, rate-limit
+- common/errors: structured error helpers
+- common/config: service config loader
+- common/utils: transaction, metadata, http, strings, time helpers
 
-### Fixed
-- [x] **Unmanaged goroutine (P0)**: TaskConsumer dùng `go` trực tiếp khi process pending tasks → đã dùng `errgroup` quản lý concurrency. [common-operations/internal/worker/consumer.go](common-operations/internal/worker/consumer.go#L139-L176)
-- [x] **CreateTask không validate required fields**: thêm check `task_type`, `entity_type`, `requested_by`. [common-operations/internal/service/operations.go](common-operations/internal/service/operations.go#L32-L50)
-- [x] **CreateTask ignore error khi UpdateTask uploadUrl**: handle lỗi từ `UpdateTask`. [common-operations/internal/service/operations.go](common-operations/internal/service/operations.go#L66-L78)
-- [x] **UpdateTaskProgress ép status=processing**: chặn update khi task ở trạng thái terminal. [common-operations/internal/service/operations.go](common-operations/internal/service/operations.go#L155-L177)
-- [x] **Task event/log persistence không check error**: handle lỗi `eventRepo.Create` và publish event. [common-operations/internal/biz/task/task.go](common-operations/internal/biz/task/task.go#L48-L111)
+---
 
-## 🧩 Issues / Gaps
-- None in this pass.
+## 🚩 PENDING ISSUES (Unfixed)
+- [High] [NEW ISSUE 🆕] COMMON-EVT-P1-01 Dapr Consumer Port Hardcoded: `NewConsumerClientWithLogger` binds to `:5005` without env/config override. Required: read from config/env to support dev/K8s variability. See `common/events/dapr_consumer.go`.
+- [High] [NEW ISSUE 🆕] COMMON-EVT-P1-02 Dapr Disabled Returns Nil Publisher: `NewDaprEventPublisherGRPC` returns `(nil, nil)` when `DAPR_DISABLED=true`, risking nil deref in callers. Required: return NoOp publisher or explicit error. See `common/events/dapr_publisher_grpc.go`.
+- [Medium] [NEW ISSUE 🆕] COMMON-EVT-P2-01 Subscription Concurrency Fixed to 1: Consumer sets `maxConcurrentMessages=1` with no config override. Required: make configurable per service. See `common/events/dapr_consumer.go`.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- [Reliability] [NEW ISSUE 🆕] COMMON-EVT-P1-01 Hardcoded Dapr consumer port prevents flexible deployment.
+- [Reliability] [NEW ISSUE 🆕] COMMON-EVT-P1-02 Nil publisher on `DAPR_DISABLED` can crash at runtime.
+- [Maintainability] [NEW ISSUE 🆕] COMMON-EVT-P2-01 Fixed concurrency for all subscriptions limits scaling.
+
+## ✅ RESOLVED / FIXED
+- ~~[FIXED ✅] Unmanaged goroutine (P0): TaskConsumer now uses `errgroup` for concurrency.~~
+- ~~[FIXED ✅] CreateTask missing required fields: added validation.~~
+- ~~[FIXED ✅] CreateTask ignored uploadUrl update error: now handled.~~
+- ~~[FIXED ✅] UpdateTaskProgress forced status to processing: blocked for terminal states.~~
+- ~~[FIXED ✅] Task event/log persistence ignored errors: now handled.~~
+
+---
 
 ## Notes
-- Cần policy state machine (pending → running → completed/failed/cancelled).
-- Worker nên dùng errgroup/worker pool để quản lý concurrency.
+- Consider documenting K8s debugging steps (logs/exec/port-forward) for common-operations.

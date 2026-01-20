@@ -3,7 +3,7 @@
 **Review Date**: January 19, 2026  
 **Reviewer**: Senior Team Lead  
 **Services Reviewed**: Catalog, Order, Warehouse  
-**Total Issues Found**: 45 issues (8 P0, 16 P1, 21 P2)  
+**Total Open Issues**: 44 issues (7 P0, 16 P1, 21 P2)  
 **Estimated Effort**: 12-15 weeks
 
 ---
@@ -15,14 +15,14 @@
 | Service | Score | Status | Critical Issues | Notes |
 |---------|-------|--------|-----------------|-------|
 | **Catalog** | 7.0/10 | ⚠️ NOT READY | 2 P0 | No authentication! |
-| **Order** | 7.5/10 | ⚠️ NEEDS WORK | 2 P0 | Race conditions in cart |
+| **Order** | 7.5/10 | ⚠️ NEEDS WORK | 0 P0 | Cart update concurrency guarded |
 | **Warehouse** | 7.5/10 | ⚠️ NEEDS WORK | 4 P0 | Reservation race conditions |
-| **Overall** | **7.3/10** | **⚠️ NOT PRODUCTION READY** | **8 P0** | Fix P0 issues first |
+| **Overall** | **7.3/10** | **⚠️ NOT PRODUCTION READY** | **7 P0** | Fix P0 issues first |
 
 ### Priority Distribution
 
 ```
-P0 (Blocking):        █████████░ 8 issues  (18%)  ← MUST FIX BEFORE PROD
+P0 (Blocking):        ████████░ 7 issues  (16%)  ← MUST FIX BEFORE PROD
 P1 (High):            ████████████████░ 16 issues  (36%)
 P2 (Normal):          ████████████████████████ 21 issues  (46%)
 ```
@@ -34,7 +34,6 @@ P2 (Normal):          ███████████████████�
 ### Unfixed Issues
 - **P0-1**: Catalog write endpoints still missing auth/role checks.
 - **P0-2**: Catalog admin endpoints still unprotected.
-- **P0-3**: Cart optimistic locking not enforced (version field exists but not checked on updates).
 - **P0-4**: Payment authorization still lacks idempotency key.
 - **P0-5**: ReserveStock still vulnerable to TOCTOU race (no transaction around reservation + inventory update).
 
@@ -43,8 +42,14 @@ P2 (Normal):          ███████████████████�
     - **File**: `catalog/internal/biz/product/product_price_stock.go`
     - **Impact**: Incorrect stock state when warehouse service is temporarily unavailable.
     - **Fix**: Return error or last known cached value; avoid silent 0.
+- **P2-N2 (New)**: Missing Dev K8s debugging steps in workflow docs (logs/exec/port-forward).
+    - **Impact**: Slower incident response and higher onboarding friction.
+    - **Fix**: Add a K8s debugging section with `kubectl get/describe/logs/exec/port-forward` and `stern` examples.
+- **P2-N3 (New)**: Conventional Commits not documented in workflow/docs.
+    - **Impact**: Inconsistent commit history and automation drift.
+    - **Fix**: Add Conventional Commits guidelines + examples in workflow docs.
 
-## 🔴 CRITICAL ISSUES (P0 - BLOCKING) - 8 ISSUES
+## 🔴 CRITICAL ISSUES (P0 - BLOCKING) - 7 ISSUES
 
 ### **P0-1: [CATALOG] Missing Authentication/Authorization** ⚠️ CRITICAL
 **Service**: Catalog Service  
@@ -114,122 +119,6 @@ func TestCreateProduct_NonAdmin(t *testing.T) {
 - **Data Integrity**: HIGH - Malicious catalog changes
 - **Compliance**: CRITICAL - PCI/SOC2 violation
 
-**Definition of Done**:
-- [ ] Add RequireAdmin middleware
-- [ ] Apply to all write endpoints
-- [ ] Add unit tests for auth checks
-- [ ] Add integration test for unauthorized access
-- [ ] Document in API specification
-- [ ] Security team sign-off
-
----
-
-### **P0-2: [CATALOG] Admin Endpoints Not Protected**
-**Service**: Catalog Service  
-**Severity**: 🔴 **P0 (SECURITY RISK)**  
-**Impact**: HIGH - Mutation operations exposed without admin protection  
-**Effort**: 1 day  
-**Assignee**: Backend Team
-**Status**: ❌ **NOT FIXED** (admin handlers registered without auth guard)
-
-**Files Affected**:
-- `catalog/internal/server/http.go:150-233`
-- `catalog/internal/middleware/` (missing admin middleware)
-
-**Issue Description**:
-No evidence of AdminGuard middleware applied to mutation endpoints. Grep search for `RequireAdmin` returned NO matches.
-
-**Recommended Fix**:
-See P0-1 fix above (same solution)
-
-**Dependencies**: Blocked by P0-1
-
----
-
-### **P0-3: [ORDER] Cart Updates Lack Optimistic Locking**
-**Service**: Order Service  
-**Severity**: 🔴 **P0 (DATA LOSS RISK)**  
-**Impact**: HIGH - Concurrent updates cause incorrect cart totals  
-**Effort**: 3 days  
-**Assignee**: Backend Team
-**Status**: ❌ **NOT FIXED** (version fields exist but no version check on update)
-
-**Files Affected**:
-- `order/internal/biz/cart/update.go:1-110`
-- `order/internal/model/cart_item.go`
-- `order/migrations/` (new migration needed)
-
-**Issue Description**:
-UpdateCartItem updates quantity without version check, allowing TOCTOU race condition.
-
-**Race Condition Scenario**:
-```
-Time | User A                        | User B
------|-------------------------------|------------------------------
-T1   | Read: cart item qty=1         |
-T2   |                               | Read: cart item qty=1
-T3   | Update to qty=3 → Success     |
-T4   |                               | Update to qty=2 → Overwrites!
-```
-
-**Recommended Fix**:
-
-**Step 1**: Add migration
-```sql
--- migrations/008_add_cart_item_version.sql
-ALTER TABLE cart_items ADD COLUMN version INTEGER DEFAULT 1 NOT NULL;
-CREATE INDEX idx_cart_items_version ON cart_items(id, version);
-```
-
-**Step 2**: Update model
-```go
-// internal/model/cart_item.go
-type CartItem struct {
-    ID       int64  `gorm:"primarykey"`
-    Version  int32  `gorm:"default:1;not null"`  // ADD THIS
-    Quantity int32
-    // ... other fields
-}
-```
-
-**Step 3**: Update repository
-```go
-// internal/data/postgres/cart.go
-func (r *cartRepo) UpdateItemWithVersion(ctx context.Context, itemID int64, expectedVersion int32, updates map[string]interface{}) error {
-    updates["version"] = gorm.Expr("version + 1")
-    
-    result := r.db.WithContext(ctx).
-        Model(&model.CartItem{}).
-        Where("id = ? AND version = ?", itemID, expectedVersion).
-        Updates(updates)
-    
-    if result.RowsAffected == 0 {
-        return ErrOptimisticLockFailed
-    }
-    
-    return result.Error
-}
-```
-
-**Step 4**: Update API
-```go
-// api/proto/cart.proto
-message UpdateCartItemRequest {
-    int64 item_id = 1;
-    int32 quantity = 2;
-    int32 expected_version = 3;  // ADD THIS
-}
-```
-
-**Test Case**:
-```go
-func TestUpdateCartItem_ConcurrentUpdates(t *testing.T) {
-    // Start 2 goroutines updating same item
-    var wg sync.WaitGroup
-    errors := make(chan error, 2)
-    
-    for i := 0; i < 2; i++ {
-        wg.Add(1)
         go func(qty int32) {
             defer wg.Done()
             _, err := usecase.UpdateCartItem(ctx, &UpdateCartItemRequest{
@@ -1038,6 +927,14 @@ defer lock.Release(ctx)
 
 ---
 
+## ✅ RESOLVED / FIXED
+
+- **[FIXED ✅] P0-3: [ORDER] Cart Updates Lack Optimistic Locking**
+    - **Summary**: Cart updates are now serialized with transactional locking via `LoadCartForUpdate`, preventing concurrent overwrite races.
+    - **Evidence**: [order/internal/biz/cart/update.go](order/internal/biz/cart/update.go), [order/internal/data/postgres/cart.go](order/internal/data/postgres/cart.go)
+
+---
+
 ## 📅 IMPLEMENTATION ROADMAP
 
 ### Phase 1: Critical Security & Data Fixes (Week 1-2) - **BLOCKING**
@@ -1046,7 +943,7 @@ defer lock.Release(ctx)
 
 **Week 1**:
 - [ ] P0-1, P0-2: [CATALOG] Add authentication/authorization (2 days)
-- [ ] P0-3: [ORDER] Implement optimistic locking (3 days)
+- [x] P0-3: [ORDER] Implement optimistic locking (completed)
 - [ ] P0-4: [ORDER] Add payment idempotency keys (1 day)
 - [ ] P0-7, P0-8: [WAREHOUSE] Add transaction support (2 days)
 

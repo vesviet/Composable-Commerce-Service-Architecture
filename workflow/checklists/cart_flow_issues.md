@@ -1,9 +1,25 @@
 # Cart Management Flow - Issues, Index, Plan & Fixes
 
-**Last Updated**: 2026-01-19  
+**Last Updated**: 2026-01-20  
 **Scope**: Order Service cart/checkout flow (`order/internal/biz/cart/*`)
 
 This document tracks review findings for the Cart Management Flow and provides a **repeatable verification plan** (API calls, required headers, expected outcomes).
+
+---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- [High] [NEW ISSUE 🆕] CART-P1-03 Data Race in `AddToCart` ErrGroup: `stockErr`/`pricingErr` are shared across goroutines without synchronization. Required: return errors directly from goroutines or guard with mutex/atomic. See `order/internal/biz/cart/add.go`.
+- [Medium] [NEW ISSUE 🆕] CART-P2-02 Currency Fallback Hardcoded to USD: `AddToCart`, `UpdateCartItem`, and `ValidateCart` still default to "USD" when session currency empty. Required: use `constants.DefaultCurrency` or reject missing currency. See `order/internal/biz/cart/add.go`, `order/internal/biz/cart/update.go`, `order/internal/biz/cart/validate.go`.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- [Go Concurrency] [NEW ISSUE 🆕] CART-P1-03 Data race on shared error variables in `AddToCart`.
+- [Correctness] [NEW ISSUE 🆕] CART-P2-02 Currency fallback uses hardcoded "USD" instead of `constants.DefaultCurrency`.
+
+## ✅ RESOLVED / FIXED
+- ~~[FIXED ✅] P0-01 Unmanaged goroutine for event publishing in AddToCart: now synchronous/timeout + no-op publisher.~~
+- ~~[FIXED ✅] P1-01 Cart item updates not atomic under concurrency: transaction + `LoadCartForUpdate` locking.~~
+- ~~[FIXED ✅] P1-02 Cart totals calculation silently ignores dependency failures: now returns errors.~~
+- ~~[FIXED ✅] P2-01 CountryCode defaults hardcoded to `VN`: centralized in `constants.DefaultCountryCode`.~~
 
 ---
 
