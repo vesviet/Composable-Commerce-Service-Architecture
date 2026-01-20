@@ -18,84 +18,41 @@
 
 ---
 
-## 🚨 CRITICAL P0 ISSUES (13 Total)
+## 🚩 PENDING ISSUES (Unfixed)
+- [Critical] P0-3: PCI DSS token validation missing — add token format, expiry, and ownership checks in payment tokenization flows.
+- [Critical] P0-5: Payment authorization race condition — add distributed lock or unique constraint + idempotent guard in `ProcessPayment`.
+- [Critical] P0-6: Payment method encryption not enforced — encryption key env mismatch can leave data in plaintext.
+- [Critical] P0-9: Missing authorization timeout in order checkout — wrap `AuthorizePayment` with a deadline and handle expiry.
+- [Critical] P0-11: Payment method ownership not validated in order flow — validate ownership before authorization.
+- [Critical] P0-12: Gateway webhook rate limiting not enforced per provider — configure per-endpoint limits for webhook routes.
+- [Critical] P0-13: Payment request size validation not enforced — `request_validation` middleware is a no-op.
+- [High] P1-1: PayPal webhook signature validation incomplete — implement cert verification.
+- [High] P1-3: Payment retry logic incomplete — retry service returns empty set and mock results.
+- [High] P1-4: Payment analytics missing — add success/failure metrics and dashboards.
+- [High] P1-5: Currency validation weak — enforce ISO 4217 validation at boundary.
+- [High] P1-6: Payment audit logs missing at payment-level (only payment method audit exists).
+- [High] P1-8: Missing payment error recovery flow in order service.
+- [High] P1-9: No payment amount validation cache in order service.
+- [High] P1-10: Missing payment method expiry check in order pre-authorization.
+- [High] P1-11: Payment request tracing not wired for gateway → payment flow.
+- [High] P1-12: Payment health checks not exposed in gateway monitoring.
+- [High] P1-13: Payment request deduplication missing at gateway edge.
+- [Medium] P2-1: Payment performance optimizations.
+- [Medium] P2-2: Multi-currency support.
+- [Medium] P2-3: Payment dashboard enhancement.
+- [Medium] P2-4: Payment A/B testing.
+- [Medium] P2-5: Payment optimization caching (order).
+- [Medium] P2-6: Enhanced payment error messages (order).
+- [Medium] P2-7: Payment request analytics (gateway).
 
-### Payment Service (8 P0 Issues)
+## 🆕 NEWLY DISCOVERED ISSUES
+- [Security] [NEW ISSUE 🆕] Payment encryption key env mismatch: payment repo reads `PAYMENT_ENCRYPTION_KEY` but Helm/ArgoCD injects `PAYMENT_SECURITY_ENCRYPTION_KEY`, so encryption can be skipped → card metadata stored plaintext. **Fix**: align env var usage or map config; enforce non-empty key at startup.
+- [Architecture] [NEW ISSUE 🆕] Order payment adapter uses placeholder authorization/capture/void (no real payment service call) in [order/internal/data/client_adapters.go](order/internal/data/client_adapters.go#L214-L260). **Fix**: wire gRPC payment client and remove placeholder logic.
+    - Dev K8s debug: `kubectl -n payment get deploy payment-service -o yaml | grep -n "PAYMENT_SECURITY_ENCRYPTION_KEY"` and `kubectl -n order logs deploy/order-service | grep -i payment`.
 
-#### P0-1: Hardcoded Gateway Credentials 🔴 CRITICAL
-**File**: `payment/internal/biz/gateway/stripe.go:30-40`  
-**Impact**: Production credentials in source code, severe security breach  
-**Current Problem**:
-```go
-// ❌ Hardcoded API keys in source code
-func NewStripeGateway(cfg *config.GatewayConfig, logger log.Logger) (*StripeGateway, error) {
-    if cfg == nil || cfg.SecretKey == "" {
-        // ❌ Falls back to hardcoded key
-        cfg = &config.GatewayConfig{
-            SecretKey: "sk_live_hardcoded_key_here", 
-        }
-    }
-}
-```
-**Fix**: Use environment variables and secret management
-```go
-// ✅ Secure configuration loading
-func NewStripeGateway(cfg *config.GatewayConfig, logger log.Logger) (*StripeGateway, error) {
-    secretKey := os.Getenv("STRIPE_SECRET_KEY")
-    if secretKey == "" {
-        return nil, fmt.Errorf("STRIPE_SECRET_KEY environment variable required")
-    }
-    
-    webhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
-    if webhookSecret == "" {
-        return nil, fmt.Errorf("STRIPE_WEBHOOK_SECRET environment variable required")
-    }
-    
-    return &StripeGateway{
-        client:        createStripeClient(secretKey),
-        webhookSecret: webhookSecret,
-    }, nil
-}
-```
-**Test**: `TestStripeGateway_SecureConfiguration`  
-**Effort**: 4 hours  
+## 🚨 CRITICAL P0 ISSUES (7 Pending)
 
-#### P0-2: Weak Webhook Signature Validation 🔴 CRITICAL  
-**File**: `payment/internal/biz/gateway/stripe.go:450-480`  
-**Impact**: Webhook spoofing, fraudulent payment confirmations  
-**Current Problem**:
-```go
-// ❌ Partial webhook validation - bypasses security
-func (g *StripeGateway) ProcessWebhook(ctx context.Context, payload []byte, signature string) (*WebhookEvent, error) {
-    if signature == "" {
-        g.logger.Warn("Missing webhook signature, processing anyway")
-        // ❌ Processes webhook without validation!
-        return g.parseWebhookPayload(payload)
-    }
-    // Validation logic incomplete
-}
-```
-**Fix**: Strict webhook validation with failure handling
-```go
-// ✅ Strict webhook signature validation
-func (g *StripeGateway) ProcessWebhook(ctx context.Context, payload []byte, signature string) (*WebhookEvent, error) {
-    if signature == "" {
-        return nil, fmt.Errorf("webhook signature required")
-    }
-    
-    event, err := webhook.ConstructEvent(payload, signature, g.webhookSecret)
-    if err != nil {
-        // Log suspicious webhook attempt
-        g.logger.WithContext(ctx).Errorf("Invalid webhook signature: %v", err)
-        return nil, fmt.Errorf("invalid webhook signature")
-    }
-    
-    // Process only after successful validation
-    return g.processValidatedWebhook(event)
-}
-```
-**Test**: `TestWebhook_SignatureValidation_RejectInvalid`  
-**Effort**: 6 hours  
+### Payment Service (3 P0 Issues)
 
 #### P0-3: No PCI DSS Token Validation 🔴 CRITICAL
 **File**: `payment/internal/biz/gateway/tokenization.go`  
@@ -134,47 +91,6 @@ func (tv *TokenValidator) ValidatePaymentToken(ctx context.Context, token string
 ```
 **Test**: `TestTokenValidation_SecurityChecks`  
 **Effort**: 8 hours  
-
-#### P0-4: Payment Amount Manipulation 🔴 CRITICAL
-**File**: `payment/internal/biz/payment/payment.go:180-220`  
-**Impact**: Customers can manipulate payment amounts, revenue loss  
-**Current Problem**:
-```go
-// ❌ No server-side amount validation
-func (uc *PaymentUsecase) ProcessPayment(ctx context.Context, req *ProcessPaymentRequest) (*Payment, error) {
-    // ❌ Trusts amount from request without validation
-    payment := &Payment{
-        Amount: req.Amount, // ❌ Could be $0.01 instead of $100
-        OrderID: req.OrderID,
-    }
-    return uc.processPayment(ctx, payment)
-}
-```
-**Fix**: Server-side order amount validation
-```go
-// ✅ Validate amount against order total
-func (uc *PaymentUsecase) ProcessPayment(ctx context.Context, req *ProcessPaymentRequest) (*Payment, error) {
-    // Fetch order from order service
-    order, err := uc.orderService.GetOrder(ctx, req.OrderID)
-    if err != nil {
-        return nil, fmt.Errorf("order not found: %w", err)
-    }
-    
-    // Validate payment amount matches order total
-    if math.Abs(req.Amount - order.TotalAmount) > 0.01 { // Allow 1 cent tolerance
-        return nil, fmt.Errorf("payment amount mismatch: requested=%.2f, order_total=%.2f", 
-            req.Amount, order.TotalAmount)
-    }
-    
-    payment := &Payment{
-        Amount:  order.TotalAmount, // Use order total, not request amount
-        OrderID: req.OrderID,
-    }
-    return uc.processPayment(ctx, payment)
-}
-```
-**Test**: `TestPayment_AmountValidation_RejectMismatch`  
-**Effort**: 6 hours  
 
 #### P0-5: Race Condition in Payment Authorization 🔴 CRITICAL
 **File**: `payment/internal/biz/payment/payment.go:250-280`  
@@ -266,106 +182,7 @@ func (r *PaymentMethodRepository) FindByID(ctx context.Context, id int64) (*Paym
 **Test**: `TestPaymentMethod_DataEncryption`  
 **Effort**: 16 hours  
 
-#### P0-7: No Payment Fraud Detection 🔴 CRITICAL
-**File**: Missing fraud detection system  
-**Impact**: Fraudulent payments processed, chargebacks, financial loss  
-**Fix**: Implement comprehensive fraud detection
-```go
-type FraudDetector struct {
-    velocityChecker VelocityChecker
-    geoValidator    GeoValidator
-    amountAnalyzer  AmountAnalyzer
-}
-
-func (fd *FraudDetector) AssessRisk(ctx context.Context, payment *Payment, customer *Customer) (*RiskAssessment, error) {
-    assessment := &RiskAssessment{Score: 0}
-    
-    // Velocity check: max 5 payments per hour per customer
-    recentPayments, err := fd.velocityChecker.GetRecentPayments(ctx, customer.ID, time.Hour)
-    if err != nil {
-        return nil, err
-    }
-    
-    if len(recentPayments) >= 5 {
-        assessment.Score += 40 // High risk
-        assessment.Flags = append(assessment.Flags, "HIGH_VELOCITY")
-    }
-    
-    // Geographic validation
-    if customer.IPAddress != "" {
-        geoCheck, err := fd.geoValidator.ValidateLocation(ctx, customer.IPAddress, payment.BillingAddress)
-        if err == nil && geoCheck.RiskLevel == "HIGH" {
-            assessment.Score += 30
-            assessment.Flags = append(assessment.Flags, "GEO_MISMATCH")
-        }
-    }
-    
-    // Amount analysis: flag transactions >$1000 or >3x avg
-    if payment.Amount > 1000 || payment.Amount > customer.AverageOrderValue*3 {
-        assessment.Score += 25
-        assessment.Flags = append(assessment.Flags, "HIGH_AMOUNT")
-    }
-    
-    // Determine action
-    if assessment.Score >= 70 {
-        assessment.Action = "DECLINE"
-    } else if assessment.Score >= 40 {
-        assessment.Action = "REVIEW"
-    } else {
-        assessment.Action = "APPROVE"
-    }
-    
-    return assessment, nil
-}
-```
-**Test**: `TestFraudDetection_HighRiskScenarios`  
-**Effort**: 24 hours  
-
-#### P0-8: Missing 3D Secure Implementation 🔴 CRITICAL
-**File**: `payment/internal/biz/gateway/stripe.go:200-250`  
-**Impact**: SCA compliance violation, payment rejections in EU  
-**Current**: 3D Secure not implemented for required transactions  
-**Fix**: Implement 3D Secure flow
-```go
-func (g *StripeGateway) ProcessPaymentWith3DS(ctx context.Context, payment *Payment, method *PaymentMethod) (*GatewayResult, error) {
-    amountInCents := int64(payment.Amount * 100)
-    
-    params := &stripe.PaymentIntentParams{
-        Amount:   stripe.Int64(amountInCents),
-        Currency: stripe.String(payment.Currency),
-        PaymentMethod: stripe.String(method.GatewayPaymentMethodID),
-    }
-    
-    // Force 3DS for EU cards or high-value transactions
-    if g.requires3DS(payment.Amount, method.CardCountry) {
-        params.ConfirmationMethod = stripe.String(string(stripe.PaymentIntentConfirmationMethodManual))
-        params.Confirm = stripe.Bool(false) // Return to frontend for 3DS
-    }
-    
-    intent, err := paymentintent.New(params)
-    if err != nil {
-        return nil, fmt.Errorf("failed to create payment intent: %w", err)
-    }
-    
-    if intent.Status == stripe.PaymentIntentStatusRequiresAction {
-        return &GatewayResult{
-            Status:        "requires_action",
-            TransactionID: intent.ID,
-            ClientSecret:  intent.ClientSecret,
-            NextAction: map[string]interface{}{
-                "type": "use_stripe_sdk",
-                "client_secret": intent.ClientSecret,
-            },
-        }, nil
-    }
-    
-    return g.processCompletedPaymentIntent(intent)
-}
-```
-**Test**: `Test3DSecure_RequiredForHighValue`  
-**Effort**: 20 hours  
-
-### Order Service Payment Integration (3 P0 Issues)
+### Order Service Payment Integration (2 P0 Issues)
 
 #### P0-9: No Payment Authorization Timeout 🔴 CRITICAL
 **File**: `order/internal/biz/checkout/payment.go:25-50`  
@@ -408,55 +225,6 @@ func (uc *UseCase) authorizePayment(ctx context.Context, cart *Cart, session *Ch
 ```
 **Test**: `TestPaymentAuthorization_TimeoutHandling`  
 **Effort**: 6 hours  
-
-#### P0-10: Missing Payment Rollback on Order Failure 🔴 CRITICAL
-**File**: `order/internal/biz/checkout/confirm.go:120-150`  
-**Impact**: Customer charged without order, manual reconciliation needed  
-**Current Problem**:
-```go
-// ❌ No payment rollback when order creation fails
-func (uc *UseCase) ConfirmCheckout(ctx context.Context, req *ConfirmCheckoutRequest) (*Order, error) {
-    authResult, err := uc.authorizePayment(ctx, cart, session, totalAmount)
-    if err != nil {
-        return nil, err
-    }
-    
-    order, err := uc.createOrderFromCart(ctx, cart, session, authResult)
-    if err != nil {
-        // ❌ Authorization not voided, customer funds held!
-        return nil, fmt.Errorf("order creation failed: %w", err)
-    }
-}
-```
-**Fix**: Implement compensation pattern
-```go
-// ✅ Rollback payment on order creation failure
-func (uc *UseCase) ConfirmCheckout(ctx context.Context, req *ConfirmCheckoutRequest) (*Order, error) {
-    authResult, err := uc.authorizePayment(ctx, cart, session, totalAmount)
-    if err != nil {
-        return nil, err
-    }
-    
-    order, err := uc.createOrderFromCart(ctx, cart, session, authResult)
-    if err != nil {
-        // Compensate: Void authorization to release funds
-        voidErr := uc.voidPaymentAuthorization(ctx, authResult.AuthorizationID)
-        if voidErr != nil {
-            // Critical: Send to DLQ for manual processing
-            uc.sendToPaymentDLQ(ctx, &PaymentRollbackEvent{
-                AuthorizationID: authResult.AuthorizationID,
-                OrderCreationError: err.Error(),
-                VoidError: voidErr.Error(),
-            })
-        }
-        return nil, fmt.Errorf("order creation failed: %w", err)
-    }
-    
-    return order, nil
-}
-```
-**Test**: `TestCheckout_PaymentRollbackOnOrderFailure`  
-**Effort**: 8 hours  
 
 #### P0-11: No Payment Method Ownership Validation 🔴 CRITICAL
 **File**: `order/internal/biz/checkout/payment.go:75-90`  
@@ -548,21 +316,15 @@ func PaymentRequestValidator() gin.HandlerFunc {
 
 ---
 
-## ⚠️ HIGH PRIORITY P1 ISSUES (13 Total)
+## ⚠️ HIGH PRIORITY P1 ISSUES (11 Pending)
 
-### Payment Service (6 P1 Issues)
+### Payment Service (5 P1 Issues)
 
 #### P1-1: Incomplete Webhook Signature Validation for PayPal
 **File**: `payment/internal/biz/gateway/paypal.go`  
 **Impact**: PayPal webhook spoofing vulnerability  
 **Fix**: Implement certificate-based validation for PayPal webhooks  
 **Effort**: 8 hours  
-
-#### P1-2: No Payment Reconciliation System
-**File**: Missing reconciliation module  
-**Impact**: Payment discrepancies not detected, accounting issues  
-**Fix**: Implement daily payment reconciliation with gateway  
-**Effort**: 16 hours  
 
 #### P1-3: Missing Payment Retry Logic
 **File**: `payment/internal/biz/payment/retry.go`  
@@ -588,13 +350,7 @@ func PaymentRequestValidator() gin.HandlerFunc {
 **Fix**: Comprehensive payment audit logging  
 **Effort**: 12 hours  
 
-### Order Service (4 P1 Issues)
-
-#### P1-7: No Payment Status Synchronization
-**File**: `order/internal/biz/checkout/payment.go`  
-**Impact**: Order status out of sync with payment status  
-**Fix**: Event-driven payment status synchronization  
-**Effort**: 8 hours  
+### Order Service (3 P1 Issues)
 
 #### P1-8: Missing Payment Error Recovery
 **File**: Missing error recovery system  
@@ -804,3 +560,13 @@ func PaymentRequestValidator() gin.HandlerFunc {
 **Document Status**: ✅ Comprehensive Payment Security Analysis  
 **Next Action**: Implement P0 security fixes immediately  
 **Security Risk**: 🔴 HIGH - Not suitable for production deployment
+
+## ✅ RESOLVED / FIXED
+- ~~[FIXED ✅] P0-1: Hardcoded gateway credentials removed; Stripe config now requires injected secret key.~~
+- ~~[FIXED ✅] P0-2: Strict webhook signature validation added for Stripe.~~
+- ~~[FIXED ✅] P0-4: Server-side order amount validation enforced in `ProcessPayment`.~~
+- ~~[FIXED ✅] P0-7: Fraud detection flow present and invoked before processing.~~
+- ~~[FIXED ✅] P0-8: 3D Secure flow implemented for Stripe.~~
+- ~~[FIXED ✅] P0-10: Payment rollback on order failure implemented via `handleRollbackAndAlert`.~~
+- ~~[FIXED ✅] P1-2: Payment reconciliation service implemented.~~
+- ~~[FIXED ✅] P1-7: Payment status synchronization implemented via event consumers.~~

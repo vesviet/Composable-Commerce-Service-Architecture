@@ -19,7 +19,7 @@ Auditing and maintaining the integrity of project documentation, workflows, and 
 ## 🆕 NEWLY DISCOVERED ISSUES
 - [Category] [Issue Title]: Why it's a problem + Suggested fix.
 ## ✅ RESOLVED / FIXED
-- ~~[Issue Title]: Summary of the fix applied.~~
+- [Issue Title]: Summary of the fix applied.
 
 
 ## 4. Debugging Context:

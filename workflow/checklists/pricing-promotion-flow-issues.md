@@ -1,523 +1,85 @@
-# 💰🎁 Pricing + Promotion Flow - Comprehensive Issues Checklist
+#+#+#+#+markdown
+# 💰🎁 Pricing + Promotion Flow - Issues Checklist
 
-**Last Updated**: January 18, 2026  
+**Last Updated**: January 20, 2026  
 **Services Analyzed**: Pricing, Promotion, Order, Catalog, Gateway  
 **Business Impact**: Critical Revenue & Discount Management  
-**Total Issues**: 58 issues (19 P0 Critical, 24 P1 High, 15 P2 Normal)
 
 ---
 
-## 📋 EXECUTIVE SUMMARY
-
-## 📌 Flow Document
-
-See the full flow diagrams here: `docs/workflow/pricing-promotion-flow.md`
-
-### 🎯 Business Context
-**Pricing + Promotion ecosystem** là core của revenue management, xử lý:
-- Dynamic pricing với 7 layers (base → sale → dynamic → rules → tax → final)
-- Complex promotions (BOGO, tiered discounts, customer segments, stacking rules)
-- Multi-warehouse pricing với currency conversion
-- Event-driven cache invalidation across services
-- Integration với Order service cho cart totals calculation
-
-### 📊 Architecture Health Score: **7.2/10**
-- **Pricing Service**: 8.5/10 (mature, feature-complete)  
-- **Promotion Service**: 7.8/10 (advanced features, integration gaps)
-- **Order Integration**: 6.5/10 (cart totals implementation incomplete)
-- **Event Consistency**: 5.8/10 (cache invalidation issues)
-
-### 🚨 Critical Findings
-1. **Revenue Risk P0**: Silent failures trong cart totals calculation
-2. **Performance P0**: Missing cache strategies cho complex promotions 
-3. **Data Integrity P0**: Price sync events not transactional
-4. **Security P1**: Missing rate limiting cho pricing calculations
-5. **Business Logic P1**: Promotion stacking rules incomplete
-
----
-
-## 🔴 CRITICAL P0 ISSUES (19 Total) - IMMEDIATE ACTION REQUIRED
-
-### Pricing Service (8 P0 Issues)
-
-#### P0-1: Silent Calculation Failures Lead to $0 Pricing 🔴💰
-**File**: `pricing/internal/biz/calculation/calculation.go:160-180`  
-**Impact**: Revenue loss, customer confusion  
-**Problem**: When tax calculation fails, falls back to 0 tax without error  
-```go
-// CURRENT - DANGEROUS
-taxAmount, appliedTaxRules, err := uc.calculateTax(ctx, req, priceAfterDiscount)
-if err != nil {
-    uc.log.WithContext(ctx).Errorf("Failed to calculate tax: %v", err)
-    return nil, err  // ✅ This is correct, but other parts use silent fallback
-}
-```
-**Root Cause**: Inconsistent error handling across calculation layers  
-**Fix**: Implement fail-fast for critical calculations, graceful degradation for non-critical  
-**Testing**: Add integration tests for all failure scenarios  
-**Effort**: 8 hours  
-
-#### P0-2: Price Update Events Not Transactional 🔴
-**File**: `pricing/internal/biz/price/price.go:250-280`  
-**Impact**: Cache poisoning, stale pricing data  
-**Problem**: Event published before database commit  
-```go
-// CURRENT - RACE CONDITION
-err = uc.repo.Update(ctx, price)  // Database update
-if err != nil {
-    return err
-}
-// Event published outside transaction - can fail independently
-uc.publishPriceUpdateEvent(ctx, price)  // ⚠️ Not atomic
-```
-**Fix**: Use outbox pattern for price update events  
-**Implementation**: Add `price_events_outbox` table, worker to process events  
-**Effort**: 16 hours  
-
-#### P0-3: Currency Conversion Cache Miss Storm 🔴⚡
-**File**: `pricing/internal/biz/price/price.go:90-120`  
-**Impact**: API latency spikes, external service overload  
-**Problem**: No circuit breaker on currency conversion API  
-```go
-// CURRENT - NO PROTECTION
-convertedBasePrice, err := uc.currencyConverter.ConvertCurrency(ctx, anyPrice.BasePrice, anyPrice.Currency, currency)
-if err != nil {
-    return nil, err  // ⚠️ No circuit breaker, no fallback
-}
-```
-**Fix**: Implement circuit breaker with stale price fallback  
-**Effort**: 6 hours  
-
-#### P0-4: Warehouse-Specific Pricing Race Conditions 🔴
-**File**: `pricing/internal/biz/price/price.go:200-250`  
-**Impact**: Incorrect pricing across warehouses  
-**Problem**: No optimistic locking on price updates  
-**Fix**: Add version field to price model, implement optimistic locking  
-**Effort**: 12 hours  
-
-#### P0-5: Dynamic Pricing Stock Integration Missing 🔴📊
-**File**: `pricing/internal/biz/dynamic/dynamic.go`  
-**Impact**: Dynamic pricing not reflecting real stock levels  
-**Problem**: Stock data not synced for demand-based pricing  
-**Fix**: Subscribe to warehouse stock events, update pricing rules  
-**Effort**: 20 hours  
-
-#### P0-6: Price Cache TTL Not Business-Aligned 🔴⏱️
-**File**: `pricing/internal/cache/redis.go`  
-**Impact**: Stale pricing during promotions, flash sales  
-**Problem**: Fixed 10-minute TTL regardless of business context  
-**Fix**: Dynamic TTL based on price type (flash sale = 30s, regular = 10min)  
-**Effort**: 8 hours  
-
-#### P0-7: Tax Calculation Location Context Missing 🔴🌍
-**File**: `pricing/internal/biz/tax/tax.go:80-120`  
-**Impact**: Incorrect tax calculations, compliance risk  
-**Problem**: Postcode validation not implemented  
-**Fix**: Add postcode validation, tax jurisdiction lookup  
-**Effort**: 16 hours  
-
-#### P0-8: Bulk Price Updates No Batch Processing 🔴
-**File**: `pricing/internal/biz/price/price.go:300-350`  
-**Impact**: API timeouts on large catalog updates  
-**Problem**: Sequential processing of bulk updates  
-**Fix**: Implement batch processing with async event publishing  
-**Effort**: 24 hours  
-
-### Promotion Service (6 P0 Issues)
-
-#### P0-9: Promotion Usage Tracking Race Condition 🔴
-**File**: `promotion/internal/biz/promotion.go:800-850`  
-**Impact**: Over-application of limited promotions, revenue loss  
-**Problem**: No atomic usage counter updates  
-```go
-// CURRENT - RACE CONDITION
-usage := promo.CurrentUsageCount + 1
-if usage > promo.TotalUsageLimit {
-    return errors.New("promotion usage limit exceeded")
-}
-// ⚠️ Two users can pass this check simultaneously
-promo.CurrentUsageCount = usage
-uc.promotionRepo.Update(ctx, promo)
-```
-**Fix**: Use database atomic increment or optimistic locking  
-**Effort**: 8 hours  
-
-#### P0-10: BOGO Calculation Logic Flaw 🔴🛒
-**File**: `promotion/internal/biz/discount_calculator.go:150-200`  
-**Impact**: Incorrect discount amounts, customer complaints  
-**Problem**: Quantity matching logic doesn't handle mixed products correctly  
-```go
-// CURRENT - FLAWED LOGIC
-applications := totalBuyQuantity / action.BuyQuantity
-// ⚠️ Should validate actual product mix, not just total quantity
-```
-**Fix**: Implement proper product matching algorithm  
-**Effort**: 16 hours  
-
-#### P0-11: Promotion Stacking Rules Not Enforced 🔴
-**File**: `promotion/internal/biz/promotion.go:600-700`  
-**Impact**: Uncontrolled discount stacking, profit margin impact  
-**Problem**: StopRulesProcessing flag not properly implemented  
-```go
-// CURRENT - INCOMPLETE
-for _, promotion := range sortedPromotions {
-    if isApplicable(promotion, request) {
-        discounts = append(discounts, promotion)
-        // ⚠️ StopRulesProcessing flag not checked
-    }
-}
-```
-**Fix**: Implement proper stacking control with priority resolution  
-**Effort**: 12 hours  
-
-#### P0-12: Customer Segment Validation Missing 🔴👥
-**File**: `promotion/internal/biz/promotion.go:400-450`  
-**Impact**: Promotions applied to wrong customer segments  
-**Problem**: Customer segments passed but not validated against customer service  
-**Fix**: Add real-time customer segment validation  
-**Effort**: 10 hours  
-
-#### P0-13: Free Shipping Promotion Logic Incomplete 🔴🚚
-**File**: `promotion/internal/biz/free_shipping.go:50-100`  
-**Impact**: Incorrect shipping discounts applied  
-**Problem**: Missing validation against actual shipping rates  
-**Fix**: Integrate with shipping service for rate validation  
-**Effort**: 14 hours  
-
-#### P0-14: Tiered Discount Edge Cases 🔴📊
-**File**: `promotion/internal/biz/discount_calculator.go:300-400`  
-**Impact**: Wrong discount calculations at tier boundaries  
-**Problem**: Quantity/amount tier logic has off-by-one errors  
-**Fix**: Comprehensive tier boundary testing and fixes  
-**Effort**: 12 hours  
-
-### Order Integration (5 P0 Issues)
-
-#### P0-15: Cart Totals Silent Failures 🔴🛒
-**File**: `order/internal/biz/cart/totals.go:50-80`  
-**Impact**: Customer shown incorrect totals, checkout failures  
-**Problem**: Service failures logged but not returned as errors  
-```go
-// CURRENT - DANGEROUS
-ratesResp, err := uc.shippingService.CalculateRates(ctx, shippingReq)
-if err != nil {
-    return nil, fmt.Errorf("failed to calculate shipping rates: %w", err)  // ✅ Good
-} 
-// But other calculations use silent failure pattern
-```
-**Fix**: Consistent error handling with explicit failure modes  
-**Effort**: 6 hours  
-
-#### P0-16: Promotion Validation Response Not Cached 🔴⚡
-**File**: `order/internal/biz/cart/totals.go:100-150`  
-**Impact**: Multiple expensive promotion calculations per cart operation  
-**Problem**: No caching for promotion validation results  
-**Fix**: Cache promotion validation with cart/items hash as key  
-**Effort**: 8 hours  
-
-#### P0-17: Currency Context Not Propagated 🔴🌍
-**File**: `order/internal/biz/cart/add.go:80-120`  
-**Impact**: Hardcoded USD currency, incorrect pricing for VN market  
-**Problem**: Currency from Gateway context not passed to pricing service  
-**Fix**: Propagate currency from Gateway through cart operations  
-**Effort**: 10 hours  
-
-#### P0-18: Line Items Missing Product Attributes 🔴📦
-**File**: `order/internal/biz/cart/promotion_helpers.go:30-60`  
-**Impact**: Advanced promotions (color/size specific) not working  
-**Problem**: Product attributes not fetched when building line items  
-**Fix**: Enhance catalog integration to return product attributes  
-**Effort**: 12 hours  
-
-#### P0-19: Cart Session Concurrency Issues 🔴⚡
-**File**: `order/internal/biz/cart/cart.go:200-250`  
-**Impact**: Cart corruption during concurrent updates  
-**Problem**: No optimistic locking on cart updates  
-**Fix**: Add version field to cart_sessions, implement optimistic locking  
-**Effort**: 16 hours  
-
----
-
-## 🟡 HIGH PRIORITY P1 ISSUES (24 Total) - PLAN FOR NEXT SPRINT
-
-### Pricing Service (9 P1 Issues)
-
-#### P1-1: Price Rule Engine Performance 🟡
-**File**: `pricing/internal/biz/rule/rule.go:80-120`  
-**Impact**: Slow pricing calculations with many rules  
-**Fix**: Cache compiled rule conditions, optimize evaluation order  
-**Effort**: 12 hours  
-
-#### P1-9: Unmanaged Goroutine for Catalog Sync 🟡
-**File**: `pricing/internal/biz/price/price.go` (`CreatePrice`, `UpdatePrice`)  
-**Impact**: Detached goroutine triggers catalog sync without retry or visibility; may cause stale pricing in catalog.  
-**Fix**: Remove direct goroutine and rely on outbox + catalog event consumer.  
-**Effort**: 6 hours  
-
-#### P1-2: Missing Pricing Analytics Events 🟡
-**File**: `pricing/internal/biz/calculation/calculation.go:300-350`  
-**Impact**: No business insights into pricing effectiveness  
-**Fix**: Add pricing analytics events (conversion tracking, price sensitivity)  
-**Effort**: 8 hours  
-
-#### P1-3: Currency Conversion Rate Staleness 🟡
-**File**: `pricing/internal/biz/currency/currency.go:50-100`  
-**Impact**: Inaccurate international pricing  
-**Fix**: Implement rate freshness validation, fallback to ECB API  
-**Effort**: 10 hours  
-
-#### P1-4: Base Price vs Sale Price Logic Ambiguity 🟡
-**File**: `pricing/internal/biz/price/price.go:150-180`  
-**Impact**: Unclear which price takes precedence  
-**Fix**: Define clear business rules for price precedence  
-**Effort**: 6 hours  
-
-#### P1-5: Price History Not Tracked 🟡
-**File**: Missing price audit trail  
-**Impact**: No compliance audit trail, no rollback capability  
-**Fix**: Implement price history tracking with change reasons  
-**Effort**: 16 hours  
-
-#### P1-6: Warehouse Price Fallback Strategy Missing 🟡
-**File**: `pricing/internal/biz/price/price.go:180-220`  
-**Impact**: No prices shown when warehouse-specific pricing unavailable  
-**Fix**: Implement fallback hierarchy (warehouse → region → global)  
-**Effort**: 12 hours  
-
-#### P1-7: Dynamic Pricing Rules Too Simple 🟡
-**File**: `pricing/internal/biz/dynamic/dynamic.go:100-150`  
-**Impact**: Limited business value from dynamic pricing  
-**Fix**: Add advanced rules (competitor pricing, demand prediction)  
-**Effort**: 40 hours  
-
-#### P1-8: Tax Rule Management UI Missing 🟡
-**File**: Admin interface for tax configuration  
-**Impact**: Tax rules managed manually in database  
-**Fix**: Build admin UI for tax rule management  
-**Effort**: 24 hours  
-
-### Promotion Service (10 P1 Issues)
-
-#### P1-9: Complex Promotion Preview Missing 🟡
-**File**: Missing promotion preview functionality  
-**Impact**: Poor user experience, no discount preview  
-**Fix**: Add promotion preview without applying usage limits  
-**Effort**: 16 hours  
-
-#### P1-10: Promotion A/B Testing Framework Missing 🟡
-**File**: No A/B testing capability  
-**Impact**: Can't optimize promotion performance  
-**Fix**: Implement promotion variant testing framework  
-**Effort**: 32 hours  
-
-#### P1-11: Coupon Generation System Basic 🟡
-**File**: `promotion/internal/biz/coupon.go:50-100`  
-**Impact**: Limited coupon management capabilities  
-**Fix**: Add advanced coupon features (batch generation, custom patterns)  
-**Effort**: 20 hours  
-
-#### P1-12: Promotion Analytics Insufficient 🟡
-**File**: Missing promotion performance tracking  
-**Impact**: No insights into promotion ROI  
-**Fix**: Add comprehensive promotion analytics dashboard  
-**Effort**: 24 hours  
-
-#### P1-13: Review-Based Promotions Incomplete 🟡
-**File**: `promotion/internal/biz/review_promotion.go:30-80`  
-**Impact**: Can't reward customers for reviews  
-**Fix**: Complete review integration for promotion triggers  
-**Effort**: 16 hours  
-
-#### P1-14: Promotion Budget Tracking Reactive 🟡
-**File**: `promotion/internal/biz/promotion.go:900-950`  
-**Impact**: Budget overruns not prevented proactively  
-**Fix**: Implement real-time budget monitoring with alerts  
-**Effort**: 12 hours  
-
-#### P1-15: Seasonal Promotion Scheduling Missing 🟡
-**File**: Basic start/end date only  
-**Impact**: Can't schedule complex seasonal campaigns  
-**Fix**: Add advanced scheduling (recurring, blackout dates)  
-**Effort**: 18 hours  
-
-#### P1-16: Promotion Conflict Detection Missing 🟡
-**File**: No conflicting promotion validation  
-**Impact**: Overlapping promotions cause confusion  
-**Fix**: Add promotion conflict detection and warnings  
-**Effort**: 14 hours  
-
-#### P1-17: Customer Promotion History Not Tracked 🟡
-**File**: `promotion/internal/biz/promotion_usage.go:100-150`  
-**Impact**: No customer promotion preferences insights  
-**Fix**: Add customer promotion history and preferences  
-**Effort**: 16 hours  
-
-#### P1-18: Promotion Performance Monitoring Gaps 🟡
-**File**: Missing real-time promotion monitoring  
-**Impact**: Can't detect promotion issues quickly  
-**Fix**: Add promotion performance monitoring dashboard  
-**Effort**: 20 hours  
-
-### Order Integration (6 P1 Issues)
-
-#### P1-19: Cart Totals Calculation Performance 🟡
-**File**: `order/internal/biz/cart/totals.go:200-256`  
-**Impact**: Slow cart operations, poor UX  
-**Fix**: Optimize with parallel service calls, result caching  
-**Effort**: 12 hours  
-
-#### P1-20: Shipping Method Selection Logic Missing 🟡
-**File**: `order/internal/biz/cart/totals.go:60-90`  
-**Impact**: Unclear shipping cost estimation  
-**Fix**: Implement intelligent shipping method selection  
-**Effort**: 10 hours  
-
-#### P1-21: Cart Abandonment Recovery Missing 🟡
-**File**: No cart abandonment detection  
-**Impact**: Lost sales opportunities  
-**Fix**: Add cart abandonment detection and recovery emails  
-**Effort**: 16 hours  
-
-#### P1-22: Price Change Notification Missing 🟡
-**File**: No price change handling in cart  
-**Impact**: Customers surprised by price changes at checkout  
-**Fix**: Detect price changes, notify customers, get acknowledgment  
-**Effort**: 14 hours  
-
-#### P1-23: Cart Validation Rules Incomplete 🟡
-**File**: `order/internal/biz/cart/validation.go:50-100`  
-**Impact**: Invalid carts can proceed to checkout  
-**Fix**: Add comprehensive cart validation (stock, pricing, shipping)  
-**Effort**: 12 hours  
-
-#### P1-24: Multi-Currency Cart Support Missing 🟡
-**File**: Single currency per cart session  
-**Impact**: Poor international user experience  
-**Fix**: Support currency switching within cart session  
-**Effort**: 20 hours  
-
----
-
-## 🔵 NORMAL P2 ISSUES (15 Total) - TECHNICAL DEBT
-
-### Pricing Service (5 P2 Issues)
-
-#### P2-1: Price Cache Warming Strategy Missing 🔵
-**File**: `pricing/internal/cache/redis.go`  
-**Impact**: Cold start performance issues  
-**Fix**: Implement cache warming for popular products  
-**Effort**: 8 hours  
-
-#### P2-2: Price API Rate Limiting Missing 🔵
-**File**: `pricing/internal/server/grpc.go`  
-**Impact**: API abuse vulnerability  
-**Fix**: Add rate limiting for pricing calculations  
-**Effort**: 6 hours  
-
-#### P2-3: Pricing Service Metrics Incomplete 🔵
-**File**: `pricing/internal/observability/metrics.go`  
-**Impact**: Limited operational visibility  
-**Fix**: Add comprehensive pricing metrics  
-**Effort**: 8 hours  
-
-#### P2-4: Price Rounding Rules Not Configurable 🔵
-**File**: `pricing/internal/biz/calculation/calculation.go:250-280`  
-**Impact**: Fixed 2-decimal rounding may not suit all markets  
-**Fix**: Make rounding rules configurable by currency  
-**Effort**: 6 hours  
-
-#### P2-5: Pricing Documentation Outdated 🔵
-**File**: `pricing/docs/api.md`  
-**Impact**: Developer onboarding friction  
-**Fix**: Update API documentation with examples  
-**Effort**: 4 hours  
-
-### Promotion Service (5 P2 Issues)
-
-#### P2-6: Promotion Code Generation Predictable 🔵
-**File**: `promotion/internal/biz/coupon.go:150-200`  
-**Impact**: Potential coupon code guessing  
-**Fix**: Use cryptographically secure random generation  
-**Effort**: 4 hours  
-
-#### P2-7: Promotion Service Admin UI Basic 🔵
-**File**: Limited admin interface  
-**Impact**: Difficult promotion management  
-**Fix**: Enhance admin UI with advanced features  
-**Effort**: 32 hours  
-
-#### P2-8: Promotion Export/Import Missing 🔵
-**File**: No bulk promotion management  
-**Impact**: Manual promotion setup for campaigns  
-**Fix**: Add promotion export/import functionality  
-**Effort**: 16 hours  
-
-#### P2-9: Promotion Template System Missing 🔵
-**File**: No promotion templates  
-**Impact**: Recreating similar promotions manually  
-**Fix**: Add promotion template system  
-**Effort**: 20 hours  
-
-#### P2-10: Promotion Versioning Not Implemented 🔵
-**File**: No promotion change history  
-**Impact**: Can't track promotion changes  
-**Fix**: Implement promotion versioning  
-**Effort**: 12 hours  
-
-### Order Integration (5 P2 Issues)
-
-#### P2-11: Cart Session Cleanup Missing 🔵
-**File**: No cart session lifecycle management  
-**Impact**: Database bloat with abandoned carts  
-**Fix**: Implement automated cart cleanup  
-**Effort**: 8 hours  
-
-#### P2-12: Cart Analytics Limited 🔵
-**File**: No cart behavior tracking  
-**Impact**: Limited insights into cart abandonment  
-**Fix**: Add cart analytics and reporting  
-**Effort**: 16 hours  
-
-#### P2-13: Cart API Response Caching Missing 🔵
-**File**: `order/internal/service/cart.go:200-250`  
-**Impact**: Repeated expensive calculations  
-**Fix**: Add response caching for cart operations  
-**Effort**: 8 hours  
-
-#### P2-14: Cart Merge Logic Missing 🔵
-**File**: No guest-to-user cart merging  
-**Impact**: Lost cart items during login  
-**Fix**: Implement cart merge functionality  
-**Effort**: 12 hours  
-
-#### P2-15: Cart Comparison Feature Missing 🔵
-**File**: No cart comparison capability  
-**Impact**: Limited user experience features  
-**Fix**: Add cart save/compare functionality  
-**Effort**: 16 hours  
-
----
-
-## 🔄 SERVICE INTEGRATION FLOW ANALYSIS
-
-### 1. Complete Pricing Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Customer
-    participant G as Gateway
-    participant O as Order Service
-    participant P as Pricing Service
-    participant PR as Promotion Service
-    participant CA as Cache (Redis)
-    participant DB as Database
-
-    C->>G: Add item to cart
-    G->>O: AddToCart(sku, quantity)
-    
-    rect rgb(240, 248, 255)
-    note over O,P: Price Calculation Flow
-    O->>P: CalculatePrice(product_id, sku, quantity, warehouse_id)
+## 🚩 PENDING ISSUES (Unfixed)
+
+### Critical
+- [Critical] [P0-1 Silent Calculation Failures Lead to $0 Pricing]: Fail fast for all critical calculations and add integration tests for failure paths.
+- [Critical] [P0-3 Currency Conversion Cache Miss Storm]: Add circuit breaker + stale fallback for conversion and exchange-rate retrieval.
+- [Critical] [P0-4 Warehouse-Specific Pricing Race Conditions]: Add version field + optimistic locking on price updates.
+- [Critical] [P0-6 Price Cache TTL Not Business-Aligned]: Implement dynamic TTL by price type (flash sale vs regular).
+- [Critical] [P0-7 Tax Calculation Location Context Missing]: Add postcode validation + jurisdiction lookup in tax flow.
+- [Critical] [P0-8 Bulk Price Updates No Batch Processing]: Add batch processing + async outbox publishing.
+- [Critical] [P0-10 BOGO Calculation Logic Flaw]: Implement product-mix-aware matching for Buy X Get Y.
+- [Critical] [P0-12 Customer Segment Validation Missing]: Validate segments against customer service before applying promotions.
+- [Critical] [P0-13 Free Shipping Promotion Logic Incomplete]: Validate free-shipping with actual shipping rates.
+- [Critical] [P0-14 Tiered Discount Edge Cases]: Fix tier boundary handling + add boundary tests.
+- [Critical] [P0-15 Cart Totals Silent Failures]: Eliminate silent fallback when item prices are missing; return explicit errors.
+- [Critical] [P0-16 Promotion Validation Response Not Cached]: Cache validation results by cart/items hash.
+- [Critical] [P0-18 Line Items Missing Product Attributes]: Populate product attributes in cart line items from catalog.
+
+### High
+- [High] [P1-1 Price Rule Engine Performance]: Cache compiled rule conditions and optimize evaluation order.
+- [High] [P1-2 Missing Pricing Analytics Events]: Emit pricing analytics events for conversions and sensitivity.
+- [High] [P1-3 Currency Conversion Rate Staleness]: Add freshness validation and fallback source for rates.
+- [High] [P1-4 Base Price vs Sale Price Logic Ambiguity]: Define a single authoritative precedence rule.
+- [High] [P1-5 Price History Not Tracked]: Add price history/audit trail with change reasons.
+- [High] [P1-6 Warehouse Price Fallback Strategy Missing]: Implement warehouse → region → global fallback.
+- [High] [P1-7 Dynamic Pricing Rules Too Simple]: Add advanced signals (demand prediction, competitor pricing).
+- [High] [P1-8 Tax Rule Management UI Missing]: Provide admin UI for tax rule configuration.
+- [High] [P1-9 Complex Promotion Preview Missing]: Add preview endpoint without usage side effects.
+- [High] [P1-10 Promotion A/B Testing Framework Missing]: Add variant testing framework.
+- [High] [P1-11 Coupon Generation System Basic]: Add batch generation and custom patterns.
+- [High] [P1-12 Promotion Analytics Insufficient]: Add promotion ROI analytics.
+- [High] [P1-13 Review-Based Promotions Incomplete]: Complete review integration for triggers.
+- [High] [P1-14 Promotion Budget Tracking Reactive]: Add real-time budget monitoring and alerts.
+- [High] [P1-15 Seasonal Promotion Scheduling Missing]: Add recurring schedules and blackout dates.
+- [High] [P1-16 Promotion Conflict Detection Missing]: Validate conflicts and surface warnings.
+- [High] [P1-17 Customer Promotion History Not Tracked]: Add customer promotion history tracking.
+- [High] [P1-18 Promotion Performance Monitoring Gaps]: Add real-time monitoring dashboards.
+- [High] [P1-19 Cart Totals Calculation Performance]: Parallelize service calls and cache results.
+- [High] [P1-20 Shipping Method Selection Logic Missing]: Implement intelligent shipping method selection.
+- [High] [P1-21 Cart Abandonment Recovery Missing]: Add abandonment detection and recovery workflows.
+- [High] [P1-22 Price Change Notification Missing]: Detect price changes and request acknowledgment.
+- [High] [P1-23 Cart Validation Rules Incomplete]: Add comprehensive cart validation.
+- [High] [P1-24 Multi-Currency Cart Support Missing]: Support currency switching per session.
+
+### Normal
+- [Normal] [P2-1 Price Cache Warming Strategy Missing]: Implement cache warming for popular SKUs.
+- [Normal] [P2-2 Price API Rate Limiting Missing]: Add rate limiting for pricing calculations.
+- [Normal] [P2-3 Pricing Service Metrics Incomplete]: Add pricing metrics for operational visibility.
+- [Normal] [P2-4 Price Rounding Rules Not Configurable]: Make rounding configurable by currency.
+- [Normal] [P2-5 Pricing Documentation Outdated]: Refresh pricing API documentation.
+- [Normal] [P2-6 Promotion Code Generation Predictable]: Use cryptographically secure randomness for codes.
+- [Normal] [P2-7 Promotion Service Admin UI Basic]: Enhance admin features for promotion management.
+- [Normal] [P2-8 Promotion Export/Import Missing]: Add bulk export/import for promotions.
+- [Normal] [P2-9 Promotion Template System Missing]: Add reusable promotion templates.
+- [Normal] [P2-10 Promotion Versioning Not Implemented]: Track promotion versions and changes.
+- [Normal] [P2-11 Cart Session Cleanup Missing]: Implement automated cleanup of abandoned carts.
+- [Normal] [P2-12 Cart Analytics Limited]: Add cart analytics and reporting.
+- [Normal] [P2-13 Cart API Response Caching Missing]: Cache cart totals responses.
+- [Normal] [P2-14 Cart Merge Logic Missing]: Implement guest-to-user cart merging.
+- [Normal] [P2-15 Cart Comparison Feature Missing]: Add cart save/compare feature.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- [NEW ISSUE 🆕] [Promotion] Free shipping discounts are calculated but not applied to `TotalDiscount` or `FinalAmount`, and cart totals ignore shipping discount. Fix by including shipping discount in totals and order integration.
+- [NEW ISSUE 🆕] [Promotion] Eligibility filters rely on `ProductIDs`, `CategoryIDs`, and `BrandIDs`, but the line-item request path does not populate these lists. Fix by deriving these fields from `Items` inside promotion validation.
+- [NEW ISSUE 🆕] [Docs] Duplicate issue ID `P1-9` appears in the checklist, causing tracking ambiguity. Fix by renumbering.
+
+## ✅ RESOLVED / FIXED
+- [FIXED ✅] P0-2 Price Update Events Not Transactional: Pricing now writes to outbox and processes events via outbox worker after commit.
+- [FIXED ✅] P0-5 Dynamic Pricing Stock Integration Missing: Stock event consumers and dynamic pricing triggers are implemented.
+- [FIXED ✅] P0-9 Promotion Usage Tracking Race Condition: Atomic usage increment with limit check implemented in repository.
+- [FIXED ✅] P0-11 Promotion Stacking Rules Not Enforced: Stop rules processing is enforced during validation.
+- [FIXED ✅] P0-17 Currency Context Not Propagated: Cart add/update/totals pass currency from session/request to pricing.
+- [FIXED ✅] P0-19 Cart Session Concurrency Issues: Cart operations use locking + optimistic retry.
+- [FIXED ✅] P1-9 Unmanaged Goroutine for Catalog Sync: Direct goroutine removed; outbox worker handles event publication.
     P->>CA: Check price cache
     alt Cache Hit
         CA-->>P: Cached price
