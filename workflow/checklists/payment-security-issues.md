@@ -1,6 +1,7 @@
 # 💳 Payment Security & Production Issues Checklist
 
 **Generated**: January 18, 2026  
+**Last Updated**: January 21, 2026  
 **Services Reviewed**: Payment, Order (Checkout), Gateway  
 **Review Focus**: Payment processing security, PCI compliance, transaction integrity, fraud prevention  
 
@@ -18,15 +19,32 @@
 
 ---
 
+## 📂 Codebase Index (Relevant Services)
+
+### Payment Service
+- Payment processing + idempotency/locks: [payment/internal/biz/payment/usecase.go](payment/internal/biz/payment/usecase.go)
+- Token validation: [payment/internal/biz/payment/token_validation.go](payment/internal/biz/payment/token_validation.go)
+- Payment method flows: [payment/internal/biz/payment_method/usecase.go](payment/internal/biz/payment_method/usecase.go)
+- Payment method encryption (repo): [payment/internal/data/postgres/payment_method.go](payment/internal/data/postgres/payment_method.go)
+- Encryption key enforcement: [payment/internal/data/postgres/encryption_key_provider.go](payment/internal/data/postgres/encryption_key_provider.go)
+- PayPal webhook validation: [payment/internal/biz/gateway/paypal/client.go](payment/internal/biz/gateway/paypal/client.go)
+- PayPal webhook handler: [payment/internal/biz/gateway/paypal/webhook.go](payment/internal/biz/gateway/paypal/webhook.go)
+- Retry service (incomplete): [payment/internal/biz/retry/service.go](payment/internal/biz/retry/service.go)
+- Payment metrics: [payment/internal/observability/prometheus/metrics.go](payment/internal/observability/prometheus/metrics.go)
+
+### Order Service
+- Checkout authorization flow: [order/internal/biz/checkout/payment.go](order/internal/biz/checkout/payment.go)
+- Payment client adapter: [order/internal/data/client_adapters.go](order/internal/data/client_adapters.go)
+
+### Gateway Service
+- Request validation middleware: [gateway/internal/middleware/request_validation.go](gateway/internal/middleware/request_validation.go)
+- Middleware registry (request_validation wiring): [gateway/internal/middleware/manager.go](gateway/internal/middleware/manager.go)
+- Webhook rate limiting hook: [gateway/internal/router/kratos_router.go](gateway/internal/router/kratos_router.go)
+- Rate limiting middleware: [gateway/internal/middleware/rate_limit.go](gateway/internal/middleware/rate_limit.go)
+
 ## 🚩 PENDING ISSUES (Unfixed)
-- [Critical] P0-3: PCI DSS token validation missing — add token format, expiry, and ownership checks in payment tokenization flows.
-- [Critical] P0-5: Payment authorization race condition — add distributed lock or unique constraint + idempotent guard in `ProcessPayment`.
-- [Critical] P0-6: Payment method encryption not enforced — encryption key env mismatch can leave data in plaintext.
-- [Critical] P0-9: Missing authorization timeout in order checkout — wrap `AuthorizePayment` with a deadline and handle expiry.
-- [Critical] P0-11: Payment method ownership not validated in order flow — validate ownership before authorization.
 - [Critical] P0-12: Gateway webhook rate limiting not enforced per provider — configure per-endpoint limits for webhook routes.
-- [Critical] P0-13: Payment request size validation not enforced — `request_validation` middleware is a no-op.
-- [High] P1-1: PayPal webhook signature validation incomplete — implement cert verification.
+- [Critical] P0-13: Payment request size validation not enforced — `request_validation` middleware is a no-op in middleware registry.
 - [High] P1-3: Payment retry logic incomplete — retry service returns empty set and mock results.
 - [High] P1-4: Payment analytics missing — add success/failure metrics and dashboards.
 - [High] P1-5: Currency validation weak — enforce ISO 4217 validation at boundary.
@@ -35,7 +53,6 @@
 - [High] P1-9: No payment amount validation cache in order service.
 - [High] P1-10: Missing payment method expiry check in order pre-authorization.
 - [High] P1-11: Payment request tracing not wired for gateway → payment flow.
-- [High] P1-12: Payment health checks not exposed in gateway monitoring.
 - [High] P1-13: Payment request deduplication missing at gateway edge.
 - [Medium] P2-1: Payment performance optimizations.
 - [Medium] P2-2: Multi-currency support.
@@ -46,216 +63,13 @@
 - [Medium] P2-7: Payment request analytics (gateway).
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- [Security] [NEW ISSUE 🆕] Payment encryption key env mismatch: payment repo reads `PAYMENT_ENCRYPTION_KEY` but Helm/ArgoCD injects `PAYMENT_SECURITY_ENCRYPTION_KEY`, so encryption can be skipped → card metadata stored plaintext. **Fix**: align env var usage or map config; enforce non-empty key at startup.
-- [Architecture] [NEW ISSUE 🆕] Order payment adapter uses placeholder authorization/capture/void (no real payment service call) in [order/internal/data/client_adapters.go](order/internal/data/client_adapters.go#L214-L260). **Fix**: wire gRPC payment client and remove placeholder logic.
-    - Dev K8s debug: `kubectl -n payment get deploy payment-service -o yaml | grep -n "PAYMENT_SECURITY_ENCRYPTION_KEY"` and `kubectl -n order logs deploy/order-service | grep -i payment`.
+- [Architecture] [NEW ISSUE 🆕] Order payment adapter still uses placeholder Capture/Void responses (no real payment service call) in [order/internal/data/client_adapters.go](order/internal/data/client_adapters.go#L247-L279). **Fix**: call payment service `CapturePayment`/`VoidAuthorization` or add dedicated gRPC methods.
+    - Dev K8s debug: `kubectl -n order logs deploy/order-service | grep -i "capture"` and `kubectl -n payment logs deploy/payment-service | grep -i "capture"`.
 
-## 🚨 CRITICAL P0 ISSUES (7 Pending)
+## ✅ RESOLVED / FIXED
+- None
 
-### Payment Service (3 P0 Issues)
-
-#### P0-3: No PCI DSS Token Validation 🔴 CRITICAL
-**File**: `payment/internal/biz/gateway/tokenization.go`  
-**Impact**: Processing invalid payment tokens, payment failures, PCI violations  
-**Current**: Missing token format validation and expiry checks  
-**Fix**: Comprehensive token validation
-```go
-type TokenValidator struct {
-    allowedIssuers map[string]bool
-    maxTokenAge    time.Duration
-}
-
-func (tv *TokenValidator) ValidatePaymentToken(ctx context.Context, token string, customerID int64) error {
-    // Validate token format (starts with provider prefix)
-    if !tv.isValidTokenFormat(token) {
-        return fmt.Errorf("invalid token format")
-    }
-    
-    // Check token hasn't expired
-    tokenData, err := tv.decodeToken(token)
-    if err != nil {
-        return fmt.Errorf("invalid token: %w", err)
-    }
-    
-    if time.Since(tokenData.CreatedAt) > tv.maxTokenAge {
-        return fmt.Errorf("token expired")
-    }
-    
-    // Validate token belongs to customer
-    if tokenData.CustomerID != customerID {
-        return fmt.Errorf("token ownership mismatch")
-    }
-    
-    return nil
-}
-```
-**Test**: `TestTokenValidation_SecurityChecks`  
-**Effort**: 8 hours  
-
-#### P0-5: Race Condition in Payment Authorization 🔴 CRITICAL
-**File**: `payment/internal/biz/payment/payment.go:250-280`  
-**Impact**: Double authorization, customer charged multiple times  
-**Current Problem**:
-```go
-// ❌ No concurrency control for payment processing
-func (uc *PaymentUsecase) ProcessPayment(ctx context.Context, req *ProcessPaymentRequest) (*Payment, error) {
-    // ❌ Multiple requests can process simultaneously
-    payment := &Payment{...}
-    
-    // ❌ Race condition: two goroutines can create payment for same order
-    if err := uc.repo.Create(ctx, payment); err != nil {
-        return nil, err
-    }
-    
-    // Process with gateway...
-}
-```
-**Fix**: Distributed locking for payment processing
-```go
-// ✅ Use distributed lock to prevent race conditions
-func (uc *PaymentUsecase) ProcessPayment(ctx context.Context, req *ProcessPaymentRequest) (*Payment, error) {
-    lockKey := fmt.Sprintf("payment:lock:order:%d", req.OrderID)
-    
-    lock, err := uc.distributedLock.Acquire(ctx, lockKey, 30*time.Second)
-    if err != nil {
-        return nil, fmt.Errorf("failed to acquire payment lock: %w", err)
-    }
-    defer lock.Release()
-    
-    // Check if payment already exists for this order
-    existingPayment, err := uc.repo.FindByOrderID(ctx, req.OrderID)
-    if err == nil && existingPayment != nil {
-        if existingPayment.Status == PaymentStatusAuthorized || 
-           existingPayment.Status == PaymentStatusCaptured {
-            return existingPayment, nil // Return existing successful payment
-        }
-    }
-    
-    // Safe to process new payment
-    return uc.processPaymentWithLock(ctx, req)
-}
-```
-**Test**: `TestPayment_ConcurrentProcessing_PreventRaceCondition`  
-**Effort**: 12 hours  
-
-#### P0-6: Insecure Payment Method Storage 🔴 CRITICAL
-**File**: `payment/internal/biz/payment_method/storage.go`  
-**Impact**: PCI DSS violation, card data exposure  
-**Current**: Payment method data stored in plain text  
-**Fix**: Implement encryption for sensitive payment data
-```go
-type PaymentMethodRepository struct {
-    encryptionService EncryptionService
-}
-
-func (r *PaymentMethodRepository) Create(ctx context.Context, pm *PaymentMethod) error {
-    // Encrypt sensitive fields before storage
-    if pm.CardLast4 != "" {
-        encryptedLast4, err := r.encryptionService.Encrypt(pm.CardLast4)
-        if err != nil {
-            return fmt.Errorf("failed to encrypt card data: %w", err)
-        }
-        pm.CardLast4 = encryptedLast4
-    }
-    
-    return r.db.Create(ctx, pm).Error
-}
-
-func (r *PaymentMethodRepository) FindByID(ctx context.Context, id int64) (*PaymentMethod, error) {
-    pm := &PaymentMethod{}
-    if err := r.db.Find(ctx, pm, id).Error; err != nil {
-        return nil, err
-    }
-    
-    // Decrypt sensitive fields after retrieval
-    if pm.CardLast4 != "" {
-        decrypted, err := r.encryptionService.Decrypt(pm.CardLast4)
-        if err != nil {
-            return nil, fmt.Errorf("failed to decrypt card data: %w", err)
-        }
-        pm.CardLast4 = decrypted
-    }
-    
-    return pm, nil
-}
-```
-**Test**: `TestPaymentMethod_DataEncryption`  
-**Effort**: 16 hours  
-
-### Order Service Payment Integration (2 P0 Issues)
-
-#### P0-9: No Payment Authorization Timeout 🔴 CRITICAL
-**File**: `order/internal/biz/checkout/payment.go:25-50`  
-**Impact**: Infinite authorization holds, customer funds locked  
-**Current Problem**:
-```go
-// ❌ No timeout for payment authorization
-func (uc *UseCase) authorizePayment(ctx context.Context, cart *Cart, session *CheckoutSession, totalAmount float64) (*PaymentResult, error) {
-    authResp, err := uc.paymentService.AuthorizePayment(ctx, authReq)
-    // ❌ No check for authorization expiry
-    if err != nil {
-        return nil, fmt.Errorf("payment authorization failed: %w", err)
-    }
-}
-```
-**Fix**: Add authorization timeout handling
-```go
-// ✅ Handle authorization timeout
-func (uc *UseCase) authorizePayment(ctx context.Context, cart *Cart, session *CheckoutSession, totalAmount float64) (*PaymentResult, error) {
-    // Set authorization context with timeout
-    authCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-    defer cancel()
-    
-    authResp, err := uc.paymentService.AuthorizePayment(authCtx, authReq)
-    if err != nil {
-        if errors.Is(err, context.DeadlineExceeded) {
-            return nil, fmt.Errorf("payment authorization timeout")
-        }
-        return nil, fmt.Errorf("payment authorization failed: %w", err)
-    }
-    
-    // Schedule authorization expiry cleanup (7 days default)
-    go uc.scheduleAuthorizationExpiry(authResp.AuthorizationID, 7*24*time.Hour)
-    
-    return &PaymentResult{
-        AuthorizationID: authResp.AuthorizationID,
-        ExpiresAt:       time.Now().Add(7*24*time.Hour),
-    }, nil
-}
-```
-**Test**: `TestPaymentAuthorization_TimeoutHandling`  
-**Effort**: 6 hours  
-
-#### P0-11: No Payment Method Ownership Validation 🔴 CRITICAL
-**File**: `order/internal/biz/checkout/payment.go:75-90`  
-**Impact**: Customer can use other customers' payment methods  
-**Current**: No validation that payment method belongs to customer  
-**Fix**: Validate payment method ownership
-```go
-// ✅ Validate payment method ownership
-func (uc *UseCase) authorizePayment(ctx context.Context, cart *Cart, session *CheckoutSession, totalAmount float64) (*PaymentResult, error) {
-    if session.PaymentMethodID != "" {
-        // Validate customer owns this payment method
-        valid, err := uc.paymentService.ValidatePaymentMethodOwnership(ctx, session.PaymentMethodID, cart.CustomerID)
-        if err != nil {
-            return nil, fmt.Errorf("payment method validation failed: %w", err)
-        }
-        if !valid {
-            return nil, fmt.Errorf("payment method not owned by customer")
-        }
-    }
-    
-    authReq := &PaymentAuthorizationRequest{
-        CustomerID:      cart.CustomerID,
-        Amount:          totalAmount,
-        PaymentMethodID: session.PaymentMethodID,
-    }
-    
-    return uc.paymentService.AuthorizePayment(ctx, authReq)
-}
-```
-**Test**: `TestPaymentAuthorization_OwnershipValidation`  
-**Effort**: 4 hours  
+## 🚨 CRITICAL P0 ISSUES (2 Pending)
 
 ### Gateway Service (2 P0 Issues)
 
@@ -316,18 +130,12 @@ func PaymentRequestValidator() gin.HandlerFunc {
 
 ---
 
-## ⚠️ HIGH PRIORITY P1 ISSUES (11 Pending)
+## ⚠️ HIGH PRIORITY P1 ISSUES (9 Pending)
 
-### Payment Service (5 P1 Issues)
-
-#### P1-1: Incomplete Webhook Signature Validation for PayPal
-**File**: `payment/internal/biz/gateway/paypal.go`  
-**Impact**: PayPal webhook spoofing vulnerability  
-**Fix**: Implement certificate-based validation for PayPal webhooks  
-**Effort**: 8 hours  
+### Payment Service (4 P1 Issues)
 
 #### P1-3: Missing Payment Retry Logic
-**File**: `payment/internal/biz/payment/retry.go`  
+**File**: `payment/internal/biz/retry/service.go`  
 **Impact**: Transient failures not retried, lost revenue  
 **Fix**: Exponential backoff retry for gateway timeouts  
 **Effort**: 12 hours  
@@ -339,7 +147,7 @@ func PaymentRequestValidator() gin.HandlerFunc {
 **Effort**: 8 hours  
 
 #### P1-5: Weak Currency Validation
-**File**: `payment/internal/biz/payment/currency.go`  
+**File**: Missing currency validation module  
 **Impact**: Invalid currency processing, gateway rejections  
 **Fix**: Implement ISO 4217 currency validation  
 **Effort**: 4 hours  
@@ -370,19 +178,13 @@ func PaymentRequestValidator() gin.HandlerFunc {
 **Fix**: Pre-authorization payment method validation  
 **Effort**: 4 hours  
 
-### Gateway Service (3 P1 Issues)
+### Gateway Service (2 P1 Issues)
 
 #### P1-11: No Payment Request Tracing
-**File**: Missing distributed tracing for payment requests  
+**File**: `gateway/internal/observability/jaeger/tracing.go` (helpers not wired into request flow)  
 **Impact**: Difficult payment debugging across services  
 **Fix**: OpenTelemetry spans for payment flows  
 **Effort**: 8 hours  
-
-#### P1-12: Missing Payment Health Checks
-**File**: `gateway/internal/router/health.go`  
-**Impact**: No payment gateway health monitoring  
-**Fix**: Payment gateway health check endpoints  
-**Effort**: 6 hours  
 
 #### P1-13: No Payment Request Deduplication
 **File**: Missing request deduplication  
@@ -486,18 +288,18 @@ func PaymentRequestValidator() gin.HandlerFunc {
 **Focus**: Monitoring, reconciliation, audit compliance  
 
 #### Week 5-6: Payment Infrastructure
-- **P1-1**: PayPal webhook validation (8h)
-- **P1-2**: Payment reconciliation system (16h) 
+- ✅ **P1-1**: PayPal webhook validation (8h)
+- ✅ **P1-2**: Payment reconciliation system (16h) 
 - **P1-3**: Payment retry logic (12h)
 - **P1-6**: Payment audit logging (12h)
-**Total**: 48 hours (2 developers × 2 weeks)
+**Total**: 24 hours remaining (2 developers × 1 week)
 
 #### Week 7: Integration & Monitoring
 - **P1-4**: Payment analytics (8h)
-- **P1-7**: Payment status sync (8h)
+- ✅ **P1-7**: Payment status sync (8h)
 - **P1-11**: Payment tracing (8h)
-- **P1-12**: Payment health checks (6h)
-**Total**: 30 hours (2 developers × 1 week)
+- ✅ **P1-12**: Payment health checks (6h)
+**Total**: 16 hours remaining (2 developers × 0.5 week)
 
 ### Phase 3: Enhancement & Optimization (1-2 weeks) 🟡
 **Focus**: Performance, user experience, advanced features
@@ -568,5 +370,12 @@ func PaymentRequestValidator() gin.HandlerFunc {
 - ~~[FIXED ✅] P0-7: Fraud detection flow present and invoked before processing.~~
 - ~~[FIXED ✅] P0-8: 3D Secure flow implemented for Stripe.~~
 - ~~[FIXED ✅] P0-10: Payment rollback on order failure implemented via `handleRollbackAndAlert`.~~
+- ~~[FIXED ✅] P0-3: PCI DSS token validation added in payment usecase + token validator.~~
+- ~~[FIXED ✅] P0-5: Distributed lock + idempotency guard implemented in `ProcessPayment`.~~
+- ~~[FIXED ✅] P0-6: Encryption key enforcement added; payment method storage encrypts token/last4.~~
+- ~~[FIXED ✅] P0-9: Authorization timeout handling added in order checkout.~~
+- ~~[FIXED ✅] P0-11: Payment method ownership validation added before authorization.~~
 - ~~[FIXED ✅] P1-2: Payment reconciliation service implemented.~~
+- ~~[FIXED ✅] P1-1: PayPal webhook signature verification implemented via PayPal verification API.~~
 - ~~[FIXED ✅] P1-7: Payment status synchronization implemented via event consumers.~~
+- ~~[FIXED ✅] P1-12: Payment health checks exposed via gateway service health endpoints.~~

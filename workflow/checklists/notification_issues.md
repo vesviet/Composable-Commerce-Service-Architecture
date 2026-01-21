@@ -1,10 +1,21 @@
 # Notification Flow - Code Review Issues
 
-**Last Updated**: 2026-01-20
+**Last Updated**: 2026-01-21
 
 This document lists issues found during the review of the Notification Flow, based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- [High] [NOTIF-P1-01 Fire-and-forget send]: `SendNotification` uses unmanaged goroutine. Required: persist pending notifications and process via worker with retries. See `notification/internal/biz/notification/notification.go`.
+- [Medium] [NOTIF-P2-01 Direct synchronous calls to notification]: Services call notification directly and synchronously. Required: decouple via events and subscribe in notification service. See `order/internal/biz/status/status.go`.
+- [Medium] [NOTIF-P2-02 Sender implementations incomplete]: `email`, `sms`, `push` are TODO. Required: implement providers + retry/error mapping. See `notification/internal/biz/notification/sender.go`.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- None
+
+## ✅ RESOLVED / FIXED
+- None
 
 ## Resolution Plan (Actionable Checklist)
 

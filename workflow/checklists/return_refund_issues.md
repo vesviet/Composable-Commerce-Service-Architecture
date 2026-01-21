@@ -1,8 +1,21 @@
 # Return & Refund Flow - Code Review Issues
 
-**Last Updated**: 2026-01-18
+**Last Updated**: 2026-01-21
 
 This document lists issues found during the review of the Return & Refund Flow, based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
+
+---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- [High] RET-P1-01 Refund/restock best-effort leads to inconsistent states. Required: granular statuses + DLQ. See `order/internal/biz/return/return.go`.
+- [High] RET-P1-02 Payment refund calls lack idempotency. Required: generate/pass idempotency key. See `order/internal/biz/return/return.go`.
+- [High] RET-P1-03 Hardcoded fallback values in shipping label generation. Required: fail fast on missing data. See `order/internal/biz/return/return.go`.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- None
+
+## ✅ RESOLVED / FIXED
+- None
 
 ---
 

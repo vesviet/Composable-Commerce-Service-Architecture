@@ -1,27 +1,23 @@
 # Product & Catalog Flow - Code Review Issues
 
-**Last Updated**: 2026-01-19
+**Last Updated**: 2026-01-21
 
 This document lists issues found during the review of the Product & Catalog Flow, based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
 
 ---
 
-## 🔎 Re-review (2026-01-19) - Unfixed & New Issues (Moved to Top)
+## 🚩 PENDING ISSUES (Unfixed)
+- [High] [NEW ISSUE 🆕] CAT-P1-03 Warehouse stock lookup returns 0 on error, causing false out-of-stock. Required: return error or cached value instead of silent 0. See `catalog/internal/biz/product/product_price_stock.go`.
+- [Medium] CAT-P2-01 Unclear data ownership/query patterns for stock/price information in catalog vs search. Required: document ownership and enforce usage boundaries.
+- [Medium] CAT-P2-02 Brand/category delete does not check product associations. Required: block deletion when products reference brand/category.
+- [Medium] [NEW ISSUE 🆕] CAT-P2-03 Cache TTL jitter uses default RNG seed, causing synchronized expirations. Required: seed RNG at startup or use per-request jitter. See `catalog/internal/biz/product/product_price_stock.go`.
 
-### Unfixed Issues
-- **CAT-P2-01**: Unclear data ownership and query patterns for stock/price information.
-- **CAT-P2-02**: Deleting a brand or category does not check for existing product associations.
+## 🆕 NEWLY DISCOVERED ISSUES
+- [Reliability] [NEW ISSUE 🆕] CAT-P1-03 Warehouse-specific stock lookup returns 0 on error (`catalog/internal/biz/product/product_price_stock.go`).
+- [Reliability] [NEW ISSUE 🆕] CAT-P2-03 Cache TTL jitter uses default RNG seed (`catalog/internal/biz/product/product_price_stock.go`).
 
-### New Issues
-- **CAT-P1-03 (New)**: Warehouse-specific stock lookup returns 0 on error, causing false out-of-stock.
-  - **File**: `catalog/internal/biz/product/product_price_stock.go`
-  - **Impact**: Customers see out-of-stock when warehouse service is temporarily unavailable.
-  - **Fix**: Return error or last known cached value; avoid silent 0.
-
-- **CAT-P2-03 (New)**: Cache TTL jitter uses default RNG seed, causing synchronized expirations across pods.
-  - **File**: `catalog/internal/biz/product/product_price_stock.go`
-  - **Impact**: Cache stampedes when zero-stock TTL expires simultaneously.
-  - **Fix**: Seed `math/rand` on startup or use per-request crypto-based jitter.
+## ✅ RESOLVED / FIXED
+- None
 
 ## P2 - Maintainability / Architecture
 

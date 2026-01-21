@@ -1,21 +1,20 @@
 # Promotion Flow - Code Review Issues
 
-**Last Updated**: 2026-01-19
+**Last Updated**: 2026-01-21
 
 This document lists issues found during the review of the Promotion Flow, based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
 
 ---
 
-## 🔎 Re-review (2026-01-19) - Unfixed & New Issues (Moved to Top)
+## 🚩 PENDING ISSUES (Unfixed)
+- [High] [NEW ISSUE 🆕] PROMO-P1-01 `ReserveUsage` double-increments `current_usage_count`. Required: remove manual increment or disable trigger so count increments once. See `promotion/internal/data/promotion.go` and `promotion/migrations/004_create_promotion_usage_table.sql`.
+- [Medium] PROMO-P2-01 Promotion usage reservation flow unclear between services. Required: define and enforce which service calls `ReserveUsage`/`ApplyPromotion` post-checkout.
 
-### Unfixed Issues
-- **PROMO-P2-01**: Integration flow for reserving promotion usage is unclear.
+## 🆕 NEWLY DISCOVERED ISSUES
+- [Correctness] [NEW ISSUE 🆕] PROMO-P1-01 Double-increment of usage count in `ReserveUsage`.
 
-### New Issues
-- **PROMO-P1-01 (New)**: `ReserveUsage` double-increments `current_usage_count`.
-  - **Location**: `promotion/internal/data/promotion.go` (`ReserveUsage`), `promotion/migrations/004_create_promotion_usage_table.sql`
-  - **Impact**: Promotion usage counts are inflated, causing premature limit exhaustion and inaccurate analytics.
-  - **Recommendation**: Remove the manual increment in `ReserveUsage` or disable the trigger update for this path; ensure the count increments exactly once per usage record.
+## ✅ RESOLVED / FIXED
+- [FIXED ✅] PROMO-P2-02 Missing GIN indexes for JSONB filters (indexes present in migrations).
 
 ---
 

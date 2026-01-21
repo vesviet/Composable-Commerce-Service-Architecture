@@ -1,7 +1,6 @@
-#+#+#+#+markdown
 # 💰🎁 Pricing + Promotion Flow - Issues Checklist
 
-**Last Updated**: January 20, 2026  
+**Last Updated**: 2026-01-21  
 **Services Analyzed**: Pricing, Promotion, Order, Catalog, Gateway  
 **Business Impact**: Critical Revenue & Discount Management  
 
@@ -43,7 +42,6 @@
 ### Critical
 - [Critical] [P0-1 Silent Calculation Failures Lead to $0 Pricing]: Fail fast for all critical calculations and add integration tests for failure paths.
 - [Critical] [P0-3 Currency Conversion Cache Miss Storm]: Add circuit breaker + stale fallback for conversion and exchange-rate retrieval.
-- [Critical] [P0-4 Warehouse-Specific Pricing Race Conditions]: Add version field + optimistic locking on price updates.
 - [Critical] [P0-6 Price Cache TTL Not Business-Aligned]: Implement dynamic TTL by price type (flash sale vs regular).
 - [Critical] [P0-7 Tax Calculation Location Context Missing]: Add postcode validation + jurisdiction lookup in tax flow.
 - [Critical] [P0-8 Bulk Price Updates No Batch Processing]: Add batch processing + async outbox publishing.
@@ -60,16 +58,13 @@
 - [High] [P1-1 Price Rule Engine Performance]: Cache compiled rule conditions and optimize evaluation order.
 - [High] [P1-2 Missing Pricing Analytics Events]: Emit pricing analytics events for conversions and sensitivity.
 - [High] [P1-3 Currency Conversion Rate Staleness]: Add freshness validation and fallback source for rates.
-- [High] [P1-4 Base Price vs Sale Price Logic Ambiguity]: Define a single authoritative precedence rule.
 - [High] [P1-5 Price History Not Tracked]: Add price history/audit trail with change reasons.
-- [High] [P1-6 Warehouse Price Fallback Strategy Missing]: Implement warehouse → region → global fallback.
 - [High] [P1-7 Dynamic Pricing Rules Too Simple]: Add advanced signals (demand prediction, competitor pricing).
 - [High] [P1-8 Tax Rule Management UI Missing]: Provide admin UI for tax rule configuration.
 - [High] [P1-9 Complex Promotion Preview Missing]: Add preview endpoint without usage side effects.
 - [High] [P1-10 Promotion A/B Testing Framework Missing]: Add variant testing framework.
 - [High] [P1-11 Coupon Generation System Basic]: Add batch generation and custom patterns.
 - [High] [P1-12 Promotion Analytics Insufficient]: Add promotion ROI analytics.
-- [High] [P1-13 Review-Based Promotions Incomplete]: Complete review integration for triggers.
 - [High] [P1-14 Promotion Budget Tracking Reactive]: Add real-time budget monitoring and alerts.
 - [High] [P1-15 Seasonal Promotion Scheduling Missing]: Add recurring schedules and blackout dates.
 - [High] [P1-16 Promotion Conflict Detection Missing]: Validate conflicts and surface warnings.
@@ -85,7 +80,6 @@
 ### Normal
 - [Normal] [P2-1 Price Cache Warming Strategy Missing]: Implement cache warming for popular SKUs.
 - [Normal] [P2-2 Price API Rate Limiting Missing]: Add rate limiting for pricing calculations.
-- [Normal] [P2-3 Pricing Service Metrics Incomplete]: Add pricing metrics for operational visibility.
 - [Normal] [P2-4 Price Rounding Rules Not Configurable]: Make rounding configurable by currency.
 - [Normal] [P2-5 Pricing Documentation Outdated]: Refresh pricing API documentation.
 - [Normal] [P2-6 Promotion Code Generation Predictable]: Use cryptographically secure randomness for codes.
@@ -111,6 +105,11 @@
 - [FIXED ✅] P0-17 Currency Context Not Propagated: Cart add/update/totals pass currency from session/request to pricing.
 - [FIXED ✅] P0-19 Cart Session Concurrency Issues: Cart operations use locking + optimistic retry.
 - [FIXED ✅] P0-15 Cart Totals Silent Failures: Cart totals fail fast when item price is missing.
+- [FIXED ✅] P0-4 Warehouse-Specific Pricing Race Conditions: Price updates use versioned optimistic locking.
+- [FIXED ✅] P1-4 Base Price vs Sale Price Logic Ambiguity: Sale price takes precedence over base price in calculations.
+- [FIXED ✅] P1-6 Warehouse Price Fallback Strategy Missing: Priority fallback includes SKU+warehouse → SKU global → product+warehouse → product global.
+- [FIXED ✅] P1-13 Review-Based Promotions Incomplete: Review client integration and validation checks are implemented.
+- [FIXED ✅] P2-3 Pricing Service Metrics Incomplete: Pricing metrics for cache/requests are implemented.
 - [FIXED ✅] P1-25 Unmanaged Goroutine for Catalog Sync: Direct goroutine removed; outbox worker handles event publication.
 - [FIXED ✅] Docs: Duplicate issue ID `P1-9` resolved by renumbering.
     P->>CA: Check price cache

@@ -32,6 +32,8 @@ A comprehensive, production-grade e-commerce ecosystem designed for scale and hi
 ### 🏗 Architecture & Core Concepts
 - **[SYSTEM_ARCHITECTURE_OVERVIEW.md](./SYSTEM_ARCHITECTURE_OVERVIEW.md)**: The high-level architectural diagram and explanation.
 - **[EVENTS_REFERENCE.md](./EVENTS_REFERENCE.md)**: Reference guide for system-wide events.
+- **[event-processing-manual.md](./event-processing-manual.md)**: Comprehensive event processing, validation, and DLQ guide.
+- **[event-processing-quick-reference.md](./event-processing-quick-reference.md)**: Quick reference for operational commands.
 - **[GRPC_PROTO_AND_VERSIONING_RULES.md](./GRPC_PROTO_AND_VERSIONING_RULES.md)**: Guidelines for gRPC API development and versioning.
 - **[CODEBASE_INDEX.md](./CODEBASE_INDEX.md)**: Guide to the codebase structure.
 

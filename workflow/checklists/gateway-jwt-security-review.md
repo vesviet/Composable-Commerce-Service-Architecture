@@ -12,7 +12,7 @@
 
 ### Service Maturity Score: **7.5/10** 🟡
 
-**Overall Assessment**: Gateway JWT validation is **production-ready with critical security concerns**. The implementation follows clean architecture principles and has good observability, but contains a **P0 security vulnerability** (fail-open on blacklist errors) that must be fixed before production deployment.
+**Overall Assessment**: Gateway JWT validation is **production-ready with remaining P1 security risks**. The implementation follows clean architecture principles and has good observability. The prior P0 fail-open risk on blacklist errors is now fixed.
 
 ### Key Strengths ✅
 - ✅ Clean architecture with proper separation of concerns
@@ -31,11 +31,25 @@
 
 ---
 
+## 🚩 PENDING ISSUES (Unfixed)
+- [High] [GW-JWT-P1-01 JWT secret mismatch risk with Auth Service]: Gateway validates tokens with its own secret while Auth Service may sign with a different secret. Required: enforce a shared signing key or JWKS configuration across services.
+- [High] [GW-JWT-P1-02 Missing integration tests for blacklist failures]: No automated tests cover Redis outages or blacklist error paths. Required: add integration tests to assert fail-closed behavior.
+- [High] [GW-JWT-P1-03 No Redis circuit breaker for blacklist checks]: `IsBlacklisted` calls Redis directly without CB/backoff. Required: wrap Redis calls with a circuit breaker and use consistent failure metrics. See [gateway/internal/router/utils/jwt_blacklist.go](../../../gateway/internal/router/utils/jwt_blacklist.go).
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- None
+
+## ✅ RESOLVED / FIXED
+- [FIXED ✅] GW-JWT-P0-01 Fail-open blacklist errors now fail-closed in [gateway/internal/router/utils/jwt_validator_wrapper.go](../../../gateway/internal/router/utils/jwt_validator_wrapper.go).
+- [FIXED ✅] GW-JWT-P0-02 Auth Service validation now uses 5s timeout + circuit breaker in [gateway/internal/router/utils/jwt_validator_wrapper.go](../../../gateway/internal/router/utils/jwt_validator_wrapper.go).
+
+---
+
 ## 🔍 Detailed Analysis by Component
 
 ### 1. JWT Validation Flow (`jwt_validator_wrapper.go`)
 
-**Status**: 🟡 **Good with Critical Issue**
+**Status**: 🟢 **Good (P0 fixed, P1 pending)**
 
 **File**: [gateway/internal/router/utils/jwt_validator_wrapper.go](../../../gateway/internal/router/utils/jwt_validator_wrapper.go)  
 **Lines of Code**: 407 lines  
@@ -65,11 +79,11 @@ jvw := &JWTValidatorWrapper{
 4. Cache size limit (10,000 entries max)
 5. Metrics instrumentation via Prometheus
 
-#### 🔴 P0 CRITICAL ISSUE: Fail-Open on Blacklist Error
+#### ✅ P0 RESOLVED (2026-01-18): Fail-Open on Blacklist Error
 
 **Location**: Lines 128-145
 
-**Current Code** (VULNERABLE):
+**Previous Code** (VULNERABLE):
 ```go
 // Check blacklist first (if enabled)
 if jvw.blacklist != nil {

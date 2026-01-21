@@ -16,6 +16,27 @@ This is a merged checklist. Severity counts are preserved in each section below.
 
 ---
 
+## 🚩 PENDING ISSUES (Unfixed)
+- [Critical] [OR-P0-02 Cart session hijacking]: Cart session binding to customer/guest not enforced in all paths. Required: bind session to customer/guest and validate on every cart/order operation.
+- [Critical] [OR-P0-03 Stock reservation outside transaction]: Reservation runs outside order DB transaction, oversell race persists. Required: move stock reservation inside transaction or adopt outbox/transactional reservation.
+- [Critical] [OR-P0-04 Payment status updates lack gateway signature validation]: Webhook/auth update paths still unauthenticated. Required: validate gateway signatures before any status changes.
+- [Critical] [ORD-P0-02 Fulfillment completed mapped to order delivered]: Event mapping still wrong in `order/internal/data/eventbus/fulfillment_consumer.go`. Required: map to correct order status and verify transition rules.
+- [Critical] [FUL-P0-04 Fulfillment status events outside transaction]: Events published without outbox. Required: persist outbox events in the same transaction.
+- [Critical] [FUL-P0-05 Batch picklist creation not transactional]: Multi-write flow lacks `InTx`. Required: wrap batch creation in a single transaction and use outbox for events.
+- [High] [NEW ISSUE 🆕] [OR-P1-05 Order creation currency + pricing rules]: Order creation hardcodes currency and uses Catalog pricing. Required: source totals from Pricing service or checkout totals; propagate currency.
+- [High] [NEW ISSUE 🆕] [OR-P1-06 N+1 product fetches in order creation]: Per-item product calls slow large carts. Required: add batch product fetch or bulk pricing call.
+- [High] [NEW ISSUE 🆕] [ORD-P1-04 Fulfillment consumer skips when config nil]: Event subscription disabled on nil config. Required: fail fast on missing config or enforce config at startup.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- [Performance] [NEW ISSUE 🆕] OR-P1-06 N+1 product fetches in order creation (`order/internal/biz/order/create_helpers.go`).
+- [Correctness] [NEW ISSUE 🆕] OR-P1-05 Order creation uses hardcoded currency and bypasses Pricing rules (`order/internal/biz/order/create_helpers.go`).
+- [Reliability] [NEW ISSUE 🆕] ORD-P1-04 Fulfillment consumer skips subscription when config is nil (`order/internal/data/eventbus/fulfillment_consumer.go`).
+- [Reliability] [NEW ISSUE 🆕] FUL-P0-04 Fulfillment status events published outside transaction (`fulfillment/internal/biz/fulfillment/fulfillment.go`).
+- [Reliability] [NEW ISSUE 🆕] FUL-P0-05 Batch picklist creation not transactional (`fulfillment/internal/biz/picklist/batch_picking.go`).
+
+## ✅ RESOLVED / FIXED
+- [FIXED ✅] OR-P0-01 Order creation + outbox now wrapped in a single transaction (see `order/internal/biz/order/create.go`).
+
 ## 🔎 Re-review (2026-01-19) - Unfixed & New Issues (Moved to Top)
 
 ### Unfixed Issues
