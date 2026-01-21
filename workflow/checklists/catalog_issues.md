@@ -7,17 +7,44 @@ This document lists issues found during the review of the Product & Catalog Flow
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- [High] [NEW ISSUE 🆕] CAT-P1-03 Warehouse stock lookup returns 0 on error, causing false out-of-stock. Required: return error or cached value instead of silent 0. See `catalog/internal/biz/product/product_price_stock.go`.
-- [Medium] CAT-P2-01 Unclear data ownership/query patterns for stock/price information in catalog vs search. Required: document ownership and enforce usage boundaries.
-- [Medium] CAT-P2-02 Brand/category delete does not check product associations. Required: block deletion when products reference brand/category.
-- [Medium] [NEW ISSUE 🆕] CAT-P2-03 Cache TTL jitter uses default RNG seed, causing synchronized expirations. Required: seed RNG at startup or use per-request jitter. See `catalog/internal/biz/product/product_price_stock.go`.
+
+### High Priority
+- [High] **CAT-P1-03 Stock lookup error handling**: Warehouse-specific stock lookup returns 0 on error, causing false out-of-stock. **Required**: Return error or last cached value instead of silent 0 fallback. See `catalog/internal/biz/product/product_price_stock.go`. **Impact**: Products appear unavailable when warehouse service is down, causing lost sales.
+
+### Medium Priority
+- [Medium] **CAT-P2-01 Data ownership documentation**: Unclear query patterns for stock/price between catalog vs search services (CQRS ambiguity). **Required**: Document ownership boundaries—catalog for PDP real-time, search for listings. See `catalog/internal/biz/product/product_price_stock.go`. **Impact**: Developers unsure which service to call, risk of stale data.
+
+- [Medium] **CAT-P2-02 Brand/category referential integrity**: DeleteBrand and DeleteCategory do not check product associations. **Required**: Query products table before deletion, block if references exist. See `catalog/internal/biz/brand/brand.go` line 253 (TODO comment), `catalog/internal/biz/category/category.go` line 292. **Impact**: Dangling references cause broken filters and analytics errors.
+
+- [Medium] **CAT-P2-03 Cache TTL jitter synchronization**: Uses default RNG seed, causing synchronized cache expirations under load. **Required**: Seed RNG at startup (`rand.Seed(time.Now().UnixNano())`) or use crypto/rand per request. See `catalog/internal/biz/product/product_price_stock.go`. **Impact**: Thundering herd on cache miss.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- [Reliability] [NEW ISSUE 🆕] CAT-P1-03 Warehouse-specific stock lookup returns 0 on error (`catalog/internal/biz/product/product_price_stock.go`).
-- [Reliability] [NEW ISSUE 🆕] CAT-P2-03 Cache TTL jitter uses default RNG seed (`catalog/internal/biz/product/product_price_stock.go`).
+
+### Go Specifics
+- [Error Handling] **CAT-NEW-01 Silent error fallback pattern**: Multiple locations return default/zero values on errors without logging at appropriate severity. **Suggested fix**: Distinguish transient vs permanent failures, use structured logging with alert triggers for critical paths.
+
+### DevOps/K8s
+- [Debugging] **CAT-NEW-02 Dev K8s debugging steps missing**: Catalog service troubleshooting lacks standard K8s commands. **Suggested fix**: Add section:
+  ```bash
+  # View catalog service logs
+  kubectl logs -n dev -l app=catalog-service --tail=100 -f
+  
+  # Exec into pod for debugging
+  kubectl exec -n dev -it deployment/catalog-service -- /bin/sh
+  
+  # Port-forward for local testing
+  kubectl port-forward -n dev svc/catalog-service 8080:8080
+  
+  # Multi-service logs (catalog + dependencies)
+  stern -n dev 'catalog|warehouse|pricing' --since 5m
+  
+  # Check gRPC health
+  grpc_health_probe -addr=catalog-service:9000
+  ```
 
 ## ✅ RESOLVED / FIXED
-- None
+
+- [FIXED ✅] **Category child check**: DeleteCategory now checks for child categories before deletion (line 306-310 in `catalog/internal/biz/category/category.go`). Returns error if children exist, preventing orphaned subcategories.
 
 ## P2 - Maintainability / Architecture
 

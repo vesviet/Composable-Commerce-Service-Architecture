@@ -8,24 +8,142 @@ This document tracks review findings for the Checkout flow and provides a **repe
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- [High] [NEW ISSUE 🆕] CHECKOUT-P1-06 Payment Event Topic Mismatch: Consumer subscribes to `payment.confirmed`/`payment.failed` while constants define `payments.payment.confirmed`/`payments.payment.failed`. Required: align topics with constants to avoid missed events. See `order/internal/data/eventbus/payment_consumer.go`, `order/internal/constants/constants.go`.
-- [High] [NEW ISSUE 🆕] CHECKOUT-P1-07 Silent Subscription Skip: Payment consumer returns nil on missing config/pubsub, silently disabling critical capture events. Required: fail-fast or explicit disable flag. See `order/internal/data/eventbus/payment_consumer.go`.
-- [High] [NEW ISSUE 🆕] CHECKOUT-P1-08 Outbox Publisher No-Op Risk: If Dapr publisher fails init, it falls back to NoOp but outbox worker still marks events as published, losing critical payment events. Required: fail startup or keep events pending when publisher is NoOp. See `order/internal/events/publisher.go`, `order/internal/worker/outbox/worker.go`.
-- [Medium] [NEW ISSUE 🆕] CHECKOUT-P2-02 Outbox Status Semantics: Outbox worker uses status `published` while schema defaults to `pending` and no cleanup policy is defined. Required: unify status enum (pending/failed/completed) + add cleanup retention. See `order/internal/worker/outbox/worker.go`, `order/internal/data/postgres/outbox.go`.
-- [Medium] P2-01 ConfirmCheckout Complexity: `ConfirmCheckout` still overly long/complex. Required: refactor into smaller private methods. See `order/internal/biz/checkout/confirm.go`.
+
+### Medium Priority
+- [Medium] **CHECKOUT-P2-01 ConfirmCheckout Complexity**: `ConfirmCheckout` remains overly long/complex. **Required**: Refactor into smaller private methods (e.g., `loadAndValidateSessionAndCart`, `calculateTotals`, `capturePaymentOrHandleFailure`). See `order/internal/biz/checkout/confirm.go`. **Impact**: Difficult to test, maintain, and debug.
+  - **Status**: ✅ **FIXED** (2026-01-21) - Further refactored `prepareCartAndAddresses` method into 6 smaller, focused methods: `loadAndValidateCart`, `prepareCartForCheckout`, `extractAndValidateReservations`, `convertAndValidateAddresses`, `validateStockAndExtendReservations`. Main ConfirmCheckout method now has even cleaner separation of concerns and improved testability.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- [Reliability] [NEW ISSUE 🆕] CHECKOUT-P1-06 Payment event topic mismatch (confirmed/failed) can drop events.
-- [Reliability] [NEW ISSUE 🆕] CHECKOUT-P1-07 Payment consumer silently skips subscriptions when config is nil.
-- [Reliability] [NEW ISSUE 🆕] CHECKOUT-P1-08 Outbox publisher NoOp fallback causes event loss while marking as published.
-- [Maintainability] [NEW ISSUE 🆕] CHECKOUT-P2-02 Outbox status/cleanup semantics are inconsistent.
+
+### Go Specifics
+- [Context Propagation] **CHECKOUT-NEW-01 Context Timeout Scope**: Capture retry worker does not propagate parent context deadlines, potentially running retries longer than intended. **Suggested fix**: Ensure worker goroutines respect context cancellation from shutdown signal. See worker initialization in `order/cmd/order/main.go`.
+
+### DevOps/K8s
+- [Debugging] **CHECKOUT-NEW-02 Dev K8s Debugging Steps Missing**: Checklist lacks standard troubleshooting commands for debugging checkout flow in Dev K8s. **Suggested fix**: Add section with comprehensive debugging commands and troubleshooting steps.
+  - **Status**: ✅ **FIXED** (2026-01-21) - Added comprehensive Dev K8s debugging section with kubectl logs, exec, port-forward, stern commands, database queries, and troubleshooting examples for checkout flow debugging in development namespace.
 
 ## ✅ RESOLVED / FIXED
-- ~~[FIXED ✅] P1-01 Authorization currency fallback hardcoded to USD: now uses `constants.DefaultCurrency`.~~
-- ~~[FIXED ✅] P1-02 Capture failure wraps wrong error variable: already correct.~~
-- ~~[FIXED ✅] P1-03 Capture failure ignores order status update errors: now logs/alerts.~~
-- ~~[FIXED ✅] P1-04 Compensation errors ignored: now returned and alerted.~~
-- ~~[FIXED ✅] P1-05 Checkout confirm lacks durable Saga: outbox capture + consumer + retry worker implemented.~~
+
+- [FIXED ✅] **CHECKOUT-P1-06 Payment Event Topic Mismatch**: Payment consumer aligned with `constants.TopicPaymentConfirmed` and `constants.TopicPaymentFailed`.
+- [FIXED ✅] **CHECKOUT-P1-07 Silent Subscription Skip**: Consumer now returns errors when config/pubsub is missing (fail-fast).
+- [FIXED ✅] **CHECKOUT-P1-08 Outbox Publisher No-Op Risk**: Outbox worker keeps events pending when publisher is NoOp.
+- [FIXED ✅] **CHECKOUT-P2-01 ConfirmCheckout Complexity**: Further refactored `prepareCartAndAddresses` into 6 focused methods for better maintainability.
+- [FIXED ✅] **CHECKOUT-P2-02 Outbox Status Semantics**: Added processing status and cleanup retention for published/failed events.
+- [FIXED ✅] **CHECKOUT-NEW-01 Context Timeout Scope**: Added 30s timeout to capture retry operations with proper context handling.
+- [FIXED ✅] **CHECKOUT-NEW-02 Dev K8s Debugging Steps Missing**: Added comprehensive checkout flow debugging guide with kubectl commands and troubleshooting steps.
+- [FIXED ✅] **P1-01 Authorization currency fallback**: Now uses `constants.DefaultCurrency` instead of hardcoded USD. Verified in `order/internal/biz/checkout/payment.go`.
+- [FIXED ✅] **P1-02 Capture failure error wrapping**: Already correct, returns `fmt.Errorf("payment capture failed: %w", captureErr)`. Verified in `order/internal/biz/checkout/confirm.go`.
+- [FIXED ✅] **P1-03 Order status update errors on capture failure**: Now logs `[CRITICAL]` and triggers alert `ORDER_STATUS_UPDATE_FAILED`. Verified in current code.
+- [FIXED ✅] **P1-04 Compensation errors ignored**: `rollbackPaymentAndReservations` now returns joined error when compensation fails. Caller logs critical and triggers alerts. Verified in `order/internal/biz/checkout/payment.go`.
+- [FIXED ✅] **P1-05 Durable Saga implementation**: Complete with Phase 1 (state tracking), Phase 2 (outbox + consumer + retry worker), and Phase 3 (compensation + DLQ). Migration 035 adds Saga fields, capture retry worker implemented, outbox-driven capture with idempotency, compensation job with DLQ support.
+
+---
+
+## 🐳 Dev K8s Debugging Guide (Checkout Flow)
+
+### Quick Debugging Commands
+
+```bash
+# View order service logs
+kubectl logs -n dev -l app=order-service --tail=100 -f
+
+# Exec into order service pod
+kubectl exec -n dev -it deployment/order-service -- /bin/sh
+
+# Port-forward for local debugging
+kubectl port-forward -n dev svc/order-service 8080:8080
+
+# View events across services (requires stern)
+stern -n dev 'order|payment|warehouse' --since 5m
+
+# Check Dapr sidecar logs
+kubectl logs -n dev -l app=order-service -c daprd --tail=50
+
+# View checkout sessions in database
+kubectl exec -n dev -it deployment/postgres -- psql -U postgres -d order_db -c "SELECT id, session_id, customer_id, status, created_at FROM checkout_sessions ORDER BY created_at DESC LIMIT 10;"
+
+# View order data in database
+kubectl exec -n dev -it deployment/postgres -- psql -U postgres -d order_db -c "SELECT id, status, payment_status, total_amount, created_at FROM orders ORDER BY created_at DESC LIMIT 10;"
+
+# Check Saga state transitions
+kubectl exec -n dev -it deployment/postgres -- psql -U postgres -d order_db -c "SELECT id, payment_saga_state, authorization_id, capture_retry_count, last_capture_attempt_at FROM orders WHERE payment_saga_state IS NOT NULL ORDER BY updated_at DESC LIMIT 10;"
+
+# View outbox events
+kubectl exec -n dev -it deployment/postgres -- psql -U postgres -d order_db -c "SELECT id, topic, status, retry_count, error_message, created_at FROM outbox ORDER BY created_at DESC LIMIT 10;"
+```
+
+### Checkout Flow Troubleshooting Steps
+
+1. **Payment Authorization Failures**:
+   ```bash
+   # Check payment service logs
+   kubectl logs -n dev -l app=payment-service --tail=50 | grep "authorize\|Authorize"
+
+   # Test payment service health
+   kubectl exec -n dev -it deployment/order-service -- curl -v payment-service.dev.svc.cluster.local:8080/health
+   ```
+
+2. **Order Creation Issues**:
+   ```bash
+   # Check order creation logs
+   kubectl logs -n dev -l app=order-service | grep "CreateOrder\|checkout"
+
+   # Verify order was created
+   kubectl exec -n dev -it deployment/postgres -- psql -U postgres -d order_db -c "SELECT id, status, payment_status FROM orders WHERE id = 'your-order-id';"
+   ```
+
+3. **Saga State Problems**:
+   ```bash
+   # Check Saga state transitions
+   kubectl logs -n dev -l app=order-service | grep "Saga\|saga"
+
+   # View current Saga states
+   kubectl exec -n dev -it deployment/postgres -- psql -U postgres -d order_db -c "SELECT id, payment_saga_state, authorization_id, capture_retry_count, last_capture_attempt_at FROM orders WHERE payment_saga_state IS NOT NULL;"
+   ```
+
+4. **Outbox Event Issues**:
+   ```bash
+   # Check outbox event status
+   kubectl exec -n dev -it deployment/postgres -- psql -U postgres -d order_db -c "SELECT id, topic, status, retry_count, error_message FROM outbox ORDER BY created_at DESC LIMIT 10;"
+
+   # Check outbox worker logs
+   kubectl logs -n dev -l app=order-service | grep "outbox\|Outbox"
+   ```
+
+5. **Event Consumer Problems**:
+   ```bash
+   # Check event consumer subscriptions
+   kubectl logs -n dev -l app=order-service | grep "Subscribe\|consumer\|Consumer"
+
+   # Verify Dapr pubsub configuration
+   kubectl get configurations.dapr.io -n dev
+   ```
+
+### Common Checkout Flow Issues & Solutions
+
+- **Issue**: Orders stuck in `authorized` state
+  - **Check**: Outbox events, payment capture worker
+  - **Command**: `kubectl logs -n dev -l app=order-service | grep "capture\|Capture"`
+
+- **Issue**: Payment capture failures
+  - **Check**: Payment service availability, authorization expiry
+  - **Command**: `kubectl logs -n dev -l app=payment-service | grep "capture"`
+
+- **Issue**: Event consumption failures
+  - **Check**: Dapr sidecar health, topic subscriptions
+  - **Command**: `kubectl logs -n dev -l app=order-service -c daprd | grep "error\|Error"`
+
+- **Issue**: Saga state inconsistencies
+  - **Check**: Concurrent updates, transaction failures
+  - **Command**: `kubectl logs -n dev -l app=order-service | grep "transaction\|Transaction"`
+
+- **Issue**: Cart session conversion failures
+  - **Check**: Cart status validation, checkout session ownership
+  - **Command**: `kubectl logs -n dev -l app=order-service | grep "checkout.*status\|ownership"`
+
+- **Issue**: Reservation confirmation failures
+  - **Check**: Warehouse service connectivity, reservation expiry
+  - **Command**: `kubectl logs -n dev -l app=warehouse-service | grep "reservation\|Reservation"`
 
 ---
 

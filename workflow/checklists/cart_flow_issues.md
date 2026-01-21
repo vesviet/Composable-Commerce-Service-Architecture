@@ -8,17 +8,26 @@ This document tracks review findings for the Cart Management Flow and provides a
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- [High] [NEW ISSUE 🆕] CART-P1-03 Data Race in `AddToCart` ErrGroup: `stockErr`/`pricingErr` are shared across goroutines without synchronization. Required: return errors directly from goroutines or guard with mutex/atomic. See `order/internal/biz/cart/add.go`.
+
+### High Priority
+- None.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- [Go Concurrency] [NEW ISSUE 🆕] CART-P1-03 Data race on shared error variables in `AddToCart`.
+
+### DevOps/K8s
+- [Debugging] **CART-NEW-03 Dev K8s Debugging Steps Missing**: Cart flow checklist lacks standard troubleshooting commands. **Suggested fix**: Add section with kubectl logs, exec, port-forward, and stern examples for order service in dev namespace.
+  - **Status**: ✅ **FIXED** (2026-01-21) - Added comprehensive Dev K8s debugging section with kubectl logs, exec, port-forward, stern commands, database queries, and troubleshooting examples for cart flow debugging in development namespace.
 
 ## ✅ RESOLVED / FIXED
-- [FIXED ✅] CART-P2-02 Currency fallback now uses `constants.DefaultCurrency` in `AddToCart`, `UpdateCartItem`, and `ValidateCart`.
-- ~~[FIXED ✅] P0-01 Unmanaged goroutine for event publishing in AddToCart: now synchronous/timeout + no-op publisher.~~
-- ~~[FIXED ✅] P1-01 Cart item updates not atomic under concurrency: transaction + `LoadCartForUpdate` locking.~~
-- ~~[FIXED ✅] P1-02 Cart totals calculation silently ignores dependency failures: now returns errors.~~
-- ~~[FIXED ✅] P2-01 CountryCode defaults hardcoded to `VN`: centralized in `constants.DefaultCountryCode`.~~
+
+- [FIXED ✅] **CART-P1-03 Data Race in AddToCart ErrGroup**: Refactored errgroup to return errors directly and removed shared error variables.
+- [FIXED ✅] **CART-NEW-01 ErrGroup variable capture**: Eliminated outer-scope error assignment in goroutines.
+- [FIXED ✅] **CART-NEW-02 Currency fallback comment inconsistency**: Comment clarified to match behavior.
+- [FIXED ✅] **CART-P2-02 Currency fallback**: Now uses `constants.DefaultCurrency` in `AddToCart`, `UpdateCartItem`, and `ValidateCart`. Verified in `order/internal/biz/cart/add.go` line 106, constants import at line 10.
+- [FIXED ✅] **P0-01 Unmanaged goroutine for event publishing**: Event publishing now uses `context.WithTimeout(..., 5s)` (synchronous), and `publishAddToCartEvents(...)` is a no-op kept for backward compatibility. Verified in `order/internal/biz/cart/add.go` lines 286-287.
+- [FIXED ✅] **P1-01 Cart item updates not atomic**: Transaction + `LoadCartForUpdate` locking implemented. Verified in `order/internal/biz/cart/add.go` lines 198-203 with SELECT FOR UPDATE pattern.
+- [FIXED ✅] **P1-02 Cart totals calculation silent failures**: Current implementation returns errors when shipping/promotions/tax calls fail. No silent failures remain.
+- [FIXED ✅] **P2-01 CountryCode hardcoded to VN**: Centralized in `constants.DefaultCountryCode`. All cart flows use the constant. Verified in `order/internal/constants/constants.go`.
 
 ---
 
