@@ -1,8 +1,8 @@
-# 🔄 Event Validation + DLQ Flow (Search Service Event Processing)
+# 🔄 Event Validation + DLQ Flow (Search + Shared Event Consumers)
 
 **Last Updated**: 2026-01-20
 **Owner**: Platform Engineering
-**Scope**: Event processing reliability, validation, and dead letter queue handling
+**Scope**: Event processing reliability, validation, and dead letter queue handling across shared consumers (common package) and service-specific handlers
 **Business Impact**: Prevents data inconsistency, enables poison message recovery
 
 ---
@@ -322,6 +322,17 @@ spec:
     enabled: false
   scopes:
     - search
+```
+
+### 6.1.1 Common Consumer DLQ Metadata (Shared Package)
+
+Services using the shared Dapr consumer in `common/events` must pass `deadLetterTopic` via metadata when registering subscriptions.
+
+```go
+// common/events ConsumerClient
+client.AddConsumerWithMetadata(topic, pubsub, map[string]string{
+    "deadLetterTopic": "<topic>.dlq",
+}, handler)
 ```
 
 ### 6.2 Event Processing Configuration

@@ -126,6 +126,7 @@ func (v *ProductValidator) Validate(event *ProductCreatedEvent) error {
 
 **Required Implementation**:
 - [x] Add DLQ configuration to values-base.yaml
+- [ ] Standardize DLQ metadata in common event consumer (AddConsumerWithMetadata)
 - [ ] Create Dapr subscription templates
 - [ ] Deploy subscriptions to all environments
 - [ ] Verify DLQ topics are created
@@ -135,6 +136,7 @@ func (v *ProductValidator) Validate(event *ProductCreatedEvent) error {
 # Add to existing files
 argocd/applications/main/search/values-base.yaml (add dapr.subscriptions section)
 argocd/applications/main/search/templates/dapr-subscriptions.yaml (create new template)
+common/events/dapr_consumer.go (ensure DLQ metadata is supported + defaulted)
 ```
 
 **Implementation**:
@@ -152,6 +154,15 @@ dapr:
       scopes:
         - "search"
     # ... other subscriptions
+```
+
+**Shared Consumer Guidance**:
+```go
+// In services using common/events ConsumerClient
+// Ensure DLQ metadata is passed for each subscription
+client.AddConsumerWithMetadata(topic, pubsub, map[string]string{
+    "deadLetterTopic": "<topic>.dlq",
+}, handler)
 ```
 
 **Estimated Effort**: 6 hours
