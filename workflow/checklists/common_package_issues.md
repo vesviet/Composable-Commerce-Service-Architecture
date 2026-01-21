@@ -24,6 +24,7 @@
 - [FIXED ✅] COMMON-EVT-P1-01 Dapr consumer port configurable via env. See [common/events/dapr_consumer.go](common/events/dapr_consumer.go).
 - [FIXED ✅] COMMON-EVT-P1-02 `DAPR_DISABLED` no longer returns nil publisher. See [common/events/dapr_publisher_grpc.go](common/events/dapr_publisher_grpc.go).
 - [FIXED ✅] COMMON-EVT-P2-01 Subscription concurrency now configurable via env. See [common/events/dapr_consumer.go](common/events/dapr_consumer.go).
+- [FIXED ✅] COMMON-EVT-P0-03 Default DLQ metadata added for subscriptions (auto `<topic>.dlq`). See [common/events/dapr_consumer.go](common/events/dapr_consumer.go).
 - [FIXED ✅] COMMON-REPO-P2-01 `List()` now nil-safe for filter. See [common/repository/base_repository.go](common/repository/base_repository.go).
 - [FIXED ✅] COMMON-OBS-P2-01 Added no-op metrics defaults. See [common/observability/metrics/noop.go](common/observability/metrics/noop.go).
 - [FIXED ✅] COMMON-REPO-P1-02 ORDER BY now validated and allowlist-supported. See [common/repository/base_repository.go](common/repository/base_repository.go).
@@ -43,6 +44,7 @@
 
 ## Notes
 - Ensure changes are reflected in service configs and deployment manifests.
+- Service-level event consumers should still pass explicit `deadLetterTopic` where a non-default name is required.
 
 ---
 

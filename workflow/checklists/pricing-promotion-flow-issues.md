@@ -7,6 +7,37 @@
 
 ---
 
+## 📂 Codebase Index (Relevant Services)
+
+### Pricing Service
+- Core price write + outbox: [pricing/internal/biz/price/price.go](pricing/internal/biz/price/price.go)
+- Outbox worker: [pricing/internal/biz/worker/outbox.go](pricing/internal/biz/worker/outbox.go)
+- Outbox repo methods: [pricing/internal/data/postgres/price.go](pricing/internal/data/postgres/price.go)
+- Price event contracts: [pricing/internal/events/price_events.go](pricing/internal/events/price_events.go)
+- Constants/topics: [pricing/internal/constants/constants.go](pricing/internal/constants/constants.go)
+
+### Promotion Service
+- Validation + discount pipeline: [promotion/internal/biz/promotion.go](promotion/internal/biz/promotion.go)
+- Discount calculators (BOGO/tiered/etc): [promotion/internal/biz/discount_calculator.go](promotion/internal/biz/discount_calculator.go)
+- Free shipping logic: [promotion/internal/biz/free_shipping.go](promotion/internal/biz/free_shipping.go)
+- Coupon usage atomic update: [promotion/internal/data/coupon.go](promotion/internal/data/coupon.go)
+- gRPC/HTTP mapping: [promotion/internal/service/promotion.go](promotion/internal/service/promotion.go)
+
+### Order Service (Cart Totals)
+- Cart totals source of truth: [order/internal/biz/cart/totals.go](order/internal/biz/cart/totals.go)
+- Line item builder: [order/internal/biz/cart/helpers.go](order/internal/biz/cart/helpers.go)
+- Auto-apply promotions: [order/internal/biz/cart/promotion.go](order/internal/biz/cart/promotion.go)
+- Currency/country context: [order/internal/service/context.go](order/internal/service/context.go)
+
+### Catalog Service
+- Price cache + pricing client: [catalog/internal/biz/product/product_price_stock.go](catalog/internal/biz/product/product_price_stock.go)
+- Price event consumers: [catalog/internal/worker/workers.go](catalog/internal/worker/workers.go)
+
+### Gateway
+- Pricing/promotion routing: [gateway/internal/router/kratos_router.go](gateway/internal/router/kratos_router.go)
+- Client wiring: [gateway/internal/client/service_manager.go](gateway/internal/client/service_manager.go)
+- Product promotion transform: [gateway/internal/transformer/product.go](gateway/internal/transformer/product.go)
+
 ## 🚩 PENDING ISSUES (Unfixed)
 
 ### Critical
@@ -20,9 +51,10 @@
 - [Critical] [P0-12 Customer Segment Validation Missing]: Validate segments against customer service before applying promotions.
 - [Critical] [P0-13 Free Shipping Promotion Logic Incomplete]: Validate free-shipping with actual shipping rates.
 - [Critical] [P0-14 Tiered Discount Edge Cases]: Fix tier boundary handling + add boundary tests.
-- [Critical] [P0-15 Cart Totals Silent Failures]: Eliminate silent fallback when item prices are missing; return explicit errors.
 - [Critical] [P0-16 Promotion Validation Response Not Cached]: Cache validation results by cart/items hash.
 - [Critical] [P0-18 Line Items Missing Product Attributes]: Populate product attributes in cart line items from catalog.
+- [Critical] [NEW ISSUE 🆕] [P0-20 Shipping Discount Not Applied to Cart Totals]: Promotion service returns `ShippingDiscount` but cart totals ignore it. Apply shipping discount to totals and persist in cart calculations.
+- [Critical] [NEW ISSUE 🆕] [P0-21 Promotion Eligibility Lists Missing When Items Provided]: `ValidatePromotions` relies on Product/Category/Brand lists but these are not derived from `Items`. Derive lists from line items to avoid false negatives.
 
 ### High
 - [High] [P1-1 Price Rule Engine Performance]: Cache compiled rule conditions and optimize evaluation order.
@@ -66,11 +98,10 @@
 - [Normal] [P2-13 Cart API Response Caching Missing]: Cache cart totals responses.
 - [Normal] [P2-14 Cart Merge Logic Missing]: Implement guest-to-user cart merging.
 - [Normal] [P2-15 Cart Comparison Feature Missing]: Add cart save/compare feature.
+- [Normal] [NEW ISSUE 🆕] [P2-16 Dev K8s Debugging Steps Missing]: Add troubleshooting commands (logs/exec/port-forward) for pricing/promotion/cart totals flows.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- [NEW ISSUE 🆕] [Promotion] Free shipping discounts are calculated but not applied to `TotalDiscount` or `FinalAmount`, and cart totals ignore shipping discount. Fix by including shipping discount in totals and order integration.
-- [NEW ISSUE 🆕] [Promotion] Eligibility filters rely on `ProductIDs`, `CategoryIDs`, and `BrandIDs`, but the line-item request path does not populate these lists. Fix by deriving these fields from `Items` inside promotion validation.
-- [NEW ISSUE 🆕] [Docs] Duplicate issue ID `P1-9` appears in the checklist, causing tracking ambiguity. Fix by renumbering.
+- _None (moved to Pending)._ 
 
 ## ✅ RESOLVED / FIXED
 - [FIXED ✅] P0-2 Price Update Events Not Transactional: Pricing now writes to outbox and processes events via outbox worker after commit.
@@ -79,7 +110,9 @@
 - [FIXED ✅] P0-11 Promotion Stacking Rules Not Enforced: Stop rules processing is enforced during validation.
 - [FIXED ✅] P0-17 Currency Context Not Propagated: Cart add/update/totals pass currency from session/request to pricing.
 - [FIXED ✅] P0-19 Cart Session Concurrency Issues: Cart operations use locking + optimistic retry.
-- [FIXED ✅] P1-9 Unmanaged Goroutine for Catalog Sync: Direct goroutine removed; outbox worker handles event publication.
+- [FIXED ✅] P0-15 Cart Totals Silent Failures: Cart totals fail fast when item price is missing.
+- [FIXED ✅] P1-25 Unmanaged Goroutine for Catalog Sync: Direct goroutine removed; outbox worker handles event publication.
+- [FIXED ✅] Docs: Duplicate issue ID `P1-9` resolved by renumbering.
     P->>CA: Check price cache
     alt Cache Hit
         CA-->>P: Cached price
@@ -116,7 +149,7 @@
 // 1. Calculate subtotal (with prices)
 // 2. Apply promotions (on pre-tax amounts)
 // 3. Calculate tax (on discounted amounts)
-// 4. Add shipping (with shipping discounts)
+// 4. Add shipping (shipping discount still needs to be applied)
 ```
 
 #### Cache Invalidation Chain

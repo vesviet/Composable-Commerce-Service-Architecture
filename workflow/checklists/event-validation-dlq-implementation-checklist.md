@@ -126,7 +126,8 @@ func (v *ProductValidator) Validate(event *ProductCreatedEvent) error {
 
 **Required Implementation**:
 - [x] Add DLQ configuration to values-base.yaml
-- [ ] Standardize DLQ metadata in common event consumer (AddConsumerWithMetadata)
+- [x] Implement DLQ metadata defaulting in common event consumer (AddConsumerWithMetadata)
+- [ ] Update all services using common/events to pass `deadLetterTopic`
 - [ ] Create Dapr subscription templates
 - [ ] Deploy subscriptions to all environments
 - [ ] Verify DLQ topics are created
@@ -137,6 +138,15 @@ func (v *ProductValidator) Validate(event *ProductCreatedEvent) error {
 argocd/applications/main/search/values-base.yaml (add dapr.subscriptions section)
 argocd/applications/main/search/templates/dapr-subscriptions.yaml (create new template)
 common/events/dapr_consumer.go (ensure DLQ metadata is supported + defaulted)
+
+# Service updates (common/events ConsumerClient)
+fulfillment/internal/data/eventbus/*.go
+warehouse/internal/data/eventbus/*.go
+pricing/internal/data/eventbus/*.go
+customer/internal/data/eventbus/*.go
+order/internal/service/event_handler.go (if using common consumer in future)
+catalog/internal/service/events.go (if migrated to common consumer)
+common-operations/internal/worker/handler.go (if migrated to common consumer)
 ```
 
 **Implementation**:
@@ -165,7 +175,15 @@ client.AddConsumerWithMetadata(topic, pubsub, map[string]string{
 }, handler)
 ```
 
+**Impacted Services (Immediate)**:
+- Fulfillment (order_status_changed, picklist_status_changed)
+- Warehouse (product_created, order_status_changed, fulfillment_status_changed, return_completed)
+- Pricing (stock_changed, low_stock, promotion_created, promotion_updated)
+- Customer (auth.login, auth.password_changed, order.completed/cancelled/returned) ✅ already has DLQ metadata
+
 **Estimated Effort**: 6 hours
+
+**Note**: Common package implementation is done first; service-level updates are deferred to a later task.
 
 ---
 
