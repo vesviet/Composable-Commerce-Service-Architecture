@@ -9,9 +9,10 @@
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- [Critical] [P0-2 Catalog admin endpoints verification needed]: While P0-1 shows RequireAdmin middleware exists, need to verify ALL admin routes are protected. Required: Audit all write endpoints (brand, category, attribute, inventory) to confirm middleware coverage.
-- [Critical] [P0-6 Missing transaction wrapper in ReleaseReservation]: Inventory can become stuck in reserved state if database trigger fails during reservation release. Required: Wrap operation in `uc.tx.InTx` and explicitly call `DecrementReserved`.
-- [Critical] [P0-7 Missing ReservationUsecase DI]: Cannot implement P0-6 transaction fix without proper dependency injection setup. Required: Wire transaction manager into ReservationUsecase constructor.
+- [Critical] [P0-1 Catalog admin endpoints verification needed]: While P0-1 shows RequireAdmin middleware exists, need to verify ALL admin routes are protected. Required: Audit all write endpoints (brand, category, attribute, inventory) to confirm middleware coverage.
+- [Fixed ✅] [P0-1 Cart Stock Validation Race Condition]: Stock validation is not clearly enforced inside an order-creation transaction. **FIXED**: Entire checkout process now wrapped in transaction for atomicity (stock validation + reservation confirmation + order creation).
+- [Fixed ✅] [P0-6 Missing transaction wrapper in ReleaseReservation]: Inventory can become stuck in reserved state if database trigger fails during reservation release. **FIXED**: ReleaseReservation now wrapped in transaction with proper error handling.
+- [Fixed ✅] [P0-7 Missing ReservationUsecase DI]: Cannot implement P0-6 transaction fix without proper dependency injection setup. **FIXED**: TransactionManager properly injected into ReservationUsecase and CheckoutUsecase.
 - [High] [P1-N1 Warehouse stock lookup error handling]: Returns 0 on error instead of failing fast. Required: Return errors properly in `catalog/internal/biz/product/product_price_stock.go`.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
@@ -24,6 +25,9 @@
 ## ✅ RESOLVED / FIXED
 - [P0-1 Catalog auth middleware]: RequireAdmin middleware implemented and applied to write endpoints.
 - [P0-4 Payment idempotency key]: IdempotencyKey generation and tracking fully implemented.
+- [FIXED ✅] P0-1 Cart Stock Validation Race Condition: Entire checkout process now wrapped in transaction for atomicity (stock validation + reservation confirmation + order creation).
+- [FIXED ✅] P0-6 Missing transaction wrapper in ReleaseReservation: ReleaseReservation now wrapped in transaction with proper error handling.
+- [FIXED ✅] P0-7 Missing ReservationUsecase DI: TransactionManager properly injected into ReservationUsecase and CheckoutUsecase.
 - [P0-5 ReserveStock TOCTOU race]: Transaction wrapper with IncrementReserved implemented to eliminate race condition.
 - [CAT-P0-03 Zero stock timing attack]: Adaptive randomized TTL implemented between StockCacheTTLZeroStockMin and Max.
 

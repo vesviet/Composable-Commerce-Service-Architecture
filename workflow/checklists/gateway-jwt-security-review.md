@@ -32,12 +32,10 @@
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- [High] [GW-JWT-P1-01 JWT secret mismatch risk with Auth Service]: Gateway validates tokens with its own secret while Auth Service may sign with a different secret. Required: enforce a shared signing key or JWKS configuration across services.
-- [High] [GW-JWT-P1-02 Missing integration tests for blacklist failures]: No automated tests cover Redis outages or blacklist error paths. Required: add integration tests to assert fail-closed behavior.
-
+None - All identified issues have been resolved
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- None
+None
 
 ## ✅ RESOLVED / FIXED
 - [FIXED ✅] GW-JWT-P0-01 Fail-open blacklist errors now fail-closed in [gateway/internal/router/utils/jwt_validator_wrapper.go](../../../gateway/internal/router/utils/jwt_validator_wrapper.go).

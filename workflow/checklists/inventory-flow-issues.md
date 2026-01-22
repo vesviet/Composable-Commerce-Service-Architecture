@@ -6,11 +6,11 @@
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- [Critical] [REV-P0-01 Purchase Verification Bypass]: Order client still falls back to stub that returns true on gRPC failure. Required: remove stub or fail-closed and surface error.
-- [Critical] [ORD-P0-01 Cart Stock Validation Race Condition]: Stock validation is not clearly enforced inside an order-creation transaction. Required: validate and reserve stock within the same transaction boundary.
-- [Critical] [WH-P0-01 Atomic Stock Update Race Condition]: Inventory updates lack a verified atomic update path for all write operations. Required: use atomic DB update/optimistic locking in all adjustment paths.
-- [Critical] [WH-P0-03 Negative Stock Levels Allowed]: No DB-level CHECK on `quantity_available >= 0` and not all write paths guard negatives. Required: add DB constraints + validation in adjustment/reservation flows.
-- [Critical] [FULF-P0-01 Stock Consumption Atomicity]: Fulfillment stock consumption across services lacks a verified saga/coordination path. Required: transactional outbox + coordinated stock decrement/rollback.
+- [Fixed ✅] [REV-P0-01 Purchase Verification Bypass]: Order client still falls back to stub that returns true on gRPC failure. **FIXED**: Fail-closed implementation prevents fake reviews.
+- [Fixed ✅] [ORD-P0-01 Cart Stock Validation Race Condition]: Stock validation is not clearly enforced inside an order-creation transaction. **FIXED**: Entire checkout process now wrapped in transaction for atomicity.
+- [Fixed ✅] [WH-P0-01 Atomic Stock Update Race Condition]: Inventory updates lack a verified atomic update path for all write operations. **FIXED**: All stock operations use transactions with row-level locking.
+- [Fixed ✅] [WH-P0-03 Negative Stock Levels Allowed]: No DB-level CHECK on `quantity_available >= 0` and not all write paths guard negatives. **FIXED**: Database constraints prevent negative stock levels.
+- [Fixed ✅] [FULF-P0-01 Stock Consumption Atomicity]: Fulfillment stock consumption across services lacks a verified saga/coordination path. **FIXED**: Saga pattern implemented with transactional outbox.
 - [High] [ORD-P1-02 Stock Check Optimization]: Stock checks are serial per item. Required: parallel/batch checks in order/internal/biz/cart/stock.go.
 - [High] [ORD-P1-03 Partial Stock Handling]: No partial allocation flow. Required: support partial allocation + customer choice.
 - [High] [WH-P1-04 Warehouse Capacity Management]: Capacity constraints are not enforced. Required: capacity model + alerts.
@@ -48,6 +48,9 @@
 - [FIXED ✅] FULF-P0-03 Reservation Validation Bypass: Reservation status is validated before fulfillment creation. See [fulfillment/internal/biz/fulfillment/fulfillment.go](fulfillment/internal/biz/fulfillment/fulfillment.go).
 - [FIXED ✅] FULF-P0-04 Fulfillment Event Outbox: Fulfillment events are written via outbox publisher within transactions. See [fulfillment/internal/biz/fulfillment/fulfillment.go](fulfillment/internal/biz/fulfillment/fulfillment.go) and [fulfillment/internal/events/outbox_publisher.go](fulfillment/internal/events/outbox_publisher.go).
 - [FIXED ✅] CAT-P0-01 Stock Cache Poisoning Vulnerability: Secure cache key generation added. See [catalog/internal/biz/product/product_price_stock.go](catalog/internal/biz/product/product_price_stock.go).
+- [FIXED ✅] ORD-P0-01 Cart Stock Validation Race Condition: Entire checkout process now wrapped in transaction for atomicity.
+- [FIXED ✅] WH-P0-01 Atomic Stock Update Race Condition: All stock operations use transactions with row-level locking.
+- [FIXED ✅] WH-P0-03 Negative Stock Levels Allowed: Database constraints prevent negative stock levels.
 - [FIXED ✅] CAT-P0-03 Zero Stock TTL Exploitation: Adaptive randomized TTL for zero stock. See [catalog/internal/biz/product/product_price_stock.go](catalog/internal/biz/product/product_price_stock.go).
 - [FIXED ✅] CAT-P1-05 Stock Error → Zero: Warehouse stock errors return errors and attempt cache fallback instead of silently returning 0. See [catalog/internal/biz/product/product_price_stock.go](catalog/internal/biz/product/product_price_stock.go).
 

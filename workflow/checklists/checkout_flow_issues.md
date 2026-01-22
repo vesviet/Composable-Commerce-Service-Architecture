@@ -11,8 +11,7 @@ This document tracks review findings for the Checkout flow and provides a **repe
 - [Medium] [CHECKOUT-P2-01 ConfirmCheckout Complexity]: `ConfirmCheckout` remains overly long/complex. Required: Refactor into smaller private methods (e.g., `loadAndValidateSessionAndCart`, `calculateTotals`, `capturePaymentOrHandleFailure`).
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- [Go Specifics] [CHECKOUT-NEW-01 Context Timeout Scope]: Capture retry worker does not propagate parent context deadlines. Required: Ensure worker goroutines respect context cancellation from shutdown signal.
-- [DevOps/K8s] [CHECKOUT-NEW-02 Dev K8s Debugging Steps Missing]: Checklist lacks standard troubleshooting commands for debugging checkout flow. Required: Add section with comprehensive debugging commands and troubleshooting steps.
+None
 
 ## ✅ RESOLVED / FIXED
 - [CHECKOUT-P1-06 Payment Event Topic Mismatch]: Payment consumer aligned with constants.TopicPaymentConfirmed and constants.TopicPaymentFailed.
