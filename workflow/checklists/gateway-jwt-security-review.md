@@ -26,15 +26,15 @@
 ### Critical Issues 🔴
 - ✅ **P0 RESOLVED (2026-01-18)**: Fail-open behavior on blacklist Redis errors → Now fail-closed
 - ✅ **P0 RESOLVED (2026-01-18)**: No circuit breaker for Auth Service fallback calls → Added 5s timeout + CB
-- 🔴 **P1**: JWT secret mismatch risk with Auth Service
-- 🔴 **P1**: Missing integration tests for blacklist failure scenarios
+- ✅ **P1 RESOLVED (2026-01-22)**: JWT secret mismatch risk with Auth Service → Standardized JWT_SECRET
+- ✅ **P1 RESOLVED (2026-01-22)**: Missing integration tests for blacklist failure scenarios → Added comprehensive tests
 
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
 - [High] [GW-JWT-P1-01 JWT secret mismatch risk with Auth Service]: Gateway validates tokens with its own secret while Auth Service may sign with a different secret. Required: enforce a shared signing key or JWKS configuration across services.
 - [High] [GW-JWT-P1-02 Missing integration tests for blacklist failures]: No automated tests cover Redis outages or blacklist error paths. Required: add integration tests to assert fail-closed behavior.
-- [High] [GW-JWT-P1-03 No Redis circuit breaker for blacklist checks]: `IsBlacklisted` calls Redis directly without CB/backoff. Required: wrap Redis calls with a circuit breaker and use consistent failure metrics. See [gateway/internal/router/utils/jwt_blacklist.go](../../../gateway/internal/router/utils/jwt_blacklist.go).
+
 
 ## 🆕 NEWLY DISCOVERED ISSUES
 - None
@@ -42,6 +42,9 @@
 ## ✅ RESOLVED / FIXED
 - [FIXED ✅] GW-JWT-P0-01 Fail-open blacklist errors now fail-closed in [gateway/internal/router/utils/jwt_validator_wrapper.go](../../../gateway/internal/router/utils/jwt_validator_wrapper.go).
 - [FIXED ✅] GW-JWT-P0-02 Auth Service validation now uses 5s timeout + circuit breaker in [gateway/internal/router/utils/jwt_validator_wrapper.go](../../../gateway/internal/router/utils/jwt_validator_wrapper.go).
+- [FIXED ✅] GW-JWT-P1-01 JWT secret synchronization: Both Gateway and Auth Service now use JWT_SECRET environment variable (standardized across services).
+- [FIXED ✅] GW-JWT-P1-02 Redis circuit breaker for blacklist: Added circuit breaker protection for Redis calls in [gateway/internal/router/utils/jwt_blacklist.go](../../../gateway/internal/router/utils/jwt_blacklist.go).
+- [FIXED ✅] GW-JWT-P1-03 Integration tests for blacklist failures: Added comprehensive tests in [gateway/tests/jwt_blacklist_integration_test.go](../../../gateway/tests/jwt_blacklist_integration_test.go).
 
 ---
 

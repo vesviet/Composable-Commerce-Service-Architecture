@@ -8,34 +8,25 @@ This document tracks review findings for the Checkout flow and provides a **repe
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-
-### Medium Priority
-- [Medium] **CHECKOUT-P2-01 ConfirmCheckout Complexity**: `ConfirmCheckout` remains overly long/complex. **Required**: Refactor into smaller private methods (e.g., `loadAndValidateSessionAndCart`, `calculateTotals`, `capturePaymentOrHandleFailure`). See `order/internal/biz/checkout/confirm.go`. **Impact**: Difficult to test, maintain, and debug.
-  - **Status**: ✅ **FIXED** (2026-01-21) - Further refactored `prepareCartAndAddresses` method into 6 smaller, focused methods: `loadAndValidateCart`, `prepareCartForCheckout`, `extractAndValidateReservations`, `convertAndValidateAddresses`, `validateStockAndExtendReservations`. Main ConfirmCheckout method now has even cleaner separation of concerns and improved testability.
+- [Medium] [CHECKOUT-P2-01 ConfirmCheckout Complexity]: `ConfirmCheckout` remains overly long/complex. Required: Refactor into smaller private methods (e.g., `loadAndValidateSessionAndCart`, `calculateTotals`, `capturePaymentOrHandleFailure`).
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-
-### Go Specifics
-- [Context Propagation] **CHECKOUT-NEW-01 Context Timeout Scope**: Capture retry worker does not propagate parent context deadlines, potentially running retries longer than intended. **Suggested fix**: Ensure worker goroutines respect context cancellation from shutdown signal. See worker initialization in `order/cmd/order/main.go`.
-
-### DevOps/K8s
-- [Debugging] **CHECKOUT-NEW-02 Dev K8s Debugging Steps Missing**: Checklist lacks standard troubleshooting commands for debugging checkout flow in Dev K8s. **Suggested fix**: Add section with comprehensive debugging commands and troubleshooting steps.
-  - **Status**: ✅ **FIXED** (2026-01-21) - Added comprehensive Dev K8s debugging section with kubectl logs, exec, port-forward, stern commands, database queries, and troubleshooting examples for checkout flow debugging in development namespace.
+- [Go Specifics] [CHECKOUT-NEW-01 Context Timeout Scope]: Capture retry worker does not propagate parent context deadlines. Required: Ensure worker goroutines respect context cancellation from shutdown signal.
+- [DevOps/K8s] [CHECKOUT-NEW-02 Dev K8s Debugging Steps Missing]: Checklist lacks standard troubleshooting commands for debugging checkout flow. Required: Add section with comprehensive debugging commands and troubleshooting steps.
 
 ## ✅ RESOLVED / FIXED
-
-- [FIXED ✅] **CHECKOUT-P1-06 Payment Event Topic Mismatch**: Payment consumer aligned with `constants.TopicPaymentConfirmed` and `constants.TopicPaymentFailed`.
-- [FIXED ✅] **CHECKOUT-P1-07 Silent Subscription Skip**: Consumer now returns errors when config/pubsub is missing (fail-fast).
-- [FIXED ✅] **CHECKOUT-P1-08 Outbox Publisher No-Op Risk**: Outbox worker keeps events pending when publisher is NoOp.
-- [FIXED ✅] **CHECKOUT-P2-01 ConfirmCheckout Complexity**: Further refactored `prepareCartAndAddresses` into 6 focused methods for better maintainability.
-- [FIXED ✅] **CHECKOUT-P2-02 Outbox Status Semantics**: Added processing status and cleanup retention for published/failed events.
-- [FIXED ✅] **CHECKOUT-NEW-01 Context Timeout Scope**: Added 30s timeout to capture retry operations with proper context handling.
-- [FIXED ✅] **CHECKOUT-NEW-02 Dev K8s Debugging Steps Missing**: Added comprehensive checkout flow debugging guide with kubectl commands and troubleshooting steps.
-- [FIXED ✅] **P1-01 Authorization currency fallback**: Now uses `constants.DefaultCurrency` instead of hardcoded USD. Verified in `order/internal/biz/checkout/payment.go`.
-- [FIXED ✅] **P1-02 Capture failure error wrapping**: Already correct, returns `fmt.Errorf("payment capture failed: %w", captureErr)`. Verified in `order/internal/biz/checkout/confirm.go`.
-- [FIXED ✅] **P1-03 Order status update errors on capture failure**: Now logs `[CRITICAL]` and triggers alert `ORDER_STATUS_UPDATE_FAILED`. Verified in current code.
-- [FIXED ✅] **P1-04 Compensation errors ignored**: `rollbackPaymentAndReservations` now returns joined error when compensation fails. Caller logs critical and triggers alerts. Verified in `order/internal/biz/checkout/payment.go`.
-- [FIXED ✅] **P1-05 Durable Saga implementation**: Complete with Phase 1 (state tracking), Phase 2 (outbox + consumer + retry worker), and Phase 3 (compensation + DLQ). Migration 035 adds Saga fields, capture retry worker implemented, outbox-driven capture with idempotency, compensation job with DLQ support.
+- [CHECKOUT-P1-06 Payment Event Topic Mismatch]: Payment consumer aligned with constants.TopicPaymentConfirmed and constants.TopicPaymentFailed.
+- [CHECKOUT-P1-07 Silent Subscription Skip]: Consumer now returns errors when config/pubsub is missing (fail-fast).
+- [CHECKOUT-P1-08 Outbox Publisher No-Op Risk]: Outbox worker keeps events pending when publisher is NoOp.
+- [CHECKOUT-P2-01 ConfirmCheckout Complexity]: Further refactored prepareCartAndAddresses into 6 focused methods for better maintainability.
+- [CHECKOUT-P2-02 Outbox Status Semantics]: Added processing status and cleanup retention for published/failed events.
+- [CHECKOUT-NEW-01 Context Timeout Scope]: Added 30s timeout to capture retry operations with proper context handling.
+- [CHECKOUT-NEW-02 Dev K8s Debugging Steps Missing]: Added comprehensive checkout flow debugging guide with kubectl commands and troubleshooting steps.
+- [P1-01 Authorization currency fallback]: Now uses constants.DefaultCurrency instead of hardcoded USD.
+- [P1-02 Capture failure error wrapping]: Returns proper error wrapping with fmt.Errorf.
+- [P1-03 Order status update errors on capture failure]: Now logs [CRITICAL] and triggers alert ORDER_STATUS_UPDATE_FAILED.
+- [P1-04 Compensation errors ignored]: rollbackPaymentAndReservations now returns joined error when compensation fails.
+- [P1-05 Durable Saga implementation]: Complete with Phase 1 (state tracking), Phase 2 (outbox + consumer + retry worker), and Phase 3 (compensation + DLQ).
 
 ---
 

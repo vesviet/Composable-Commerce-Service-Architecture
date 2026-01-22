@@ -6,28 +6,22 @@
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-
-### Critical
-- [Critical] [REV-P0-01 Purchase Verification Bypass]: Order client still falls back to stub that returns true on gRPC failure. Required: remove stub or fail-closed and surface error. See [review/internal/client/order_client.go](review/internal/client/order_client.go).
+- [Critical] [REV-P0-01 Purchase Verification Bypass]: Order client still falls back to stub that returns true on gRPC failure. Required: remove stub or fail-closed and surface error.
 - [Critical] [ORD-P0-01 Cart Stock Validation Race Condition]: Stock validation is not clearly enforced inside an order-creation transaction. Required: validate and reserve stock within the same transaction boundary.
 - [Critical] [WH-P0-01 Atomic Stock Update Race Condition]: Inventory updates lack a verified atomic update path for all write operations. Required: use atomic DB update/optimistic locking in all adjustment paths.
 - [Critical] [WH-P0-03 Negative Stock Levels Allowed]: No DB-level CHECK on `quantity_available >= 0` and not all write paths guard negatives. Required: add DB constraints + validation in adjustment/reservation flows.
 - [Critical] [FULF-P0-01 Stock Consumption Atomicity]: Fulfillment stock consumption across services lacks a verified saga/coordination path. Required: transactional outbox + coordinated stock decrement/rollback.
-
-### High
-- [High] [ORD-P1-02 Stock Check Optimization]: Stock checks are serial per item. Required: parallel/batch checks in [order/internal/biz/cart/stock.go](order/internal/biz/cart/stock.go).
+- [High] [ORD-P1-02 Stock Check Optimization]: Stock checks are serial per item. Required: parallel/batch checks in order/internal/biz/cart/stock.go.
 - [High] [ORD-P1-03 Partial Stock Handling]: No partial allocation flow. Required: support partial allocation + customer choice.
 - [High] [WH-P1-04 Warehouse Capacity Management]: Capacity constraints are not enforced. Required: capacity model + alerts.
 - [High] [FULF-P1-01 Picking Optimization]: No route/batch picking optimization. Required: picking algorithm.
-- [High] [FULF-P1-02 QC Integration]: QC results don’t trigger stock adjustments. Required: QC → inventory flow.
+- [High] [FULF-P1-02 QC Integration]: QC results don't trigger stock adjustments. Required: QC → inventory flow.
 - [High] [FULF-P1-03 Package Weight Validation]: No auto-adjustment to weight differences. Required: weight-based adjustments.
 - [High] [FULF-P1-04 Return Stock Processing]: No automated return-to-stock flow. Required: return workflow.
 - [High] [INT-P1-01 Event Ordering Guarantees]: No ordering/sequence enforcement across outbox consumers. Required: ordering keys/sequence numbers + idempotency.
 - [High] [INT-P1-02 Circuit Breaker Implementation]: Inventory service calls lack circuit breakers. Required: breakers + fallback policy.
 - [High] [INT-P1-03 Distributed Transaction Monitoring]: No success/failure metrics for distributed flows. Required: distributed transaction telemetry.
 - [High] [CAT-P1-04 Cache Warming Strategy]: No proactive cache warming. Required: pre-warm hot SKUs.
-
-### Medium
 - [Medium] [PERF-P2-01 Database Query Optimization]: Missing indexes on inventory queries. Required: query plan review + indexes.
 - [Medium] [PERF-P2-02 Cache Hit Ratio Improvement]: Improve caching strategy. Required: adaptive TTL + warmup.
 - [Medium] [PERF-P2-03 Batch Processing Optimization]: Improve throughput with parallelization.
@@ -42,12 +36,12 @@
 - [Medium] [DATA-P2-04 Audit Data Export]: No export/reporting. Required: audit export tooling.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- [NEW ISSUE 🆕] [Warehouse] Unmanaged goroutine for alert checks in inventory updates. This bypasses context cancellation and visibility. Suggested fix: move to a worker/queue or propagate context with bounded retries. See [warehouse/internal/biz/inventory/inventory.go](warehouse/internal/biz/inventory/inventory.go).
-- [NEW ISSUE 🆕] [Docs] Inventory workflow docs lack Dev K8s troubleshooting commands (logs/exec/port-forward). Suggested fix: add a short troubleshooting section with `kubectl logs`, `kubectl exec`, `kubectl port-forward` examples.
+- [Go Specifics] [Warehouse unmanaged goroutine for alert checks]: Inventory updates bypass context cancellation and visibility. Required: move to a worker/queue or propagate context with bounded retries. Dev K8s debug: `kubectl logs -n dev deploy/warehouse-service | grep -i goroutine`.
+- [DevOps/K8s] [Missing Dev K8s troubleshooting commands]: Inventory workflow docs lack troubleshooting steps. Required: add kubectl logs, exec, port-forward examples.
 
 ## ✅ RESOLVED / FIXED
-- [FIXED ✅] ORD-P0-02 Warehouse ID Validation Bypass: Missing warehouse IDs now mark items out-of-stock and are rejected in cart stock checks. See [order/internal/biz/cart/stock.go](order/internal/biz/cart/stock.go).
-- [FIXED ✅] ORD-P0-03 Stock Service Fallback: Catalog cache fallback with staleness guard is implemented for warehouse failures. See [order/internal/biz/cart/stock.go](order/internal/biz/cart/stock.go).
+- [ORD-P0-02 Warehouse ID Validation Bypass]: Missing warehouse IDs now mark items out-of-stock and are rejected in cart stock checks.
+- [ORD-P0-03 Stock Service Fallback]: Catalog cache fallback with staleness guard is implemented for warehouse failures.
 - [FIXED ✅] ORD-P1-07 Checkout Fallback Staleness: Staleness metadata check prevents using outdated fallback stock. See [order/internal/biz/cart/stock.go](order/internal/biz/cart/stock.go).
 - [FIXED ✅] WH-P0-02 Reservation Timeout Memory Leak: Reservation expiry worker releases expired reservations on schedule. See [warehouse/internal/worker/expiry/reservation_expiry.go](warehouse/internal/worker/expiry/reservation_expiry.go).
 - [FIXED ✅] FULF-P0-02 Multi-Warehouse Allocation: Warehouse selection algorithm implemented with stock + capacity + distance. See [fulfillment/internal/biz/fulfillment/fulfillment.go](fulfillment/internal/biz/fulfillment/fulfillment.go).

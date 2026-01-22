@@ -7,47 +7,21 @@
 
 ---
 
-## � PENDING ISSUES (Unfixed)
-
-### Critical Priority
-- [Critical] **SEARCH-P0-03 Silent event processing failures**: Event handlers return HTTP 200 even when indexing fails, preventing Dapr redelivery. No input validation on event payloads. **Required**: Return proper HTTP status codes (400 for validation, 500 for processing errors), add event payload validation. See `search/internal/service/product_consumer.go` lines 70-100. **Impact**: Products created in Catalog but missing from Search, 5-10% discovery gap.
-
-### High Priority
-- [High] **SEARCH-P1-01 Cache consistency gaps**: Redis cache for search results/autocomplete has no invalidation on product updates, causing stale results. **Required**: Implement cache invalidation on product events or add TTL jitter. **Impact**: Users see outdated prices/stock/names.
-
-- [High] **SEARCH-P1-02 Elasticsearch sync job fragility**: Full sync job has no checkpoint/resume capability. If interrupted, must restart from beginning. **Required**: Add pagination state tracking. **Impact**: 2-4 hour resync windows.
-
-### Medium Priority
-- [Medium] **SEARCH-P2-01 Missing observability**: Event processing latency, Elasticsearch indexing duration, consumer lag not tracked. **Required**: Add Prometheus metrics for all event handlers. **Impact**: Blind to performance degradation.
+## 🚩 PENDING ISSUES (Unfixed)
+- [Critical] [SEARCH-P0-03 Silent event processing failures]: Event handlers return HTTP 200 even when indexing fails, preventing Dapr redelivery. Required: Return proper HTTP status codes (400 for validation, 500 for processing errors), add event payload validation.
+- [High] [SEARCH-P1-01 Cache consistency gaps]: Redis cache for search results/autocomplete has no invalidation on product updates. Required: Implement cache invalidation on product events or add TTL jitter.
+- [High] [SEARCH-P1-02 Elasticsearch sync job fragility]: Full sync job has no checkpoint/resume capability. Required: Add pagination state tracking.
+- [Medium] [SEARCH-P2-01 Missing observability]: Event processing latency, Elasticsearch indexing duration, consumer lag not tracked. Required: Add Prometheus metrics for all event handlers.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
+- [Go Specifics] [SEARCH-NEW-01 Event consumer goroutine tracking]: No centralized goroutine pool or shutdown coordination exists for consumers. Required: Implement errgroup pattern at consumer service level for coordinated shutdown. Dev K8s debug: `kubectl logs -n dev deploy/search-service | grep -i goroutine`.
+- [Error Wrapping] [SEARCH-NEW-02 Event handler error context loss]: Errors don't preserve full context chain (product ID, event type, attempt number). Required: Use structured errors with `fmt.Errorf("%w", err)` pattern consistently.
+- [DevOps/K8s] [SEARCH-NEW-03 Missing search service K8s debugging guide]: No troubleshooting steps for Elasticsearch connectivity. Required: Add debugging commands for logs, connectivity checks, and metrics. Dev K8s debug: `kubectl logs -n dev -l app=search-service --tail=100 -f`.
+- [Observability] [SEARCH-NEW-04 No Elasticsearch index health monitoring]: Service doesn't expose index stats via metrics. Required: Add periodic index stats export to Prometheus.
 
-### Go Specifics
-- [Goroutine Management] **SEARCH-NEW-01 Event consumer goroutine tracking**: While context timeouts are implemented (verified in grep), no centralized goroutine pool or shutdown coordination exists for consumers. **Suggested fix**: Implement errgroup pattern at consumer service level for coordinated shutdown.
-
-- [Error Wrapping] **SEARCH-NEW-02 Event handler error context loss**: Errors returned from indexing don't preserve full context chain (product ID, event type, attempt number). **Suggested fix**: Use structured errors with `fmt.Errorf("%w", err)` pattern consistently + add metadata fields.
-
-### DevOps/K8s
-- [Debugging] **SEARCH-NEW-03 Missing search service K8s debugging guide**: No troubleshooting steps for Elasticsearch connectivity, event consumer health, or index status. **Suggested fix**: Add section with:
-  ```bash
-  # View search service logs
-  kubectl logs -n dev -l app=search-service --tail=100 -f
-  
-  # Check Elasticsearch connectivity
-  kubectl exec -n dev -it deployment/search-service -- curl -X GET "elasticsearch:9200/_cluster/health?pretty"
-  
-  # View event consumer metrics
-  kubectl port-forward -n dev svc/search-service 9090:9090
-  curl localhost:9090/metrics | grep event_processing
-  
-  # Multi-service event flow tracing
-  stern -n dev 'search|catalog|pricing|warehouse' --since 5m | grep "product.updated"
-  
-  # Check Dapr subscription status
-  kubectl logs -n dev -l app=search-service -c daprd | grep subscription
-  ```
-
-- [Observability] **SEARCH-NEW-04 No Elasticsearch index health monitoring**: Service doesn't expose index stats (doc count, size, shard health) via metrics endpoint. **Suggested fix**: Add periodic index stats export to Prometheus.
+## ✅ RESOLVED / FIXED
+- [P0.1 Missing context timeout in event consumers]: Context timeouts (30s) implemented in all event handlers.
+- [P0.2 Unmanaged goroutine in analytics tracking]: WaitGroup-based goroutine management and graceful shutdown implemented.
 
 ### Maintainability
 - [Code Quality] **SEARCH-NEW-05 Event handler duplication**: ProcessProductUpdated, ProcessPriceUpdated, ProcessStockChanged share 70% identical code (validation, timeout, metrics). **Suggested fix**: Extract common event processing middleware.

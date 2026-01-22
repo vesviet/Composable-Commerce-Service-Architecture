@@ -30,24 +30,51 @@
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
+- [Critical] [OR-P0-03 Stock Reservation Outside Transaction]: Stock validation/reservation happens outside order DB transaction, race condition persists. Required: Move stock reservation inside order creation transaction OR adopt two-phase commit.
+- [Critical] [OR-P0-04 Payment Status Update Vulnerability]: Payment status updates lack gateway signature validation; webhook endpoints unauthenticated. Required: Implement payment gateway signature validation (Stripe webhook signatures, PayPal IPN verification).
+- [Critical] [GW-P0-01 Missing Circuit Breaker Timeouts]: HTTP proxy lacks timeouts or circuit breaker patterns. Required: Implement Hystrix/resilience4go circuit breaker with 30s timeout, 50% failure threshold.
+- [Critical] [GW-P0-02 Rate Limiting Bypass Vulnerability]: Rate limiter bypassable using different HTTP methods or case variations. Required: Normalize request keys, implement per-customer and global rate limits.
+- [Critical] [GW-P0-03 CORS Configuration Too Permissive]: AllowAllOrigins=true allows any domain, CSRF risk. Required: Configure specific allowed origins for production environments.
+- [Critical] [CS-P0-01 Customer Profile Race Condition]: UpdateProfile lacks optimistic locking, concurrent updates cause data corruption. Required: Add version field and optimistic locking pattern.
+- [Critical] [CS-P0-02 Hardcoded Database Credentials]: Database passwords in config files, not environment variables. Required: Move credentials to environment variables for security.
+- [High] [OR-P1-01 Order Status Transition Validation]: No validation of status transitions, invalid state changes possible. Required: Implement state machine pattern for order status transitions.
+- [High] [OR-P1-02 Fulfillment Event Processing]: Event consumer lacks idempotency, duplicate events cause issues. Required: Add event deduplication using Redis or database.
+- [High] [OR-P1-03 Order Cleanup Workers]: Cart cleanup and expired order cleanup not implemented. Required: Implement background workers for data cleanup.
+- [High] [OR-P1-04 Currency Handling]: Inconsistent currency handling across order flow. Required: Implement centralized currency conversion and validation.
+- [High] [OR-P1-05 Order Search and Filtering]: No advanced search capabilities for orders. Required: Implement Elasticsearch integration for order search.
+- [High] [OR-P1-06 Order Export Functionality]: No bulk export capabilities for orders. Required: Implement CSV/PDF export with filtering options.
+- [High] [OR-P1-07 Order Notification System]: No automated notifications for order status changes. Required: Integrate with notification service for order updates.
+- [High] [OR-P1-08 Order Analytics and Reporting]: No order analytics dashboard. Required: Implement order metrics and reporting system.
+- [High] [OR-P1-09 Order Fraud Detection]: No fraud detection for suspicious orders. Required: Implement basic fraud detection rules.
+- [High] [OR-P1-10 Order Performance Optimization]: Slow order creation under load. Required: Optimize database queries and caching.
+- [High] [OR-P1-11 Order Error Handling]: Generic error messages, poor user experience. Required: Implement user-friendly error messages and recovery flows.
+- [High] [OR-P1-12 Order Testing Coverage]: Low test coverage for order flows. Required: Add comprehensive integration tests.
+- [High] [OR-P1-13 Order Documentation]: Incomplete API documentation. Required: Update OpenAPI specs and documentation.
+- [High] [OR-P1-14 Order Monitoring]: No order-specific metrics and alerts. Required: Add Prometheus metrics for order operations.
+- [High] [OR-P1-15 Order Scalability]: Single point of failure in order service. Required: Implement horizontal scaling and load balancing.
+- [High] [OR-P1-16 Order Security]: No rate limiting on order endpoints. Required: Implement rate limiting for order creation.
+- [High] [OR-P1-17 Order Data Privacy]: No data retention policies. Required: Implement GDPR-compliant data retention.
+- [High] [OR-P1-18 Order Internationalization]: No multi-language support. Required: Implement i18n for order messages.
+- [High] [OR-P1-19 Order Accessibility]: No accessibility features. Required: Implement WCAG compliance.
+- [High] [OR-P1-20 Order Mobile Optimization]: No mobile-specific optimizations. Required: Optimize for mobile order flows.
+- [Medium] [OR-P2-01 Order UI/UX Improvements]: Basic order UI, poor user experience. Required: Redesign order flow UI.
+- [Medium] [OR-P2-02 Order Integration Testing]: No end-to-end order testing. Required: Implement Cypress/Selenium tests.
+- [Medium] [OR-P2-03 Order Performance Monitoring]: No APM integration. Required: Add New Relic/DataDog monitoring.
+- [Medium] [OR-P2-04 Order Cost Optimization]: High infrastructure costs. Required: Optimize cloud resource usage.
+- [Medium] [OR-P2-05 Order Feature Flags]: No feature toggles. Required: Implement LaunchDarkly integration.
+- [Medium] [OR-P2-06 Order A/B Testing]: No experimentation. Required: Implement order flow A/B testing.
+- [Medium] [OR-P2-07 Order Personalization]: No personalized recommendations. Required: Implement order-based personalization.
+- [Medium] [OR-P2-08 Order Social Features]: No social sharing. Required: Add order sharing capabilities.
+- [Medium] [OR-P2-09 Order Gamification]: No loyalty points. Required: Integrate with loyalty system.
+- [Medium] [OR-P2-10 Order Sustainability]: No eco-friendly options. Required: Add carbon footprint tracking.
 
-### 🔴 P0 - Critical Issues (Require Immediate Attention)
+## 🆕 NEWLY DISCOVERED ISSUES
+- [Go Specifics] [Goroutine leak in order cleanup]: Order cleanup workers may leak goroutines if not properly managed. Required: Use errgroup or context cancellation for worker goroutines. Dev K8s debug: `kubectl logs -n dev deploy/order-service | grep -i goroutine`.
+- [Maintainability] [Hardcoded order status strings]: Order status transitions use magic strings instead of constants. Required: Define status constants to prevent typos and improve maintainability.
+- [DevOps/K8s] [Missing order service health checks]: No readiness/liveness probes for order service. Required: Add HTTP health check endpoints. Dev K8s debug: `kubectl describe pod -n dev -l app=order-service`.
 
-#### Security & Data Integrity
-
-**[P0-Critical] OR-P0-02: Cart Session Hijacking Vulnerability**
-- **File**: `order/internal/biz/cart/helpers_internal.go`, `order/internal/biz/cart/add.go`, `order/internal/biz/cart/remove.go`
-- **Status**: ✅ **FIXED** (2026-01-21) - Added comprehensive ownership validation to all cart operations
-- **Issue**: Cart session binding to customer/guest partially enforced; some paths allow session_id-only access without ownership validation
-- **Impact**: Predictable UUID sessions could allow cart hijacking, unauthorized access to customer carts
-- **Fix Applied**: Added `validateCartOwnership()` function with comprehensive validation for customer/guest access patterns; enforced ownership checks in `AddToCart` and `RemoveCartItem` operations
-- **Effort**: 1.5 days
-- **Testing**: Code compiles successfully, ownership validation prevents unauthorized cart access
-
-**[P0-Critical] OR-P0-03: Stock Reservation Outside Transaction**
-- **File**: `order/internal/biz/order/create.go:78`
-- **Status**: ❌ NOT FIXED
-- **Issue**: Stock validation/reservation happens outside order DB transaction, race condition persists
+## ✅ RESOLVED / FIXED
+- [OR-P0-02 Cart Session Hijacking Vulnerability]: Added comprehensive ownership validation to all cart operations with validateCartOwnership() function.
 - **Impact**: Overselling possible when concurrent orders reserve same stock; negative inventory
 - **Current State**: Reservation called before `WithTransaction` block starts
 - **Required Action**: Move stock reservation inside order creation transaction OR adopt two-phase commit with compensation

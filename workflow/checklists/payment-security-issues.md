@@ -43,28 +43,27 @@
 - Rate limiting middleware: [gateway/internal/middleware/rate_limit.go](gateway/internal/middleware/rate_limit.go)
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- [Critical] P0-12: Gateway webhook rate limiting not enforced per provider — configure per-endpoint limits for webhook routes.
-- [Critical] P0-13: Payment request size validation not enforced — `request_validation` middleware is a no-op in middleware registry.
-- [High] P1-3: Payment retry logic incomplete — retry service returns empty set and mock results.
-- [High] P1-4: Payment analytics missing — add success/failure metrics and dashboards.
-- [High] P1-5: Currency validation weak — enforce ISO 4217 validation at boundary.
-- [High] P1-6: Payment audit logs missing at payment-level (only payment method audit exists).
-- [High] P1-8: Missing payment error recovery flow in order service.
-- [High] P1-9: No payment amount validation cache in order service.
-- [High] P1-10: Missing payment method expiry check in order pre-authorization.
-- [High] P1-11: Payment request tracing not wired for gateway → payment flow.
-- [High] P1-13: Payment request deduplication missing at gateway edge.
-- [Medium] P2-1: Payment performance optimizations.
-- [Medium] P2-2: Multi-currency support.
-- [Medium] P2-3: Payment dashboard enhancement.
-- [Medium] P2-4: Payment A/B testing.
-- [Medium] P2-5: Payment optimization caching (order).
-- [Medium] P2-6: Enhanced payment error messages (order).
-- [Medium] P2-7: Payment request analytics (gateway).
+- [Critical] [P0-12 Gateway webhook rate limiting not enforced]: Configure per-endpoint limits for webhook routes to prevent DDoS. Required: Implement per-provider rate limiting (1000/min) in gateway router.
+- [Critical] [P0-13 Payment request size validation not enforced]: `request_validation` middleware is a no-op. Required: Add 100KB limit + content-type validation for payment endpoints.
+- [High] [P1-3 Payment retry logic incomplete]: Retry service returns empty set and mock results. Required: Implement exponential backoff retry for gateway timeouts.
+- [High] [P1-4 Payment analytics missing]: No success/failure metrics and dashboards. Required: Add Prometheus metrics for payment operations.
+- [High] [P1-5 Currency validation weak]: No ISO 4217 validation at boundary. Required: Enforce currency validation in payment requests.
+- [High] [P1-6 Payment audit logs missing]: Only payment method audit exists. Required: Add payment-level audit logging.
+- [High] [P1-8 Missing payment error recovery flow]: No automated recovery in order service. Required: Implement payment retry and recovery system.
+- [High] [P1-9 No payment amount validation cache]: Order service calls payment service repeatedly. Required: Cache order totals for payment validation.
+- [High] [P1-10 Missing payment method expiry check]: No pre-authorization validation. Required: Check expiry before authorization attempts.
+- [High] [P1-11 Payment request tracing not wired]: No OpenTelemetry spans for payment flows. Required: Add tracing for gateway → payment flow.
+- [High] [P1-13 Payment request deduplication missing]: No request deduplication at gateway edge. Required: Implement request ID deduplication.
+- [Medium] [P2-1 Payment performance optimizations]: Slow payment processing under load. Required: Optimize payment processing and caching.
+- [Medium] [P2-2 Multi-currency support]: Limited to single currency. Required: Implement multi-currency payment processing.
+- [Medium] [P2-3 Payment dashboard enhancement]: Limited operations visibility. Required: Build comprehensive payment management dashboard.
+- [Medium] [P2-4 Payment A/B testing]: Cannot optimize payment flows. Required: Implement payment flow experimentation framework.
+- [Medium] [P2-5 Payment optimization caching]: Repeated payment service calls. Required: Smart caching for payment validations.
+- [Medium] [P2-6 Enhanced payment error messages]: Generic error messages. Required: User-friendly payment error messaging.
+- [Medium] [P2-7 Payment request analytics]: No payment request performance insights. Required: Add payment request analytics and monitoring.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- [Architecture] [NEW ISSUE 🆕] Order payment adapter still uses placeholder Capture/Void responses (no real payment service call) in [order/internal/data/client_adapters.go](order/internal/data/client_adapters.go#L247-L279). **Fix**: call payment service `CapturePayment`/`VoidAuthorization` or add dedicated gRPC methods.
-    - Dev K8s debug: `kubectl -n order logs deploy/order-service | grep -i "capture"` and `kubectl -n payment logs deploy/payment-service | grep -i "capture"`.
+- [Architecture] [Order payment adapter placeholder responses]: Order service payment adapter uses mock responses instead of real payment service calls. Required: Implement actual gRPC calls to payment service Capture/Void methods. Dev K8s debug: `kubectl logs -n dev deploy/order-service | grep -i capture` and `kubectl logs -n dev deploy/payment-service | grep -i capture`.
 
 ## ✅ RESOLVED / FIXED
 - None

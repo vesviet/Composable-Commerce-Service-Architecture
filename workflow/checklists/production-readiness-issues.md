@@ -9,41 +9,23 @@
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-
-### Critical Priority
-- [Critical] **P0-2 Catalog admin endpoints verification needed**: While P0-1 shows RequireAdmin middleware exists, need to verify ALL admin routes are protected. **Required**: Audit all write endpoints (brand, category, attribute, inventory) to confirm middleware coverage. See `catalog/internal/server/http.go`. **Impact**: Potential unauthorized data modification if any route is missed.
-
-- [Critical] **P0-6 Missing transaction wrapper in ReleaseReservation**: Inventory can become stuck in reserved state if database trigger fails during reservation release. **Required**: Wrap operation in `uc.tx.InTx` and explicitly call `DecrementReserved`. See `warehouse/internal/biz/reservation/reservation.go:180-220`. **Impact**: Permanent inventory lock, manual intervention required.
-
-- [Critical] **P0-7 Missing ReservationUsecase DI**: Cannot implement P0-6 transaction fix without proper dependency injection setup. **Required**: Wire transaction manager into ReservationUsecase constructor. See `warehouse/cmd/warehouse/wire.go`. **Impact**: Blocks P0-6 fix implementation.
-
-### High Priority
-- [High] **P1-N1 Warehouse stock lookup error handling**: Returns 0 on error instead of failing fast. See catalog_issues.md CAT-P1-03 for details. **Required**: Return errors properly in `catalog/internal/biz/product/product_price_stock.go`.
+- [Critical] [P0-2 Catalog admin endpoints verification needed]: While P0-1 shows RequireAdmin middleware exists, need to verify ALL admin routes are protected. Required: Audit all write endpoints (brand, category, attribute, inventory) to confirm middleware coverage.
+- [Critical] [P0-6 Missing transaction wrapper in ReleaseReservation]: Inventory can become stuck in reserved state if database trigger fails during reservation release. Required: Wrap operation in `uc.tx.InTx` and explicitly call `DecrementReserved`.
+- [Critical] [P0-7 Missing ReservationUsecase DI]: Cannot implement P0-6 transaction fix without proper dependency injection setup. Required: Wire transaction manager into ReservationUsecase constructor.
+- [High] [P1-N1 Warehouse stock lookup error handling]: Returns 0 on error instead of failing fast. Required: Return errors properly in `catalog/internal/biz/product/product_price_stock.go`.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-
-### Go Specifics
-- [Context Propagation] **PROD-NEW-01 Warehouse reservation context inheritance**: ReservationUsecase methods don't validate context deadlines before long operations. **Suggested fix**: Check `ctx.Err()` before external calls, set operation-specific timeouts.
-
-- [Interface Segregation] **PROD-NEW-02 Repository interface bloat**: Some repository interfaces expose 15+ methods, violating ISP. **Suggested fix**: Split into focused interfaces (Reader, Writer, Searcher).
-
-### DevOps/K8s
-- [Debugging] **PROD-NEW-03 Missing K8s debugging guidance**: Production readiness doc lacks troubleshooting steps for Dev K8s. **Suggested fix**: Add sections for each service with kubectl/stern/grpc_health_probe examples.
-
-- [Observability] **PROD-NEW-04 No distributed tracing validation**: Checklist doesn't verify OpenTelemetry trace propagation across services. **Suggested fix**: Add E2E trace validation in readiness criteria (e.g., trace order flow from gateway → order → warehouse → fulfillment).
-
-### Process  
-- [Git Workflow] **PROD-NEW-05 Conventional Commits not enforced**: No documentation or git hooks for commit message format. **Suggested fix**: Add commitlint config + pre-commit hook + examples in workflow docs.
+- [Go Specifics] [PROD-NEW-01 Warehouse reservation context inheritance]: ReservationUsecase methods don't validate context deadlines before long operations. Required: Check `ctx.Err()` before external calls, set operation-specific timeouts.
+- [Interface Segregation] [PROD-NEW-02 Repository interface bloat]: Some repository interfaces expose 15+ methods, violating ISP. Required: Split into focused interfaces (Reader, Writer, Searcher).
+- [DevOps/K8s] [PROD-NEW-03 Missing K8s debugging guidance]: Production readiness doc lacks troubleshooting steps for Dev K8s. Required: Add sections for each service with kubectl/stern/grpc_health_probe examples.
+- [Observability] [PROD-NEW-04 No distributed tracing validation]: Checklist doesn't verify OpenTelemetry trace propagation across services. Required: Add E2E trace validation in readiness criteria.
+- [Git Workflow] [PROD-NEW-05 Conventional Commits not enforced]: No documentation or git hooks for commit message format. Required: Add commitlint config + pre-commit hook + examples in workflow docs.
 
 ## ✅ RESOLVED / FIXED
-
-- [FIXED ✅] **P0-1 Catalog auth middleware**: RequireAdmin middleware implemented and applied to write endpoints. Verified in `catalog/internal/server/http.go` lines 54-72 (`selector.Server(middleware.RequireAdmin()).Match(...)`) and `catalog/internal/middleware/auth.go` lines 99-101 (RequireAdmin function definition).
-
-- [FIXED ✅] **P0-4 Payment idempotency key**: IdempotencyKey generation and tracking fully implemented. Verified in `order/internal/biz/checkout/payment.go` line 49 (key generation from session.SessionID), line 75 (passed to AuthorizePayment request, marked "P0-4 FIX"), line 86 (tracked in metadata).
-
-- [FIXED ✅] **P0-5 ReserveStock TOCTOU race**: Transaction wrapper with IncrementReserved implemented to eliminate race condition. Verified in `warehouse/internal/biz/reservation/reservation.go` lines 82-113 (`uc.tx.InTx` wrapper), line 96 (`FindByWarehouseAndProductForUpdate` locking), line 113 (`IncrementReserved` call before reservation creation, marked "P0-5 FIX").
-
-- [FIXED ✅] **CAT-P0-03 Zero stock timing attack**: Adaptive randomized TTL implemented between StockCacheTTLZeroStockMin and Max. Verified in `catalog/internal/biz/product/product_price_stock.go` line 56 with explicit "CAT-P0-03: Implement adaptive TTL (Randomized to prevent timing attacks)" comment.
+- [P0-1 Catalog auth middleware]: RequireAdmin middleware implemented and applied to write endpoints.
+- [P0-4 Payment idempotency key]: IdempotencyKey generation and tracking fully implemented.
+- [P0-5 ReserveStock TOCTOU race]: Transaction wrapper with IncrementReserved implemented to eliminate race condition.
+- [CAT-P0-03 Zero stock timing attack]: Adaptive randomized TTL implemented between StockCacheTTLZeroStockMin and Max.
 
 ---
 
