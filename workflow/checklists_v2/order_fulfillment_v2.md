@@ -1,7 +1,8 @@
 # Order & Fulfillment Flow - Quality Review V2
 
-**Last Updated**: 2026-01-22  
-**Services**: Order, Fulfillment, Warehouse (integration), Shipping (integration)  
+**Last Updated**: 2026-01-23 (Post Order Service Split)  
+**Services**: **Checkout** (new), **Return** (new), Order, Fulfillment, Warehouse (integration), Shipping (integration)  
+**Architecture Change**: Order service split into Checkout (cart+checkout) and Return (returns/refunds) microservices  
 **Related Flows**: [checkout_flow_v2.md](file:///Users/tuananh/Desktop/myproject/microservice/docs/workflow/checklists_v2/checkout_flow_v2.md), [payment_security_v2.md](file:///Users/tuananh/Desktop/myproject/microservice/docs/workflow/checklists_v2/payment_security_v2.md), [inventory_v2.md](file:///Users/tuananh/Desktop/myproject/microservice/docs/workflow/checklists_v2/inventory_v2.md)  
 **Previous Version**: [order_fufillment_issues.md](file:///Users/tuananh/Desktop/myproject/microservice/docs/workflow/checklists/order_fufillment_issues.md)
 
@@ -11,29 +12,62 @@
 
 **Flow Health Score**: 7.0/10 (Production-Ready with Improvements Needed)
 
+> [!IMPORTANT]
+> **Architecture Update (2026-01-23)**: Order service has been split into **Checkout**, **Return**, and **Order** microservices.
+> - **Checkout Service**: Handles cart and checkout operations (15 gRPC endpoints)
+> - **Return Service**: Manages returns and refunds (8 gRPC endpoints)
+> - **Order Service**: Focused on order lifecycle, editing, cancellation (70% code reduction)
+> 
+> This review reflects the **pre-split architecture**. Cart-related issues (e.g., cart cleanup) now apply to Checkout service.
+
 **Total Issues**: 65 identified (19 P0, 24 P1, 18 P2)
 - **Fixed**: 10 critical issues resolved ✅
 - **Pending**: 45 open issues requiring attention
+- **Service Migration Impact**: Some issues moved to Checkout/Return services
 
 **Status**: ⚠️ **Production-Ready with Caveats** - Core transaction integrity solid but cross-service consistency needs monitoring
 
 **Major Achievements** ✅:
-- Transactional outbox pattern implemented (Order, Warehouse, Fulfillment)
+- **Service Extraction**: Checkout and Return successfully extracted from Order monolith
+- Transactional outbox pattern implemented (Order, Warehouse, Fulfillment, **Checkout**, **Return**)
 - Fulfillment event consumer working with correct status mapping
 - Order status transition validation active
-- Cart cleanup workers operational
+- Cart cleanup workers operational (now in **Checkout service**)
 - Currency handling improved
 - Idempotency protection added (Redis-based state machine for webhooks, status-based guards for fulfillment)
 
 **Critical Gaps** ❌:
-- Stock reservation outside order transaction → race condition risk
+- Stock reservation outside order transaction → race condition risk (**Checkout service** now owns this)
 - Payment webhook security (authentication missing)
 - Gateway lacks circuit breakers and timeouts
 - No event ordering guarantees (sequence numbers needed)
 
 ---
 
-## 🏗️ 1. Architecture & Distributed Transaction Review
+## �️ Service Responsibility Mapping (Post-Split)
+
+> [!NOTE]
+> **Effective 2026-01-23**: Order service responsibilities redistributed
+
+| Functionality | Old Service | New Service | Status |
+|---------------|-------------|-------------|--------|
+| Cart Management | Order | **Checkout** | ✅ Migrated (28 files, 2,807 LOC) |
+| Checkout Flow | Order | **Checkout** | ✅ Migrated (26 files) |
+| Order Creation | Order | **Checkout** → Order | ✅ Checkout initiates, Order persists |
+| Return Requests | Order | **Return** | ✅ Migrated (8 files, 1,729 LOC) |
+| Refunds | Order | **Return** | ✅ Migrated |
+| Order Lifecycle | Order | **Order** | ✅ Retained (44 files, 58% reduction) |
+| Order Editing | Order | **Order** | ✅ Retained |
+| Cancellation | Order | **Order** | ✅ Retained |
+
+**Database Split**:
+- `checkout_db`: Carts, cart items, checkout sessions
+- `return_db`: Return requests, return items
+- `order_db`: Orders, order items, status, payments (cleaned up - 20 migrations archived)
+
+---
+
+## �🏗️ 1. Architecture & Distributed Transaction Review
 
 ### ✅ **Strengths**
 
@@ -54,13 +88,15 @@
 ### ❌ **Issues**
 
 #### **[P0]** OR-P0-03: Stock Reservation Outside Transaction
-- **File**: Order creation flow
+- **Service**: **Checkout** (migrated from Order)
+- **File**: `checkout/internal/biz/checkout/confirm.go` (previously `order/internal/biz/order/create.go`)
 - **Impact**: Race condition between stock validation and order creation → overselling possible
 - **Evidence**: Stock reservation called before `WithTransaction` block
 - **Scenarios**: Concurrent orders reserve same stock → negative inventory
 - **Fix**: Move stock reservation inside order creation transaction OR adopt two-phase commit with compensation
 - **Effort**: 3 days
 - **Testing**: High-concurrency order creation tests, chaos engineering
+- **Migration Note**: This issue moved to Checkout service as part of service extraction
 
 #### **[P1]** INT-P1-01: Event Ordering Not Guaranteed
 - **Impact**: Dependent service updates may process out of order

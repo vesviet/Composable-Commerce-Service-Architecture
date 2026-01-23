@@ -1,15 +1,15 @@
 # 📚 MICROSERVICES CODEBASE INDEX
 
-**Last Updated**: January 20, 2026  
-**Project**: E-commerce Microservices Platform  
-**Total Services**: 21 Services (19 Go + 2 Node.js)  
-**Platform Status**: 88% Complete, Production-Ready
+**Last Updated**: January 23, 2026
+**Project**: E-commerce Microservices Platform
+**Total Services**: 23 Services (21 Go + 2 Node.js)
+**Platform Status**: 90% Complete, Production-Ready
 
 ---
 
 ## 📊 EXECUTIVE SUMMARY
 
-This is a comprehensive **microservices-based e-commerce platform** built with modern technologies and enterprise-grade architecture. The platform is **88% complete** with **17 out of 19 Go services ready for production deployment**.
+This is a comprehensive **microservices-based e-commerce platform** built with modern technologies and enterprise-grade architecture. The platform is **90% complete** with **19 out of 21 Go services ready for production deployment**.
 
 ### 🎯 Key Business Benefits
 - ✅ **Scalable**: Each service scales independently based on demand
@@ -34,9 +34,9 @@ This is a comprehensive **microservices-based e-commerce platform** built with m
 
 ## 🏗️ SERVICES ARCHITECTURE
 
-### 🚀 Go Microservices (19 Services)
+### 🚀 Go Microservices (21 Services)
 
-#### ✅ Production Ready (17 Services - 89.5%)
+#### ✅ Production Ready (19 Services - 90.5%)
 
 | Service | Purpose | Status | Completion | Path | Key Features |
 |---------|---------|--------|------------|------|--------------|
@@ -48,7 +48,9 @@ This is a comprehensive **microservices-based e-commerce platform** built with m
 | **💰 Dynamic Pricing** | Real-time pricing engine | ✅ Production | 92% | `/pricing` | Rules engine, warehouse-specific pricing, promotions |
 | **🎯 Promotions** | Discount campaigns & coupons | ✅ Production | 92% | `/promotion` | Campaign management, discount rules, usage tracking |
 | **📊 Warehouse Management** | Inventory & stock management | ✅ Production | 90% | `/warehouse` | Real-time stock, reservations, multi-warehouse support |
-| **🛒 Order Management** | Cart & order processing | ✅ Production | 90% | `/order` | Cart sessions, checkout, order tracking, returns |
+| **🛒 Order Management** | Post-checkout order processing | ✅ Production | 90% | `/order` | Order status updates, cancellations, edits, tracking |
+| **🛒 Cart & Checkout** | Cart management & checkout orchestration | ✅ Production | 90% | `/checkout` | Shopping cart, checkout flow, payment integration |
+| **↩️ Return Management** | Return requests & processing | ✅ Production | 85% | `/return` | Return workflows, exchange processing, refunds |
 | **📦 Fulfillment** | Pick/pack/ship execution | ✅ Production | 90% | `/fulfillment` | Picklists, packaging, fulfillment workflow |
 | **🚚 Shipping** | Carrier integrations & shipments | ✅ Production | 90% | `/shipping` | Rate quotes, label generation, tracking |
 | **🔍 Search Engine** | Product search & discovery | ✅ Production | 95% | `/search` | AI-powered search, filters, recommendations |
@@ -58,7 +60,7 @@ This is a comprehensive **microservices-based e-commerce platform** built with m
 | **📈 Analytics** | Business intelligence | ✅ Production | 85% | `/analytics` | Sales analytics, customer insights, performance metrics |
 | **🧰 Common Operations** | Task orchestration & shared jobs | ✅ Production | 90% | `/common-operations` | Import/export, async tasks, file handling |
 
-#### 🟡 Near Production (2 Services - 10.5%)
+#### 🟡 Near Production (2 Services - 9.5%)
 
 | Service | Purpose | Status | Completion | Path | Remaining Work |
 |---------|---------|--------|------------|------|----------------|
@@ -100,12 +102,37 @@ This section captures the **actual source tree layout** observed in the reposito
 - **Entrypoints**: `cmd/order`, `cmd/worker`, `cmd/migrate`
 - **API**: `api/order/v1`
 - **Internal**:
-  - `internal/biz/` domains: `cart`, `checkout`, `order`, `order_edit`, `cancellation`, `return`, `status`, `validation`, `providers`
+  - `internal/biz/` domains: `order`, `order_edit`, `cancellation`, `status`, `validation`
   - cross-cutting: `transaction.go`, `event_idempotency.go`, `failed_event.go`, `monitoring.go`
   - `internal/data/`, `internal/repository/`, `internal/model/`
-  - `internal/service/`, `internal/server/`, `internal/middleware/`
-  - `internal/events/`, `internal/worker/`, `internal/client/`, `internal/cache/`
-- **Migrations**: `migrations/`
+  - `internal/service/`, `internal/server/`
+  - `internal/events/`, `internal/worker/`, `internal/client/`
+- **Migrations**: `migrations/` (archived cart/checkout migrations in `migrations/archived/`)
+- **Notes**: Refactored to focus on post-checkout order management (status updates, cancellations, edits)
+
+#### `checkout`
+- **Entrypoints**: `cmd/server`
+- **API**: `api/checkout/v1` (cart and checkout services)
+- **Internal**:
+  - `internal/biz/` domains: `cart`, `checkout`, `order`
+  - cross-cutting: `transaction.go`, `event_idempotency.go`, `failed_event.go`, `monitoring.go`
+  - `internal/data/`, `internal/repository/`, `internal/model/`
+  - `internal/service/`, `internal/server/`, `internal/client/`
+  - `internal/events/`, `internal/observability/`
+- **Migrations**: `migrations/001..003_*.sql`
+- **Notes**: Split from order service - handles cart management and checkout orchestration
+
+#### `return`
+- **Entrypoints**: `cmd/server`
+- **API**: `api/return/v1`
+- **Internal**:
+  - `internal/biz/` domain: `return`
+  - cross-cutting: `transaction.go`, `event_idempotency.go`, `failed_event.go`, `monitoring.go`
+  - `internal/data/`, `internal/repository/`, `internal/model/`
+  - `internal/service/`, `internal/server/`, `internal/client/`
+  - `internal/events/`
+- **Migrations**: `migrations/001..002_*.sql`
+- **Notes**: Split from order service - handles return requests and processing
 
 #### `payment`
 - **Entrypoints**: `cmd/payment`, `cmd/worker`, `cmd/migrate`

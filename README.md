@@ -12,7 +12,7 @@ This directory contains the comprehensive documentation for the Microservices pr
 **E-Commerce Microservices Platform** (2025 - Present)
 A comprehensive, production-grade e-commerce ecosystem designed for scale and high availability.
 
-- **Architecture**: Microservices (21+ services), Event-Driven, Clean Architecture.
+- **Architecture**: Microservices (23+ services), Event-Driven, Clean Architecture.
 - **Tech Stack**:
     - **Backend**: Go 1.25+ (Kratos Framework), gRPC, Wire.
     - **Frontend**: Next.js, React, TypeScript.
