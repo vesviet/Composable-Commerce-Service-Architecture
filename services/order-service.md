@@ -1,20 +1,18 @@
-# 🛒 Order Service - Complete Documentation
+# � Order Service - Complete Documentation
 
 **Service Name**: Order Service  
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-22  
-**Review Status**: ✅ Reviewed (Cart issues mostly fixed)  
-**Production Ready**: 90%  
+**Last Updated**: 2026-01-24  
+**Review Status**: ✅ Reviewed (Cleaned of cart/checkout/return logic)  
+**Production Ready**: 95%  
 
 ---
 
 ## 📋 Table of Contents
 - [Overview](#-overview)
 - [Architecture](#-architecture)
-- [Cart Management APIs](#-cart-management-apis)
 - [Order Management APIs](#-order-management-apis)
 - [Database Schema](#-database-schema)
-- [Cart Business Logic](#-cart-business-logic)
 - [Order Business Logic](#-order-business-logic)
 - [Configuration](#-configuration)
 - [Dependencies](#-dependencies)
@@ -27,29 +25,22 @@
 
 ## 🎯 Overview
 
-Order Service là microservice cốt lõi quản lý toàn bộ vòng đời shopping cart và order processing trong hệ thống e-commerce. Service này xử lý:
+Order Service là microservice cốt lõi quản lý toàn bộ vòng đời order processing trong hệ thống e-commerce. Service này xử lý:
 
 ### Core Capabilities
-- **🛒 Cart Management**: Session-based shopping carts với multi-warehouse support
 - **📦 Order Processing**: Order creation, status management, fulfillment coordination
-- **💰 Pricing Integration**: Real-time pricing sync với promotion/discounts
-- **📊 Inventory Management**: Stock validation và reservation
-- **🚚 Shipping Integration**: Shipping cost calculation, address validation
-- **💳 Payment Coordination**: Payment processing workflow
 - **🔄 Order Lifecycle**: Status tracking, cancellations, returns, refunds
-- **📈 Analytics**: Order analytics và business intelligence
+- **💰 Payment Coordination**: Payment processing workflow
+- **📊 Analytics**: Order analytics và business intelligence
 
 ### Business Value
-- **Conversion Optimization**: Seamless cart experience tăng conversion rate
 - **Operational Efficiency**: Automated order processing và fulfillment
-- **Customer Experience**: Real-time inventory, accurate pricing
-- **Revenue Protection**: Stock validation, payment security
+- **Customer Experience**: Reliable order tracking và management
+- **Revenue Protection**: Payment security và order integrity
 - **Analytics**: Order insights cho business decisions
 
 ### Key Differentiators
-- **Multi-Warehouse Support**: Cart items từ nhiều warehouse khác nhau
-- **Session Management**: Guest carts merge seamlessly với customer accounts
-- **Real-Time Validation**: Continuous stock/pricing validation
+- **Clean Architecture**: Separated concerns with dedicated Checkout and Return services
 - **Event-Driven Architecture**: Async processing với Dapr pub/sub
 - **Idempotency**: Duplicate request protection
 - **Audit Trail**: Complete order history tracking
@@ -65,18 +56,9 @@ order/
 ├── cmd/order/                      # Application entry point
 ├── internal/
 │   ├── biz/                        # Business Logic Layer
-│   │   ├── cart/                   # Cart domain logic
-│   │   │   ├── add.go             # Add to cart logic
-│   │   │   ├── update.go          # Update cart items
-│   │   │   ├── remove.go          # Remove items
-│   │   │   ├── validate.go        # Cart validation
-│   │   │   ├── totals.go          # Price calculations
-│   │   │   ├── helpers.go         # Utility functions
-│   │   │   └── usecase.go         # Cart use case
 │   │   ├── order/                 # Order domain logic
-│   │   ├── checkout/              # Checkout flow logic
 │   │   ├── cancellation/          # Order cancellation
-│   │   └── return/                # Return/refund logic
+│   │   └── status/                # Order status management
 │   ├── data/                       # Data Access Layer
 │   │   ├── postgres/              # PostgreSQL repositories
 │   │   └── eventbus/              # Dapr event bus
@@ -86,8 +68,7 @@ order/
 │   ├── config/                     # Configuration
 │   └── constants/                  # Constants & enums
 ├── api/                            # Protocol Buffers
-│   ├── order/v1/                   # Order APIs
-│   └── cart/v1/                    # Cart APIs
+│   └── order/v1/                   # Order APIs
 ├── migrations/                     # Database migrations
 └── configs/                        # Environment configs
 ```
@@ -117,163 +98,7 @@ order/
 
 ---
 
-## 🛒 Cart Management APIs
-
-### Core Cart Operations
-
-#### Add to Cart
-```protobuf
-rpc AddToCart(AddToCartRequest) returns (AddToCartResponse) {
-  option (google.api.http) = {
-    post: "/api/v1/cart/items"
-    body: "*"
-  };
-}
-```
-
-**Request**:
-```json
-{
-  "product_sku": "IPHONE-14-PRO-128GB",
-  "quantity": 1,
-  "warehouse_id": "warehouse-uuid",
-  "metadata": {"color": "space-gray"},
-  "include_cart_data": true
-}
-```
-
-**Response**:
-```json
-{
-  "item": {
-    "id": 123,
-    "product_sku": "IPHONE-14-PRO-128GB",
-    "product_name": "iPhone 14 Pro 128GB",
-    "quantity": 1,
-    "unit_price": 999.99,
-    "total_price": 999.99,
-    "warehouse_id": "warehouse-uuid",
-    "in_stock": true
-  },
-  "cart": {
-    "session_id": "session-uuid",
-    "items": [...],
-    "totals": {
-      "subtotal": 999.99,
-      "tax_estimate": 80.00,
-      "shipping_estimate": 15.00,
-      "total_estimate": 1094.99,
-      "item_count": 1
-    }
-  },
-  "success": true,
-  "message": "Item added to cart successfully",
-  "total_items": 1,
-  "cart_total": 1094.99
-}
-```
-
-#### Get Cart Contents
-```protobuf
-rpc GetCart(GetCartRequest) returns (GetCartResponse) {
-  option (google.api.http) = {
-    get: "/api/v1/cart"
-  };
-}
-```
-
-#### Update Cart Item
-```protobuf
-rpc UpdateCartItem(UpdateCartItemRequest) returns (UpdateCartItemResponse) {
-  option (google.api.http) = {
-    put: "/api/v1/cart/items/{item_id}"
-    body: "*"
-  };
-}
-```
-
-#### Remove Cart Item
-```protobuf
-rpc RemoveCartItem(RemoveCartItemRequest) returns (RemoveCartItemResponse) {
-  option (google.api.http) = {
-    delete: "/api/v1/cart/items/{item_id}"
-  };
-}
-```
-
-### Advanced Cart Features
-
-#### Cart Validation
-```protobuf
-rpc ValidateCart(ValidateCartRequest) returns (ValidateCartResponse) {
-  option (google.api.http) = {
-    get: "/api/v1/cart/validate"
-  };
-}
-```
-
-**Validates**:
-- Product availability
-- Stock levels per warehouse
-- Price accuracy
-- Promotion eligibility
-- Shipping availability
-
-#### Cart Refresh (Sync)
-```protobuf
-rpc RefreshCart(RefreshCartRequest) returns (RefreshCartResponse) {
-  option (google.api.http) = {
-    post: "/api/v1/cart/refresh"
-    body: "*"
-  };
-}
-```
-
-**Operations**:
-- Sync latest prices from Pricing Service
-- Re-validate stock levels
-- Re-apply eligible promotions
-- Recalculate totals with current data
-
-#### Cart Merging (Guest → Customer)
-```protobuf
-rpc MergeCart(MergeCartRequest) returns (MergeCartResponse) {
-  option (google.api.http) = {
-    post: "/api/v1/cart/merge"
-    body: "*"
-  };
-}
-```
-
-### Cart Business Rules
-
-#### Session Management
-- **Guest Carts**: Identified by `guest_token` (UUID)
-- **Customer Carts**: Linked to `customer_id`
-- **Expiration**: 30 days default, configurable
-- **Merging**: Guest carts merge into customer carts on login
-
-#### Multi-Warehouse Support
-- Items can be from different warehouses
-- Stock validation per warehouse
-- Shipping calculations consider warehouse locations
-- Fulfillment coordination across warehouses
-
-#### Pricing & Promotions
-- Real-time price sync from Pricing Service
-- Automatic promotion application
-- Cart-level and item-level discounts
-- Tax calculation by shipping destination
-
-#### Stock Validation
-- Real-time stock checks
-- Reservation system integration
-- Backorder handling
-- Low stock warnings
-
----
-
-## 📦 Order Management APIs
+##  Order Management APIs
 
 ### Order Lifecycle Operations
 
@@ -288,13 +113,11 @@ rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {
 ```
 
 **Flow**:
-1. Validate cart contents
-2. Reserve inventory
-3. Calculate final pricing
-4. Create order record
-5. Process payment
-6. Publish order events
-7. Trigger fulfillment
+1. Basic validation
+2. Create order record
+3. Process payment
+4. Publish order events
+5. Trigger fulfillment
 
 #### Order Status Management
 ```protobuf
@@ -379,53 +202,12 @@ rpc GetOrderEditHistory(GetOrderEditHistoryRequest) returns (GetOrderEditHistory
 
 ### Core Tables
 
-#### cart_sessions
-```sql
-CREATE TABLE cart_sessions (
-  session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID,  -- NULL for guest carts
-  guest_token VARCHAR(255),  -- For guest cart identification
-  currency VARCHAR(3) NOT NULL DEFAULT 'USD',
-  country_code VARCHAR(2) DEFAULT 'VN',
-  expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '30 days'),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-  -- Constraints
-  CHECK (customer_id IS NOT NULL OR guest_token IS NOT NULL)
-);
-```
-
-#### cart_items
-```sql
-CREATE TABLE cart_items (
-  id BIGSERIAL PRIMARY KEY,
-  session_id UUID NOT NULL REFERENCES cart_sessions(session_id),
-  product_id UUID NOT NULL,
-  product_sku VARCHAR(255) NOT NULL,
-  product_name VARCHAR(500) NOT NULL,
-  quantity INTEGER NOT NULL CHECK (quantity > 0),
-  unit_price DECIMAL(10,2) NOT NULL,
-  total_price DECIMAL(10,2) NOT NULL,
-  warehouse_id UUID NOT NULL,
-  in_stock BOOLEAN DEFAULT TRUE,
-  metadata JSONB DEFAULT '{}',
-  added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-  -- Indexes
-  UNIQUE(session_id, product_id, warehouse_id),
-  FOREIGN KEY (session_id) REFERENCES cart_sessions(session_id) ON DELETE CASCADE
-);
-```
-
 #### orders
 ```sql
 CREATE TABLE orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number VARCHAR(50) UNIQUE NOT NULL,
   customer_id UUID,  -- NULL for guest orders
-  session_id UUID,   -- Link to cart session
   status VARCHAR(20) NOT NULL DEFAULT 'draft',
   currency VARCHAR(3) NOT NULL DEFAULT 'USD',
   subtotal DECIMAL(10,2) DEFAULT 0,
@@ -470,12 +252,6 @@ CREATE TABLE order_items (
 
 #### Indexes
 ```sql
--- Cart performance
-CREATE INDEX idx_cart_sessions_customer ON cart_sessions(customer_id) WHERE customer_id IS NOT NULL;
-CREATE INDEX idx_cart_sessions_guest ON cart_sessions(guest_token) WHERE guest_token IS NOT NULL;
-CREATE INDEX idx_cart_sessions_expires ON cart_sessions(expires_at);
-CREATE INDEX idx_cart_items_session_product ON cart_items(session_id, product_id);
-
 -- Order performance
 CREATE INDEX idx_orders_customer ON orders(customer_id);
 CREATE INDEX idx_orders_status ON orders(status);
@@ -485,7 +261,6 @@ CREATE INDEX idx_order_items_order ON order_items(order_id);
 
 -- Composite indexes for common queries
 CREATE INDEX idx_orders_customer_status ON orders(customer_id, status);
-CREATE INDEX idx_cart_items_session_warehouse ON cart_items(session_id, warehouse_id);
 ```
 
 #### Partitioning Strategy (Future)
@@ -497,101 +272,23 @@ CREATE TABLE orders_y2024m01 PARTITION OF orders
 -- Partition cart items by session for cleanup
 CREATE TABLE cart_items_active PARTITION OF cart_items
   FOR VALUES WHERE added_at >= CURRENT_DATE - INTERVAL '30 days';
-```
-
----
-
-## 🛒 Cart Business Logic
-
-### Add to Cart Flow
-
-```go
-func (uc *UseCase) AddToCart(ctx context.Context, req *AddToCartRequest) (*AddToCartResponse, error) {
-    // 1. Validate quantity (1-99 range)
-    // 2. Get/create cart session (guest token or customer ID)
-    // 3. Validate cart ownership (session isolation)
-    // 4. Get product details from Catalog Service
-    // 5. Check stock availability (parallel with pricing)
-    // 6. Get pricing from Pricing Service (parallel)
-    // 7. Start transaction + SELECT FOR UPDATE (prevent race conditions)
-    // 8. Check cart item limits (100 items max)
-    // 9. Add/update cart item (merge duplicates)
-    // 10. Recalculate cart totals
-    // 11. Cache cart data
-    // 12. Publish cart events (synchronous, no unmanaged goroutines)
-    // 13. Return response
-}
-```
-
-### Key Business Rules
-
-#### Quantity Validation
-- Minimum: 1 item
-- Maximum: 99 items per product
-- Cart limit: 100 unique items total
-
-#### Stock Validation
-- Real-time stock check per warehouse
-- Reservation system integration
-- Backorder support for out-of-stock items
-
-#### Pricing Integration
-- Real-time pricing from Pricing Service
-- Country-specific pricing support
-- Currency conversion
-- Tax calculation by destination
-
-#### Session Management
-```go
-// Guest cart creation
-sessionID := uuid.New()
-guestToken := uuid.New()
-expiresAt := time.Now().Add(30 * 24 * time.Hour)
-
-// Customer cart association
-if customerID != "" {
-    // Migrate guest cart to customer
-    existingGuestCart := getCartByGuestToken(guestToken)
-    mergeCart(existingGuestCart, customerID)
-}
-```
-
-#### Cart Merging Logic
-```go
-func (uc *UseCase) MergeCart(ctx context.Context, req *MergeCartRequest) error {
-    // 1. Validate customer authentication
-    // 2. Find existing customer cart
-    // 3. Find guest cart by token
-    // 4. Merge items (sum quantities for same SKU/warehouse)
-    // 5. Transfer promotions/coupons
-    // 6. Update session ownership
-    // 7. Delete guest cart
-    // 8. Publish merge event
-}
-```
-
 ---
 
 ## 📦 Order Business Logic
 
-### Order Creation (Checkout) Flow
+### Order Creation Flow
 
 ```go
 func (uc *OrderUsecase) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
-    // 1. Validate cart exists and not empty
-    // 2. Validate customer/guest authentication
-    // 3. Final cart validation (stock, pricing, promotions)
-    // 4. Start distributed transaction
-    // 5. Reserve inventory across warehouses
-    // 6. Create order record with generated order number
-    // 7. Create order items from cart items
-    // 8. Calculate final totals (tax, shipping, discounts)
-    // 9. Process payment (coordinate with Payment Service)
-    // 10. Update order status to 'confirmed'
-    // 11. Clear cart session
-    // 12. Publish order.created event
-    // 13. Trigger fulfillment workflow
-    // 14. Send confirmation notifications
+    // 1. Basic validation (customer, items)
+    // 2. Create order record with generated order number
+    // 3. Create order items from request items
+    // 4. Calculate totals from pre-validated data
+    // 5. Process payment (coordinate with Payment Service)
+    // 6. Update order status to 'confirmed'
+    // 7. Publish order.created event
+    // 8. Trigger fulfillment workflow
+    // 9. Send confirmation notifications
 }
 ```
 
@@ -672,11 +369,6 @@ ORDER_REDIS_PASSWORD=
 ORDER_HTTP_PORT=8004
 ORDER_GRPC_PORT=9004
 
-# Cart Configuration
-ORDER_CART_EXPIRY_DAYS=30
-ORDER_MAX_CART_ITEMS=100
-ORDER_MAX_ITEM_QUANTITY=99
-
 # Order Configuration
 ORDER_NUMBER_SEQUENCE_KEY=order_number
 ORDER_RETURN_WINDOW_DAYS=30
@@ -714,12 +406,6 @@ redis:
   password: ${ORDER_REDIS_PASSWORD}
   db: 1  # Separate DB for order service
   dial_timeout: 5s
-
-cart:
-  expiry_days: ${ORDER_CART_EXPIRY_DAYS}
-  max_items: ${ORDER_MAX_CART_ITEMS}
-  max_quantity_per_item: ${ORDER_MAX_ITEM_QUANTITY}
-  enable_guest_carts: ${ORDER_ENABLE_GUEST_CHECKOUT}
 
 order:
   return_window_days: ${ORDER_RETURN_WINDOW_DAYS}

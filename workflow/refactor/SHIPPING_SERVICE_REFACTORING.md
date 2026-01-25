@@ -74,18 +74,18 @@ The Shipping service is a **well-architected microservice** with clean domain se
 ### Phase 1: Security & Critical Fixes (Week 1-2)
 
 #### 1.1 Credential Security
-- [ ] **SH-SEC-01**: Encrypt carrier credentials at rest
+- [x] **SH-SEC-01**: Encrypt carrier credentials at rest
   ```go
   // Use encryption service for credentials
   type Carrier struct {
-      Credentials EncryptedJSONB `gorm:"type:jsonb;not null"`
+      Credentials EncryptedJSONB `gorm:"type:text;not null" json:"credentials"`
   }
   ```
 - [ ] **SH-SEC-02**: Implement credential vault integration
 - [ ] **SH-SEC-03**: Add credential rotation mechanism
 
 #### 1.2 Authorization Implementation
-- [ ] **SH-AUTH-01**: Add user context to business layer
+- [x] **SH-AUTH-01**: Add user context to business layer
   ```go
   type UserContext struct {
       UserID   string
@@ -93,11 +93,11 @@ The Shipping service is a **well-architected microservice** with clean domain se
       TenantID string
   }
   ```
-- [ ] **SH-AUTH-02**: Implement role-based access control
+- [x] **SH-AUTH-02**: Implement role-based access control
   ```go
   func (uc *ShipmentUseCase) checkPermission(ctx context.Context, action string) error
   ```
-- [ ] **SH-AUTH-03**: Add context propagation from gateway
+- [x] **SH-AUTH-03**: Add context propagation from gateway
 
 ### Phase 2: Observability Enhancement (Week 3-4)
 
@@ -182,6 +182,7 @@ service/carrier/
 **Evidence**: Outbox event saved after shipment creation - potential inconsistency
 **Fix**: Use distributed transaction or saga pattern
 **Effort**: 6 hours
+**Status**: ✅ FIXED - Implemented transaction wrapper for CreateShipment
 
 #### **[P0]** SH-BUG-02: Carrier Credential Exposure
 **File**: `internal/model/carrier.go`
@@ -189,6 +190,7 @@ service/carrier/
 **Evidence**: `Credentials JSONB` field contains sensitive data
 **Fix**: Implement field-level encryption
 **Effort**: 8 hours
+**Status**: ✅ FIXED - Implemented EncryptedJSONB type with PBKDF2-GCM encryption
 
 #### **[P0]** SH-BUG-03: No Rate Limiting for Carrier APIs
 **File**: Carrier client implementations
@@ -303,9 +305,9 @@ CREATE INDEX idx_shipments_carrier_tracking ON shipments(carrier, tracking_numbe
 ## 📋 6. Implementation Roadmap
 
 ### Week 1: Security Foundation (16 hours)
-- [ ] SH-SEC-01: Implement credential encryption (4h)
-- [ ] SH-SEC-02: Add authorization framework (6h)
-- [ ] SH-BUG-01: Fix transaction atomicity (6h)
+- [x] SH-SEC-01: Implement credential encryption (4h) ✅ COMPLETED
+- [x] SH-SEC-02: Add authorization framework (6h) ✅ COMPLETED
+- [x] SH-BUG-01: Fix transaction atomicity (6h) ✅ COMPLETED
 
 ### Week 2: Observability & Monitoring (20 hours)
 - [ ] SH-OBS-01: Implement comprehensive metrics (8h)
