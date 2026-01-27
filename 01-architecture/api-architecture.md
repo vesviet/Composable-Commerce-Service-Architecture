@@ -10,8 +10,8 @@ We follow the [Google API Design Guide](https://cloud.google.com/apis/design) an
 
 | Item | Convention | Example |
 |------|------------|---------|
-| **File Names** | `snake_case.proto` | `order_service.proto`, `user.proto` |
-| **Package Names** | `versioned.snake_case` | `api.order.v1`, `api.common.v1` |
+| **File Names** | `snake_case.proto` | `order_service.proto`, `user.proto`, `payment.proto` |
+| **Package Names** | `versioned.snake_case` | `api.order.v1`, `api.common.v1`, `api.payment.v1` |
 | **Message Names** | `PascalCase` | `CreateOrderRequest`, `UserProfile` |
 | **Field Names** | **`snake_case`** (Strict) | `user_id`, `first_name`, `address_line_1` |
 | **RPC Names** | `PascalCase` | `GetOrder`, `ListUsers` |
