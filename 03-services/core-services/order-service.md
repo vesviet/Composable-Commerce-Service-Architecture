@@ -1,10 +1,11 @@
-# � Order Service - Complete Documentation
+# 📦 Order Service - Complete Documentation
 
 **Service Name**: Order Service  
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-24  
-**Review Status**: ✅ Reviewed (Cleaned of cart/checkout/return logic)  
+**Version**: 2.0.0  
+**Last Updated**: 2026-01-27  
+**Review Status**: ✅ Reviewed (Post-Service Split)  
 **Production Ready**: 95%  
+**Service Split**: Cart, Checkout, and Return services extracted  
 
 ---
 
@@ -25,25 +26,42 @@
 
 ## 🎯 Overview
 
-Order Service là microservice cốt lõi quản lý toàn bộ vòng đời order processing trong hệ thống e-commerce. Service này xử lý:
+Order Service là microservice cốt lõi quản lý order lifecycle trong hệ thống e-commerce sau khi đã tách biệt Cart, Checkout, và Return services. Service này tập trung vào core order management operations.
 
 ### Core Capabilities
-- **📦 Order Processing**: Order creation, status management, fulfillment coordination
-- **🔄 Order Lifecycle**: Status tracking, cancellations, returns, refunds
-- **💰 Payment Coordination**: Payment processing workflow
-- **📊 Analytics**: Order analytics và business intelligence
+- **📦 Order Lifecycle Management**: Order creation, status tracking, fulfillment coordination
+- **🔄 Order Status Management**: Status transitions và business rule enforcement
+- **✏️ Order Modifications**: Order editing, cancellations, item updates
+- **📊 Order Analytics**: Order insights và business intelligence
+- **🔗 Service Orchestration**: Coordination với các services khác
 
 ### Business Value
-- **Operational Efficiency**: Automated order processing và fulfillment
-- **Customer Experience**: Reliable order tracking và management
-- **Revenue Protection**: Payment security và order integrity
-- **Analytics**: Order insights cho business decisions
+- **Operational Efficiency**: Streamlined order processing workflows
+- **Order Integrity**: Consistent order state management
+- **Scalability**: Optimized for high-volume order processing
+- **Analytics**: Comprehensive order insights
 
 ### Key Differentiators
-- **Clean Architecture**: Separated concerns with dedicated Checkout and Return services
-- **Event-Driven Architecture**: Async processing với Dapr pub/sub
-- **Idempotency**: Duplicate request protection
-- **Audit Trail**: Complete order history tracking
+- **Focused Responsibility**: Pure order management after service split
+- **Event-Driven Architecture**: Async coordination với Dapr pub/sub
+- **State Management**: Robust order status transitions
+- **Integration Hub**: Central coordination point for order-related operations
+
+### Service Split Architecture
+```
+┌─────────────┐    ┌──────────────┐    ┌─────────────┐
+│ Cart Service│    │Checkout      │    │Order Service│
+│             │───▶│Service       │───▶│             │
+│ (Shopping)  │    │(Orchestration)│    │(Lifecycle)  │
+└─────────────┘    └──────────────┘    └─────────────┘
+                                              │
+                                              ▼
+                                       ┌─────────────┐
+                                       │Return       │
+                                       │Service      │
+                                       │(Post-order) │
+                                       └─────────────┘
+```
 
 ---
 
@@ -81,13 +99,15 @@ order/
 ### Service Dependencies
 
 #### Internal Dependencies
+- **Checkout Service**: Receives order creation requests from checkout flow
 - **Customer Service**: Customer data, addresses, preferences
 - **Catalog Service**: Product information, SKUs, categories
 - **Pricing Service**: Dynamic pricing, promotions, tax calculations
 - **Warehouse Service**: Inventory levels, stock reservations
 - **Shipping Service**: Shipping rates, delivery options
-- **Payment Service**: Payment processing, fraud detection
+- **Payment Service**: Payment status updates, payment coordination
 - **Fulfillment Service**: Order fulfillment, shipping coordination
+- **Return Service**: Return request processing, order status updates
 - **Notification Service**: Order status notifications
 
 #### External Dependencies
@@ -102,7 +122,7 @@ order/
 
 ### Order Lifecycle Operations
 
-#### Create Order (Checkout)
+#### Create Order (From Checkout Service)
 ```protobuf
 rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {
   option (google.api.http) = {
@@ -112,12 +132,30 @@ rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {
 }
 ```
 
-**Flow**:
-1. Basic validation
-2. Create order record
-3. Process payment
-4. Publish order events
-5. Trigger fulfillment
+**Flow** (Called by Checkout Service):
+1. Receive validated order data from Checkout Service
+2. Create order record with confirmed status
+3. Publish order.created event
+4. Trigger fulfillment workflow
+5. Return order details to Checkout Service
+
+#### Get Order
+```protobuf
+rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {
+  option (google.api.http) = {
+    get: "/api/v1/orders/{id}"
+  };
+}
+```
+
+#### List Orders
+```protobuf
+rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
+  option (google.api.http) = {
+    get: "/api/v1/orders"
+  };
+}
+```
 
 #### Order Status Management
 ```protobuf
@@ -130,20 +168,33 @@ rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusRespon
 ```
 
 **Order Statuses**:
-- `draft` → `confirmed` → `processing` → `shipped` → `delivered`
-- `cancelled`, `refunded`, `failed`
+- `confirmed` → `processing` → `shipped` → `delivered`
+- `cancelled`, `partially_returned`, `returned`
 
-#### Order Cancellation
+### Order Modifications
+
+#### Update Order
 ```protobuf
-// Full order cancellation
+rpc UpdateOrder(UpdateOrderRequest) returns (UpdateOrderResponse) {
+  option (google.api.http) = {
+    put: "/api/v1/orders/{id}"
+    body: "*"
+  };
+}
+```
+
+#### Cancel Order
+```protobuf
 rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse) {
   option (google.api.http) = {
     post: "/api/v1/orders/{id}/cancel"
     body: "*"
   };
 }
+```
 
-// Partial item cancellation
+#### Cancel Order Items
+```protobuf
 rpc CancelOrderItems(CancelOrderItemsRequest) returns (CancelOrderItemsResponse) {
   option (google.api.http) = {
     post: "/api/v1/orders/{id}/cancel-items"
@@ -152,43 +203,19 @@ rpc CancelOrderItems(CancelOrderItemsRequest) returns (CancelOrderItemsResponse)
 }
 ```
 
-### Order Operations
+### Order History & Tracking
 
-#### Payment Management
-```protobuf
-rpc AddPayment(AddPaymentRequest) returns (AddPaymentResponse) {
-  option (google.api.http) = {
-    post: "/api/v1/orders/{order_id}/payments"
-    body: "*"
-  };
-}
-```
-
-#### Return & Refund Management
-```protobuf
-rpc CreateReturnRequest(CreateReturnRequestRequest) returns (CreateReturnRequestResponse) {
-  option (google.api.http) = {
-    post: "/api/v1/orders/{order_id}/returns"
-    body: "*"
-  };
-}
-
-rpc RefundOrderItems(RefundOrderItemsRequest) returns (RefundOrderItemsResponse) {
-  option (google.api.http) = {
-    post: "/api/v1/orders/{id}/refund-items"
-    body: "*"
-  };
-}
-```
-
-#### Order History & Tracking
+#### Get Order Status History
 ```protobuf
 rpc GetOrderStatusHistory(GetOrderStatusHistoryRequest) returns (GetOrderStatusHistoryResponse) {
   option (google.api.http) = {
     get: "/api/v1/orders/{order_id}/status-history"
   };
 }
+```
 
+#### Get Order Edit History
+```protobuf
 rpc GetOrderEditHistory(GetOrderEditHistoryRequest) returns (GetOrderEditHistoryResponse) {
   option (google.api.http) = {
     get: "/api/v1/orders/{order_id}/edit-history"
@@ -208,24 +235,35 @@ CREATE TABLE orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number VARCHAR(50) UNIQUE NOT NULL,
   customer_id UUID,  -- NULL for guest orders
-  status VARCHAR(20) NOT NULL DEFAULT 'draft',
+  status VARCHAR(20) NOT NULL DEFAULT 'confirmed', -- No draft status (handled by Checkout Service)
   currency VARCHAR(3) NOT NULL DEFAULT 'USD',
   subtotal DECIMAL(10,2) DEFAULT 0,
   tax_amount DECIMAL(10,2) DEFAULT 0,
   shipping_amount DECIMAL(10,2) DEFAULT 0,
   discount_amount DECIMAL(10,2) DEFAULT 0,
   total_amount DECIMAL(10,2) NOT NULL,
+  
+  -- Payment Information (from Checkout Service)
+  payment_id VARCHAR(255),
   payment_method VARCHAR(50),
-  payment_status VARCHAR(20) DEFAULT 'pending',
+  payment_status VARCHAR(20) DEFAULT 'completed',
+  
+  -- Address Information (from Checkout Service)
   shipping_address JSONB,
   billing_address JSONB,
+  
+  -- Order Information
   notes TEXT,
   metadata JSONB DEFAULT '{}',
+  
+  -- Timestamps
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  expires_at TIMESTAMP WITH TIME ZONE,
   cancelled_at TIMESTAMP WITH TIME ZONE,
-  completed_at TIMESTAMP WITH TIME ZONE
+  completed_at TIMESTAMP WITH TIME ZONE,
+  
+  -- Source tracking
+  created_by_service VARCHAR(50) DEFAULT 'checkout-service'
 );
 ```
 
@@ -276,19 +314,58 @@ CREATE TABLE cart_items_active PARTITION OF cart_items
 
 ## 📦 Order Business Logic
 
-### Order Creation Flow
+### Order Creation Flow (From Checkout Service)
 
 ```go
 func (uc *OrderUsecase) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
-    // 1. Basic validation (customer, items)
-    // 2. Create order record with generated order number
-    // 3. Create order items from request items
-    // 4. Calculate totals from pre-validated data
-    // 5. Process payment (coordinate with Payment Service)
-    // 6. Update order status to 'confirmed'
-    // 7. Publish order.created event
-    // 8. Trigger fulfillment workflow
-    // 9. Send confirmation notifications
+    // 1. Validate request from Checkout Service (already pre-validated)
+    if err := uc.validateCheckoutRequest(ctx, req); err != nil {
+        return nil, err
+    }
+    
+    // 2. Create order record with confirmed status
+    order := &Order{
+        ID:           uuid.New(),
+        OrderNumber:  uc.generateOrderNumber(),
+        CustomerID:   req.CustomerID,
+        Status:       "confirmed", // Skip draft status
+        PaymentID:    req.PaymentID,
+        PaymentStatus: "completed",
+        TotalAmount:  req.TotalAmount,
+        CreatedByService: "checkout-service",
+    }
+    
+    // 3. Create order items from checkout session
+    for _, item := range req.Items {
+        orderItem := &OrderItem{
+            OrderID:      order.ID,
+            ProductID:    item.ProductID,
+            ProductSKU:   item.ProductSKU,
+            Quantity:     item.Quantity,
+            UnitPrice:    item.UnitPrice,
+            TotalPrice:   item.TotalPrice,
+            WarehouseID:  item.WarehouseID,
+            ReservationID: item.ReservationID,
+        }
+        order.Items = append(order.Items, orderItem)
+    }
+    
+    // 4. Save order to database
+    if err := uc.repo.CreateOrder(ctx, order); err != nil {
+        return nil, err
+    }
+    
+    // 5. Publish order.created event
+    if err := uc.publishOrderCreated(ctx, order); err != nil {
+        uc.logger.Errorf("Failed to publish order created event: %v", err)
+    }
+    
+    // 6. Trigger fulfillment workflow
+    if err := uc.triggerFulfillment(ctx, order); err != nil {
+        uc.logger.Errorf("Failed to trigger fulfillment: %v", err)
+    }
+    
+    return order, nil
 }
 ```
 
@@ -306,13 +383,13 @@ func generateOrderNumber() string {
 ### Status Transition Logic
 ```go
 var validTransitions = map[string][]string{
-    "draft":     {"confirmed", "cancelled"},
-    "confirmed": {"processing", "cancelled"},
+    "confirmed":  {"processing", "cancelled"},
     "processing": {"shipped", "cancelled"},
-    "shipped":    {"delivered", "cancelled"},
-    "delivered":  {"refunded"}, // No further transitions
+    "shipped":    {"delivered", "partially_returned"},
+    "delivered":  {"partially_returned", "returned"},
     "cancelled":  {},           // Terminal state
-    "refunded":   {},           // Terminal state
+    "partially_returned": {"returned"},
+    "returned":   {},           // Terminal state
 }
 
 func (uc *OrderUsecase) UpdateOrderStatus(ctx context.Context, orderID string, newStatus string) error {
@@ -331,24 +408,30 @@ func (uc *OrderUsecase) CancelOrder(ctx context.Context, orderID string, reason 
     // 1. Validate order can be cancelled (not shipped/delivered)
     // 2. Start transaction
     // 3. Update order status to 'cancelled'
-    // 4. Release inventory reservations
-    // 5. Process refunds if payment completed
+    // 4. Release inventory reservations (coordinate with Warehouse Service)
+    // 5. Process refunds if payment completed (coordinate with Payment Service)
     // 6. Update cancellation timestamp
     // 7. Publish cancellation event
     // 8. Send cancellation notifications
 }
 ```
 
-### Return & Refund Processing
+### Event Handling (From Other Services)
+
 ```go
-func (uc *OrderUsecase) CreateReturnRequest(ctx context.Context, req *CreateReturnRequest) error {
-    // 1. Validate order exists and eligible for return
-    // 2. Validate return window (30 days default)
-    // 3. Validate return items against order
-    // 4. Create return request record
-    // 5. Update order items with return status
-    // 6. Publish return request event
-    // 7. Notify customer service team
+// Handle return request events from Return Service
+func (uc *OrderUsecase) HandleReturnRequestCreated(ctx context.Context, event *ReturnRequestCreatedEvent) error {
+    // 1. Update order status to indicate return in progress
+    // 2. Create order status history entry
+    // 3. Publish order status change event
+}
+
+// Handle return completion events from Return Service
+func (uc *OrderUsecase) HandleReturnCompleted(ctx context.Context, event *ReturnCompletedEvent) error {
+    // 1. Update order status based on return type (partial/full)
+    // 2. Update order items with return information
+    // 3. Create order status history entry
+    // 4. Publish order status change event
 }
 ```
 
@@ -375,12 +458,15 @@ ORDER_RETURN_WINDOW_DAYS=30
 ORDER_AUTO_CANCEL_DRAFT_HOURS=24
 
 # External Services
+ORDER_CHECKOUT_SERVICE_ADDR=checkout-service:9005
 ORDER_CUSTOMER_SERVICE_ADDR=customer-service:9003
 ORDER_CATALOG_SERVICE_ADDR=catalog-service:9002
 ORDER_PRICING_SERVICE_ADDR=pricing-service:9009
 ORDER_WAREHOUSE_SERVICE_ADDR=warehouse-service:9010
 ORDER_PAYMENT_SERVICE_ADDR=payment-service:9007
 ORDER_FULFILLMENT_SERVICE_ADDR=fulfillment-service:9011
+ORDER_RETURN_SERVICE_ADDR=return-service:9006
+ORDER_NOTIFICATION_SERVICE_ADDR=notification-service:9013
 
 # Features
 ORDER_ENABLE_PROMOTIONS=true
@@ -414,12 +500,15 @@ order:
   enable_returns: true
 
 external_services:
+  checkout_service: ${ORDER_CHECKOUT_SERVICE_ADDR}
   customer_service: ${ORDER_CUSTOMER_SERVICE_ADDR}
   catalog_service: ${ORDER_CATALOG_SERVICE_ADDR}
   pricing_service: ${ORDER_PRICING_SERVICE_ADDR}
   warehouse_service: ${ORDER_WAREHOUSE_SERVICE_ADDR}
   payment_service: ${ORDER_PAYMENT_SERVICE_ADDR}
   fulfillment_service: ${ORDER_FULFILLMENT_SERVICE_ADDR}
+  return_service: ${ORDER_RETURN_SERVICE_ADDR}
+  notification_service: ${ORDER_NOTIFICATION_SERVICE_ADDR}
 
 features:
   promotions: ${ORDER_ENABLE_PROMOTIONS}
