@@ -24,3 +24,12 @@ Auditing and maintaining the integrity of project documentation, workflows, and 
 
 ## 4. Debugging Context:
 If an issue is found in the Dev K8s environment, suggest specific troubleshooting commands (e.g., `kubectl`, `dlv`, `stern`).
+
+
+next, follow docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md, docs/07-development/standards/development-review-checklist.md
+và index codebase order service:
+-review code
+-check list todo 
+-update checklist vào docs/10-appendix/checklists/v2/order_service_code_review.md
+
+make api, go build, wire, commit vs push
