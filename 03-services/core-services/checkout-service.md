@@ -663,6 +663,153 @@ make wire
 
 ---
 
+## 🔧 Troubleshooting Guide
+
+### Common Checkout Failures
+
+#### 1. Session Expired Error
+**Symptoms**: `SESSION_EXPIRED` error during checkout processing
+**Causes**:
+- Session TTL exceeded (default 30 minutes)
+- User inactive for extended period
+- Browser session cleared
+
+**Resolution**:
+```bash
+# Check session status
+curl -X GET "http://localhost:8005/api/v1/checkout/sessions/{session_id}/status"
+
+# Extend session (if needed)
+curl -X POST "http://localhost:8005/api/v1/checkout/sessions/{session_id}/extend" \
+  -H "Content-Type: application/json" \
+  -d '{"extension_minutes": 15}'
+```
+
+**Prevention**: Implement session heartbeat in frontend
+
+#### 2. Inventory Reservation Failed
+**Symptoms**: `INSUFFICIENT_INVENTORY` error
+**Causes**:
+- Product out of stock during checkout
+- Race condition with concurrent checkouts
+- Stale inventory data
+
+**Resolution**:
+```bash
+# Check product availability
+curl -X GET "http://localhost:8005/api/v1/checkout/validate-inventory" \
+  -H "Content-Type: application/json" \
+  -d '{"session_id": "session-123"}'
+
+# Force inventory refresh (admin only)
+curl -X POST "http://localhost:8005/admin/inventory/refresh" \
+  -H "Authorization: Bearer {admin-token}"
+```
+
+**Prevention**: Implement real-time inventory updates
+
+#### 3. Payment Processing Timeout
+**Symptoms**: `PAYMENT_TIMEOUT` error
+**Causes**:
+- Payment gateway slow response
+- Network issues
+- High traffic load
+
+**Resolution**:
+```bash
+# Check payment service health
+curl -X GET "http://payment-service:8006/health"
+
+# Retry payment with idempotency key
+curl -X POST "http://localhost:8005/api/v1/checkout/process" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: {unique-key}" \
+  -d '{"session_id": "session-123"}'
+```
+
+**Prevention**: Implement circuit breaker pattern
+
+#### 4. External Service Unavailable
+**Symptoms**: `SERVICE_UNAVAILABLE` errors
+**Causes**:
+- Dependent services down (Catalog, Pricing, Warehouse)
+- Network connectivity issues
+- Service overload
+
+**Resolution**:
+```bash
+# Check service dependencies
+curl -X GET "http://localhost:8005/health/dependencies"
+
+# View circuit breaker status
+curl -X GET "http://localhost:8005/metrics" | grep circuit_breaker
+```
+
+**Prevention**: Implement fallback mechanisms and graceful degradation
+
+### Performance Issues
+
+#### High Latency Checkout Processing
+**Symptoms**: Checkout taking >3 seconds
+**Diagnosis**:
+```bash
+# Check response times
+curl -X GET "http://localhost:8005/metrics" | grep checkout_operation_duration
+
+# Database query performance
+EXPLAIN ANALYZE SELECT * FROM checkout_sessions WHERE session_token = 'token-123';
+```
+
+**Optimization**:
+- Add database indexes
+- Implement caching for pricing data
+- Use async inventory validation
+
+#### Memory Usage Spikes
+**Symptoms**: Service consuming excessive memory
+**Diagnosis**:
+```bash
+# Check memory metrics
+curl -X GET "http://localhost:8005/metrics" | grep go_memstats
+
+# Profile memory usage
+go tool pprof http://localhost:8005/debug/pprof/heap
+```
+
+**Resolution**: Implement session cleanup, reduce concurrent goroutines
+
+### Monitoring & Alerting
+
+#### Key Metrics to Monitor
+```prometheus
+# Checkout success rate
+rate(checkout_completed_total[5m]) / rate(checkout_started_total[5m]) < 0.8
+
+# Payment failure rate
+rate(payment_attempts_total{status="failed"}[5m]) / rate(payment_attempts_total[5m]) > 0.05
+
+# Session timeout rate
+rate(checkout_abandoned_total{stage="timeout"}[5m]) > 0.1
+```
+
+#### Alert Configuration
+```yaml
+alerts:
+  - name: CheckoutConversionRateLow
+    expr: rate(checkout_completed_total[5m]) / rate(checkout_started_total[5m]) < 0.8
+    for: 5m
+    labels:
+      severity: warning
+
+  - name: PaymentFailureRateHigh
+    expr: rate(payment_attempts_total{status="failed"}[5m]) / rate(payment_attempts_total[5m]) > 0.05
+    for: 2m
+    labels:
+      severity: critical
+```
+
+---
+
 **Version**: 1.0.0  
 **Last Updated**: 2026-01-27  
 **Service Split**: Extracted from Order Service  
