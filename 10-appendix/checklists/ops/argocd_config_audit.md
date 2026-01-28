@@ -22,11 +22,17 @@
 - [ ] **Dapr Toggle Logic**:
     - *Finding*: `dapr.io/enabled: "true"` is hardcoded in `podAnnotations`.
     - *Action*: Refactor Chart templates to conditionally apply annotations: `{{- if .Values.dapr.enabled }} ... {{ end }}`.
+- [ ] **Hardcoded Environment Namespaces**:
+    - *Finding*: `pricing` and `promotion` have hardcoded DNS suffixes like `.core-business-dev.svc.cluster.local` in `values-base.yaml`.
+    - *Action*: Use Helm templating `{{ .Release.Namespace }}` or a global environment variable `{{ .Values.global.env }}` to construct DNS names dynamically.
 
 ## 3. Resilience & Reliability
 - [ ] **Probe Tuning**:
-    - *Finding*: `livenessProbe` often has 90s delay.
-    - *Action*: Introduce `startupProbe` (failureThreshold: 30, period: 10s) to handle slow cold starts without compromising runtime fast-failure detection.
+    - *Finding*: `livenessProbe` has massive 90s delay across all services (`user`, `pricing`, `promotion`).
+    - *Action*: Introduce `startupProbe` (failureThreshold: 30, period: 10s) to handle slow cold starts. Reduce `livenessProbe` initialDelay to 5-10s for fast failure detection during runtime.
+- [ ] **RollingUpdate Strategy**:
+    - *Finding*: No `strategy` defined in values, defaulting to K8s standard (25% maxUnavailable).
+    - *Action*: Define explicit `strategy` in `deployment.yaml`. For critical services (Payment, Order), consider `maxUnavailable: 0` and `maxSurge: 1` to ensure zero downtime during rollouts.
 - [ ] **Resource Limits & Requests**:
     - *Finding*: Generic limits (1Gi/500m) used across services.
     - *Action*: Conduct load testing (k6/locust) to baseline actual usage. Right-size requests to ~110% of P95 usage to improve cluster packing.
@@ -34,8 +40,8 @@
     - *Finding*: `minAvailable: 1` is hardcoded but often disabled in values.
     - *Action*: Enable PDBs in Production to ensure HA during cluster upgrades/node scaling.
 - [ ] **Horizontal Pod Autoscaling (HPA)**:
-    - *Finding*: `autoscaling.enabled` is consistently set to `false` in base values.
-    - *Action*: Define HPA policies (CPU/Memory targets) for Staging/Prod. Ensure `resources.requests` are set correctly for HPA to calculate utilization.
+    - *Finding*: `autoscaling.enabled` is `false`. Configuration is erratic (`user` has 100 maxReplicas, `pricing` has 10).
+    - *Action*: Define HPA policies (CPU/Memory targets) for Staging/Prod. Normalize `maxReplicas` basics (e.g., Start with 3-5 for generic services).
 
 ## 4. Security Posture
 - [ ] **Secret Management**:
