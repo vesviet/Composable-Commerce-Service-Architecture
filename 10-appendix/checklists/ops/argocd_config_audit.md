@@ -47,8 +47,9 @@
 - [ ] **Secret Management**:
     - *Critical*: `values-base.yaml` contains placeholder secrets (e.g., `jwtSecret: "secret-..."`).
     - *Action*: **IMMEDIATE**: Migrate to **ExternalSecretsOperator** (ESO). Remove all secret keys from `values.yaml`. Use Secret references in `env` blocks (e.g., `valueFrom: secretKeyRef`).
-- [x] **Service Accounts**:
-    - *Action*: Set `automountServiceAccountToken: false` by default. Only enable for Pods that strictly need K8s API access (like Sync Jobs or Controllers).
+- [ ] **Service Accounts**:
+    - *Action*: Set `automountServiceAccountToken: false` by default for non-Dapr pods.
+    - *Note*: **Caution**: Dapr sidecars in this project require the ServiceAccount token to initialize certain components (like `secretstores.kubernetes`) and talk to the Dapr control plane. Enabling this globally will break Dapr-enabled services.
 - [ ] **NetworkPolicy Default Deny**:
     - *Action*: Adopt a "Default Deny" Ingress/Egress policy for each namespace, then whitelist specific paths (verified via Service Graph).
 
