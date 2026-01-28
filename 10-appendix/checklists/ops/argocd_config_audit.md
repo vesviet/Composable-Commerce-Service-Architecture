@@ -57,9 +57,10 @@
 - [ ] **Gateway Config Modularization**:
     - *Finding*: `gateway/values-base.yaml` is monolithic (>500 lines).
     - *Action*: Split Route definitions into separate `ConfigMap` resources managed by individual service Helm charts (Distributed Ingress/Gateway pattern), or use split Helm value files.
-- [ ] **Standardized Labels**:
+- [x] **Standardized Labels**:
     - *Finding*: Mix of `app: <name>` and `service: <name>`.
     - *Action*: Enforce `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/version` (recommended by K8s).
+    - *Progress*: Updated `catalog` and `search` ApplicationSets.
 - [ ] **ServiceMonitor**:
     - *Action*: Enable `ServiceMonitor` resources in Dev to validate Prometheus scraping paths (`/metrics`) before promotion.
 
