@@ -1,7 +1,7 @@
 # ArgoCD & Manifest Configuration Improvement Checklist
 
 ## 1. ArgoCD ApplicationSet Standardization
-- [ ] **Sync Policy Consistency**:
+- [x] **Sync Policy Consistency**:
     - *Finding*: `catalog` has `selfHeal: false`, while `search` and `gateway` have `selfHeal: true`.
     - *Action*: Enforce `selfHeal: true` across ALL Dev/Staging ApplicationSets to automatically correct configuration drift (e.g., accidental manual deletions).
     - *Action*: Enable `PruneLast=true` to ensure resources are cleaned up cleanly after sync.
@@ -27,7 +27,7 @@
     - *Action*: Use Helm templating `{{ .Release.Namespace }}` or a global environment variable `{{ .Values.global.env }}` to construct DNS names dynamically.
 
 ## 3. Resilience & Reliability
-- [ ] **Probe Tuning**:
+- [x] **Probe Tuning**:
     - *Finding*: `livenessProbe` has massive 90s delay across all services (`user`, `pricing`, `promotion`).
     - *Action*: Introduce `startupProbe` (failureThreshold: 30, period: 10s) to handle slow cold starts. Reduce `livenessProbe` initialDelay to 5-10s for fast failure detection during runtime.
 - [ ] **RollingUpdate Strategy**:
@@ -47,7 +47,7 @@
 - [ ] **Secret Management**:
     - *Critical*: `values-base.yaml` contains placeholder secrets (e.g., `jwtSecret: "secret-..."`).
     - *Action*: **IMMEDIATE**: Migrate to **ExternalSecretsOperator** (ESO). Remove all secret keys from `values.yaml`. Use Secret references in `env` blocks (e.g., `valueFrom: secretKeyRef`).
-- [ ] **Service Accounts**:
+- [x] **Service Accounts**:
     - *Action*: Set `automountServiceAccountToken: false` by default. Only enable for Pods that strictly need K8s API access (like Sync Jobs or Controllers).
 - [ ] **NetworkPolicy Default Deny**:
     - *Action*: Adopt a "Default Deny" Ingress/Egress policy for each namespace, then whitelist specific paths (verified via Service Graph).
@@ -63,7 +63,7 @@
     - *Action*: Enable `ServiceMonitor` resources in Dev to validate Prometheus scraping paths (`/metrics`) before promotion.
 
 ## 6. Repository Hygiene
-- [ ] **Cleanup Backup Files**:
+- [x] **Cleanup Backup Files**:
     - *Finding*: Repository contains backup files (e.g., `catalog/values-base.yaml.backup`, `admin/values-base.yaml.backup`).
     - *Action*: Delete these files to avoid confusion and enforce version control history instead of file-based backups.
 - [ ] **Linting & Formatting**:
@@ -85,6 +85,6 @@
 - [ ] **Dapr Subscription Management**:
     - *Finding*: `search/values-base.yaml` contains ~100 lines of Dapr Subscription configuration.
     - *Action*: Move Dapr subscriptions to dedicated `Subscription` CRD manifests (yaml files) in the chart `templates/` folder, enabling GitOps validation instead of embedding in Values.
-- [ ] **Job Cleanup Strategy**:
+- [x] **Job Cleanup Strategy**:
     - *Finding*: `search` has `ttlSecondsAfterFinished: 3600`, while other services in `catalog`, `order` do not specify it in `values-base.yaml`.
     - *Action*: Standardize `ttlSecondsAfterFinished` to `300` (5 minutes) for all Migration/Sync Jobs to prevent completed pods from cluttering the namespace.
