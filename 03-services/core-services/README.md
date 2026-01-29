@@ -150,6 +150,17 @@ Hệ thống đã được tối ưu hóa thông qua việc tách tách Order Se
   - Refund management
   - Payment analytics
 
+#### 10. [Promotion Service](./promotion-service.md)
+- **Purpose**: Promotional campaigns, discounts, and coupon management
+- **Port**: HTTP `:8003`, gRPC `:9003`
+- **Database**: `promotion_db`
+- **Key Features**:
+  - Campaign management
+  - Promotion rules (cart & catalog)
+  - Discount calculation engine
+  - Coupon generation and validation
+  - Usage tracking and analytics
+
 ---
 
 ## 🔄 Service Interaction Patterns

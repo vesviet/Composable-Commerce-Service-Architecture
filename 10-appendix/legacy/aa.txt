@@ -27,9 +27,14 @@ If an issue is found in the Dev K8s environment, suggest specific troubleshootin
 
 
 next, follow docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md, docs/07-development/standards/development-review-checklist.md
-và index codebase order service:
+và index codebase warehouse service:
 -review code
--check list todo 
--update checklist vào docs/10-appendix/checklists/v2/order_service_code_review.md
+-check list todo on warehouse service 
+-golangci-lint run
+-update checklist vào docs/10-appendix/checklists/v2/
+-update readme và docs on docs/03-services
 
-make api, go build, wire, commit vs push
+
+make api, go build, wire, commit, new tag vs push
+
+golangci-lint run

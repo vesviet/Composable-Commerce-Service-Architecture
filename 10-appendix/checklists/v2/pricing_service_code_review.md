@@ -1,9 +1,9 @@
 # Pricing Service - Code Review Checklist
 
 **Service**: Pricing Service  
-**Review Date**: January 27, 2026  
+**Review Date**: January 29, 2026  
 **Review Standard**: `docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md`  
-**Status**: 🟡 90% Complete - Production Ready with Minor Improvements Needed
+**Status**: 🟡 85% Complete - Production Ready with Linting Issues and Improvements Needed
 
 ---
 
@@ -560,26 +560,69 @@ The Pricing Service follows Clean Architecture principles and implements most pr
 
 ---
 
-### P2-6: Missing Linter Configuration Check
+### P2-6: Linting Violations Found (golangci-lint)
 
 **Severity**: P2 (Normal)  
 **Category**: Architecture & Clean Code  
 **Files**:
-- `.golangci.yml` (may not exist)
+- `pricing/internal/biz/price/price.go` (3 errcheck violations)
+- `pricing/internal/data/postgres/discount.go` (2 errcheck violations)
+- `pricing/internal/data/postgres/rule.go` (1 errcheck violation)
+- `pricing/cmd/worker/main.go` (3 errcheck violations)
+- `pricing/internal/server/http.go` (1 errcheck violation)
+- `pricing/internal/biz/price/price.go` (1 unused function)
+- `pricing/internal/service/currency_converter.go` (2 unused functions)
+- `pricing/internal/client/*.go` (3 gosimple violations)
+- `pricing/internal/biz/price/price.go` (1 unreachable code)
+- `pricing/internal/biz/dynamic/dynamic_pricing.go` (3 ineffassign violations)
+- `pricing/internal/middleware/auth.go` (3 staticcheck violations - context key type)
+- `pricing/internal/data/postgres/price.go` (2 staticcheck violations - unused append results)
+- `pricing/internal/data/eventbus/stock_consumer.go` (1 empty branch)
 
 **Current State**:
-- Unknown if linter is configured
-- No CI check for linter warnings
+- ✅ Linter runs successfully (after vendor fix)
+- ❌ **28 linting violations** found across multiple files
+- ❌ Error return values not checked (errcheck) - 10 violations
+- ❌ Unused functions - 3 violations
+- ❌ Code quality issues (gosimple, staticcheck, ineffassign, unreachable)
 
 **Required Action**:
-1. Verify `.golangci.yml` exists and is configured
-2. Run `golangci-lint` and fix all warnings
-3. Add linter check to CI/CD pipeline
-4. Ensure zero warnings
+1. Fix errcheck violations - check error returns:
+   ```go
+   // Before
+   defer uc.repo.RollbackTx(txCtx)
+   
+   // After
+   defer func() {
+       if err := uc.repo.RollbackTx(txCtx); err != nil {
+           uc.log.Errorf("Failed to rollback transaction: %v", err)
+       }
+   }()
+   ```
 
-**Impact**: Code quality issues
+2. Remove unused functions or mark as used:
+   - `publishPriceUpdatedEvent` - Remove if truly unused
+   - `convertExchangeRateToProto` - Remove or use
+   - `convertExchangeRatesToProto` - Remove or use
+
+3. Fix context key type issue in auth middleware:
+   ```go
+   // Before
+   type contextKey string
+   const userIDKey contextKey = "user_id"
+   ctx = context.WithValue(ctx, userIDKey, userID)
+   ```
+
+4. Fix ineffectual assignments in dynamic_pricing.go
+5. Remove unreachable code in price.go:204
+6. Fix empty branch in stock_consumer.go
+7. Fix unused append results in price.go (BatchUpdate)
+
+**Impact**: Code quality issues, potential bugs, maintenance burden
 
 **Reference**: `docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md` Section 1 (Linter)
+
+**Status**: ❌ **PENDING** - 28 violations need fixing
 
 ---
 
@@ -617,7 +660,7 @@ The Pricing Service follows Clean Architecture principles and implements most pr
 
 | Category | P0 | P1 | P2 | Total |
 |----------|----|----|----|-------|
-| **Architecture & Clean Code** | 0 | 0 | 1 | 1 |
+| **Architecture & Clean Code** | 0 | 0 | 2 | 2 |
 | **API & Contract** | 0 | 2 | 1 | 3 |
 | **Business Logic & Concurrency** | 1 | 0 | 0 | 1 |
 | **Data Layer & Persistence** | 0 | 1 | 1 | 2 |
@@ -626,7 +669,7 @@ The Pricing Service follows Clean Architecture principles and implements most pr
 | **Observability** | 0 | 1 | 1 | 2 |
 | **Testing & Quality** | 0 | 1 | 0 | 1 |
 | **Maintenance** | 0 | 0 | 2 | 2 |
-| **TOTAL** | **2** | **7** | **9** | **18** |
+| **TOTAL** | **2** | **7** | **10** | **19** |
 
 ---
 
@@ -661,5 +704,47 @@ The Pricing Service follows Clean Architecture principles and implements most pr
 
 ---
 
-**Last Updated**: January 28, 2026  
-**Next Review**: After remaining P0 fixes are completed
+---
+
+## 🆕 NEWLY DISCOVERED ISSUES (January 29, 2026)
+
+### LINT-001: golangci-lint Violations (28 total)
+
+**Severity**: P2 (Normal)  
+**Category**: Code Quality  
+**Status**: ❌ **PENDING**
+
+**Details**:
+- **errcheck (10 violations)**: Error return values not checked
+  - `internal/biz/price/price.go`:3 - RollbackTx calls
+  - `internal/data/postgres/discount.go`:2 - json.Unmarshal calls
+  - `internal/data/postgres/rule.go`:1 - json.Unmarshal call
+  - `cmd/worker/main.go`:3 - logger.Log calls
+  - `internal/server/http.go`:1 - w.Write call
+
+- **unused (3 violations)**: Unused functions
+  - `publishPriceUpdatedEvent` - Legacy function, should be removed
+  - `convertExchangeRateToProto` - Unused helper function
+  - `convertExchangeRatesToProto` - Unused helper function
+
+- **gosimple (3 violations)**: Variable declarations can be merged
+  - `internal/client/catalog_grpc_client.go`:2
+  - `internal/client/warehouse_grpc_client.go`:1
+
+- **govet (1 violation)**: Unreachable code
+  - `internal/biz/price/price.go:204` - Code after return statement
+
+- **ineffassign (3 violations)**: Ineffectual assignments
+  - `internal/biz/dynamic/dynamic_pricing.go`:3 - Variables assigned but not used
+
+- **staticcheck (6 violations)**: Static analysis issues
+  - `internal/middleware/auth.go`:3 - Using string as context key (should use custom type)
+  - `internal/data/postgres/price.go`:2 - Unused append results
+  - `internal/data/eventbus/stock_consumer.go`:1 - Empty branch
+
+**Fix Priority**: Medium - Should be fixed before next release
+
+---
+
+**Last Updated**: January 29, 2026  
+**Next Review**: After linting violations are fixed

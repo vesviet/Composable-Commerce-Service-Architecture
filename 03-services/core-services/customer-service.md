@@ -1,10 +1,10 @@
 # 🧑‍🤝‍🧑 Customer Service - Complete Documentation
 
 **Service Name**: Customer Service  
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-22  
+**Version**: 1.0.3  
+**Last Updated**: 2026-01-29  
 **Review Status**: ✅ Reviewed (Issues: 3 P0-P1)  
-**Production Ready**: 85%  
+**Production Ready**: 90%  
 
 ---
 
@@ -36,12 +36,14 @@ Customer Service là microservice quản lý toàn bộ dữ liệu customer tro
 - **🔐 Two-Factor Authentication**: 2FA support với TOTP
 - **📱 Social Login**: OAuth integration (placeholder)
 - **🗑️ GDPR Compliance**: Data deletion và anonymization
+- **📋 Audit Logging**: Comprehensive security audit trail cho compliance
 
 ### Business Value
 - **Customer Experience**: Seamless profile management across touchpoints
 - **Marketing**: Rich customer segmentation cho personalized campaigns
 - **Compliance**: GDPR-compliant data handling
 - **Analytics**: Customer insights cho business decisions
+- **Security**: Comprehensive audit trail cho compliance và forensic analysis
 
 ---
 
@@ -56,11 +58,12 @@ customer/
 │   ├── biz/                         # Business Logic Layer
 │   │   ├── customer/                # Customer domain logic
 │   │   ├── address/                 # Address domain logic
+│   │   ├── audit/                   # Audit logging usecase
 │   │   ├── preference/              # Preferences domain logic
 │   │   ├── segment/                 # Segmentation logic
 │   │   └── events/                  # Event publishing
 │   ├── data/                        # Data Access Layer
-│   │   ├── postgres/                # PostgreSQL repositories
+│   │   ├── postgres/                # PostgreSQL repositories (incl. audit)
 │   │   └── eventbus/                # Dapr event bus
 │   ├── service/                     # Service Layer (gRPC/HTTP)
 │   ├── server/                      # Server setup
@@ -68,7 +71,7 @@ customer/
 │   ├── config/                      # Configuration
 │   └── constants/                   # Constants & enums
 ├── api/                             # Protocol Buffers
-├── migrations/                      # Database migrations
+├── migrations/                      # Database migrations (incl. audit schema)
 └── configs/                         # Environment configs
 ```
 
@@ -288,6 +291,34 @@ CREATE TABLE customer_preferences (
 );
 ```
 
+#### audit_events
+```sql
+CREATE TABLE audit_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type VARCHAR(100) NOT NULL,
+  severity VARCHAR(20) NOT NULL DEFAULT 'INFO' CHECK (severity IN ('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL')),
+  customer_id UUID REFERENCES customers(id),
+  resource_id UUID, -- Address, order, etc.
+  operation VARCHAR(50) NOT NULL, -- create, update, delete, login, etc.
+  old_values JSONB,
+  new_values JSONB,
+  user_agent TEXT,
+  ip_address INET,
+  actor_id UUID, -- Who performed the action
+  session_id UUID,
+  trace_id UUID,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for audit queries
+CREATE INDEX idx_audit_events_customer_id ON audit_events(customer_id);
+CREATE INDEX idx_audit_events_event_type ON audit_events(event_type);
+CREATE INDEX idx_audit_events_created_at ON audit_events(created_at DESC);
+CREATE INDEX idx_audit_events_resource_id ON audit_events(resource_id);
+CREATE INDEX idx_audit_events_operation ON audit_events(operation);
+```
+
 ### Migration History
 
 | Version | Migration File | Description | Key Features |
@@ -308,6 +339,9 @@ CREATE TABLE customer_preferences (
 | 014 | `014_add_gdpr_deletion_fields.sql` | GDPR compliance | Data anonymization |
 | 015 | `015_add_customer_groups_support.sql` | Group management | B2B/B2C segmentation |
 | 016 | `016_create_verification_tokens_table.sql` | Email verification | Token management |
+| 017 | `017_add_customer_statistics_fields.sql` | Analytics support | Customer metrics |
+| 018 | `018_create_customer_statistics_table.sql` | Statistics tracking | Performance metrics |
+| 019 | `019_create_audit_events_table.sql` | Audit logging | Security & compliance |
 
 ### Indexes & Performance
 ```sql
@@ -322,6 +356,11 @@ CREATE INDEX idx_addresses_customer_default ON customer_addresses(customer_id, i
 
 -- Full-text search
 CREATE INDEX idx_customers_full_name ON customers USING gin(to_tsvector('english', first_name || ' ' || last_name));
+
+-- Audit logging indexes
+CREATE INDEX idx_audit_events_customer_id_created_at ON audit_events(customer_id, created_at DESC);
+CREATE INDEX idx_audit_events_event_type_created_at ON audit_events(event_type, created_at DESC);
+CREATE INDEX idx_audit_events_resource_operation ON audit_events(resource_id, operation);
 ```
 
 ---
@@ -506,7 +545,7 @@ require (
 ```
 
 ### Internal Dependencies
-- **common@v1.0.14**: Shared utilities, validation, events, repository patterns
+- **common@v1.0.14**: Shared utilities, validation, events, repository patterns, **audit logging framework**
 - **Auth Service**: Customer authentication, session validation
 - **Order Service**: Order history, customer analytics
 - **Loyalty Service**: Points balance, rewards integration
@@ -580,12 +619,15 @@ customer_requests_total{endpoint="/api/v1/customers", method="POST", status="200
 customer_created_total 1250
 customer_addresses_total 3400
 customer_segments_assigned_total 980
+audit_events_total{event_type="customer.login.success"} 5420
+audit_events_total{event_type="customer.address.update"} 1250
 
 // Performance metrics
 customer_request_duration_seconds{quantile="0.95", endpoint="/api/v1/customers"} 0.087
 
 // Error metrics
 customer_errors_total{type="validation", endpoint="/api/v1/customers"} 23
+audit_logging_errors_total{type="database", operation="insert"} 2
 ```
 
 ### Health Checks
@@ -599,6 +641,78 @@ rpc HealthCheck(HealthCheckRequest) returns (HealthCheckReply)
 // Database connectivity
 // Redis connectivity
 // External service dependencies
+```
+
+### Audit Logging & Compliance
+
+#### Audit Event Types
+Customer Service implements comprehensive audit logging for security and compliance:
+
+**Authentication Events:**
+- `customer.login.success` - Successful customer login
+- `customer.login.failed` - Failed login attempts
+- `customer.logout` - Customer logout events
+- `customer.password.change` - Password modifications
+
+**Profile Management Events:**
+- `customer.profile.create` - New customer registration
+- `customer.profile.update` - Profile information changes
+- `customer.profile.delete` - Account deletion (GDPR)
+
+**Address Management Events:**
+- `customer.address.create` - New address addition
+- `customer.address.update` - Address modifications with change tracking
+- `customer.address.delete` - Address removal
+- `customer.address.default_changed` - Default address updates
+
+#### Audit Data Structure
+```json
+{
+  "id": "audit-uuid",
+  "event_type": "customer.address.update",
+  "severity": "INFO",
+  "customer_id": "customer-uuid",
+  "resource_id": "address-uuid",
+  "operation": "update",
+  "old_values": {
+    "city": "Hanoi",
+    "postalCode": "100000"
+  },
+  "new_values": {
+    "city": "Ho Chi Minh City",
+    "postalCode": "700000"
+  },
+  "user_agent": "Mozilla/5.0...",
+  "ip_address": "192.168.1.100",
+  "timestamp": "2026-01-29T10:30:00Z",
+  "actor_id": "customer-uuid",
+  "metadata": {
+    "session_id": "session-uuid",
+    "trace_id": "trace-uuid"
+  }
+}
+```
+
+#### Audit Log Retention
+- **Retention Period**: 7 years (configurable)
+- **Cleanup**: Automated background worker
+- **Archival**: Optional export to long-term storage
+- **Compliance**: GDPR Article 17 (right to erasure)
+
+#### Audit Query Capabilities
+```sql
+-- Recent customer profile changes
+SELECT * FROM audit_events
+WHERE event_type LIKE 'customer.profile.%'
+  AND customer_id = ?
+  AND created_at >= NOW() - INTERVAL '30 days'
+ORDER BY created_at DESC;
+
+-- Security incidents (failed logins)
+SELECT * FROM audit_events
+WHERE event_type = 'customer.login.failed'
+  AND created_at >= NOW() - INTERVAL '1 hour'
+GROUP BY customer_id;
 ```
 
 ### Logging
@@ -774,7 +888,7 @@ kubectl logs -f deployment/customer-service -n staging
 ### Data Protection
 - **PII Encryption**: Sensitive data encrypted at rest
 - **GDPR Compliance**: Right to deletion, data portability
-- **Audit Logging**: All customer data changes logged
+- **Audit Logging**: ✅ Comprehensive audit trail implemented for all customer data changes
 - **Access Control**: Role-based permissions for admin operations
 
 ### Security Headers
@@ -791,6 +905,7 @@ Strict-Transport-Security: max-age=31536000
 ## 🎯 Future Roadmap
 
 ### Phase 1 (Q1 2026) - Core Completion
+- [x] Implement comprehensive audit logging for security & compliance
 - [ ] Complete 2FA implementation
 - [ ] Implement transactional outbox
 - [ ] Fix address deletion logic
@@ -831,7 +946,7 @@ Strict-Transport-Security: max-age=31536000
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-22  
+**Version**: 1.0.3  
+**Last Updated**: 2026-01-29  
 **Code Review Status**: ✅ Completed (3 issues identified)  
-**Production Readiness**: 85% (P0 issues must be fixed)
+**Production Readiness**: 90% (P0 issues must be fixed)
