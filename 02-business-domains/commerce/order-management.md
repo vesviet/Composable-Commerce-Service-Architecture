@@ -1,21 +1,34 @@
-# Order Flow Documentation
+# Order Management Flow
 
-> **Note:** Comprehensive analysis based on codebase review of Order, Gateway, Customer, Warehouse, Pricing, Promotion, and Review services as of January 18, 2026.
+**Last Updated**: 2026-01-29  
+**Status**: Updated for Service Split  
+**Domain**: Commerce  
+**Services**: Order Service (Primary), Checkout Service (Integration), Return Service (Integration)  
+**Navigation**: [← Commerce Domain](../README.md) | [← Business Domains](../../README.md) | [Order Service →](../../03-services/core-services/order-service.md)
+
+> **Note:** Comprehensive analysis updated for service domain split. Order service now focuses on order lifecycle management, while checkout and return operations are handled by dedicated services.
 
 ## 1. Executive Summary
 
-The Order system follows a **distributed microservices architecture** with event-driven communication and transactional outbox patterns. The flow spans 7 core services with complex orchestration for inventory management, pricing calculations, and payment processing.
+The Order system follows a **distributed microservices architecture** with event-driven communication and transactional outbox patterns. After the service domain split, the order management flow now spans multiple specialized services with clear separation of concerns:
+
+- **Checkout Service**: Handles cart management and checkout process
+- **Order Service**: Manages order lifecycle and status transitions  
+- **Return Service**: Processes returns and exchanges
+- **Supporting Services**: Payment, Warehouse, Pricing, Promotion, Review
 
 **Key Components:**
 - **Gateway Service**: Request routing, authentication, rate limiting
 - **Customer Service**: Profile management, authentication, order history
-- **Order Service**: Core orchestration (cart, checkout, order lifecycle)
+- **Checkout Service**: Cart management, checkout orchestration
+- **Order Service**: Order lifecycle management, status tracking
+- **Return Service**: Return and exchange processing
 - **Warehouse Service**: Inventory management, stock reservations
 - **Pricing Service**: Dynamic pricing, currency conversion, cache management
 - **Promotion Service**: Campaign management, discount calculations
 - **Review Service**: Post-order review collection and moderation
 
-## 2. High-Level Order Architecture
+## 2. Service Architecture After Domain Split
 
 ```mermaid
 graph TB
@@ -26,17 +39,26 @@ graph TB
     
     subgraph "API Layer"
         G[Gateway Service]
+        G --> |Auth/Routing| CheckoutAPI
         G --> |Auth/Routing| OrderAPI
+        G --> |Auth/Routing| ReturnAPI
         G --> |Validation| CustomerAPI
     end
     
     subgraph "Business Logic Layer"
+        CheckoutAPI[Checkout Service APIs]
         OrderAPI[Order Service APIs]
+        ReturnAPI[Return Service APIs]
         CustomerAPI[Customer Service APIs]
         
-        OrderAPI --> OrderCore[Order Core Logic]
-        OrderAPI --> Cart[Cart Management]
-        OrderAPI --> Checkout[Checkout Process]
+        CheckoutAPI --> Cart[Cart Management]
+        CheckoutAPI --> CheckoutProcess[Checkout Process]
+        
+        OrderAPI --> OrderCore[Order Lifecycle]
+        OrderAPI --> OrderStatus[Status Management]
+        
+        ReturnAPI --> ReturnProcess[Return Processing]
+        ReturnAPI --> ExchangeProcess[Exchange Processing]
         
         CustomerAPI --> Profile[Customer Profiles]
         CustomerAPI --> Auth[Authentication]
@@ -46,11 +68,14 @@ graph TB
         W[Warehouse Service]
         P[Pricing Service]
         PR[Promotion Service]
+        PAY[Payment Service]
         R[Review Service]
     end
     
     subgraph "Data Layer"
+        CheckoutDB[Checkout Database]
         OrderDB[Order Database]
+        ReturnDB[Return Database]
         CustomerDB[Customer Database]
         WarehouseDB[Warehouse Database]
         PricingCache[Pricing Redis Cache]
@@ -60,98 +85,119 @@ graph TB
     C --> F
     F --> G
     
-    OrderCore --> W
-    OrderCore --> P
-    OrderCore --> PR
-    Checkout --> W
-    Checkout --> P
+    Cart --> W
+    Cart --> P
+    Cart --> PR
+    CheckoutProcess --> PAY
+    CheckoutProcess --> OrderAPI
     
-    OrderCore --> OrderDB
+    OrderCore --> W
+    OrderCore --> PAY
+    OrderStatus --> CheckoutAPI
+    OrderStatus --> ReturnAPI
+    
+    ReturnProcess --> OrderAPI
+    ReturnProcess --> PAY
+    ReturnProcess --> W
+    
+    CheckoutAPI --> CheckoutDB
+    OrderAPI --> OrderDB
+    ReturnAPI --> ReturnDB
     Profile --> CustomerDB
     W --> WarehouseDB
     P --> PricingCache
     
     OrderCore --> EventBus
+    CheckoutProcess --> EventBus
+    ReturnProcess --> EventBus
     W --> EventBus
     P --> EventBus
     
     EventBus --> R
 ```
 
-## 3. Order Lifecycle Flows
+## 3. Order Lifecycle Flows (Post Service Split)
 
 ### 3.1. Complete Order Creation Flow
-End-to-end flow from cart to order confirmation.
+End-to-end flow from cart to order confirmation across multiple services.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant G as Gateway
-    participant CS as Customer Service
-    participant O as Order Service
+    participant CS as Checkout Service
+    participant OS as Order Service
     participant W as Warehouse Service
     participant P as Pricing Service
     participant PR as Promotion Service
+    participant PAY as Payment Service
     participant DB as Order Database
     participant E as Event Bus
     
     C->>G: POST /api/v1/checkout/start
     G->>G: JWT Validation & Rate Limiting
-    G->>O: StartCheckout(cart_session_id)
+    G->>CS: StartCheckout(cart_session_id)
     
     rect rgb(240, 248, 255)
-    note right of O: Checkout Initialization
-    O->>O: Get Cart from Session
-    O->>CS: Validate Customer Profile
-    CS-->>O: Customer Data
-    O->>O: Create Checkout Session
-    O-->>G: Checkout Session Created
+    note right of CS: Checkout Initialization
+    CS->>CS: Get Cart from Session
+    CS->>CS: Validate Customer Profile
+    CS->>CS: Create Checkout Session
+    CS-->>G: Checkout Session Created
     G-->>C: Checkout Session ID
     end
     
     C->>G: PUT /api/v1/checkout/state (address, payment)
-    G->>O: UpdateCheckoutState(session_id, state)
+    G->>CS: UpdateCheckoutState(session_id, state)
     
     rect rgb(255, 250, 240)
-    note right of O: State Updates & Validation
-    O->>O: Validate Shipping Address
-    O->>P: Calculate Shipping Costs
-    P-->>O: Shipping Rates
-    O->>PR: Apply Available Promotions
+    note right of CS: State Updates & Validation
+    CS->>CS: Validate Shipping Address
+    CS->>P: Calculate Shipping Costs
+    P-->>CS: Shipping Rates
+    CS->>PR: Apply Available Promotions
     PR->>PR: Evaluate Promotion Rules
-    PR-->>O: Discount Calculations
-    O->>O: Update Session State
-    O-->>G: State Updated
+    PR-->>CS: Discount Calculations
+    CS->>CS: Update Session State
+    CS-->>G: State Updated
     G-->>C: Updated Totals
     end
     
     C->>G: POST /api/v1/checkout/confirm
-    G->>O: ConfirmCheckout(session_id)
+    G->>CS: ConfirmCheckout(session_id)
     
     rect rgb(255, 240, 245)
-    note right of O: Order Confirmation & Creation
-    O->>W: Reserve Stock for Cart Items
+    note right of CS: Order Confirmation & Creation
+    CS->>W: Reserve Stock for Cart Items
     W->>W: Check Inventory Levels
     W->>W: Create Stock Reservations
-    W-->>O: Reservations Confirmed
+    W-->>CS: Reservations Confirmed
     
-    O->>P: Get Final Pricing
+    CS->>P: Get Final Pricing
     P->>P: Apply Currency Conversion
     P->>P: Cache Price Calculations
-    P-->>O: Final Prices
+    P-->>CS: Final Prices
     
-    O->>PR: Apply Final Promotions
+    CS->>PR: Apply Final Promotions
     PR->>PR: Validate Promotion Usage
     PR->>PR: Calculate Final Discounts
-    PR-->>O: Final Discount Amount
+    PR-->>CS: Final Discount Amount
     
-    O->>DB: Begin Transaction
-    O->>DB: Create Order Record
-    O->>DB: Create Order Items
-    O->>DB: Create Outbox Event (OrderCreated)
-    O->>DB: Commit Transaction
+    CS->>PAY: AuthorizePayment(amount, method)
+    PAY-->>CS: Payment Authorized
     
-    O-->>G: Order Created Successfully
+    CS->>OS: CreateOrder(order_data)
+    OS->>DB: Begin Transaction
+    OS->>DB: Create Order Record
+    OS->>DB: Create Order Items
+    OS->>DB: Create Outbox Event (OrderCreated)
+    OS->>DB: Commit Transaction
+    OS-->>CS: Order Created Successfully
+    
+    CS->>PAY: CapturePayment(auth_id)
+    PAY-->>CS: Payment Captured
+    
+    CS-->>G: Order Created Successfully
     G-->>C: Order Confirmation
     
     note over E: Async Event Processing
@@ -162,17 +208,89 @@ sequenceDiagram
     end
 ```
 
-### 3.2. Inventory Reservation Flow
-Detailed stock management during order creation.
+### 3.2. Order Status Management Flow
+Order service manages status transitions and coordinates with other services.
 
 ```mermaid
 sequenceDiagram
-    participant O as Order Service
+    participant OS as Order Service
+    participant CS as Checkout Service
+    participant RS as Return Service
+    participant W as Warehouse Service
+    participant F as Fulfillment Service
+    participant E as Event Bus
+    participant DB as Order Database
+    
+    Note over OS: Order Status Transitions
+    
+    OS->>DB: UpdateOrderStatus(order_id, new_status)
+    OS->>DB: Create Status History Record
+    OS->>DB: Write Outbox Event (OrderStatusChanged)
+    
+    alt Status: confirmed → processing
+        OS->>W: ConfirmStockReservation(order_id)
+        W-->>OS: Stock Confirmed
+        OS->>F: CreateFulfillmentRequest(order_id)
+        F-->>OS: Fulfillment Created
+    end
+    
+    alt Status: processing → shipped
+        F->>OS: UpdateOrderStatus(order_id, shipped)
+        OS->>E: PublishEvent(OrderShipped)
+        E->>CS: NotifyCustomer(order_shipped)
+    end
+    
+    alt Status: shipped → delivered
+        F->>OS: UpdateOrderStatus(order_id, delivered)
+        OS->>E: PublishEvent(OrderDelivered)
+        E->>RS: EnableReturnWindow(order_id)
+    end
+    
+    alt Status: delivered → return_requested
+        RS->>OS: UpdateOrderStatus(order_id, return_requested)
+        OS->>E: PublishEvent(ReturnRequested)
+    end
+```
+
+### 3.3. Cross-Service Integration Patterns
+How services communicate and coordinate in the split architecture.
+
+```mermaid
+graph TD
+    subgraph "Service Communication Patterns"
+        A[Checkout Service] -->|gRPC| B[Order Service]
+        B -->|Events| C[Return Service]
+        C -->|gRPC| B
+        A -->|Events| D[Analytics Service]
+        B -->|Events| E[Notification Service]
+        C -->|Events| E
+    end
+    
+    subgraph "Event Flow"
+        F[checkout.order.created] --> G[Order Service]
+        H[orders.order.status_changed] --> I[Return Service]
+        J[returns.return.requested] --> G
+        K[orders.order.delivered] --> L[Review Service]
+    end
+    
+    subgraph "Data Consistency"
+        M[Checkout DB] -.->|Eventually Consistent| N[Order DB]
+        N -.->|Eventually Consistent| O[Return DB]
+        P[Event Bus] --> Q[Data Synchronization]
+    end
+```
+### 3.4. Inventory Reservation Flow
+
+Detailed stock management during order creation (now handled by Checkout Service).
+
+```mermaid
+sequenceDiagram
+    participant CS as Checkout Service
     participant W as Warehouse Service
     participant WDB as Warehouse Database
     participant E as Event Bus
     
-    O->>W: ReserveStock(items[])
+    CS->>W: ReserveStock(items[])
     W->>W: Validate Reservation Request
     
     loop For Each Cart Item
@@ -189,25 +307,25 @@ sequenceDiagram
     alt All Items Reserved
         W->>WDB: Commit Reservations
         W->>E: Publish StockReserved Event
-        W-->>O: Reservation Success (reservation_ids[])
+        W-->>CS: Reservation Success (reservation_ids[])
     else Some Items Out-of-Stock
         W->>WDB: Rollback All Reservations
-        W-->>O: Reservation Failed (out_of_stock_items[])
+        W-->>CS: Reservation Failed (out_of_stock_items[])
     end
 ```
 
-### 3.3. Dynamic Pricing Calculation Flow
-Real-time pricing with cache management and currency support.
+### 3.5. Dynamic Pricing Calculation Flow
+Real-time pricing with cache management and currency support (used by Checkout Service).
 
 ```mermaid
 sequenceDiagram
-    participant O as Order Service
+    participant CS as Checkout Service
     participant P as Pricing Service
     participant PC as Pricing Cache (Redis)
     participant PDB as Pricing Database
     participant CC as Currency Converter
     
-    O->>P: CalculatePrice(items[], currency, warehouse_id)
+    CS->>P: CalculatePrice(items[], currency, warehouse_id)
     
     loop For Each Item
         P->>PC: Get Cached Price(product_id, currency, warehouse_id)
@@ -230,21 +348,21 @@ sequenceDiagram
     end
     
     P->>P: Aggregate Total Pricing
-    P-->>O: Price Calculation Result
+    P-->>CS: Price Calculation Result
 ```
 
-### 3.4. Promotion Application Flow
-Discount calculation with rule validation and usage tracking.
+### 3.6. Promotion Application Flow
+Discount calculation with rule validation and usage tracking (integrated with Checkout Service).
 
 ```mermaid
 sequenceDiagram
-    participant O as Order Service
+    participant CS as Checkout Service
     participant PR as Promotion Service
-    participant CS as Customer Service
+    participant CUS as Customer Service
     participant PRDB as Promotion Database
     participant E as Event Bus
     
-    O->>PR: ApplyPromotions(customer_id, cart_items[], total_amount)
+    CS->>PR: ApplyPromotions(customer_id, cart_items[], total_amount)
     
     PR->>PRDB: Get Active Campaigns
     PRDB-->>PR: Active Campaign List
@@ -262,8 +380,8 @@ sequenceDiagram
         end
         
         alt Rules Pass
-            PR->>CS: Validate Customer Segment
-            CS-->>PR: Customer Segment Data
+            PR->>CUS: Validate Customer Segment
+            CUS-->>PR: Customer Segment Data
             
             PR->>PRDB: Check Usage Limits
             PRDB-->>PR: Usage Count
@@ -281,29 +399,32 @@ sequenceDiagram
     alt Promotions Applied
         PR->>PRDB: Update Usage Counters
         PR->>E: Publish PromotionApplied Event
-        PR-->>O: Discount Details
+        PR-->>CS: Discount Details
     else No Applicable Promotions
-        PR-->>O: No Discounts Available
+        PR-->>CS: No Discounts Available
     end
 ```
 
-### 3.5. Post-Order Review Collection Flow
-Automated review request after order delivery.
+### 3.7. Post-Order Review Collection Flow
+Automated review request after order delivery (triggered by Order Service events).
 
 ```mermaid
 sequenceDiagram
     participant F as Fulfillment Service
-    participant O as Order Service
+    participant OS as Order Service
     participant R as Review Service
     participant CS as Customer Service
     participant E as Event Bus
     participant N as Notification Service
     
     F->>E: Publish OrderDelivered Event
-    E->>R: OrderDelivered Event Received
+    E->>OS: OrderDelivered Event Received
+    OS->>OS: Update Order Status (delivered)
+    OS->>E: Publish OrderStatusChanged Event
     
-    R->>O: Get Order Details
-    O-->>R: Order Items & Customer Info
+    E->>R: OrderDelivered Event Received
+    R->>OS: Get Order Details
+    OS-->>R: Order Items & Customer Info
     
     R->>CS: Get Customer Preferences
     CS-->>R: Review Notification Preferences
@@ -324,18 +445,19 @@ sequenceDiagram
     end
 ```
 
-## 4. Service Integration Details
+## 4. Service Integration Details (Post Domain Split)
 
 ### 4.1. Gateway Service Integration
 **File**: `gateway/internal/router/auto_router.go`
 
-**Order-Related Routing**:
+**Updated Routing for Service Split**:
 ```
-/api/v1/orders/*     → Order Service (port 8001)
-/api/v1/cart/*       → Order Service (port 8001)
-/api/v1/checkout/*   → Order Service (port 8001)
-/api/v1/customers/*  → Customer Service (port 8002)
-/api/v1/reviews/*    → Review Service (port 8003)
+/api/v1/cart/*       → Checkout Service (port 8001)
+/api/v1/checkout/*   → Checkout Service (port 8001)
+/api/v1/orders/*     → Order Service (port 8002)
+/api/v1/returns/*    → Return Service (port 8003)
+/api/v1/customers/*  → Customer Service (port 8004)
+/api/v1/reviews/*    → Review Service (port 8005)
 ```
 
 **Middleware Stack**:
@@ -345,46 +467,111 @@ sequenceDiagram
 4. **Request ID Generator**: Distributed tracing support
 5. **Proxy Handler**: Service discovery and load balancing
 
-### 4.2. Customer Service Integration
-**File**: `customer/internal/biz/customer/customer.go`
+### 4.2. Checkout Service Integration
+**File**: `checkout/internal/biz/checkout/checkout.go`
 
 **Order-Related Operations**:
-- **Profile Validation**: Address validation for shipping/billing
-- **Authentication**: JWT token validation and customer context
-- **Order History**: Customer order tracking and analytics
-- **Preferences**: Notification and marketing preferences
-- **Segmentation**: Customer categorization for promotions
+- **Cart Management**: Shopping cart operations and session management
+- **Checkout Orchestration**: Multi-step checkout process coordination
+- **Order Creation**: Integration with Order Service for order creation
+- **Payment Integration**: Authorization and capture coordination
+- **Inventory Coordination**: Stock reservation and validation
 
-**Cache Strategy**:
+**Order Service Integration**:
 ```go
-type customerCache struct {
-    profileCache    *cache.Cache // 30min TTL
-    preferencesCache *cache.Cache // 1hr TTL
-    segmentCache    *cache.Cache // 4hr TTL
+type OrderClient struct {
+    client pb.OrderServiceClient
+    timeout time.Duration
+}
+
+func (c *OrderClient) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
+    ctx, cancel := context.WithTimeout(ctx, c.timeout)
+    defer cancel()
+    
+    response, err := c.client.CreateOrder(ctx, &pb.CreateOrderRequest{
+        CustomerId: req.CustomerID,
+        Items:      req.Items,
+        TotalAmount: req.TotalAmount,
+        // ... other fields
+    })
+    
+    if err != nil {
+        return nil, fmt.Errorf("failed to create order: %w", err)
+    }
+    
+    return mapOrderResponse(response), nil
 }
 ```
 
-### 4.3. Order Service Core Logic
-**File**: `order/internal/biz/order/create.go`
+### 4.3. Order Service Core Logic (Refactored)
+**File**: `order/internal/biz/order/order.go`
 
-**Transactional Outbox Pattern**:
+**Focused Responsibilities**:
+- **Order Lifecycle Management**: Status transitions and tracking
+- **Order History**: Customer order tracking and analytics
+- **Integration Coordination**: Event publishing and service coordination
+- **Business Rules**: Order validation and business logic
+
+**Checkout Service Integration**:
 ```go
 func (uc *UseCase) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
-    // 1. Reserve stock from warehouse
-    reservations, err := uc.buildReservationsMap(ctx, req.Items)
+    // Validate request from checkout service
+    if err := uc.validateOrderRequest(req); err != nil {
+        return nil, err
+    }
     
-    // 2. Fetch pricing and calculate totals
-    productCache, totalAmount, err := uc.fetchAndCacheProducts(ctx, req.Items, reservations)
-    
-    // 3. Create order with transactional outbox
-    err = uc.tm.WithTransaction(ctx, func(ctx context.Context) error {
+    // Create order with transactional outbox
+    err := uc.tm.WithTransaction(ctx, func(ctx context.Context) error {
         // Create order in DB
-        createdOrder, err := uc.createOrderInternal(ctx, order)
+        createdOrder, err := uc.createOrderInternal(ctx, req)
+        if err != nil {
+            return err
+        }
         
         // Create outbox event in same transaction
-        eventPayload := &events.OrderStatusChangedEvent{...}
+        eventPayload := &events.OrderCreatedEvent{
+            OrderID:    createdOrder.ID,
+            CustomerID: createdOrder.CustomerID,
+            Items:      createdOrder.Items,
+            TotalAmount: createdOrder.TotalAmount,
+            CreatedAt:  time.Now(),
+        }
+        
         return uc.createOutboxEvent(ctx, eventPayload)
     })
+    
+    return createdOrder, err
+}
+```
+
+### 4.4. Return Service Integration
+**File**: `return/internal/biz/return/return.go`
+
+**Order Service Integration**:
+```go
+type OrderServiceClient struct {
+    client pb.OrderServiceClient
+}
+
+func (c *OrderServiceClient) GetOrder(ctx context.Context, orderID string) (*Order, error) {
+    response, err := c.client.GetOrder(ctx, &pb.GetOrderRequest{
+        OrderId: orderID,
+    })
+    
+    if err != nil {
+        return nil, fmt.Errorf("failed to get order: %w", err)
+    }
+    
+    return mapOrderFromProto(response.Order), nil
+}
+
+func (c *OrderServiceClient) UpdateOrderStatus(ctx context.Context, orderID string, status string) error {
+    _, err := c.client.UpdateOrderStatus(ctx, &pb.UpdateOrderStatusRequest{
+        OrderId: orderID,
+        Status:  status,
+    })
+    
+    return err
 }
 ```
 
@@ -490,57 +677,89 @@ func (uc *ReviewUsecase) CreateReview(ctx context.Context, req *CreateReviewRequ
 }
 ```
 
-## 5. Event-Driven Architecture
+## 5. Event-Driven Architecture (Updated for Service Split)
 
-### 5.1. Order Events Flow
+### 5.1. Cross-Service Event Flow
 ```mermaid
 graph TD
+    subgraph "Checkout Service Events"
+        CC[checkout.cart.item_added]
+        CR[checkout.cart.item_removed]
+        CA[checkout.cart.abandoned]
+        COC[checkout.order.created]
+    end
+    
     subgraph "Order Service Events"
-        OC[OrderCreated]
-        OU[OrderUpdated]
-        OD[OrderDelivered]
-        OR[OrderReturned]
+        OC[orders.order.status_changed]
+        OD[orders.order.delivered]
+        OU[orders.order.updated]
+    end
+    
+    subgraph "Return Service Events"
+        RR[returns.return.requested]
+        RA[returns.return.approved]
+        RC[returns.return.completed]
+        ER[returns.exchange.requested]
+        EA[returns.exchange.approved]
+        EC[returns.exchange.completed]
     end
     
     subgraph "Warehouse Service Events"
-        SR[StockReserved]
-        SC[StockConfirmed]
-        SL[StockLevelChanged]
-        LA[LowStockAlert]
+        SR[warehouse.inventory.stock_reserved]
+        SC[warehouse.inventory.stock_confirmed]
+        SL[warehouse.inventory.stock_changed]
+        LA[warehouse.inventory.low_stock_alert]
     end
     
     subgraph "Pricing Service Events"
-        PC[PriceCalculated]
-        PU[PriceUpdated]
-        CI[CacheInvalidated]
+        PC[pricing.price.calculated]
+        PU[pricing.price.updated]
+        CI[pricing.cache.invalidated]
     end
     
     subgraph "Promotion Service Events"
-        PA[PromotionApplied]
-        PUA[PromotionUsageUpdated]
-        CC[CampaignCompleted]
+        PA[promotions.promotion.applied]
+        PUA[promotions.usage.updated]
+        CCM[promotions.campaign.completed]
     end
     
     subgraph "Review Service Events"
-        RRS[ReviewRequestSent]
-        RC[ReviewCreated]
-        RA[ReviewApproved]
+        RRS[reviews.request.sent]
+        RCR[reviews.review.created]
+        RAP[reviews.review.approved]
     end
     
-    OC --> SR
-    OC --> PC
-    OC --> PA
-    
+    COC --> OC
+    OC --> RR
     OD --> RRS
     
+    CC --> SR
     SR --> SL
     SL --> LA
     
+    COC --> PA
     PA --> PUA
-    PUA --> CC
+    PUA --> CCM
     
-    RC --> RA
+    RCR --> RAP
 ```
+
+### 5.2. Service Integration Events
+
+**Checkout → Order Integration**:
+- `checkout.order.created` → Order Service creates order record
+- `checkout.payment.authorized` → Order Service updates payment status
+- `checkout.session.completed` → Order Service finalizes order
+
+**Order → Return Integration**:
+- `orders.order.delivered` → Return Service enables return window
+- `orders.order.status_changed` → Return Service updates return eligibility
+- `returns.return.completed` → Order Service updates order status
+
+**Cross-Service Coordination**:
+- `warehouse.inventory.stock_reserved` → Checkout Service confirms availability
+- `payment.payment.captured` → Order Service confirms payment
+- `fulfillment.package.shipped` → Order Service updates delivery status
 
 ### 5.2. Event Processing Patterns
 
@@ -646,31 +865,94 @@ func (uc *UseCase) getPriceWithFallback(ctx context.Context, productID string) (
 
 ---
 
-## 8. Development Guidelines
+## 8. Service Split Benefits & Considerations
 
-### 8.1. Adding New Order Features
+### 8.1. Benefits of Domain Split
 
-1. **Update Proto Definitions**: Modify API contracts
-2. **Implement Business Logic**: Add to appropriate biz layer
-3. **Add Event Handling**: Implement outbox events
-4. **Update Integration**: Modify service dependencies
-5. **Add Monitoring**: Include metrics and health checks
-6. **Write Tests**: Unit, integration, and end-to-end tests
+**Separation of Concerns**:
+- **Checkout Service**: Focused on cart and checkout experience
+- **Order Service**: Dedicated to order lifecycle management
+- **Return Service**: Specialized in return and exchange processing
 
-### 8.2. Testing Strategy
+**Scalability Improvements**:
+- Independent scaling based on service-specific load patterns
+- Checkout service can scale for high cart activity
+- Order service scales for order processing volume
+- Return service scales independently during return seasons
 
-**Unit Tests**: Business logic validation
-**Integration Tests**: Service-to-service communication
-**End-to-End Tests**: Complete order flow validation
-**Load Tests**: Performance under high concurrency
-**Chaos Tests**: Service failure scenarios
+**Development Velocity**:
+- Teams can work independently on different domains
+- Faster feature development with reduced coordination overhead
+- Clear service boundaries reduce merge conflicts
+
+**Fault Isolation**:
+- Checkout issues don't affect order tracking
+- Return processing failures don't impact new orders
+- Better system resilience with isolated failure domains
+
+### 8.2. Integration Challenges
+
+**Cross-Service Transactions**:
+- Distributed transaction complexity across services
+- Need for saga patterns and compensation logic
+- Event-driven eventual consistency requirements
+
+**Data Consistency**:
+- Order data synchronized across multiple services
+- Event ordering and duplicate handling
+- Cross-service referential integrity
+
+**Service Communication**:
+- Network latency between service calls
+- Circuit breaker and retry logic requirements
+- Service discovery and load balancing complexity
+
+### 8.3. Mitigation Strategies
+
+**Event-Driven Architecture**:
+- Asynchronous communication reduces coupling
+- Event sourcing for audit trails and replay capability
+- Outbox pattern ensures reliable event publishing
+
+**Service Mesh Integration**:
+- mTLS for secure service-to-service communication
+- Observability and tracing across service boundaries
+- Traffic management and load balancing
+
+**Data Management**:
+- Each service owns its data domain
+- Event-driven data synchronization
+- CQRS for read/write separation where needed
 
 ---
 
-**Document Status**: ✅ Comprehensive Order Flow Analysis  
-**Last Updated**: January 18, 2026  
-**Services Covered**: Gateway, Customer, Order, Warehouse, Pricing, Promotion, Review  
-**Next Review**: Order Performance Optimization & Issue Identification
+## 9. Development Guidelines (Updated)
+
+### 9.1. Adding New Order Features
+
+1. **Identify Service Boundary**: Determine which service owns the feature
+2. **Update Proto Definitions**: Modify appropriate service API contracts
+3. **Implement Business Logic**: Add to appropriate service's biz layer
+4. **Add Cross-Service Integration**: Implement gRPC clients if needed
+5. **Add Event Handling**: Implement event publishing and consumption
+6. **Update Integration**: Modify service dependencies as needed
+7. **Add Monitoring**: Include metrics and health checks
+8. **Write Tests**: Unit, integration, and end-to-end tests
+
+### 9.2. Cross-Service Testing Strategy
+
+**Unit Tests**: Individual service business logic validation
+**Integration Tests**: Service-to-service communication testing
+**Contract Tests**: API contract validation between services
+**End-to-End Tests**: Complete order flow validation across services
+**Chaos Tests**: Service failure and recovery scenarios
+
+---
+
+**Document Status**: ✅ Updated for Service Domain Split  
+**Last Updated**: January 29, 2026  
+**Services Covered**: Gateway, Customer, Checkout, Order, Return, Warehouse, Pricing, Promotion, Payment, Review  
+**Next Review**: Cross-Service Performance Optimization & Monitoring Enhancement
 
 #### Step 3.5: Reservation Confirmation
 - Calls `warehouseInventoryService.ConfirmReservation(reservationID)`.
