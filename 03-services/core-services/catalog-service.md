@@ -2,9 +2,10 @@
 
 **Service Name**: Catalog Service  
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-22  
-**Review Status**: ✅ Reviewed (Production Ready)  
-**Production Ready**: 95%  
+**Last Updated**: 2026-01-29  
+**Review Status**: 🟡 Reviewed (Requires Improvement)  
+**Production Ready**: 85%  
+**Code Review Date**: 2026-01-29  
 
 ---
 
@@ -792,19 +793,27 @@ events:
 ```go
 module gitlab.com/ta-microservices/catalog
 
-go 1.24
+go 1.25.3
 
 require (
-    gitlab.com/ta-microservices/common v1.0.14
-    github.com/go-kratos/kratos/v2 v2.9.1
-    github.com/redis/go-redis/v9 v9.5.1
-    gorm.io/gorm v1.25.10
-    github.com/dapr/go-sdk v1.11.0
-    google.golang.org/protobuf v1.34.2
+    gitlab.com/ta-microservices/common v1.8.0
+    github.com/go-kratos/kratos/v2 v2.9.2
+    github.com/redis/go-redis/v9 v9.16.0
+    gorm.io/gorm v1.31.1
+    github.com/dapr/go-sdk v1.13.0
+    google.golang.org/protobuf v1.36.11
     github.com/google/uuid v1.6.0
-    github.com/tidwall/gjson v1.17.0  // JSON processing
+    github.com/elastic/go-elasticsearch/v8 v8.19.0
+    // ... other dependencies
 )
 ```
+
+**Dependency Status** (as of 2026-01-29):
+- **Common Package**: v1.8.3 (updated from v1.8.0 on 2026-01-29)
+- **Kratos**: v2.9.2 (up-to-date)
+- **Redis Client**: v9.16.0 (up-to-date)
+- **GORM**: v1.31.1 (up-to-date)
+- **Dapr SDK**: v1.13.0 (up-to-date)
 
 ### Service Mesh Integration
 ```yaml
@@ -833,9 +842,19 @@ spec:
 ## 🧪 Testing
 
 ### Test Coverage
-- **Unit Tests**: 70% coverage (business logic, EAV system)
-- **Integration Tests**: 60% coverage (API endpoints, database)
-- **E2E Tests**: 40% coverage (product creation to search indexing)
+- **Unit Tests**: ~2% coverage (CRITICAL - needs improvement)
+- **Integration Tests**: 0% coverage (missing)
+- **E2E Tests**: 0% coverage (missing)
+- **Business Logic**: Minimal coverage (15.7% in product, 1.5% in product_attribute)
+
+**Test Coverage Status** (as of 2026-01-29):
+- **Overall**: ~2% (estimated)
+- **API packages**: 0% coverage
+- **Service layer**: 0% coverage
+- **Data layer**: 0% coverage
+- **Target**: >80% coverage for business logic layer
+
+**Priority**: Critical blocker for production deployment
 
 ### Critical Test Scenarios
 
@@ -966,6 +985,29 @@ Admin → Gateway → Catalog Service
 
 ## 🚨 Known Issues & TODOs
 
+### P1 - High Priority Issues
+
+1. **Test Coverage** 🔴
+   - **Issue**: Extremely low test coverage (~2% overall, 0% in most areas)
+   - **Impact**: High risk of bugs in production, difficult to refactor safely
+   - **Location**: All packages missing comprehensive tests
+   - **Fix**: Implement unit tests (>80% target), integration tests, API endpoint tests
+   - **Status**: Critical blocker for production deployment
+
+2. **Referential Integrity Checks** 🟠
+   - **Issue**: Brand and Manufacturer deletion doesn't check if products are using them
+   - **Impact**: Potential orphaned products or data inconsistency
+   - **Location**: `internal/biz/brand/brand.go:337`, `internal/biz/manufacturer/manufacturer.go:413`
+   - **Fix**: Add product existence check before deletion
+   - **Status**: TODO marked in code, needs implementation
+
+3. **Country Code Hardcoding** 🟠
+   - **Issue**: Country code hardcoded as "VN" instead of extracting from context
+   - **Impact**: Tax calculation may be incorrect for international customers
+   - **Location**: `internal/service/product_helper.go:178`
+   - **Fix**: Extract country code from request context or customer location
+   - **Status**: TODO marked in code
+
 ### P2 - Medium Priority Issues
 
 1. **Materialized View Refresh Scheduling** 🔵
@@ -997,6 +1039,34 @@ Admin → Gateway → Catalog Service
    - **Impact**: Performance overhead for rule evaluation
    - **Location**: `internal/biz/product_visibility_rule/`
    - **Fix**: Implement rule result caching with invalidation
+
+6. **Incomplete Rule Validation** 🔵
+   - **Issue**: Visibility rule validation is basic, doesn't validate specific rule types
+   - **Impact**: Invalid rule configurations may be accepted
+   - **Location**: `internal/biz/product_visibility_rule/product_visibility_rule.go:233`
+   - **Fix**: Implement type-specific validation for each rule type
+   - **Status**: TODO marked in code
+
+7. **Idempotency Retry Handling** 🔵
+   - **Issue**: Idempotency marking happens before processing completion
+   - **Impact**: Potential duplicate processing on retries
+   - **Location**: `internal/data/eventbus/pricing_price_update.go:177`
+   - **Fix**: Mark as processed only after successful completion, or use distributed locks
+   - **Status**: TODO marked in code
+
+8. **Missing Notification System** 🔵
+   - **Issue**: Low stock events don't notify admin/warehouse manager
+   - **Impact**: Manual monitoring required for stock alerts
+   - **Location**: `internal/service/events.go:618`
+   - **Fix**: Integrate with notification service for stock alerts
+   - **Status**: TODO marked in code
+
+### P3 - Low Priority Issues
+
+1. **Manufacturer ID in Proto** 🔵
+   - **Issue**: `manufacturerId` field may need to be added to proto
+   - **Location**: `internal/model/product.go:67`
+   - **Status**: TODO marked in code, needs evaluation
 
 ---
 
@@ -1180,6 +1250,17 @@ hey -n 1000 -c 10 -m GET \
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-22  
-**Code Review Status**: ✅ Reviewed (Production Ready)  
-**Production Readiness**: 95% (Minor performance optimizations needed)
+**Last Updated**: 2026-01-29  
+**Code Review Status**: 🟡 Reviewed (Requires Improvement)  
+**Production Readiness**: 85% (Test coverage critical blocker)
+
+**Latest Code Review** (2026-01-29):
+- ✅ Security audit passed - No critical security issues
+- ✅ Error handling - All errcheck issues resolved
+- ✅ Code quality - gosimple and staticcheck passed
+- ✅ Linting - All golangci-lint issues resolved (ineffectual assignment fixed)
+- ❌ Test coverage - Critical blocker (0-2% coverage) - skipped per review requirements
+- ⚠️ TODOs identified - 7 TODO items documented
+- ✅ Dependencies - Common package updated to v1.8.3, all dependencies up-to-date
+
+**See**: `docs/10-appendix/checklists/v2/catalog_service_code_review.md` for detailed review

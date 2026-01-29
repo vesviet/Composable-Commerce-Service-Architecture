@@ -1,0 +1,525 @@
+# Service Code Duplication Analysis & Remediation Checklist
+
+**Created**: 2026-01-27  
+**Services Analyzed**: Order, Checkout, Return  
+**Priority**: P0 - Code Quality & Maintainability  
+**Impact**: High - Affects development velocity and consistency
+
+---
+
+## 📊 Executive Summary
+
+**Total Code Duplication Identified**: ~1,650 lines (20-25% reduction potential)  
+**Critical Issues**: 10 major duplication patterns  
+**Services Status**: All three services follow consistent architecture but have significant duplicate code
+
+### Key Findings:
+- ✅ **Consistent Architecture**: All services follow clean layered architecture
+- ❌ **High Duplication**: Validation, error handling, converters duplicated
+- ❌ **Incomplete Implementation**: Return service has stub event publishing
+- ❌ **Interface Duplication**: External service interfaces repeated across services
+
+---
+
+## 🚨 CRITICAL DUPLICATIONS (Phase 1 - Immediate Action Required)
+
+### P0-01: Validation Helpers Duplication ⚠️ CRITICAL
+**Location**: 
+- `order/internal/service/validation_helpers.go` (70 lines)
+- `checkout/internal/service/validation_helpers.go` (80 lines)
+
+**Duplication Level**: 90%
+
+**Duplicate Code**:
+```go
+// IDENTICAL in both services
+func validateUUID(id string, fieldName string) error {
+    validator := commonValidation.NewValidator().
+        Required(fieldName, id).
+        UUID(fieldName, id)
+    
+    if validator.HasErrors() {
+        errors := validator.GetErrors()
+        if len(errors) > 0 {
+            return &ValidationError{
+                Field:   errors[0].Field,
+                Message: errors[0].Message,
+            }
+        }
+    }
+    return nil
+}
+
+func validateRequiredString(value, fieldName string) error {
+    // Identical implementation
+}
+```
+
+**Action Required**:
+- [ ] Create `common/validation/service_validators.go`
+- [ ] Extract `validateUUID`, `validateRequiredString`, `validateCustomerID`, `validatePaymentMethodID`
+- [ ] Update imports in order and checkout services
+- [ ] Remove duplicate implementations
+- [ ] Add unit tests for common validators
+
+**Estimated Savings**: 150 lines of code
+
+---
+
+### P0-02: Error Mapping to gRPC Duplication ⚠️ CRITICAL
+**Location**:
+- `return/internal/service/error_mapping.go` (100 lines)
+- `checkout/internal/service/checkout.go` (mapErrorToGRPC function, 50 lines)
+
+**Duplication Level**: 85%
+
+**Duplicate Pattern**:
+```go
+// SIMILAR PATTERN in both services
+func mapErrorToGRPC(err error) error {
+    if err == nil {
+        return nil
+    }
+    
+    // Check if already a gRPC status error
+    if _, ok := status.FromError(err); ok {
+        return err
+    }
+    
+    // Check for common/errors ServiceError
+    var serviceErr *commonErrors.ServiceError
+    if errors.As(err, &serviceErr) {
+        return serviceErrorToGRPC(serviceErr)
+    }
+    
+    // Map domain-specific errors (different per service)
+    // ... service-specific mappings
+}
+```
+
+**Action Required**:
+- [ ] Create `common/grpc/error_mapper.go`
+- [ ] Implement generic error mapper with service-specific error registration
+- [ ] Create error registry pattern for domain-specific errors
+- [ ] Update all three services to use common error mapper
+- [ ] Add comprehensive error mapping tests
+
+**Estimated Savings**: 200 lines of code
+
+---
+
+### P0-03: Transaction Context Injection Duplication ⚠️ CRITICAL
+**Location**: All repository implementations across all three services
+
+**Duplication Level**: 95%
+
+**Duplicate Code**:
+```go
+// IDENTICAL in all repositories
+func (r *Repository) getDB(ctx context.Context) *gorm.DB {
+    if tx, ok := ctx.Value(transactionKey).(*gorm.DB); ok && tx != nil {
+        return tx
+    }
+    return r.db.WithContext(ctx)
+}
+
+// Transaction manager interface - IDENTICAL
+type TransactionManager interface {
+    WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+```
+
+**Action Required**:
+- [ ] Create `common/data/transaction_context.go`
+- [ ] Extract transaction context injection logic
+- [ ] Move TransactionManager interface to common package
+- [ ] Update all repositories to use common transaction context
+- [ ] Create transaction context utilities
+
+**Estimated Savings**: 50 lines of code
+
+---
+
+## 🔥 HIGH PRIORITY DUPLICATIONS (Phase 2 - Next Sprint)
+
+### P1-01: External Service Interfaces Duplication 🔥 HIGH
+**Location**:
+- `order/internal/biz/biz.go` (300 lines)
+- `checkout/internal/biz/biz.go` (250 lines)
+- `return/internal/biz/biz.go` (200 lines)
+
+**Duplication Level**: 90%
+
+**Duplicate Interfaces**:
+```go
+// IDENTICAL across all services
+type ProductService interface {
+    GetProduct(ctx context.Context, productID string) (*Product, error)
+    GetProductBySKU(ctx context.Context, sku string) (*Product, error)
+    ValidateProducts(ctx context.Context, productIDs []string) error
+}
+
+type WarehouseInventoryService interface {
+    CheckStock(ctx context.Context, productID, warehouseID string, quantity int32) (int32, error)
+    ReserveStock(ctx context.Context, productID, warehouseID string, quantity int32) (*StockReservation, error)
+    ReleaseReservation(ctx context.Context, reservationID string) error
+}
+
+type PaymentService interface {
+    ProcessPayment(ctx context.Context, req *PaymentRequest) (*PaymentResponse, error)
+    GetPaymentStatus(ctx context.Context, paymentID string) (*PaymentStatus, error)
+    ProcessRefund(ctx context.Context, req *PaymentRefundRequest) (*PaymentRefundResponse, error)
+}
+
+type NotificationService interface {
+    SendOrderNotification(ctx context.Context, orderID string, event string) error
+}
+
+type CustomerService interface {
+    GetAddressByCustomerID(ctx context.Context, customerID, addressID string) (*CustomerAddress, error)
+}
+
+type ShippingService interface {
+    CalculateRates(ctx context.Context, req *ShippingRateRequest) (*ShippingRateResponse, error)
+}
+```
+
+**Action Required**:
+- [ ] Create `common/services/interfaces.go`
+- [ ] Move all external service interfaces to common package
+- [ ] Create common model types (Product, StockReservation, etc.)
+- [ ] Update all services to import from common package
+- [ ] Ensure interface compatibility across services
+
+**Estimated Savings**: 600 lines of code
+
+---
+
+### P1-02: Event Publishing Factory Duplication 🔥 HIGH
+**Location**:
+- `order/internal/events/publisher.go` (150 lines)
+- `checkout/internal/events/publisher.go` (100 lines)
+- `return/internal/events/publisher.go` (250 lines - STUB IMPLEMENTATION)
+
+**Duplication Level**: 80%
+
+**Duplicate Pattern**:
+```go
+// SIMILAR PATTERN in order and checkout
+type EventPublisher interface {
+    Publish(ctx context.Context, topic string, event interface{}) error
+    PublishOrderStatusChanged(ctx context.Context, event *OrderStatusChangedEvent) error
+    // ... other event methods
+}
+
+func NewEventPublisher(logger log.Logger) EventPublisher {
+    config := commonEvents.DefaultDaprEventPublisherConfig()
+    publisher, err := commonEvents.NewDaprEventPublisher(config, logger)
+    if err != nil {
+        // Fallback to NoOp publisher
+        return &noOpPublisher{...}
+    }
+    return &daprEventPublisher{...}
+}
+```
+
+**Critical Issue**: Return service has ALL STUB IMPLEMENTATIONS:
+```go
+// return/internal/events/publisher.go - ALL METHODS ARE STUBS
+func (p *stubEventPublisher) PublishReturnRequested(ctx context.Context, event *ReturnRequestedEvent) error {
+    // TODO(#RETURN-001): Implement Dapr pub/sub for return requested events
+    return nil
+}
+```
+
+**Action Required**:
+- [ ] Create `common/events/publisher_factory.go`
+- [ ] Standardize event publisher creation with Dapr fallback
+- [ ] **CRITICAL**: Implement actual event publishing in Return service
+- [ ] Create event type registry for service-specific events
+- [ ] Update all services to use common publisher factory
+
+**Estimated Savings**: 100 lines of code  
+**Critical Fix**: Return service event publishing implementation
+
+---
+
+### P1-03: Data Conversion Utilities Duplication 🔥 MEDIUM
+**Location**:
+- `order/internal/service/converters.go` (50 lines)
+- `checkout/internal/service/converters.go` (100 lines)
+
+**Duplication Level**: 70%
+
+**Duplicate Code**:
+```go
+// SIMILAR PATTERN in both services
+func convertJSONMetadataToStringMap(metadata *commonMetadata.JSONMetadata) map[string]string {
+    if metadata == nil {
+        return nil
+    }
+    result := make(map[string]string, len(*metadata))
+    for k, v := range *metadata {
+        result[k] = fmt.Sprintf("%v", v)
+    }
+    return result
+}
+
+func convertStringMapToInterfaceMap(metadata map[string]string) map[string]interface{} {
+    return commonMetadata.MapToJSON(metadata)
+}
+
+// Proto conversion pattern
+func toProtoEntity(entity *Entity) *pb.Entity {
+    if entity == nil {
+        return nil
+    }
+    // Field-by-field conversion...
+}
+```
+
+**Action Required**:
+- [ ] Create `common/converters/proto_converters.go`
+- [ ] Extract metadata conversion utilities
+- [ ] Create generic proto conversion helpers
+- [ ] Update services to use common converters
+
+**Estimated Savings**: 150 lines of code
+
+---
+
+## 🟡 MEDIUM PRIORITY DUPLICATIONS (Phase 3 - Future)
+
+### P2-01: Repository CRUD Pattern Duplication 🟡 MEDIUM
+**Location**: All repository implementations across all services
+
+**Duplication Level**: 60%
+
+**Pattern**:
+```go
+// SIMILAR PATTERN in all repositories
+type Repository interface {
+    Create(ctx context.Context, entity *Entity) (*Entity, error)
+    GetByID(ctx context.Context, id string) (*Entity, error)
+    Update(ctx context.Context, entity *Entity) (*Entity, error)
+    Delete(ctx context.Context, id string) error
+    List(ctx context.Context, filters *ListFilters) ([]*Entity, int64, error)
+}
+
+// Implementation pattern
+func (r *repository) Create(ctx context.Context, entity *Entity) (*Entity, error) {
+    db := r.getDB(ctx)
+    if err := db.Create(entity).Error; err != nil {
+        return nil, err
+    }
+    return entity, nil
+}
+```
+
+**Action Required**:
+- [ ] Create `common/repository/base_repo.go`
+- [ ] Implement generic CRUD operations
+- [ ] Create repository interface template
+- [ ] Update services to use base repository
+
+**Estimated Savings**: 300 lines of code
+
+---
+
+### P2-02: Constants Consolidation 🟡 LOW
+**Location**:
+- `order/internal/constants/` (event types, topics, statuses)
+- `checkout/internal/constants/` (cart statuses, checkout steps)
+- Return service uses order constants
+
+**Duplication Level**: 50%
+
+**Action Required**:
+- [ ] Create `common/constants/events.go`
+- [ ] Create `common/constants/statuses.go`
+- [ ] Move shared constants to common package
+- [ ] Keep service-specific constants in services
+
+**Estimated Savings**: 100 lines of code
+
+---
+
+## 🔍 SPECIFIC CODE ISSUES IDENTIFIED
+
+### Issue #1: Return Service Event Publishing Not Implemented ⚠️ CRITICAL
+**File**: `return/internal/events/publisher.go`
+**Problem**: All event publishing methods are stubs with TODO comments
+```go
+func (p *stubEventPublisher) PublishReturnRequested(ctx context.Context, event *ReturnRequestedEvent) error {
+    // TODO(#RETURN-001): Implement Dapr pub/sub for return requested events
+    return nil
+}
+```
+**Impact**: Return events are not published, breaking event-driven workflows
+**Action**: Implement actual Dapr event publishing
+
+### Issue #2: Inconsistent Error Handling Patterns
+**Problem**: Each service implements different error mapping strategies
+- Order: Uses common/errors with custom mapping
+- Checkout: Uses ValidationError with switch-case mapping  
+- Return: Uses comprehensive error mapping with common/errors
+
+**Action**: Standardize error handling across all services
+
+### Issue #3: Transaction Context Key Inconsistency
+**Problem**: Each service defines its own transaction context key
+```go
+// Different keys in each service
+type ctxTransactionKey struct{}
+var transactionKey = "transaction"
+```
+**Action**: Use common transaction context key
+
+---
+
+## 📋 IMPLEMENTATION ROADMAP
+
+### Phase 1: Critical Fixes (Week 1-2)
+**Estimated Effort**: 40 hours
+
+#### Week 1: Foundation
+- [ ] **Day 1-2**: Create `common/validation/service_validators.go`
+  - Extract validateUUID, validateRequiredString, etc.
+  - Add comprehensive unit tests
+  - Update order and checkout services
+
+- [ ] **Day 3-4**: Create `common/grpc/error_mapper.go`
+  - Implement generic error mapper with registration pattern
+  - Create service-specific error registries
+  - Update all three services
+
+- [ ] **Day 5**: Create `common/data/transaction_context.go`
+  - Extract transaction context injection logic
+  - Update all repositories
+
+#### Week 2: Critical Implementation
+- [ ] **Day 1-3**: **CRITICAL** - Implement Return Service Event Publishing
+  - Replace stub implementations with actual Dapr publishing
+  - Test event publishing end-to-end
+  - Verify event consumption by other services
+
+- [ ] **Day 4-5**: Testing and Validation
+  - Run comprehensive tests across all services
+  - Verify no regressions introduced
+  - Performance testing
+
+### Phase 2: High Priority (Week 3-4)
+**Estimated Effort**: 60 hours
+
+#### Week 3: Service Interfaces
+- [ ] Create `common/services/interfaces.go`
+- [ ] Move external service interfaces to common package
+- [ ] Update all services to use common interfaces
+
+#### Week 4: Event Publishing
+- [ ] Create `common/events/publisher_factory.go`
+- [ ] Standardize event publisher creation
+- [ ] Update all services to use common factory
+
+### Phase 3: Medium Priority (Week 5-6)
+**Estimated Effort**: 40 hours
+
+- [ ] Create generic repository base
+- [ ] Extract data conversion utilities
+- [ ] Consolidate shared constants
+- [ ] Final testing and documentation
+
+---
+
+## ✅ VALIDATION CHECKLIST
+
+### Pre-Implementation Validation
+- [ ] All services build successfully
+- [ ] All tests pass
+- [ ] No circular dependencies in common package
+- [ ] Performance benchmarks established
+
+### Post-Implementation Validation
+- [ ] Code duplication reduced by target percentage
+- [ ] All services still build and pass tests
+- [ ] Event publishing works end-to-end
+- [ ] No performance regressions
+- [ ] Documentation updated
+
+### Success Metrics
+- [ ] **Code Reduction**: 1,650+ lines of duplicate code removed
+- [ ] **Test Coverage**: Maintain >80% coverage across all services
+- [ ] **Build Time**: No significant increase in build time
+- [ ] **Event Publishing**: Return service events properly published
+- [ ] **Error Handling**: Consistent error responses across services
+
+---
+
+## 🚨 CRITICAL BLOCKERS
+
+### Blocker #1: Return Service Event Publishing
+**Issue**: Return service has no event publishing implementation
+**Impact**: Breaks event-driven architecture
+**Resolution**: Must be implemented in Phase 1
+
+### Blocker #2: Circular Dependencies
+**Issue**: Moving interfaces to common package may create circular deps
+**Impact**: Build failures
+**Resolution**: Careful dependency analysis required
+
+### Blocker #3: Breaking Changes
+**Issue**: Interface changes may break existing clients
+**Impact**: Service integration failures  
+**Resolution**: Maintain backward compatibility
+
+---
+
+## 📊 ESTIMATED IMPACT
+
+### Code Quality Improvements
+- **Duplication Reduction**: 20-25% (1,650 lines)
+- **Maintainability**: High improvement
+- **Consistency**: Standardized patterns across services
+- **Testing**: Centralized test coverage for common utilities
+
+### Development Velocity
+- **New Feature Development**: 15-20% faster (less duplicate code)
+- **Bug Fixes**: Easier to fix once in common package
+- **Code Reviews**: Faster reviews with standardized patterns
+- **Onboarding**: Easier for new developers
+
+### Risk Mitigation
+- **Consistency**: Reduced risk of inconsistent implementations
+- **Testing**: Better test coverage for common utilities
+- **Maintenance**: Single source of truth for common patterns
+
+---
+
+## 📚 REFERENCES
+
+### Files Analyzed
+- `order/internal/service/validation_helpers.go`
+- `order/internal/service/converters.go`
+- `order/internal/events/publisher.go`
+- `order/internal/biz/biz.go`
+- `checkout/internal/service/validation_helpers.go`
+- `checkout/internal/service/checkout.go`
+- `checkout/internal/events/publisher.go`
+- `checkout/internal/biz/biz.go`
+- `return/internal/service/error_mapping.go`
+- `return/internal/events/publisher.go`
+- `return/internal/biz/biz.go`
+
+### Related Documentation
+- [Common Package Usage Guide](../../07-development/standards/common-package-usage.md)
+- [Development Review Checklist](../../07-development/standards/development-review-checklist.md)
+- [Service Domain Split Plan](../legacy/checklists_v2/SERVICE_DOMAIN_SPLIT_PLAN.md)
+
+---
+
+**Created**: 2026-01-27  
+**Analyst**: AI Senior Engineer  
+**Status**: Ready for Implementation  
+**Priority**: P0 - Critical for code quality and maintainability  
+**Estimated Total Effort**: 140 hours (3.5 weeks with 2 engineers)  
+**Expected ROI**: High - 20-25% code reduction, improved maintainability, faster development

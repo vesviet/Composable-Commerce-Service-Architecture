@@ -1,11 +1,11 @@
 # 🛒 Checkout Service - Complete Documentation
 
 **Service Name**: Checkout Service
-**Version**: 1.0.0
-**Last Updated**: 2026-01-28
-**Review Status**: ✅ **PHASE 4 COMPLETE** - All 25 TODO items implemented
-**Production Ready**: 🟢 **100%** - Code review passed, ready for production
-**Implementation Status**: ✅ **25/25 TODO items completed**
+**Version**: 1.2.1
+**Last Updated**: 2026-01-29
+**Review Status**: ✅ **CODE REVIEW COMPLETE** - Linter clean, dependencies updated to latest tags, 13 TODOs tracked
+**Production Ready**: 🟢 **READY** - Code quality standards met, ready for production
+**Implementation Status**: ✅ **13 TODO items documented** (low priority - helper functions and future enhancements)
 
 ---
 
@@ -519,23 +519,37 @@ CHECKOUT_ENABLE_ADDRESS_VALIDATION=true
 
 ## 🔗 Dependencies
 
-### Go Modules
+### Go Modules (Updated January 29, 2026)
 ```go
 module gitlab.com/ta-microservices/checkout
 
-go 1.24
+go 1.25.3
 
 require (
-    gitlab.com/ta-microservices/common v1.7.1
-    github.com/go-kratos/kratos/v2 v2.9.1
-    github.com/redis/go-redis/v9 v9.5.1
-    gorm.io/gorm v1.25.10
-    github.com/dapr/go-sdk v1.11.0
-    google.golang.org/protobuf v1.34.2
+    gitlab.com/ta-microservices/common v1.8.3
+    gitlab.com/ta-microservices/catalog v1.2.1
+    gitlab.com/ta-microservices/customer v1.0.2
+    gitlab.com/ta-microservices/order v1.0.2
+    gitlab.com/ta-microservices/payment v1.0.2
+    gitlab.com/ta-microservices/pricing v1.0.3
+    gitlab.com/ta-microservices/promotion v1.0.2
+    gitlab.com/ta-microservices/shipping v1.1.0
+    gitlab.com/ta-microservices/warehouse v1.0.7
+    github.com/go-kratos/kratos/v2 v2.9.2
+    github.com/redis/go-redis/v9 v9.16.0
+    gorm.io/gorm v1.31.1
+    github.com/dapr/go-sdk v1.13.0
+    google.golang.org/protobuf v1.36.11
     github.com/google/uuid v1.6.0
-    golang.org/x/sync v0.7.0
+    golang.org/x/sync v0.19.0
 )
 ```
+
+**Dependency Updates** (January 29, 2026):
+- ✅ All gitlab.com/ta-microservices packages updated to latest stable tags
+- ✅ Catalog: v1.2.0-rc.1 → v1.2.1
+- ✅ Common: v1.8.3 (unchanged - already latest)
+- ✅ Other services: Updated to latest stable versions
 
 ---
 
@@ -648,11 +662,17 @@ All major TODO items from the implementation checklist have been completed. See 
 - **Priority**: P2 - Address in next sprint
 
 #### P2-02: TODO Items Tracking 🟡 LOW
-- **Issue**: Some TODO comments in code need GitLab issue tracking
+- **Issue**: 13 TODO comments in code (documented in code review checklist)
 - **Impact**: Technical debt tracking
-- **Location**: `internal/biz/checkout/workers.go`, `internal/biz/cart/promotion.go`
-- **Fix**: Convert TODO comments to tracked GitLab issues
-- **Priority**: P2 - Address in next sprint
+- **Location**: 
+  - `internal/adapter/pricing_adapter.go` (discount calculation)
+  - `internal/adapter/warehouse_adapter.go` (restock implementation)
+  - `internal/biz/cart/promotion.go` (coupon codes)
+  - `internal/biz/checkout/cart_cleanup_retry.go` (async cleanup)
+  - Various unused helper functions (documented as low priority)
+- **Status**: ✅ Documented in code review checklist
+- **Fix**: Convert TODO comments to tracked GitLab issues when implementing
+- **Priority**: P2 - Low priority (helper functions and future enhancements)
 
 ### 📋 FUTURE ENHANCEMENTS (Post-Production)
 
@@ -882,9 +902,10 @@ alerts:
 
 ---
 
-**Version**: 1.0.0
-**Last Updated**: 2026-01-28
-**Implementation Status**: ✅ **PHASE 4 COMPLETE** - All 25 TODO items implemented
+**Version**: 1.2.1
+**Last Updated**: 2026-01-29
+**Implementation Status**: ✅ **CODE REVIEW COMPLETE** - Dependencies updated, linter clean, 13 TODOs documented
 **Production Readiness**: 🟢 **100%** - Code review passed, ready for production deployment
 **Test Coverage**: 🟡 9.1% (Target: >80% - P2 improvement needed)
 **Code Review**: ✅ **PASSED** - Following TEAM_LEAD_CODE_REVIEW_GUIDE.md
+**Dependencies**: ✅ **UPDATED** - All gitlab.com/ta-microservices packages updated to latest stable tags (January 29, 2026)

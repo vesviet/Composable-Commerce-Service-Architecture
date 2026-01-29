@@ -1,10 +1,10 @@
 # Cart Management Flow
 
-**Last Updated**: 2026-01-18  
-**Status**: Verified vs Code  
+**Last Updated**: 2026-01-29  
+**Status**: Updated for Service Split  
 **Domain**: Commerce  
-**Service**: Order Service  
-**Navigation**: [← Commerce Domain](../README.md) | [← Business Domains](../../README.md) | [Order Service →](../../03-services/core-services/order-service.md)
+**Services**: Checkout Service (Primary), Order Service (Integration)  
+**Navigation**: [← Commerce Domain](../README.md) | [← Business Domains](../../README.md) | [Checkout Service →](../../03-services/core-services/checkout-service.md)
 
 ---
 
@@ -23,7 +23,9 @@
 - **[Checkout Transition](#10-cart-to-checkout-transition-flow)** - Order creation
 
 ### **Related Documentation**
-- **[Order Service](../../03-services/core-services/order-service.md)** - Technical implementation
+- **[Checkout Service](../../03-services/core-services/checkout-service.md)** - Technical implementation
+- **[Order Service](../../03-services/core-services/order-service.md)** - Order lifecycle integration
+- **[Checkout Process](cart-checkout.md)** - Checkout flow and order creation
 - **[Pricing Management](pricing-management.md)** - Price calculation workflows
 - **[Promotion Management](promotion-management.md)** - Coupon and discount logic
 
@@ -31,12 +33,13 @@
 
 ## Overview
 
-This document describes the business logic and key flows for cart management within the `order` service. The cart implementation follows a session-based model and uses a "Quote Pattern" for applying coupons, where the final discount calculation is deferred until the totals are calculated.
+This document describes the business logic and key flows for cart management within the `checkout` service. After the service domain split, cart management has been moved from the order service to the dedicated checkout service. The cart implementation follows a session-based model and uses a "Quote Pattern" for applying coupons, where the final discount calculation is deferred until the totals are calculated.
 
 **Key Files:**
-- **Usecase**: `order/internal/biz/cart/usecase.go`
-- **Logic**: `order/internal/biz/cart/{add,update,remove,get,clear,coupon,merge,totals}.go`
-- **Data Model**: `order/internal/model/cart.go` (`CartSession`, `CartItem`)
+- **Usecase**: `checkout/internal/biz/cart/usecase.go`
+- **Logic**: `checkout/internal/biz/cart/{add,update,remove,get,clear,coupon,merge,totals}.go`
+- **Data Model**: `checkout/internal/model/cart.go` (`CartSession`, `CartItem`)
+- **Integration**: `checkout/internal/client/order_client.go` (for order creation)
 
 ---
 
@@ -147,7 +150,7 @@ This is the primary entry point for all cart interactions.
 
 ### 10. Cart to Checkout Transition Flow
 
-- **File**: `checkout.go` (in checkout domain)
+- **File**: `checkout.go` (in checkout service)
 - **Logic**:
   1. **Pre-Checkout Validation**:
      - Verify all items are in stock
@@ -156,11 +159,12 @@ This is the primary entry point for all cart interactions.
      - Ensure payment method is available
   2. **Create Checkout Session**:
      - Lock cart items (prevent further modifications)
-     - Create order draft with cart data
+     - Create order draft with cart data via Order Service
      - Reserve stock for limited time (15-30 minutes)
      - Generate checkout token for security
   3. **Update Cart Status**: Mark cart as `checkout` to prevent modifications.
   4. **Prepare Checkout Data**: Return all necessary data for checkout UI.
+  5. **Service Integration**: Communicate with Order Service for order creation workflow.
 
 ---
 
@@ -171,7 +175,8 @@ This is the primary entry point for all cart interactions.
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant CS as Cart Service
+    participant CS as Checkout Service
+    participant OS as Order Service
     participant PS as Pricing Service
     participant WS as Warehouse Service
     participant DB as Database
@@ -204,7 +209,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant CS as Cart Service
+    participant CS as Checkout Service
     participant SS as Shipping Service
     participant PS as Promotion Service
     participant PRS as Pricing Service
@@ -237,7 +242,7 @@ sequenceDiagram
 sequenceDiagram
     participant C as Client
     participant AS as Auth Service
-    participant CS as Cart Service
+    participant CS as Checkout Service
     participant PS as Pricing Service
     participant DB as Database
 
@@ -277,7 +282,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant E as External Event
-    participant CS as Cart Service
+    participant CS as Checkout Service
     participant PS as Pricing Service
     participant WS as Warehouse Service
     participant NS as Notification Service
@@ -357,13 +362,16 @@ Based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
 ## 🔗 See Also
 
 ### **Related Business Workflows**
+- **[Checkout Process](cart-checkout.md)** - Checkout flow and order creation
+- **[Order Management](order-management.md)** - Order lifecycle after checkout
 - **[Pricing Management](pricing-management.md)** - Price calculation and dynamic pricing
 - **[Promotion Management](promotion-management.md)** - Coupon validation and discount application
 - **[Tax Calculation](tax-calculation.md)** - Tax computation for cart totals
 
 ### **Technical Implementation**
-- **[Order Service Documentation](../../03-services/core-services/order-service.md)** - Complete service documentation
-- **[Order Service Runbook](../../06-operations/runbooks/order-service-runbook.md)** - Operational procedures
+- **[Checkout Service Documentation](../../03-services/core-services/checkout-service.md)** - Complete service documentation
+- **[Order Service Documentation](../../03-services/core-services/order-service.md)** - Order integration documentation
+- **[Checkout Service Runbook](../../06-operations/runbooks/checkout-service-runbook.md)** - Operational procedures
 
 ### **Quality Assurance**
 - **[Cart Flow Issues Checklist](../../10-appendix/checklists/cart_flow_issues.md)** - Known issues and remediation

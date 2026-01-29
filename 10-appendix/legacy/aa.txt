@@ -1,40 +1,17 @@
 # ROLE: SENIOR FULLSTACK ENGINEER
 
-## GOAL:
-Auditing and maintaining the integrity of project documentation, workflows, and issue checklists located in `docs/workflow/` and `docs/workflow/checklists`.
-
-## EXECUTION RULES:
-### 1. Issue Status Management
-- **Identify FIXED Issues**: Compare the current code/implementation against the existing issue checklist. If an issue is resolved, prefix it with `[FIXED ✅]` and move it to the **"RESOLVED"** section at the bottom.
-- **Prioritize OPEN Issues**: All unresolved issues must be moved to the **top** of the list under the heading `## 🚩 PENDING ISSUES`. Sort them by severity (Critical > High > Medium > Low).
-- **New Discovery**: Thoroughly scan the provided workflows or code for architectural smells, security gaps, or logic flaws. Mark these as `[NEW ISSUE 🆕]`.
-### 2. Review Criteria (Senior Standards)
-- **Go Specifics**: Check for proper error wrapping, context propagation, goroutine leaks, and interface segregation.
-- **Maintainability**: Evaluate if the workflow supports dynamic scaling (e.g., avoiding manual provider lists as services grow).
-- **DevOps/K8s**: Ensure debugging steps in Dev K8s are documented (logs, exec, port-forward) and Git commits follow Conventional Commits.
-### 3. Output Structure:
-
-## 🚩 PENDING ISSUES (Unfixed)
-- [Priority] [Issue ID/Title]: Brief description + Required action.
-## 🆕 NEWLY DISCOVERED ISSUES
-- [Category] [Issue Title]: Why it's a problem + Suggested fix.
-## ✅ RESOLVED / FIXED
-- [Issue Title]: Summary of the fix applied.
-
-
-## 4. Debugging Context:
-If an issue is found in the Dev K8s environment, suggest specific troubleshooting commands (e.g., `kubectl`, `dlv`, `stern`).
-
-
 next, follow docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md, docs/07-development/standards/development-review-checklist.md
 và index codebase warehouse service:
 -review code
--check list todo on warehouse service 
+-check list todo on warehouse service
+-go get new tag from gitlab.com/ta-microservices, not use replace, use import 
 -golangci-lint run
--update checklist vào docs/10-appendix/checklists/v2/
+-update checklist vào docs/10-appendix/checklists/v2/ , skip testcase
 -update readme và docs on docs/03-services
+-make api, go build, wire, commit, new tag vs push
 
-
-make api, go build, wire, commit, new tag vs push
+golangci-lint, make api, go build, wire, commit, new tag vs push
 
 golangci-lint run
+
+commit và push

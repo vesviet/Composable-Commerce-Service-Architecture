@@ -1,15 +1,15 @@
 # Order Service - Code Review Checklist
 
 **Service**: Order Service
-**Review Date**: January 28, 2026
+**Review Date**: January 29, 2026
 **Review Standard**: `docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md`
-**Status**: ⏳ 80% Complete - Core Functionality Complete, Testing Improvements Needed
+**Status**: ⏳ 85% Complete - Dependencies Updated, Core Logic Audited
 
 ---
 
 ## Executive Summary
 
-The Order Service provides comprehensive order lifecycle management with proper Clean Architecture implementation. The service handles order creation, status management, editing, cancellation, and integrates with multiple external services. Recent fixes have addressed critical authentication, health check, and error handling gaps. **Latest Update**: Wire dependency injection regenerated, API protos updated, and build artifacts refreshed. Linting now passes cleanly.
+The Order Service provides comprehensive order lifecycle management with proper Clean Architecture implementation. The service handles order creation, status management, editing, cancellation, and integrates with multiple external services. Recent fixes have addressed critical authentication, health check, and error handling gaps. **Latest Update (Jan 29, 2026)**: Dependencies updated to latest tags from `ta-microservices`, fixed type mismatch in payment client, and verified code standards. Linting now passes cleanly.
 
 **Key Findings**:
 - ✅ **Architecture**: Clean separation with proper biz/data/service layers
@@ -25,7 +25,9 @@ The Order Service provides comprehensive order lifecycle management with proper 
 - ⚠️ **Testing**: Some biz layer tests exist but coverage critically low (1.2% overall) - **MAJOR CONCERN**
 - ❌ **Service Layer Testing**: 0% coverage (**CRITICAL** - no API contract tests)
 - ❌ **Data Layer Testing**: 0% coverage (**CRITICAL** - no repository tests)
-- ✅ **TODO Tracking**: Minimal remaining TODOs (mostly notes and future improvements)
+- ✅ **TODO Tracking**: Minimal remaining TODOs (newly discovered items documented below)
+- ✅ **Infrastructure**: Dependencies updated to latest `ta-microservices` tags (v1.2.0 catalog, v1.8.3 common, etc.)
+- ✅ **Contract Fixes**: Fixed `OrderId` type mismatch in `payment_grpc_client.go` after proto update
 
 ---
 
@@ -312,31 +314,28 @@ The Order Service provides comprehensive order lifecycle management with proper 
 
 ---
 
+## 🚩 PENDING ISSUES (Unfixed) / TODOs
+
+- [MEDIUM] [ORDER-007]: Fix dependencies in `cmd/worker/wire.go` (orderCleanupJob commented out)
+- [MEDIUM] [ORDER-012]: Implement full test in `internal/biz/order/create_test.go` (needs proper use case interfaces)
+- [MEDIUM] [CRON-001]: Fix OrderUseCase dependencies in `internal/worker/cron/wire.go` (needs order.*Service adapters)
+- [LOW] [DEP-001]: Potential type mismatch for `customer_id` (UUID string in Order vs int64 in Payment proto) - Requires cross-service alignment.
+
 ### P2-2: TODO Comments Tracking
 
-**Severity**: P2 (Normal) → ✅ **RESOLVED**
+**Severity**: P2 (Normal) → 🟡 **IN PROGRESS**
 **Category**: Maintenance
-**Status**: ✅ **RESOLVED**
+**Status**: 🟡 **IN PROGRESS**
 **Files**: Various
 
 **Current State**:
-- ✅ **Minimal TODOs remaining**: Only 1 TODO comment found in codebase
-- ✅ **All actionable TODOs addressed**: Previous TODOs converted to implemented features or documented as future work
-- ✅ **Proper documentation**: Future improvements marked with "Future:" or "NOTE:" with context
-- ✅ **Clean codebase**: No untracked technical debt comments
+- ✅ **Actionable TODOs identified**: 3 new technical debt items identified in wire and test files.
+- ✅ **Proper documentation**: New TODOs captured in this checklist for tracking.
 
-**Progress Made**:
-1. ✅ Reduced TODO comments from 20+ to minimal (1 remaining, unrelated to order service)
-2. ✅ All critical TODOs addressed in recent fixes
-3. ✅ Established pattern for TODO tracking with issue references
-4. ✅ Cleaned up remaining TODO comments with proper documentation
-
-**Remaining Items** (Non-blocking)**:
-- 1 TODO in customer service client (unrelated to order service core functionality)
-- Future improvements properly documented with "Future:" or "NOTE:" prefixes
-- No actionable TODOs blocking production deployment
-
-**Status**: ✅ **RESOLVED** - All actionable TODOs have been addressed. Remaining items are properly documented future improvements.
+**Newly Discovered TODOs**:
+1. `cmd/worker/wire.go:60`: `orderCleanupJob` commented out due to dependency issues.
+2. `internal/biz/order/create_test.go:14`: Incomplete test coverage due to interface gaps.
+3. `internal/worker/cron/wire.go:13`: Missing service adapters for `OrderUseCase`.
 
 **Impact**: Untracked technical debt and forgotten improvements
 
@@ -504,5 +503,5 @@ The Order Service provides comprehensive order lifecycle management with proper 
 - **URGENT**: Add data layer tests (60% coverage target) for database operation safety - **DEPLOYMENT BLOCKER**
 - **HIGH PRIORITY**: Increase order biz layer test coverage from 0.9% to >40%
 - **HIGH PRIORITY**: Schedule security and performance review
-- ✅ **RESOLVED**: Fix linting issues (all violations addressed)</content>
-<parameter name="filePath">/home/user/microservices/docs/10-appendix/checklists/v2/order_service_code_review.md
+- ✅ **RESOLVED**: Fix linting issues (all violations addressed)
+- ✅ **FIXED ✅** [DEP-002] Payment client type mismatch: Fixed `OrderId` string conversion in `ProcessPayment`.

@@ -1,7 +1,10 @@
 # Checkout Process Flow
 
-**Last Updated**: 2026-01-18
-**Status**: Verified vs Code
+**Last Updated**: 2026-01-29
+**Status**: Updated for Service Split
+**Domain**: Commerce
+**Services**: Checkout Service (Primary), Order Service (Integration), Payment Service
+**Navigation**: [← Commerce Domain](../README.md) | [← Business Domains](../../README.md) | [Checkout Service →](../../03-services/core-services/checkout-service.md)
 
 ## Overview
 

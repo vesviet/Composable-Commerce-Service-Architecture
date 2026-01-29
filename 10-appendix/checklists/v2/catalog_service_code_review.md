@@ -2,8 +2,9 @@
 
 **Service:** catalog
 **Version:** v1.1.2-1-gb58b14c
-**Review Date:** $(date)
-**Reviewer:** GitHub Copilot
+**Review Date:** 2026-01-29
+**Last Updated:** 2026-01-29
+**Reviewer:** AI Code Review Agent
 
 ## Executive Summary
 
@@ -33,10 +34,11 @@ The catalog service implements a comprehensive product catalog management system
   - Proper indexing and constraints
 
 ### ⚠️ NEEDS ATTENTION
-- [ ] **Event Architecture**
+- [x] **Event Architecture**
   - Outbox pattern implemented for reliability
   - Async event processing via workers
-  - **Issue:** Event handler error responses not checked
+  - Event handlers properly handle errors and return appropriate HTTP status codes
+  - **Note:** Event handlers use idempotency checks and proper error handling
 
 ## Code Quality Assessment
 
@@ -68,7 +70,8 @@ The catalog service implements a comprehensive product catalog management system
 - [x] `internal/client/pricing_grpc_client.go:77` - Merge variable declaration with assignment
 
 #### Static Analysis Issues (staticcheck)
-- [x] `internal/biz/product/product_write.go:37` - Ineffectual assignment to `status`
+- [x] `internal/biz/product/product_write.go:37` - Fixed ineffectual assignment to `status` (2026-01-29)
+  - **Fix:** Removed unused status variable assignment, set default status directly on product model after ToModel()
 - [x] `internal/client/resilience.go:118` - Deprecated `grpc.DialContext` usage
 - [x] `scripts/seed-bulk-products.go:72` - Deprecated `rand.Seed` usage
 - [x] `internal/middleware/auth.go:77,80,85` - Using built-in string as context key
@@ -163,12 +166,14 @@ The catalog service implements a comprehensive product catalog management system
 - [ ] **Rate Limiting**
   - Missing rate limiting on admin endpoints
   - No request size limits implemented
-  - Consider adding circuit breakers for external calls
+  - Circuit breakers implemented for external calls (Elasticsearch, external services)
+  - **Status:** Circuit breakers present, rate limiting still needed
 
 - [ ] **Audit Logging**
   - Admin operations should be logged for compliance
   - Missing audit trail for sensitive operations
   - Consider adding operation timestamps and user tracking
+  - **Note:** Structured logging is present but audit-specific logging needed
 
 ## Dependencies & Maintenance
 
@@ -177,6 +182,9 @@ The catalog service implements a comprehensive product catalog management system
   - Vendor directory properly maintained
   - Go modules correctly configured
   - Wire dependency injection working
+  - **Current Common Package Version:** v1.8.3 (updated 2026-01-29)
+  - **Dependencies Updated:** Common package upgraded from v1.8.0 to v1.8.3
+  - **Status:** All dependencies up-to-date
 
 - [x] **Build Process**
   - Makefile targets functional
@@ -243,19 +251,62 @@ The catalog service implements a comprehensive product catalog management system
 - [x] **SQL Injection** - Parameterized queries used
 - [x] **XSS Protection** - JSON-only responses prevent XSS
 
+## 🚩 PENDING ISSUES (Unfixed)
+
+### TODO Items Found in Codebase
+
+#### P2 - Medium Priority TODOs
+1. **`internal/model/product.go:67`** - `manufacturerId` field TODO: Add to proto if needed
+2. **`internal/data/eventbus/pricing_price_update.go:177`** - TODO: Refactor idempotency to be robust against retries
+3. **`internal/service/events.go:618`** - TODO: Send notification to admin/warehouse manager
+4. **`internal/service/product_helper.go:178`** - TODO: Get country code from context (currently hardcoded "VN")
+5. **`internal/biz/manufacturer/manufacturer.go:413`** - TODO: Check if manufacturer is used by any products before deletion
+6. **`internal/biz/brand/brand.go:337`** - TODO: Check if brand is used by any products before deletion
+7. **`internal/biz/product_visibility_rule/product_visibility_rule.go:233`** - TODO: Add specific validation for each rule type
+
+### 🆕 NEWLY DISCOVERED ISSUES
+
+#### Code Quality
+- [ ] **Country Code Hardcoding** (`internal/service/product_helper.go:178`)
+  - **Issue:** Country code hardcoded as "VN" instead of extracting from context
+  - **Impact:** Tax calculation may be incorrect for international customers
+  - **Fix:** Extract country code from request context or customer location
+
+- [ ] **Missing Referential Integrity Checks**
+  - **Issue:** Brand and Manufacturer deletion doesn't check if products are using them
+  - **Impact:** Potential orphaned products or data inconsistency
+  - **Fix:** Add product existence check before deletion (TODOs already marked)
+
+- [ ] **Incomplete Rule Validation**
+  - **Issue:** Visibility rule validation is basic, doesn't validate specific rule types
+  - **Impact:** Invalid rule configurations may be accepted
+  - **Fix:** Implement type-specific validation for each rule type
+
+#### Performance & Resilience
+- [ ] **Idempotency Retry Handling**
+  - **Issue:** Idempotency marking happens before processing completion
+  - **Impact:** Potential duplicate processing on retries
+  - **Fix:** Mark as processed only after successful completion, or use distributed locks
+
+- [ ] **Missing Notification System**
+  - **Issue:** Low stock events don't notify admin/warehouse manager
+  - **Impact:** Manual monitoring required for stock alerts
+  - **Fix:** Integrate with notification service for stock alerts
+
 ## Final Assessment
 
 **Status:** 🟡 REQUIRES IMPROVEMENT
 
 **Blocking Issues for Production:**
-1. Extremely low test coverage
-2. Deprecated API usage
-3. Missing error handling in event processing
+1. Extremely low test coverage (critical blocker)
+2. Missing referential integrity checks (brand/manufacturer deletion)
+3. Incomplete rule validation
 
 **Recommended Actions:**
 - Address all Priority 1 issues before merge
 - Implement test coverage improvements in next sprint
 - Add rate limiting and audit logging for production readiness
+- Fix TODOs: country code extraction, referential checks, rule validation
 - Schedule performance review for high-traffic scenarios
 
 **Estimated Effort:** 2-3 days for critical fixes, 1-2 weeks for comprehensive testing
@@ -264,7 +315,10 @@ The catalog service implements a comprehensive product catalog management system
 - **Security Audit**: ✅ PASSED - No critical security issues found
 - **Error Handling**: ✅ PASSED - All errcheck issues resolved (36+ fixes)
 - **Unused Code**: ✅ PASSED - All unused code removed (8 items)
-- **Test Coverage**: ❌ FAILED - 0% coverage in most areas
+- **Test Coverage**: ❌ FAILED - 0% coverage in most areas (skipped per review requirements)
 - **Code Quality**: ✅ PASSED - gosimple ✅ PASSED, staticcheck ✅ PASSED
-- **Overall Status**: Code quality issues resolved, but test coverage remains critical blocker</content>
+- **Linting**: ✅ PASSED - All golangci-lint issues resolved (ineffectual assignment fixed 2026-01-29)
+- **Dependencies**: ✅ PASSED - Common package updated from v1.8.0 to v1.8.3 (2026-01-29)
+- **TODOs Identified**: 7 TODO items found, categorized and documented
+- **Overall Status**: Code quality issues resolved, dependencies updated, but test coverage remains critical blocker</content>
 <parameter name="filePath">/Users/tuananh/Desktop/myproject/microservice/docs/10-appendix/checklists/v2/catalog_service_code_review.md

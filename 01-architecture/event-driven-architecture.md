@@ -25,20 +25,37 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
 | Topic | Description | Publisher Service | Payload (Go type) | Producer Trace (code) | Primary Consumers | DLQ / Retry Trace |
 |-------|-------------|-------------------|------------------|------------------------|------------------|------------------|
 | `orders.order.status_changed` | Order status changed (unified event for created/confirmed/cancelled/completed/...) | Order Service | `events.OrderStatusChangedEvent` | `order/internal/events/publisher.go` (`PublishOrderStatusChanged`) | Warehouse worker, Fulfillment worker, Notification worker (depending on subscriptions) | (TBD: locate consumer-side DLQ topics/handlers for orders.*) |
-| `orders.return.requested` | Return requested | Order Service | `events.ReturnRequestedEvent` | `order/internal/events/publisher.go` (`PublishReturnRequested`) | Warehouse worker | (TBD) |
-| `orders.return.approved` | Return approved | Order Service | `events.ReturnApprovedEvent` | `order/internal/events/publisher.go` (`PublishReturnApproved`) | Warehouse worker | (TBD) |
-| `orders.return.rejected` | Return rejected | Order Service | `events.ReturnRejectedEvent` | `order/internal/events/publisher.go` (`PublishReturnRejected`) | Warehouse worker | (TBD) |
-| `orders.return.completed` | Return completed | Order Service | `events.ReturnCompletedEvent` | `order/internal/events/publisher.go` (`PublishReturnCompleted`) | Warehouse worker | (TBD) |
-| `orders.exchange.requested` | Exchange requested | Order Service | `events.ExchangeRequestedEvent` | `order/internal/events/publisher.go` (`PublishExchangeRequested`) | Warehouse worker | (TBD) |
-| `orders.exchange.approved` | Exchange approved | Order Service | `events.ExchangeApprovedEvent` | `order/internal/events/publisher.go` (`PublishExchangeApproved`) | Warehouse worker | (TBD) |
-| `orders.exchange.completed` | Exchange completed | Order Service | `events.ExchangeCompletedEvent` | `order/internal/events/publisher.go` (`PublishExchangeCompleted`) | Warehouse worker | (TBD) |
+
+### 2. Checkout Domain
+
+| Topic | Description | Publisher Service | Payload (Go type) | Producer Trace (code) | Primary Consumers | DLQ / Retry Trace |
+|-------|-------------|-------------------|------------------|------------------------|------------------|------------------|
+| `checkout.cart.item_added` | Item added to cart | Checkout Service | `events.CartItemAddedEvent` | `checkout/internal/events/publisher.go` (`PublishCartItemAdded`) | Analytics worker, Recommendation worker | (TBD) |
+| `checkout.cart.item_removed` | Item removed from cart | Checkout Service | `events.CartItemRemovedEvent` | `checkout/internal/events/publisher.go` (`PublishCartItemRemoved`) | Analytics worker | (TBD) |
+| `checkout.cart.abandoned` | Cart abandoned | Checkout Service | `events.CartAbandonedEvent` | `checkout/internal/events/publisher.go` (`PublishCartAbandoned`) | Notification worker (for abandoned cart emails) | (TBD) |
+| `checkout.order.created` | Order created from checkout | Checkout Service | `events.OrderCreatedEvent` | `checkout/internal/events/publisher.go` (`PublishOrderCreated`) | Order service, Warehouse worker, Payment worker | (TBD) |
+
+### 3. Return Domain
+
+| Topic | Description | Publisher Service | Payload (Go type) | Producer Trace (code) | Primary Consumers | DLQ / Retry Trace |
+|-------|-------------|-------------------|------------------|------------------------|------------------|------------------|
+| `returns.return.requested` | Return requested | Return Service | `events.ReturnRequestedEvent` | `return/internal/events/publisher.go` (`PublishReturnRequested`) | Order service, Warehouse worker, Notification worker | (TBD) |
+| `returns.return.approved` | Return approved | Return Service | `events.ReturnApprovedEvent` | `return/internal/events/publisher.go` (`PublishReturnApproved`) | Order service, Warehouse worker, Payment worker | (TBD) |
+| `returns.return.rejected` | Return rejected | Return Service | `events.ReturnRejectedEvent` | `return/internal/events/publisher.go` (`PublishReturnRejected`) | Order service, Notification worker | (TBD) |
+| `returns.return.completed` | Return completed | Return Service | `events.ReturnCompletedEvent` | `return/internal/events/publisher.go` (`PublishReturnCompleted`) | Order service, Payment worker | (TBD) |
+| `returns.exchange.requested` | Exchange requested | Return Service | `events.ExchangeRequestedEvent` | `return/internal/events/publisher.go` (`PublishExchangeRequested`) | Order service, Warehouse worker | (TBD) |
+| `returns.exchange.approved` | Exchange approved | Return Service | `events.ExchangeApprovedEvent` | `return/internal/events/publisher.go` (`PublishExchangeApproved`) | Order service, Warehouse worker | (TBD) |
+| `returns.exchange.completed` | Exchange completed | Return Service | `events.ExchangeCompletedEvent` | `return/internal/events/publisher.go` (`PublishExchangeCompleted`) | Order service, Fulfillment worker | (TBD) |
 
 **Notes**:
-- Authoritative topic constants: `order/internal/constants/constants.go`.
-- Event payload structs: `order/internal/events/order_events.go`.
-- Order publishes via `common/events` Dapr gRPC publisher (see `order/internal/events/publisher.go`).
+- **Order Service**: Now focused on order lifecycle management post-checkout
+- **Checkout Service**: Handles cart management and order creation from checkout flow
+- **Return Service**: Dedicated service for returns and exchanges
+- Authoritative topic constants: `order/internal/constants/constants.go`, `checkout/internal/constants/constants.go`, `return/internal/constants/constants.go`
+- Event payload structs: `order/internal/events/order_events.go`, `checkout/internal/events/checkout_events.go`, `return/internal/events/return_events.go`
+- All services publish via `common/events` Dapr gRPC publisher
 
-### 2. Payment Domain
+### 4. Payment Domain
 
 | Topic | Description | Publisher Service | Payload Reference |
 |-------|-------------|--------------------|-------------------|
@@ -46,7 +63,7 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
 | `payments.payment.failed` | Payment failed | Payment Service | `payment/internal/events/payment_events.go` |
 | `payments.refund.completed` | Refund completed | Payment Service | `payment/internal/events/refund_events.go` |
 
-### 3. Catalog Domain
+### 5. Catalog Domain
 
 | Topic | Description | Publisher Service | Payload Reference |
 |-------|-------------|--------------------|-------------------|
@@ -58,7 +75,7 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
 | `catalog.cms.page.updated` | CMS page updated | Catalog Service | `catalog/internal/events/cms_events.go` |
 | `catalog.cms.page.deleted` | CMS page deleted | Catalog Service | `catalog/internal/events/cms_events.go` |
 
-### 4. Pricing Domain
+### 6. Pricing Domain
 
 | Topic | Description | Publisher Service | Payload (Go type) | Producer Trace (code) | Primary Consumers | DLQ / Retry Trace |
 |-------|-------------|-------------------|------------------|------------------------|------------------|------------------|
@@ -72,7 +89,7 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
 - **Price Topic Unification**: All price updates (including Warehouse and SKU specific prices) are now published to `pricing.price.updated`. Consumers must check the `priceScope` field in the payload to determine the scope of the update ("product", "warehouse", or "sku").
 - Legacy topics (`pricing.warehouse_price.updated`, `pricing.sku_price.updated`) have been deprecated and removed.
 
-### 5. Warehouse Domain
+### 7. Warehouse Domain
 
 | Topic | Description | Publisher Service | Payload (Go type) | Producer Trace (code) | Primary Consumers | DLQ / Retry Trace |
 |-------|-------------|-------------------|------------------|------------------------|------------------|------------------|
@@ -84,7 +101,7 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
 - Detailed trace doc: `docs/workfllow/event-ref/warehouse/README.md`.
 - `warehouse.inventory.stock_changed` is currently published from multiple places using **string literals**.
 
-### 6. Fulfillment Domain
+### 8. Fulfillment Domain
 
 | Topic | Description | Publisher Service | Payload (Go type) | Producer Trace (code) | Primary Consumers | DLQ / Retry Trace |
 |-------|-------------|-------------------|------------------|------------------------|------------------|------------------|
@@ -100,7 +117,7 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
   - `fulfillment/internal/events/package_events.go`
 - Detailed trace doc: `docs/workfllow/event-ref/fulfillment/README.md`.
 
-### 7. Promotion Domain
+### 9. Promotion Domain
 
 | Topic | Description | Publisher Service | Payload Reference |
 |-------|-------------|--------------------|-------------------|
@@ -118,7 +135,7 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
 | `promotions.coupon.bulk_created` | Bulk coupons created | Promotion Service | `promotion/internal/events/coupon_events.go` |
 | `promotions.coupon.applied` | Coupon applied | Promotion Service | `promotion/internal/events/coupon_events.go` |
 
-### 8. System Events
+### 10. System Events
 
 | Topic | Description | Publisher Service | Payload Reference |
 |-------|-------------|--------------------|-------------------|

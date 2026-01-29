@@ -2,7 +2,7 @@
 
 **Service Name**: Order Service  
 **Version**: 2.0.0  
-**Last Updated**: 2026-01-27  
+**Last Updated**: 2026-01-29  
 **Review Status**: ✅ Reviewed (Post-Service Split)  
 **Production Ready**: 95%  
 **Service Split**: Cart, Checkout, and Return services extracted  
@@ -527,8 +527,8 @@ module gitlab.com/ta-microservices/order
 go 1.24
 
 require (
-    gitlab.com/ta-microservices/common v1.0.14
-    github.com/go-kratos/kratos/v2 v2.9.1
+    gitlab.com/ta-microservices/common v1.8.3
+    github.com/go-kratos/kratos/v2 v2.9.2
     github.com/redis/go-redis/v9 v9.5.1
     gorm.io/gorm v1.25.10
     github.com/dapr/go-sdk v1.11.0

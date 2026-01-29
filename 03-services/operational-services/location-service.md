@@ -2,8 +2,9 @@
 
 **Service Name**: Location Service  
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-22  
+**Last Updated**: 2026-01-29  
 **Production Ready**: 90%  
+**Code Review**: [Location Service Code Review Checklist](../../10-appendix/checklists/v2/location_service_code_review.md)  
 
 ---
 
@@ -54,10 +55,11 @@ location/
 ```
 
 ### Ports & Dependencies
-- **HTTP API**: `:8015` - REST endpoints
-- **gRPC API**: `:9015` - Internal communication
+- **HTTP API**: `:8017` - REST endpoints
+- **gRPC API**: `:9017` - Internal communication
 - **Database**: PostgreSQL (`location_db`)
-- **Cache**: Redis for location data caching
+- **Cache**: Redis (db: 7) for location data caching
+- **Common Package**: `gitlab.com/ta-microservices/common@v1.8.3`
 
 ---
 
@@ -474,6 +476,17 @@ delivery:
 ---
 
 **Service Status**: Production Ready (90%)  
-**Critical Path**: Address validation và delivery zone assignment  
-**Performance Target**: <100ms address validation, <50ms distance calculation  
+**Critical Path**: Location tree management và address validation  
+**Performance Target**: <50ms location lookup (with cache), <200ms tree queries  
 **Data Coverage**: Vietnam complete (64 provinces, 705 districts, 11,000+ wards)
+
+## Recent Updates (2026-01-29)
+
+- ✅ Updated dependencies: `common@v1.8.3`, `kratos@v2.9.2`
+- ✅ Code review completed: [Location Service Code Review Checklist](../../10-appendix/checklists/v2/location_service_code_review.md)
+- ⚠️ P1 Issues Identified:
+  - Health check implementation needs actual connectivity checks
+  - Error mapping to gRPC status codes needs verification
+- 📝 P2 Improvements:
+  - Search performance optimization with PostgreSQL trigram
+  - Test coverage improvements needed

@@ -9,7 +9,7 @@
 
 ## 📋 Executive Summary
 
-Our e-commerce platform is built on a modern **microservices architecture** with **19 specialized services** that work together to deliver a comprehensive online shopping experience. The platform is **88% complete** with **16 services ready for production deployment**.
+Our e-commerce platform is built on a modern **microservices architecture** with **20 specialized services** that work together to deliver a comprehensive online shopping experience. The platform is **85% complete** with **17 services ready for production deployment**.
 
 ### Key Business Benefits
 - ✅ **Scalable**: Each service can scale independently based on demand
@@ -37,7 +37,9 @@ graph TB
     subgraph "Core Business Services"
         AUTH[🔐 Authentication<br/>User Security & Login]
         CATALOG[📦 Product Catalog<br/>Products & Categories]
-        ORDER[🛒 Order Management<br/>Shopping Cart & Orders]
+        ORDER[🛒 Order Management<br/>Order Lifecycle]
+        CHECKOUT[🛍️ Checkout Service<br/>Shopping Cart & Checkout]
+        RETURN[↩️ Return Service<br/>Returns & Exchanges]
         PAYMENT[💳 Payment Processing<br/>Multi-Gateway Support]
         CUSTOMER[👤 Customer Management<br/>Profiles & Preferences]
     end
@@ -70,6 +72,8 @@ graph TB
     GATEWAY --> AUTH
     GATEWAY --> CATALOG
     GATEWAY --> ORDER
+    GATEWAY --> CHECKOUT
+    GATEWAY --> RETURN
     GATEWAY --> PAYMENT
     GATEWAY --> CUSTOMER
     GATEWAY --> INVENTORY
@@ -90,7 +94,7 @@ graph TB
 
 ## 🏢 Service Categories & Business Functions
 
-### 🎯 **Customer-Facing Services** (5 Services)
+### 🎯 **Customer-Facing Services** (6 Services)
 Services that directly impact customer experience and revenue generation.
 
 | Service | Business Function | Status | Key Features |
@@ -98,7 +102,9 @@ Services that directly impact customer experience and revenue generation.
 | **🌐 Customer Website** | Online storefront | 70% | Product browsing, shopping cart, checkout |
 | **👨‍💼 Admin Dashboard** | Business management | 75% | Order management, inventory control, analytics |
 | **📦 Product Catalog** | Product information | 90% | 25,000+ products, categories, search optimization |
-| **🛒 Order Management** | Sales processing | 75% | Cart, checkout, order tracking, returns |
+| **🛍️ Checkout Service** | Shopping cart & checkout | 85% | Cart management, checkout flow, order creation |
+| **🛒 Order Management** | Order lifecycle | 85% | Order tracking, status updates, order history |
+| **↩️ Return Service** | Returns & exchanges | 80% | Return requests, refund processing, exchange handling |
 | **🔍 Search Engine** | Product discovery | 85% | AI-powered search, filters, recommendations |
 
 **Business Impact**: Direct revenue generation, customer satisfaction, operational efficiency
@@ -168,6 +174,7 @@ sequenceDiagram
     participant W as 🌐 Website
     participant G as 🚪 Gateway
     participant CAT as 📦 Catalog
+    participant CH as 🛍️ Checkout
     participant O as 🛒 Order
     participant P as 💳 Payment
     participant F as 📋 Fulfillment
@@ -183,17 +190,19 @@ sequenceDiagram
     
     C->>W: Add to cart
     W->>G: Add item to cart
-    G->>O: Update cart
-    O-->>G: Cart updated
+    G->>CH: Update cart
+    CH-->>G: Cart updated
     G-->>W: Confirm addition
     W-->>C: Item added
     
     C->>W: Checkout
     W->>G: Process checkout
-    G->>O: Create order
-    G->>P: Process payment
-    P-->>G: Payment confirmed
-    O-->>G: Order created
+    G->>CH: Validate cart & create order
+    CH->>O: Create order
+    CH->>P: Process payment
+    P-->>CH: Payment confirmed
+    O-->>CH: Order created
+    CH-->>G: Order confirmation
     G-->>W: Order confirmation
     W-->>C: Order success
     
@@ -230,11 +239,15 @@ sequenceDiagram
 ### **Service Mesh**
 ```
 ┌─────────────┬─────────────┬─────────────┬─────────────┐
-│   🔐 Auth   │  📦 Catalog │  🛒 Order   │  💳 Payment │
+│   🔐 Auth   │  📦 Catalog │  🛍️ Checkout│  💳 Payment │
 │   Service   │   Service   │   Service   │   Service   │
 └─────────────┴─────────────┴─────────────┴─────────────┘
 ┌─────────────┬─────────────┬─────────────┬─────────────┐
-│ 👤 Customer │ 📊 Warehouse│  🚚 Shipping│ 📋 Fulfill │
+│ 🛒 Order    │ ↩️ Return   │ 👤 Customer │ 📊 Warehouse│
+│   Service   │   Service   │   Service   │   Service   │
+└─────────────┴─────────────┴─────────────┴─────────────┘
+┌─────────────┬─────────────┬─────────────┬─────────────┐
+│  🚚 Shipping│ 📋 Fulfill  │ 🔍 Search   │ 📧 Notify   │
 │   Service   │   Service   │   Service   │   Service   │
 └─────────────┴─────────────┴─────────────┴─────────────┘
 ```
@@ -259,7 +272,7 @@ sequenceDiagram
 
 ## 📊 Service Maturity Matrix
 
-### **Production Ready Services** (16/19 - 84%)
+### **Production Ready Services** (17/20 - 85%)
 | Service | Completion | Business Critical | Deployment Ready |
 |---------|-----------|------------------|------------------|
 | 🔐 Authentication | 95% | ⭐ Critical | ✅ Yes |
@@ -270,7 +283,9 @@ sequenceDiagram
 | 💰 Dynamic Pricing | 92% | ⭐ High | ✅ Yes |
 | 🎯 Promotions | 92% | ⭐ High | ✅ Yes |
 | 📊 Warehouse Management | 90% | ⭐ High | ✅ Yes |
+| 🛍️ Checkout Service | 90% | ⭐ Critical | ✅ Yes |
 | 🛒 Order Management | 90% | ⭐ Critical | ✅ Yes |
+| ↩️ Return Service | 85% | ⭐ High | ✅ Yes |
 | 🔍 Search Engine | 95% | ⭐ High | ✅ Yes |
 | 📧 Notifications | 90% | ⭐ High | ✅ Yes |
 | 🚪 API Gateway | 95% | ⭐ Critical | ✅ Yes |
@@ -279,13 +294,13 @@ sequenceDiagram
 | ⭐ Reviews & Ratings | 85% | 🟡 Medium | ✅ Yes |
 | 📋 Order Fulfillment | 80% | ⭐ High | ✅ Yes |
 
-### **Near Production Services** (2/19 - 11%)
+### **Near Production Services** (2/20 - 10%)
 | Service | Completion | Business Critical | Est. Completion |
 |---------|-----------|------------------|-----------------|
 | 🚚 Shipping & Logistics | 80% | ⭐ High | 1 week |
 | 🎁 Loyalty Program | 70% | ⭐ High | 2 weeks |
 
-### **Development Services** (1/19 - 5%)
+### **Development Services** (1/20 - 5%)
 | Service | Completion | Business Critical | Est. Completion |
 |---------|-----------|------------------|-----------------|
 | 🌐 Customer Website | 70% | ⭐ Critical | 2 weeks |

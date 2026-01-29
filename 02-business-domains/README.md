@@ -12,9 +12,12 @@ This section organizes our documentation by business domains rather than technic
 ### **🛒 Commerce Domain**
 Core e-commerce business processes and revenue generation
 - **[Cart Management](commerce/cart-management.md)** - Shopping cart operations and session management
+- **[Checkout Process](commerce/cart-checkout.md)** - Checkout flow and order creation
+- **[Order Management](commerce/order-management.md)** - Order lifecycle and status management
+- **[Payment Processing](commerce/payment-processing.md)** - Payment authorization and capture
+- **[Return & Refund Management](commerce/return-refund-management.md)** - Returns, exchanges, and refunds
 - **[Pricing Management](commerce/pricing-management.md)** - Dynamic pricing and price calculation
 - **[Promotion Management](commerce/promotion-management.md)** - Promotional campaigns and coupon processing
-- **[Return & Refund Management](commerce/return-refund-management.md)** - Returns, exchanges, and refunds
 - **[Tax Calculation](commerce/tax-calculation.md)** - Tax computation and compliance
 
 ### **📦 Inventory Domain**
@@ -26,11 +29,14 @@ Inventory management and fulfillment operations
 ### **👥 Customer Domain**
 Customer-facing services and user management
 - **[Authentication](customer/authentication.md)** - Login, sessions, and security
+- **[Customer Management](customer/customer-management.md)** - Customer profiles and preferences
+- **[User Administration](customer/user-administration.md)** - Admin user management and roles
 - **[Location & Address Management](customer/location-address-management.md)** - Geographic data and addresses
 - **[Notification Management](customer/notification-management.md)** - Multi-channel messaging
 
 ### **📄 Content Domain**
 Content management and product discovery
+- **[Catalog Management](content/catalog-management.md)** - Product catalog and category management
 - **[Search & Discovery](content/search-discovery.md)** - Product search and discovery workflows
 - **[Review Management](content/review-management.md)** - Customer reviews and ratings
 
@@ -94,10 +100,10 @@ Each domain represents a bounded context with:
 ## 📊 **Domain Metrics**
 
 ### **Coverage**
-- **Commerce**: 5 core business processes documented
+- **Commerce**: 8 core business processes documented
 - **Inventory**: 3 operational workflows documented  
-- **Customer**: 3 customer-facing processes documented
-- **Content**: 2 content management processes documented
+- **Customer**: 5 customer-facing processes documented
+- **Content**: 3 content management processes documented
 
 ### **Maturity**
 - **Well-Defined Boundaries**: ✅ Clear domain separation

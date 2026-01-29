@@ -2,9 +2,9 @@
 
 **Service Name**: Return Service  
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-27  
-**Review Status**: ✅ Reviewed (Extracted from Order Service)  
-**Production Ready**: 95%  
+**Last Updated**: 2026-01-29  
+**Review Status**: ✅ Reviewed - Order Logic Cleaned  
+**Production Ready**: 85% (Pending Security & Observability)  
 
 ---
 
@@ -54,29 +54,26 @@ Return Service là microservice chuyên biệt xử lý toàn bộ quy trình re
 
 ```
 return/
-├── cmd/return/                     # Application entry point
+├── cmd/
+│   └── migrate/                   # Database migration tool
 ├── internal/
 │   ├── biz/                       # Business Logic Layer
-│   │   ├── return/                # Return request management
-│   │   ├── refund/                # Refund processing
-│   │   ├── restock/               # Restock coordination
-│   │   ├── approval/              # Return approval workflow
-│   │   ├── exchange/              # Exchange processing
-│   │   └── analytics/             # Return analytics
+│   │   └── return/                # Return domain logic (validation, workflows)
 │   ├── data/                      # Data Access Layer
-│   │   ├── postgres/              # PostgreSQL repositories
-│   │   ├── redis/                 # Redis caching
-│   │   └── eventbus/              # Dapr event bus
+│   │   ├── return_repo.go         # Return request repository
+│   │   └── return_item_repo.go   # Return item repository
 │   ├── service/                   # Service Layer (gRPC/HTTP)
-│   ├── server/                    # Server setup
-│   ├── middleware/                # HTTP middleware
+│   ├── server/                    # Server setup (HTTP/gRPC)
 │   ├── config/                    # Configuration
-│   └── constants/                 # Constants & enums
-├── api/                           # Protocol Buffers
-│   └── return/v1/                 # Return APIs
+│   ├── client/                    # External service clients (stub)
+│   └── events/                    # Event publishing (stub)
+├── api/
+│   └── return/v1/                # Protocol Buffers
 ├── migrations/                    # Database migrations
-└── configs/                       # Environment configs
+└── configs/                       # Configuration files
 ```
+
+**Note**: All order-related models and repositories have been removed. Return Service now calls Order Service via gRPC to fetch order information.
 
 ### Ports & Endpoints
 - **HTTP API**: `:8006` - REST endpoints cho customer service và frontend
@@ -85,18 +82,23 @@ return/
 
 ### Service Dependencies
 
-#### Internal Dependencies
-- **Order Service**: Order information và validation
-- **Customer Service**: Customer data và communication
-- **Payment Service**: Refund processing
-- **Warehouse Service**: Restock coordination
-- **Shipping Service**: Return shipping labels
-- **Notification Service**: Return status notifications
+#### Internal Dependencies (via gRPC)
+- **Order Service**: Order information and validation (gRPC client - stub implementation)
+  - Fetches order details via `GetOrder(orderID)`
+  - Fetches order items via `GetOrderItems(orderID)`
+  - **Important**: No local order models or repositories - all order data fetched from Order Service
+- **Payment Service**: Refund processing (gRPC client - stub implementation)
+- **Warehouse Service**: Restock coordination (gRPC client - stub implementation)
+- **Shipping Service**: Return shipping labels (gRPC client - stub implementation)
+- **Customer Service**: Customer data and communication (gRPC client - stub implementation)
+- **Notification Service**: Return status notifications (gRPC client - stub implementation)
 
 #### External Dependencies
 - **PostgreSQL**: Return data (`return_db`)
-- **Redis**: Caching, workflow state
-- **Dapr**: Event-driven communication
+  - Tables: `return_requests`, `return_items`
+  - No order-related tables (removed during cleanup)
+- **Redis**: Caching, workflow state (planned, not yet implemented)
+- **Dapr**: Event-driven communication (stub implementation - TODO #RETURN-001)
 
 ---
 
@@ -344,62 +346,62 @@ CREATE INDEX idx_return_refunds_status ON return_refunds(refund_status);
 
 ### Return Request Processing
 
+**Important**: Return Service calls Order Service via gRPC to fetch order information. No local order models are used.
+
 ```go
 func (uc *ReturnUsecase) CreateReturnRequest(ctx context.Context, req *CreateReturnRequestRequest) (*ReturnRequest, error) {
-    // 1. Validate order exists and belongs to customer
-    order, err := uc.orderService.GetOrder(ctx, req.OrderID)
+    // 1. Fetch order information from Order Service (via gRPC)
+    orderInfo, err := uc.orderService.GetOrder(ctx, req.OrderID)
     if err != nil {
-        return nil, commonErrors.NewNotFoundError("Order not found")
+        return nil, fmt.Errorf("failed to fetch order: %w", err)
     }
     
-    // 2. Check return eligibility
-    if err := uc.validateReturnEligibility(ctx, order, req); err != nil {
+    // 2. Fetch order items from Order Service
+    orderItems, err := uc.orderService.GetOrderItems(ctx, req.OrderID)
+    if err != nil {
+        return nil, fmt.Errorf("failed to fetch order items: %w", err)
+    }
+    
+    // 3. Validate return eligibility using Order Service data
+    if err := validateReturnWindow(orderInfo, 30); err != nil {
+        return nil, err
+    }
+    if err := validateReturnItems(orderItems, req.Items); err != nil {
         return nil, err
     }
     
-    // 3. Create return request
+    // 4. Create return request
     returnReq := &ReturnRequest{
         ID:           uuid.New(),
         ReturnNumber: uc.generateReturnNumber(),
         OrderID:      req.OrderID,
-        CustomerID:   order.CustomerID,
-        Status:       "requested",
-        ReturnReason: req.Reason,
-        ReturnType:   req.Type,
+        CustomerID:   orderInfo.CustomerID,
+        Status:       "pending",
+        Reason:       req.Reason,
+        ReturnType:   "return",
         ExpiresAt:    time.Now().Add(30 * 24 * time.Hour), // 30 days
     }
     
-    // 4. Create return items
+    // 5. Create return items
     for _, item := range req.Items {
         returnItem := &ReturnItem{
             ReturnRequestID: returnReq.ID,
             OrderItemID:     item.OrderItemID,
-            ProductID:       item.ProductID,
-            ProductSKU:      item.ProductSKU,
-            QuantityReturned: item.Quantity,
-            ReturnReason:    item.Reason,
-            RefundAmount:    item.RefundAmount,
+            ProductID:       "stub-product", // TODO: Fetch from Catalog Service
+            ProductSKU:      "stub-sku",     // TODO: Fetch from Catalog Service
+            Quantity:        item.Quantity,
+            Reason:          item.Reason,
         }
-        returnReq.Items = append(returnReq.Items, returnItem)
+        // Add to return request items
     }
     
-    // 5. Calculate total refund amount
-    returnReq.TotalRefundAmount = uc.calculateRefundAmount(returnReq.Items)
-    
     // 6. Save return request
-    if err := uc.repo.CreateReturnRequest(ctx, returnReq); err != nil {
+    if err := uc.returnRequestRepo.Create(ctx, returnReq); err != nil {
         return nil, err
     }
     
-    // 7. Publish return request created event
-    if err := uc.publishReturnRequestCreated(ctx, returnReq); err != nil {
-        uc.logger.Errorf("Failed to publish return request created event: %v", err)
-    }
-    
-    // 8. Notify customer service team
-    if err := uc.notifyCustomerService(ctx, returnReq); err != nil {
-        uc.logger.Errorf("Failed to notify customer service: %v", err)
-    }
+    // 7. Publish return request created event (stub - TODO #RETURN-001)
+    // 8. Notify customer service (stub - TODO #RETURN-002)
     
     return returnReq, nil
 }
@@ -623,19 +625,22 @@ RETURN_ENABLE_STORE_CREDIT=true
 ```go
 module gitlab.com/ta-microservices/return
 
-go 1.24
+go 1.25.3
 
 require (
-    gitlab.com/ta-microservices/common v1.7.1
-    github.com/go-kratos/kratos/v2 v2.9.1
-    github.com/redis/go-redis/v9 v9.5.1
-    gorm.io/gorm v1.25.10
-    github.com/dapr/go-sdk v1.11.0
-    google.golang.org/protobuf v1.34.2
+    gitlab.com/ta-microservices/common v1.8.3
+    github.com/go-kratos/kratos/v2 v2.9.2
+    github.com/redis/go-redis/v9 v9.16.0
+    gorm.io/gorm v1.31.1
+    google.golang.org/protobuf v1.36.10
     github.com/google/uuid v1.6.0
-    golang.org/x/sync v0.7.0
+    golang.org/x/sync v0.19.0
 )
 ```
+
+**Updated**: January 29, 2026
+- Common package: v1.7.2 → v1.8.3
+- Kratos: v2.9.1 → v2.9.2
 
 ---
 
@@ -733,33 +738,63 @@ GET /api/v1/returns/health/workflow
 
 ## 🚨 Known Issues & TODOs
 
+### Order Logic Cleanup (Completed January 29, 2026)
+
+**Status**: ✅ Complete  
+**Changes**:
+- Removed all order-related models (`order.go`, `order_item.go`, `order_address.go`, `order_payment.go`, `order_status_history.go`, `cart.go`, `checkout_session.go`, `shipment.go`, `failed_compensation.go`)
+- Removed all order-related repositories (`order/`, `cart/`, `checkout/`, `item/`, `address/`, `payment/`, `status/`, `edit_history/`, `failed_compensation/`)
+- Refactored validation functions to use Order Service client instead of local models
+- Added `OrderService` interface and stub implementation
+- Updated Wire dependency injection
+
+**Impact**: Return Service now properly calls Order Service via gRPC for order information, maintaining proper service boundaries.
+
+### 📋 TODO LIST (Categorized with Issue Tracking)
+
+#### RETURN-001: Dapr Pub/Sub Implementation (P1 - High)
+**Location**: `return/internal/events/publisher.go`  
+**Count**: 11 stub methods  
+**Status**: Stub implementation  
+**Required**: Implement Dapr gRPC client for pub/sub (use gRPC, not HTTP callbacks)
+
+#### RETURN-002: External Service Client Implementation (P1 - High)
+**Location**: `return/internal/client/clients.go`, `return/internal/data/data.go`  
+**Count**: 3 stub clients  
+**Status**: Stub implementations  
+**Required**: Implement gRPC clients for Order Service, Catalog Service, Warehouse Service
+
+#### RETURN-003: Monitoring and Alerting (P2 - Normal)
+**Location**: `return/internal/biz/monitoring.go`  
+**Count**: 4 stub methods  
+**Status**: Nil implementations  
+**Required**: Implement Prometheus metrics and PagerDuty/Slack alerting
+
 ### 🟡 CURRENT ISSUES
 
-#### P1-01: Return shipping label generation timeout 🟡 MEDIUM
-- **Issue**: Shipping service timeouts during label generation
-- **Impact**: Manual intervention required for return approvals
-- **Location**: Return approval workflow
-- **Fix**: Implement async label generation with retry
+#### P0-1: Missing Authentication & Authorization (P0 - Critical)
+- **Issue**: No authentication middleware on HTTP/gRPC servers
+- **Impact**: All endpoints publicly accessible
+- **Location**: `return/internal/server/http.go`, `return/internal/server/grpc.go`
+- **Fix**: Add authentication middleware using common package
 
-#### P2-01: Return analytics performance 🟡 LOW
-- **Issue**: Slow analytics queries for large date ranges
-- **Impact**: Dashboard loading delays
-- **Location**: Analytics queries
-- **Fix**: Implement data aggregation tables
+#### P1-1: Missing gRPC Error Code Mapping (P1 - High)
+- **Issue**: Service layer returns raw errors without gRPC code mapping
+- **Impact**: Poor API usability
+- **Location**: `return/internal/service/return.go`
+- **Fix**: Use `common/errors` package for structured error handling
 
-### 📋 TODO LIST
+#### P1-2: Missing Health Checks (P1 - High)
+- **Issue**: No `/health/live` or `/health/ready` endpoints
+- **Impact**: Cannot monitor service health
+- **Location**: Missing health service
+- **Fix**: Implement health check service
 
-#### Phase 1 (Q1 2026) - Core Improvements
-- [ ] Implement async shipping label generation
-- [ ] Add return analytics optimization
-- [ ] Implement return fraud detection
-- [ ] Add comprehensive return reporting
-
-#### Phase 2 (Q2 2026) - Advanced Features
-- [ ] Multi-step return approval workflow
-- [ ] Return quality assessment
-- [ ] Advanced return analytics
-- [ ] Return prediction models
+#### P2-1: No Caching Implementation (P2 - Normal)
+- **Issue**: No Redis caching for return requests
+- **Impact**: Potential performance bottlenecks
+- **Location**: Missing cache layer
+- **Fix**: Implement cache-aside pattern for return requests
 
 ---
 
