@@ -1,15 +1,20 @@
 # Return & Refund Flow
 
-**Last Updated**: 2026-01-18
-**Status**: Verified vs Code
+**Last Updated**: 2026-01-29
+**Status**: Updated for Service Split
 **Domain**: Commerce
-**Service**: Order Service
+**Services**: Return Service (Primary), Order Service (Integration), Payment Service, Warehouse Service
+**Navigation**: [← Commerce Domain](../README.md) | [← Business Domains](../../README.md) | [Return Service →](../../03-services/core-services/return-service.md)
 
 ## Overview
 
-This document describes the business logic for handling customer returns and exchanges. The entire flow is managed within the `order` service, which orchestrates calls to other services like `shipping`, `payment`, and `warehouse`.
+This document describes the business logic for handling customer returns and exchanges. After the service domain split, return and refund processing is now handled by the dedicated `return` service, which orchestrates calls to other services like `order`, `shipping`, `payment`, and `warehouse`.
 
-**Key File**: `order/internal/biz/return/return.go`
+**Key Files:**
+- **Return Service**: `return/internal/biz/return/return.go`
+- **Order Integration**: `return/internal/client/order_client.go`
+- **Payment Integration**: `return/internal/client/payment_client.go`
+- **Warehouse Integration**: `return/internal/client/warehouse_client.go`
 
 ---
 

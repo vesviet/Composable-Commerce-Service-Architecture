@@ -8,19 +8,20 @@
 
 ## Overview
 
-This document describes the checkout confirmation flow, which converts a `Cart` into a final `Order`. The implementation follows a "Quote Pattern", where the cart acts as a quote that is finalized upon confirmation.
+This document describes the checkout confirmation flow, which converts a `Cart` into a final `Order`. After the service domain split, checkout processing is now handled by the dedicated `checkout` service, which orchestrates with the `order` service for order creation. The implementation follows a "Quote Pattern", where the cart acts as a quote that is finalized upon confirmation.
 
-The core logic is handled within the `order` service.
-
-**Key File**: `order/internal/biz/checkout/confirm.go`
+**Key Files:**
+- **Checkout Service**: `checkout/internal/biz/checkout/confirm.go`
+- **Order Integration**: `checkout/internal/client/order_client.go`
+- **Order Creation**: `order/internal/biz/order/create.go`
 
 ---
 
 ## Key Flow Steps
 
-The `ConfirmCheckout` function orchestrates a critical, multi-step process that involves several other services.
+The `ConfirmCheckout` function in the checkout service orchestrates a critical, multi-step process that involves several other services, including the order service for final order creation.
 
-1.  **Session & Cart Validation**: The system retrieves the `CheckoutSession` and the associated `CartSession`. It validates that the cart is in the correct `checkout` status.
+1.  **Session & Cart Validation**: The checkout service retrieves the `CheckoutSession` and the associated `CartSession`. It validates that the cart is in the correct `checkout` status.
 
 2.  **Prerequisite Validation**: It ensures all necessary checkout steps have been completed (e.g., shipping address selected).
 
@@ -30,17 +31,17 @@ The `ConfirmCheckout` function orchestrates a critical, multi-step process that 
 
 5.  **Payment Authorization**: It initiates a payment **authorization** (a hold on the funds) by calling the `payment` service. This does not capture the money yet.
 
-6.  **Order Creation**: If payment authorization is successful, it builds and creates the `Order` in the database. This step is critical as it persists the order record.
+6.  **Order Creation via Order Service**: If payment authorization is successful, it calls the order service to create the `Order` record. This step involves cross-service communication and is critical as it persists the order record.
 
-7.  **Payment Capture**: After the order is successfully created, it proceeds to **capture** the previously authorized funds. This is the step where money is actually transferred.
+7.  **Payment Capture**: After the order is successfully created by the order service, the checkout service proceeds to **capture** the previously authorized funds. This is the step where money is actually transferred.
 
-8.  **Capture Failure Handling (Compensation)**: If payment capture fails, the system attempts a manual rollback:
+8.  **Capture Failure Handling (Compensation)**: If payment capture fails, the checkout service attempts a manual rollback:
     - It calls a `rollbackPaymentAndReservations` function to void the payment authorization.
-    - It updates the newly created order's status to `cancelled`.
+    - It communicates with the order service to update the newly created order's status to `cancelled`.
 
 9.  **Cart & Session Cleanup**: After a successful checkout, the `CartSession` is marked as inactive and the `CheckoutSession` is deleted. This cleanup is designed to be resilient, with retries and alerts if it fails, ensuring it doesn't block the confirmation response to the user.
 
-10. **Event Publishing**: An `OrderCreated` event is published via the Transactional Outbox pattern, ensuring the event is sent reliably after the order is committed to the database.
+10. **Event Publishing**: An `OrderCreated` event is published via the order service's Transactional Outbox pattern, ensuring the event is sent reliably after the order is committed to the database.
 
 ---
 
@@ -105,7 +106,8 @@ The `ConfirmCheckout` function orchestrates a critical, multi-step process that 
 sequenceDiagram
     participant C as Client
     participant G as Gateway
-    participant O as Order Service
+    participant CS as Checkout Service
+    participant OS as Order Service
     participant P as Payment Service
     participant W as Warehouse Service
     participant PR as Pricing Service
@@ -114,70 +116,71 @@ sequenceDiagram
     participant E as Event Bus
 
     C->>G: POST /checkout/confirm
-    G->>O: ConfirmCheckout(sessionID)
+    G->>CS: ConfirmCheckout(sessionID)
     
-    Note over O: 1. Session & Cart Validation
-    O->>DB: GetCheckoutSession(sessionID)
-    O->>DB: GetCartSession(cartSessionID)
+    Note over CS: 1. Session & Cart Validation
+    CS->>DB: GetCheckoutSession(sessionID)
+    CS->>DB: GetCartSession(cartSessionID)
     
-    Note over O: 2. Prerequisite Validation
-    O->>O: ValidateShippingAddress()
-    O->>O: ValidatePaymentMethod()
+    Note over CS: 2. Prerequisite Validation
+    CS->>CS: ValidateShippingAddress()
+    CS->>CS: ValidatePaymentMethod()
     
-    Note over O: 3. Extend Inventory Reservations
-    O->>W: ExtendReservation(items, newTTL)
-    W-->>O: ReservationExtended
+    Note over CS: 3. Extend Inventory Reservations
+    CS->>W: ExtendReservation(items, newTTL)
+    W-->>CS: ReservationExtended
     
-    Note over O: 4. Final Totals Calculation
-    O->>PR: CalculateFinalPrice(cart)
-    O->>PM: ValidatePromotions(cart)
-    O->>PR: CalculateTax(cart, location)
+    Note over CS: 4. Final Totals Calculation
+    CS->>PR: CalculateFinalPrice(cart)
+    CS->>PM: ValidatePromotions(cart)
+    CS->>PR: CalculateTax(cart, location)
     
     par Parallel Calculations
-        PR-->>O: FinalPricing
+        PR-->>CS: FinalPricing
     and
-        PM-->>O: FinalDiscounts
+        PM-->>CS: FinalDiscounts
     and
-        PR-->>O: TaxAmount
+        PR-->>CS: TaxAmount
     end
     
-    Note over O: 5. Payment Authorization
+    Note over CS: 5. Payment Authorization
     alt COD Payment
-        O->>O: SkipPaymentAuth()
+        CS->>CS: SkipPaymentAuth()
     else Online Payment
-        O->>P: AuthorizePayment(amount, method)
-        P-->>O: AuthorizationResult
+        CS->>P: AuthorizePayment(amount, method)
+        P-->>CS: AuthorizationResult
         
         alt Authorization Failed
-            O-->>C: PaymentAuthFailed
+            CS-->>C: PaymentAuthFailed
         end
     end
     
-    Note over O: 6. Order Creation
-    O->>DB: CreateOrder(orderData)
-    DB-->>O: OrderCreated(orderID)
+    Note over CS: 6. Order Creation via Order Service
+    CS->>OS: CreateOrder(orderData)
+    OS->>DB: CreateOrder(orderData)
+    OS-->>CS: OrderCreated(orderID)
     
-    Note over O: 7. Payment Capture
+    Note over CS: 7. Payment Capture
     alt COD Payment
-        O->>O: SetPaymentPending()
+        CS->>CS: SetPaymentPending()
     else Online Payment
-        O->>P: CapturePayment(authID, amount)
-        P-->>O: CaptureResult
+        CS->>P: CapturePayment(authID, amount)
+        P-->>CS: CaptureResult
         
         alt Capture Failed
-            Note over O: 8. Compensation
-            O->>P: VoidAuthorization(authID)
-            O->>DB: UpdateOrderStatus(cancelled)
-            O-->>C: CheckoutFailed
+            Note over CS: 8. Compensation
+            CS->>P: VoidAuthorization(authID)
+            CS->>OS: UpdateOrderStatus(orderID, cancelled)
+            CS-->>C: CheckoutFailed
         end
     end
     
-    Note over O: 9. Success - Cleanup & Events
-    O->>DB: DeactivateCartSession()
-    O->>DB: DeleteCheckoutSession()
-    O->>E: PublishEvent(OrderCreated)
+    Note over CS: 9. Success - Cleanup & Events
+    CS->>DB: DeactivateCartSession()
+    CS->>DB: DeleteCheckoutSession()
+    OS->>E: PublishEvent(OrderCreated)
     
-    O-->>G: CheckoutSuccess(order)
+    CS-->>G: CheckoutSuccess(order)
     G-->>C: OrderConfirmation
 ```
 
@@ -186,68 +189,72 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant O as Order Service
+    participant CS as Checkout Service
+    participant OS as Order Service
     participant W as Warehouse Service
     participant DB as Database
     participant Cache as Redis
 
-    C->>O: StartCheckout(cartSessionID)
+    C->>CS: StartCheckout(cartSessionID)
     
-    O->>DB: GetCartSession(cartSessionID)
-    O->>O: ValidateCartActive()
+    CS->>DB: GetCartSession(cartSessionID)
+    CS->>CS: ValidateCartActive()
     
-    Note over O: Lock Cart Items
-    O->>DB: UpdateCartStatus(checkout)
+    Note over CS: Lock Cart Items
+    CS->>DB: UpdateCartStatus(checkout)
     
-    Note over O: Create Reservations
+    Note over CS: Create Reservations
     loop For each cart item
-        O->>W: ReserveStock(productID, quantity, TTL)
-        W-->>O: ReservationCreated
+        CS->>W: ReserveStock(productID, quantity, TTL)
+        W-->>CS: ReservationCreated
     end
     
-    Note over O: Create Checkout Session
-    O->>DB: CreateCheckoutSession()
-    O->>Cache: InvalidateCart(sessionID)
+    Note over CS: Create Checkout Session
+    CS->>DB: CreateCheckoutSession()
+    CS->>Cache: InvalidateCart(sessionID)
     
-    O-->>C: CheckoutSession
+    CS-->>C: CheckoutSession
 ```
 
 ### Payment Authorization & Capture Flow
 
 ```mermaid
 sequenceDiagram
-    participant O as Order Service
+    participant CS as Checkout Service
+    participant OS as Order Service
     participant P as Payment Service
     participant DB as Database
     participant PG as Payment Gateway
 
-    O->>P: AuthorizePayment(amount, method)
+    CS->>P: AuthorizePayment(amount, method)
     P->>PG: CreateAuthorization()
     PG-->>P: AuthResult(authID, status)
     
     alt Authorization Success
-        P-->>O: AuthorizeSuccess(authID)
+        P-->>CS: AuthorizeSuccess(authID)
         
-        Note over O: Create Order in DB
-        O->>DB: CreateOrder()
+        Note over CS: Create Order via Order Service
+        CS->>OS: CreateOrder(orderData)
+        OS->>DB: CreateOrder()
+        OS-->>CS: OrderCreated(orderID)
         
-        Note over O: Capture Payment
-        O->>P: CapturePayment(authID, amount)
+        Note over CS: Capture Payment
+        CS->>P: CapturePayment(authID, amount)
         P->>PG: CaptureAuthorization(authID)
         
         alt Capture Success
             PG-->>P: CaptureSuccess
-            P-->>O: CaptureSuccess
+            P-->>CS: CaptureSuccess
         else Capture Failed
             PG-->>P: CaptureFailed
-            P-->>O: CaptureFailed
+            P-->>CS: CaptureFailed
             
-            Note over O: Compensation
-            O->>P: VoidAuthorization(authID)
-            O->>DB: UpdateOrderStatus(cancelled)
+            Note over CS: Compensation
+            CS->>P: VoidAuthorization(authID)
+            CS->>OS: UpdateOrderStatus(orderID, cancelled)
         end
     else Authorization Failed
-        P-->>O: AuthorizeFailed
+        P-->>CS: AuthorizeFailed
     end
 ```
 

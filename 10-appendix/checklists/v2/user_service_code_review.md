@@ -12,7 +12,8 @@
 - None identified
 
 ### 🟠 HIGH (Major Impact)
-- [HIGH] Duplicate Comment in ValidateUserCredentials: Lines 633-634 have duplicate "Check if user is active" comment - should remove duplicate
+- [HIGH] Common Package v1.8.5 Build Issue: ⚠️ Common package v1.8.5 has duplicate declarations (EventPublisherFactory, NewEventPublisherFactory) causing build failures. This is an issue in the common package itself, not user service. Need to fix in common package or use different version.
+- [HIGH] Duplicate Comment in ValidateUserCredentials: ✅ FIXED - Removed duplicate "Check if user is active" comment
 - [HIGH] Rate Limiting Implementation: ✅ IMPLEMENTED - Rate limiting for credential validation is implemented using Redis sorted sets (5 attempts per minute per email)
 
 ### 🟡 MEDIUM (Moderate Impact)
