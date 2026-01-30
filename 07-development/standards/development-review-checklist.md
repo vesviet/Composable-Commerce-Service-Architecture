@@ -43,6 +43,23 @@ This checklist ensures consistent, high-quality code reviews and maintains proje
 - [FIXED ✅] [Issue Title]: Summary of the fix applied
 ```
 
+## 2. Versioning Strategy
+
+We use **Semantic Versioning** for Go modules and **Directory-based Versioning** for APIs.
+
+### API Versioning (Protos)
+
+- **v1, v2, vNext**: Major breaking changes to the API contract require a new version package.
+- **Package Declaration**: `package api.order.v1;`
+- **Go Options**: `option go_package = "gitlab.com/ta-microservices/order/api/order/v1;v1";`
+
+### Module Versioning (Go)
+
+- **Release Tagging**: Git tags (`v1.0.0`) are used to version the Go module.
+- **Breaking Changes**: Go modules generally stay at `v0` or `v1` until major stability is reached.
+- **Common Module**: The `common` module is a shared dependency.
+  - When updating `common` protos, tag a new release (e.g., `v1.5.0`).
+  - Consumers must `go get gitlab.com/ta-microservices/common@v1.5.0` to pull changes.
 ---
 
 ## 🔍 Code Review Criteria

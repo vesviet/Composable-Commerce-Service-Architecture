@@ -1,10 +1,11 @@
 # Catalog Service Code Review Checklist
 
 **Service:** catalog
-**Version:** v1.1.2-1-gb58b14c
+**Version:** v1.1.2-1-gcc0076a
 **Review Date:** 2026-01-29
 **Last Updated:** 2026-01-29
 **Reviewer:** AI Code Review Agent
+**TODO Resolution:** All P2 Medium Priority TODOs completed (2026-01-29)
 
 ## Executive Summary
 
@@ -256,39 +257,39 @@ The catalog service implements a comprehensive product catalog management system
 ### TODO Items Found in Codebase
 
 #### P2 - Medium Priority TODOs
-1. **`internal/model/product.go:67`** - `manufacturerId` field TODO: Add to proto if needed
-2. **`internal/data/eventbus/pricing_price_update.go:177`** - TODO: Refactor idempotency to be robust against retries
-3. **`internal/service/events.go:618`** - TODO: Send notification to admin/warehouse manager
-4. **`internal/service/product_helper.go:178`** - TODO: Get country code from context (currently hardcoded "VN")
-5. **`internal/biz/manufacturer/manufacturer.go:413`** - TODO: Check if manufacturer is used by any products before deletion
-6. **`internal/biz/brand/brand.go:337`** - TODO: Check if brand is used by any products before deletion
-7. **`internal/biz/product_visibility_rule/product_visibility_rule.go:233`** - TODO: Add specific validation for each rule type
+1. ✅ **`internal/model/product.go:67`** - `manufacturerId` field TODO: Add to proto if needed - **COMPLETED**: Field already properly implemented in Product.ToProductReply()
+2. ✅ **`internal/data/eventbus/pricing_price_update.go:177`** - TODO: Refactor idempotency to be robust against retries - **COMPLETED**: Moved MarkProcessed call after successful UpdateProductPriceCache
+3. ✅ **`internal/service/events.go:618`** - TODO: Send notification to admin/warehouse manager - **COMPLETED**: Added low stock notification publishing to "notifications.admin.low_stock" topic
+4. ✅ **`internal/service/product_helper.go:178`** - TODO: Get country code from context (currently hardcoded "VN") - **COMPLETED**: Enhanced to extract country code from customer service data with VN fallback
+5. ✅ **`internal/biz/manufacturer/manufacturer.go:413`** - TODO: Check if manufacturer is used by any products before deletion - **COMPLETED**: Added FindByManufacturer check before allowing deletion
+6. ✅ **`internal/biz/brand/brand.go:337`** - TODO: Check if brand is used by any products before deletion - **COMPLETED**: Added FindByBrand check before allowing deletion
+7. ✅ **`internal/biz/product_visibility_rule/product_visibility_rule.go:233`** - TODO: Add specific validation for each rule type - **COMPLETED**: Implemented type-specific validation for all rule types (age, customer group, geographic, etc.)
 
 ### 🆕 NEWLY DISCOVERED ISSUES
 
 #### Code Quality
-- [ ] **Country Code Hardcoding** (`internal/service/product_helper.go:178`)
+- [x] **Country Code Hardcoding** (`internal/service/product_helper.go:178`) - **FIXED**: Now extracts from customer context with VN fallback
   - **Issue:** Country code hardcoded as "VN" instead of extracting from context
   - **Impact:** Tax calculation may be incorrect for international customers
   - **Fix:** Extract country code from request context or customer location
 
-- [ ] **Missing Referential Integrity Checks**
+- [x] **Missing Referential Integrity Checks** - **FIXED**: Added product existence checks for both brand and manufacturer deletion
   - **Issue:** Brand and Manufacturer deletion doesn't check if products are using them
   - **Impact:** Potential orphaned products or data inconsistency
   - **Fix:** Add product existence check before deletion (TODOs already marked)
 
-- [ ] **Incomplete Rule Validation**
+- [x] **Incomplete Rule Validation** - **FIXED**: Implemented comprehensive type-specific validation
   - **Issue:** Visibility rule validation is basic, doesn't validate specific rule types
   - **Impact:** Invalid rule configurations may be accepted
   - **Fix:** Implement type-specific validation for each rule type
 
 #### Performance & Resilience
-- [ ] **Idempotency Retry Handling**
+- [x] **Idempotency Retry Handling** - **FIXED**: Mark processed only after successful completion
   - **Issue:** Idempotency marking happens before processing completion
   - **Impact:** Potential duplicate processing on retries
   - **Fix:** Mark as processed only after successful completion, or use distributed locks
 
-- [ ] **Missing Notification System**
+- [x] **Missing Notification System** - **FIXED**: Integrated with notification service for stock alerts
   - **Issue:** Low stock events don't notify admin/warehouse manager
   - **Impact:** Manual monitoring required for stock alerts
   - **Fix:** Integrate with notification service for stock alerts
@@ -299,14 +300,13 @@ The catalog service implements a comprehensive product catalog management system
 
 **Blocking Issues for Production:**
 1. Extremely low test coverage (critical blocker)
-2. Missing referential integrity checks (brand/manufacturer deletion)
-3. Incomplete rule validation
+2. ✅ **RESOLVED**: All P2 TODOs completed - referential integrity checks, rule validation, country code extraction, notification system, and idempotency improvements implemented
 
 **Recommended Actions:**
 - Address all Priority 1 issues before merge
 - Implement test coverage improvements in next sprint
 - Add rate limiting and audit logging for production readiness
-- Fix TODOs: country code extraction, referential checks, rule validation
+- ✅ **COMPLETED**: All P2 TODOs resolved - country code extraction, referential checks, rule validation, notification integration, and idempotency fixes
 - Schedule performance review for high-traffic scenarios
 
 **Estimated Effort:** 2-3 days for critical fixes, 1-2 weeks for comprehensive testing

@@ -1,6 +1,6 @@
 # 🚚 Order → Fulfillment → Shipping Flow
 
-**Last Updated**: January 18, 2026  
+**Last Updated**: January 30, 2026  
 **Scope**: Order, Fulfillment, Shipping, Warehouse (event-driven + outbox)  
 
 This document describes the end-to-end fulfillment flow as implemented today: when an Order reaches a “processable” state, Fulfillment creates warehouse work (pick/pack), emits status events, Shipping reacts to packages and emits shipment events, and Order updates customer-facing status.

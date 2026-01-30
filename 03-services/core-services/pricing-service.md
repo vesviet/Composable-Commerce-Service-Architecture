@@ -1,10 +1,10 @@
 # 💰 Pricing Service - Complete Documentation
 
 **Service Name**: Pricing Service  
-**Version**: 1.0.2  
-**Last Updated**: 2026-01-29  
+**Version**: 1.0.3  
+**Last Updated**: 2026-01-30  
 **Review Status**: 🟢 Production Ready  
-**Production Ready**: 93% (13/14 issues completed)  
+**Production Ready**: 94% (16/17 issues completed)  
 
 ---
 
@@ -544,11 +544,11 @@ make wire
 
 ## 🔍 Code Review Status
 
-**Last Review**: January 29, 2026  
+**Last Review**: January 30, 2026  
 **Review Standard**: [`docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md`](../../07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md)  
-**Status**: 🟢 Production Ready - 93% Complete
+**Status**: 🟢 Production Ready - 94% Complete
 
-**Review Checklist**: [`docs/10-appendix/checklists/v2/pricing_service_code_review.md`](../../10-appendix/checklists/v2/pricing_service_code_review.md)  
+**Review Checklist**: [`docs/10-appendix/checklists/v3/pricing_service_checklist_v3.md`](../../10-appendix/checklists/v3/pricing_service_checklist_v3.md)  
 **TODO List**: [`docs/10-appendix/checklists/v2/pricing_service_todos.md`](../../10-appendix/checklists/v2/pricing_service_todos.md)
 
 ### Summary
@@ -561,23 +561,18 @@ make wire
 - ✅ **Validation**: Standardized input validation across all handlers
 - ✅ **Rate Limiting**: Redis-based rate limiting middleware
 - ✅ **Request ID**: Request ID propagation middleware
-- ✅ **Linting**: All 28 violations fixed
+- ✅ **Linting**: All violations fixed, golangci-lint passes
+- ✅ **Dependencies**: Updated to latest tags from gitlab.com/ta-microservices
 - ⏸️ **Testing**: Test coverage skipped per user request (can be added later)
 
-### Recent Improvements (v1.0.2)
-- ✅ Authorization checks for admin-only endpoints
-- ✅ gRPC error code mapping helper
-- ✅ Standardized input validation
-- ✅ Configurable timeouts for external calls
-- ✅ OpenTelemetry spans for critical paths
-- ✅ Batch cache invalidation for bulk operations
-- ✅ Rate limiting middleware
-- ✅ Request ID propagation middleware
-- ✅ API documentation examples
-- ✅ All linting violations fixed
+### Recent Improvements (v1.0.3)
+- ✅ Updated dependencies to latest tags (common v1.8.5, catalog v1.2.1, warehouse v1.0.7)
+- ✅ Fixed remaining linting violations (unused functions, ineffassign, staticcheck)
+- ✅ Regenerated mocks for updated interfaces (BatchInvalidate method)
+- ✅ All previous improvements from v1.0.2 maintained
 
 ---
 
-**Last Updated**: 2026-01-29  
-**Version**: 1.0.2  
+**Last Updated**: 2026-01-30  
+**Version**: 1.0.3  
 **Maintainer**: Pricing Service Team

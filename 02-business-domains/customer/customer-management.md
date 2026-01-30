@@ -73,7 +73,7 @@ This document describes the flows for customer registration, authentication, and
 -   **Recommendation**: Implement proper TOTP (Time-based One-Time Password) validation using a standard library. This verification must be integrated into the `Login` flow.
 
 ### P2 - Event Reliability: Missing Transactional Outbox
+**Status**: ✅ RESOLVED
 
--   **Description**: The `customer` service publishes events like `CustomerCreated` or `AddressUpdated` after the database transaction has already committed. It does not use the Transactional Outbox pattern.
--   **Impact**: If the service crashes between the database commit and the event publishing call, the event is lost. This can lead to data inconsistencies in downstream services that rely on these events (e.g., marketing, analytics).
--   **Recommendation**: Refactor the event publishing logic in the `customer` service to use the Transactional Outbox pattern, similar to how it's implemented in the `catalog` and `promotion` services.
+-   **Description**: The `customer` service now uses the Transactional Outbox pattern to ensure reliable event publishing.
+-   **Solution**: Implemented `OutboxWorker` in `internal/biz/worker/outbox.go` which processes events stored in the `outbox_events` table.
