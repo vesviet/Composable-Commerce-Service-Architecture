@@ -1,0 +1,103 @@
+sequenceDiagram
+    participant C as Customer
+    participant G as Gateway
+    participant A as Auth Service
+    participant CAT as Catalog Service
+    participant CH as Checkout Service
+    participant O as Order Service
+    participant P as Payment Service
+    participant W as Warehouse Service
+    participant F as Fulfillment Service
+    participant S as Shipping Service
+    participant N as Notification Service
+    
+    Note over C,N: Complete Order Flow - From Browse to Delivery
+    
+    %% Phase 1: Authentication & Product Discovery
+    C->>G: Browse products
+    G->>A: Validate session
+    A-->>G: Session valid
+    G->>CAT: Get product catalog
+    CAT-->>G: Product list with availability
+    G-->>C: Display products
+    
+    %% Phase 2: Cart Management
+    C->>G: Add item to cart
+    G->>CH: Add to cart
+    CH->>W: Reserve stock (30 min TTL)
+    W-->>CH: Stock reserved
+    CH-->>G: Item added to cart
+    G-->>C: Cart updated
+    
+    %% Phase 3: Checkout Process
+    C->>G: Proceed to checkout
+    G->>CH: Initialize checkout
+    CH->>CAT: Get latest prices
+    CAT-->>CH: Current prices
+    CH->>W: Validate stock availability
+    W-->>CH: Stock confirmed
+    CH-->>G: Checkout ready
+    G-->>C: Checkout page
+    
+    %% Phase 4: Order Creation
+    C->>G: Submit order
+    G->>CH: Process checkout
+    CH->>O: Create order
+    O->>O: Generate order ID
+    O->>W: Allocate stock
+    W->>W: Convert reservation to allocation
+    W-->>O: Stock allocated
+    O-->>CH: Order created
+    CH-->>G: Order confirmation
+    G-->>C: Order created successfully
+    
+    %% Phase 5: Payment Processing
+    G->>P: Process payment
+    P->>P: Authorize payment
+    P->>P: Capture payment
+    P-->>G: Payment successful
+    G->>O: Confirm payment
+    O->>O: Update order status: PAID
+    
+    %% Phase 6: Fulfillment Initiation
+    O->>F: Create fulfillment
+    F->>W: Assign warehouse
+    W-->>F: Warehouse assigned
+    F->>F: Generate pick list
+    F->>F: Schedule fulfillment
+    F-->>O: Fulfillment scheduled
+    
+    %% Phase 7: Order Fulfillment
+    F->>W: Start picking
+    W->>W: Pick items
+    W->>W: Pack order
+    W->>W: Quality control
+    W-->>F: Order packed
+    
+    %% Phase 8: Shipping Preparation
+    F->>S: Create shipment
+    S->>S: Select carrier
+    S->>S: Generate shipping label
+    S-->>F: Shipping label ready
+    F->>F: Attach label to package
+    F-->>S: Package ready for pickup
+    
+    %% Phase 9: Shipment & Tracking
+    S->>S: Carrier pickup
+    S->>O: Update order status: SHIPPED
+    O->>N: Send shipping notification
+    N-->>C: Shipping confirmation email
+    
+    %% Phase 10: Delivery Confirmation
+    S->>S: Track delivery
+    S->>O: Update order status: DELIVERED
+    O->>N: Send delivery notification
+    N-->>C: Delivery confirmation
+    
+    %% Phase 11: Post-Purchase
+    N->>C: Request product review
+    C->>G: Submit review (optional)
+    G->>CAT: Store review
+    CAT-->>G: Review saved
+    
+    Note over C,N: Order Complete - Customer Satisfied!
