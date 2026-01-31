@@ -43,7 +43,7 @@ Our operational flow documentation covers the critical backend processes that en
 
 **Business Impact**: Stock accuracy, cost optimization, demand fulfillment, operational efficiency
 
-### **[Payment Processing](payment-processing.md)** 🚧
+### **[Payment Processing](payment-processing.md)**
 **Multi-gateway payment flows and reconciliation**
 
 - **Scope**: Payment authorization, capture, refunds, and reconciliation
@@ -53,7 +53,7 @@ Our operational flow documentation covers the critical backend processes that en
 
 **Business Impact**: Revenue security, compliance, customer trust, operational efficiency
 
-### **[Pricing & Promotions](pricing-promotions.md)** 🚧
+### **[Pricing & Promotions](pricing-promotions.md)**
 **Dynamic pricing and promotion management**
 
 - **Scope**: Price calculation, promotion application, and campaign management
@@ -63,7 +63,7 @@ Our operational flow documentation covers the critical backend processes that en
 
 **Business Impact**: Revenue optimization, competitive positioning, marketing effectiveness
 
-### **[Shipping & Logistics](shipping-logistics.md)** 🚧
+### **[Shipping & Logistics](shipping-logistics.md)**
 **Multi-carrier shipping and delivery tracking**
 
 - **Scope**: Carrier selection, rate calculation, tracking, and delivery management
@@ -73,7 +73,7 @@ Our operational flow documentation covers the critical backend processes that en
 
 **Business Impact**: Delivery efficiency, cost optimization, customer satisfaction
 
-### **[Quality Control](quality-control.md)** 🚧
+### **[Quality Control](quality-control.md)**
 **Fulfillment quality control and inspection processes**
 
 - **Scope**: Quality assurance throughout the fulfillment process

@@ -40,36 +40,36 @@ Our sequence diagrams are organized by business workflow and complexity:
 - Shipping and delivery tracking
 - Post-purchase review collection
 
-### **[Checkout Payment Flow](checkout-payment-flow.mmd)** 🚧
+### **[Checkout Payment Flow](checkout-payment-flow.mmd)**
 **Checkout and payment processing sequence**
 
 - **Scope**: Detailed checkout and payment processing workflow
-- **Services**: 6 services involved (Gateway, Checkout, Payment, Order, Warehouse, Notification)
-- **Key Features**: Multi-gateway payment, fraud detection, inventory allocation
+- **Services**: 9 services involved (Gateway, Checkout, Payment, Order, Warehouse, Notification, Analytics, Frontend, Customer)
+- **Key Features**: Multi-gateway payment, fraud detection, inventory allocation, error handling
 - **Duration**: 2-5 minutes typical checkout process
 
-### **[Fulfillment Shipping Flow](fulfillment-shipping-flow.mmd)** 🚧
+### **[Fulfillment Shipping Flow](fulfillment-shipping-flow.mmd)**
 **Fulfillment and shipping workflow**
 
 - **Scope**: Order fulfillment from warehouse assignment to shipment
-- **Services**: 5 services involved (Fulfillment, Warehouse, Shipping, Catalog, Notification)
+- **Services**: 8 services involved (Fulfillment, Warehouse, Shipping, Catalog, Notification, Location, Analytics, Order)
 - **Key Features**: Warehouse optimization, picking workflow, quality control, carrier selection
 - **Duration**: 2-24 hours depending on priority
 
-### **[Return Refund Flow](return-refund-flow.mmd)** 🚧
+### **[Return Refund Flow](return-refund-flow.mmd)**
 **Return and refund processing sequence**
 
 - **Scope**: Complete returns workflow from request to refund
-- **Services**: 7 services involved (Return, Order, Payment, Warehouse, Shipping, Notification, Analytics)
+- **Services**: 10 services involved (Return, Order, Payment, Warehouse, Shipping, Notification, Analytics, Gateway, Frontend, Customer)
 - **Key Features**: Return approval, shipping logistics, inspection, refund processing
 - **Duration**: 5-7 days typical return processing
 
-### **[Search Discovery Flow](search-discovery-flow.mmd)** 🚧
+### **[Search Discovery Flow](search-discovery-flow.mmd)**
 **Product search and discovery workflow**
 
 - **Scope**: Product search, filtering, and recommendation workflow
-- **Services**: 4 services involved (Gateway, Search, Catalog, Analytics)
-- **Key Features**: Real-time search, filtering, personalization, analytics
+- **Services**: 7 services involved (Gateway, Search, Catalog, Warehouse, Analytics, Elasticsearch, Redis)
+- **Key Features**: Real-time search, filtering, personalization, analytics, caching
 - **Duration**: <1 second search response time
 
 ---

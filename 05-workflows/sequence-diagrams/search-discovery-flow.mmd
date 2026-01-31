@@ -1,0 +1,192 @@
+sequenceDiagram
+    title Product Search & Discovery Flow
+    
+    participant C as Customer
+    participant F as Frontend
+    participant G as Gateway
+    participant S as Search Service
+    participant CAT as Catalog Service
+    participant W as Warehouse Service
+    participant A as Analytics Service
+    participant ES as Elasticsearch
+    participant CACHE as Redis Cache
+    
+    Note over C,CACHE: Phase 1: Search Query Initiation
+    C->>F: Enter search query "laptop gaming"
+    F->>F: Validate and format query
+    F->>G: GET /api/v1/search?q=laptop+gaming&page=1&filters=...
+    G->>G: Rate limiting check
+    G->>S: SearchProducts(query, filters, pagination)
+    
+    Note over C,CACHE: Phase 2: Query Processing & Caching
+    S->>CACHE: CheckSearchCache(query_hash)
+    
+    alt Cache hit
+        CACHE-->>S: Cached search results
+        S->>S: Validate cache freshness
+        alt Cache valid
+            S-->>G: Return cached results
+            Note right of S: Skip to Phase 6
+        else Cache stale
+            S->>S: Continue with fresh search
+        end
+    else Cache miss
+        S->>S: Continue with fresh search
+    end
+    
+    Note over C,CACHE: Phase 3: Search Execution
+    S->>S: Parse and analyze query
+    S->>S: Apply search filters and sorting
+    S->>S: Build Elasticsearch query
+    S->>ES: Execute search query
+    
+    ES->>ES: Full-text search on product data
+    ES->>ES: Apply filters (category, price, brand)
+    ES->>ES: Calculate relevance scores
+    ES->>ES: Apply sorting (relevance, price, rating)
+    ES-->>S: Search results with scores
+    
+    Note over C,CACHE: Phase 4: Result Enrichment
+    S->>S: Extract product IDs from results
+    S->>CAT: GetProductDetails(product_ids)
+    CAT-->>S: Product details (name, price, images)
+    
+    S->>W: GetInventoryStatus(product_ids)
+    W-->>S: Stock levels and availability
+    
+    S->>S: Enrich results with inventory data
+    S->>S: Apply business rules (hide out-of-stock)
+    S->>S: Calculate final pricing
+    
+    Note over C,CACHE: Phase 5: Personalization & Ranking
+    alt Authenticated user
+        S->>S: Get customer preferences
+        S->>S: Apply personalization scoring
+        S->>S: Adjust ranking based on history
+        S->>S: Add recommended products
+    else Anonymous user
+        S->>S: Apply default ranking
+        S->>S: Use popular products boost
+    end
+    
+    S->>S: Final result ranking and formatting
+    
+    Note over C,CACHE: Phase 6: Response Caching & Delivery
+    S->>CACHE: CacheSearchResults(query_hash, results, ttl=300s)
+    CACHE-->>S: Results cached
+    
+    S-->>G: Search results with metadata
+    G->>G: Apply response compression
+    G-->>F: Compressed search response
+    F->>F: Parse and render results
+    F-->>C: Display search results
+    
+    Note over C,CACHE: Phase 7: Search Analytics
+    par Analytics Tracking
+        S-->>A: SearchExecuted event
+        A->>A: Track search query
+        A->>A: Record result count
+        A->>A: Update search metrics
+    and User Interaction Tracking
+        C->>F: Click on product result
+        F->>G: POST /api/v1/analytics/search-click
+        G->>A: TrackSearchClick(query, product_id, position)
+        A->>A: Record click-through data
+    end
+    
+    Note over C,CACHE: Phase 8: Search Refinement
+    alt User applies filters
+        C->>F: Apply category filter
+        F->>G: GET /api/v1/search?q=laptop+gaming&category=electronics
+        G->>S: SearchProducts(refined_query)
+        Note right of S: Return to Phase 2 with new query
+    else User sorts results
+        C->>F: Sort by price (low to high)
+        F->>G: GET /api/v1/search?q=laptop+gaming&sort=price_asc
+        G->>S: SearchProducts(sorted_query)
+        Note right of S: Return to Phase 2 with new query
+    end
+    
+    Note over C,CACHE: Alternative Flow: Auto-complete Suggestions
+    
+    rect rgb(240, 255, 240)
+        Note over C,S: Search Suggestions
+        C->>F: Type "lap..." in search box
+        F->>G: GET /api/v1/search/suggestions?q=lap
+        G->>S: GetSearchSuggestions(partial_query)
+        S->>CACHE: CheckSuggestionCache(partial_query)
+        alt Cache hit
+            CACHE-->>S: Cached suggestions
+        else Cache miss
+            S->>ES: GetAutocompleteSuggestions(partial_query)
+            ES-->>S: Suggestion list
+            S->>CACHE: CacheSuggestions(partial_query, suggestions)
+        end
+        S-->>G: Suggestion list
+        G-->>F: Auto-complete suggestions
+        F-->>C: Display dropdown suggestions
+    end
+    
+    Note over C,CACHE: Alternative Flow: Zero Results Handling
+    
+    rect rgb(255, 240, 240)
+        Note over S,A: No Search Results Found
+        ES-->>S: Empty search results
+        S->>S: Detect zero results
+        S->>S: Generate alternative suggestions
+        S->>S: Suggest spelling corrections
+        S->>S: Recommend popular products
+        S-->>G: Zero results with suggestions
+        G-->>F: Alternative suggestions
+        F-->>C: "No results found" with alternatives
+        
+        S-->>A: ZeroResultsSearch event
+        A->>A: Track zero-result queries
+        A->>A: Analyze for search improvements
+    end
+    
+    Note over C,CACHE: Error Handling Scenarios
+    
+    rect rgb(255, 240, 240)
+        Note over ES,S: Elasticsearch Unavailable
+        S->>ES: Execute search query
+        ES-->>S: Connection timeout
+        S->>CACHE: GetFallbackResults(query)
+        alt Fallback available
+            CACHE-->>S: Cached popular products
+            S-->>G: Fallback results
+        else No fallback
+            S-->>G: Search service unavailable
+            G-->>F: Error message
+            F-->>C: "Search temporarily unavailable"
+        end
+    end
+    
+    rect rgb(240, 240, 255)
+        Note over S,CAT: Product Details Service Down
+        CAT-->>S: Service unavailable
+        S->>S: Use basic product data from search index
+        S->>S: Mark results as "limited details"
+        S-->>G: Results with limited data
+        G-->>F: Search results (basic info only)
+        F-->>C: Display results with "Details loading..."
+    end
+    
+    rect rgb(240, 255, 255)
+        Note over W,S: Inventory Service Slow Response
+        W-->>S: Timeout on inventory check
+        S->>S: Use cached inventory data
+        S->>S: Mark inventory as "approximate"
+        S-->>G: Results with cached inventory
+        G-->>F: Search results with inventory warning
+        F-->>C: Display with "Stock levels may vary"
+    end
+    
+    rect rgb(255, 255, 240)
+        Note over CACHE,S: Cache Service Unavailable
+        S->>CACHE: Cache search results
+        CACHE-->>S: Cache service down
+        S->>S: Continue without caching
+        S-->>G: Fresh results (no caching)
+        Note right of S: Performance may be slower
+    end

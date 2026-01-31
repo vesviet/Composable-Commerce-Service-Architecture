@@ -17,6 +17,12 @@ This document describes the complete end-to-end customer journey from product di
 - **Success Criteria**: Order completion with customer satisfaction
 - **Key Metrics**: Conversion rate (target: 3-5%), cart abandonment rate, order completion time
 
+### **Related operational workflows (aligned)**
+Phase 4 (Order & Payment), Phase 5 (Fulfillment), and Phase 6 (Delivery) are aligned with the following operational workflow docs for detail and consistency:
+- **[Payment Processing](../operational-flows/payment-processing.md)** — authorize, capture, refunds, reconciliation (Phase 4.2).
+- **[Order Fulfillment](../operational-flows/order-fulfillment.md)** — create fulfillment, pick, pack, QC, ship (Phase 5).
+- **[Shipping & Logistics](../operational-flows/shipping-logistics.md)** — rates, label, tracking, delivery (Phase 5.2, Phase 6.1).
+
 ---
 
 ## 🏗️ **Service Architecture**
@@ -369,6 +375,15 @@ sequenceDiagram
 - **Bank Transfer**: VNPay integration
 - **Cash on Delivery**: COD with shipping validation
 
+**Checkout/Order flow and idempotency (verified 2026-01-31):**
+- **Who creates the order**: Checkout service calls Order service gRPC `CreateOrder` (synchronous). The order record is not created by Order consuming a "checkout confirmed" event.
+- **Idempotency**:
+  - **Checkout**: Redis idempotency key `checkout:{session_id}`. Duplicate `ConfirmCheckout` with the same session returns the cached order (order_id) without calling Order again.
+  - **Order**: Unique constraint on `cart_session_id`. Checkout passes `CartSessionID` (and `metadata["cart_session_id"]`) in `CreateOrderRequest`. On duplicate (unique violation), Order service recovers the existing order via `FindByCartSessionID` and returns it.
+- **Order of operations**: AuthorizePayment → CreateOrder → CapturePayment → ConfirmStockReservation (as in the sequence diagram above).
+
+**Aligned with**: [Payment Processing workflow](../operational-flows/payment-processing.md) (authorization, capture, fraud detection, notifications).
+
 ---
 
 ### **Phase 5: Order Fulfillment**
@@ -437,6 +452,8 @@ sequenceDiagram
 - **Manual QC**: Admin-triggered for specific orders
 - **QC checks**: Item count, weight verification, defect inspection
 
+**Aligned with**: [Order Fulfillment workflow](../operational-flows/order-fulfillment.md) (create fulfillment, pick, pack, QC, ship). [Shipping & Logistics workflow](../operational-flows/shipping-logistics.md) (rates, label, tracking) — Phase 5.2 and Phase 6.1.
+
 ---
 
 ### **Phase 6: Delivery & Post-Purchase**
@@ -462,6 +479,8 @@ sequenceDiagram
     SH->>N: SendDeliveryConfirmation(order_id)
     N-->>Customer: Package delivered
 ```
+
+**Aligned with**: [Shipping & Logistics workflow](../operational-flows/shipping-logistics.md) (carrier selection, rate calculation, label generation, shipment tracking, delivery management).
 
 #### **6.2 Post-Purchase Experience**
 **Services**: Review → Loyalty → Analytics

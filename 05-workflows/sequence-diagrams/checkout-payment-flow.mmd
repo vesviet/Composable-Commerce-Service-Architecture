@@ -1,0 +1,151 @@
+sequenceDiagram
+    title Checkout & Payment Processing Flow
+    
+    participant C as Customer
+    participant F as Frontend
+    participant G as Gateway
+    participant CH as Checkout Service
+    participant O as Order Service
+    participant P as Payment Service
+    participant W as Warehouse Service
+    participant N as Notification Service
+    participant A as Analytics Service
+    
+    Note over C,A: Phase 1: Checkout Initiation
+    C->>F: Proceed to checkout
+    F->>G: GET /api/v1/checkout/session
+    G->>CH: GetCheckoutSession(customer_id, cart_id)
+    CH->>W: ValidateInventory(cart_items)
+    W-->>CH: Inventory validation result
+    CH-->>G: Checkout session created
+    G-->>F: Session data with pricing
+    F-->>C: Display checkout form
+    
+    Note over C,A: Phase 2: Address & Shipping Selection
+    C->>F: Select delivery address
+    C->>F: Choose shipping method
+    F->>G: PUT /api/v1/checkout/shipping
+    G->>CH: UpdateShipping(address, method)
+    CH->>CH: Calculate shipping cost
+    CH-->>G: Updated totals
+    G-->>F: Shipping cost updated
+    F-->>C: Display final pricing
+    
+    Note over C,A: Phase 3: Payment Method Selection
+    C->>F: Select payment method
+    F->>G: PUT /api/v1/checkout/payment-method
+    G->>CH: UpdatePaymentMethod(method, details)
+    CH->>P: ValidatePaymentMethod(method, customer)
+    P-->>CH: Payment method validated
+    CH-->>G: Payment method confirmed
+    G-->>F: Ready for payment
+    F-->>C: Show payment confirmation
+    
+    Note over C,A: Phase 4: Order Creation
+    C->>F: Confirm order
+    F->>G: POST /api/v1/checkout/complete
+    G->>CH: CompleteCheckout(session_id)
+    CH->>O: CreateOrder(order_details)
+    O->>W: ReserveInventory(order_items)
+    W-->>O: Inventory reserved
+    O-->>CH: Order created (order_id)
+    
+    Note over C,A: Phase 5: Payment Processing
+    CH->>P: ProcessPayment(order_id, payment_details)
+    
+    alt Credit Card Payment
+        P->>P: Validate card details
+        P->>P: Call payment gateway (Stripe)
+        P->>P: Fraud detection check
+        P-->>CH: Payment authorized
+    else E-wallet Payment
+        P->>P: Redirect to e-wallet
+        P->>P: Process e-wallet payment
+        P-->>CH: Payment completed
+    else Cash on Delivery
+        P->>P: Validate COD eligibility
+        P-->>CH: COD confirmed
+    end
+    
+    Note over C,A: Phase 6: Payment Confirmation
+    alt Payment Success
+        CH->>O: ConfirmPayment(order_id)
+        O->>O: Update order status to "confirmed"
+        CH-->>G: Checkout completed successfully
+        G-->>F: Order confirmation
+        F-->>C: Display success page
+        
+        Note over C,A: Phase 7: Post-Payment Processing
+        par Notification
+            O-->>N: OrderConfirmed event
+            N->>N: Send confirmation email
+            N->>N: Send SMS notification
+        and Analytics
+            O-->>A: OrderCreated event
+            A->>A: Update sales metrics
+            A->>A: Track conversion
+        and Inventory Update
+            O-->>W: InventoryReserved event
+            W->>W: Update stock levels
+        end
+        
+    else Payment Failed
+        P-->>CH: Payment failed (reason)
+        CH->>W: ReleaseInventory(order_items)
+        W-->>CH: Inventory released
+        CH->>O: CancelOrder(order_id)
+        O-->>CH: Order cancelled
+        CH-->>G: Payment failed
+        G-->>F: Payment error
+        F-->>C: Display error message
+        
+        Note over C,A: Alternative: Retry Payment
+        C->>F: Try different payment method
+        F->>G: PUT /api/v1/checkout/payment-method
+        Note right of G: Return to Phase 3
+    end
+    
+    Note over C,A: Phase 8: Order Tracking Setup
+    alt Successful Order
+        O->>O: Generate tracking number
+        O-->>N: OrderTrackingReady event
+        N->>N: Send tracking information
+        N-->>C: Email with tracking details
+    end
+    
+    Note over C,A: Error Handling Scenarios
+    
+    rect rgb(255, 240, 240)
+        Note over CH,P: Timeout Handling
+        CH->>P: ProcessPayment(timeout: 30s)
+        P-->>CH: Timeout error
+        CH->>CH: Retry with exponential backoff
+        alt Retry Success
+            P-->>CH: Payment processed
+        else Max Retries Exceeded
+            CH->>O: CancelOrder(order_id)
+            CH-->>G: Payment timeout error
+        end
+    end
+    
+    rect rgb(240, 255, 240)
+        Note over W,O: Inventory Conflict
+        W-->>O: Insufficient inventory
+        O->>O: Partial order handling
+        O-->>CH: Inventory conflict
+        CH-->>G: Inventory error
+        G-->>F: Suggest alternatives
+        F-->>C: Update cart with available items
+    end
+    
+    rect rgb(240, 240, 255)
+        Note over P,CH: Payment Gateway Error
+        P->>P: Gateway unavailable
+        P->>P: Failover to backup gateway
+        alt Backup Success
+            P-->>CH: Payment processed
+        else All Gateways Failed
+            P-->>CH: Payment system error
+            CH-->>G: System maintenance mode
+        end
+    end

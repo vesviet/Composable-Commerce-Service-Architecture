@@ -1,7 +1,7 @@
 # 👤 Customer Account Management Workflow
 
-**Last Updated**: January 29, 2026  
-**Status**: Based on Actual Implementation  
+**Last Updated**: January 31, 2026  
+**Status**: Based on Actual Implementation (doc aligned with implementation per workflow review)  
 **Services Involved**: 8 services for complete account lifecycle  
 **Navigation**: [← Customer Journey](README.md) | [← Workflows](../README.md)
 
@@ -16,6 +16,23 @@ This document describes the complete customer account management workflow includ
 - **Objective**: Secure and seamless customer account experience
 - **Success Criteria**: High registration conversion, secure authentication, active user engagement
 - **Key Metrics**: Registration completion rate, login success rate, profile completeness
+
+### **Implementation Notes (API Routing & Current Behavior)**
+
+The following reflects the **actual implementation** as of the workflow review (2026-01-31):
+
+| Flow | Entry Point | Gateway Path | Service |
+|------|-------------|--------------|---------|
+| **Customer registration** | Customer Service | `POST /api/v1/customers/register` | Customer Service |
+| **Email verification** | Customer Service | `POST /api/v1/customers/verify-email` (or equivalent) | Customer Service |
+| **Customer login** | Auth Service or Customer Service | `POST /api/v1/auth/login` (userType=customer) or `POST /api/v1/customers/login` | Auth validates via Customer gRPC; Customer login calls Auth.GenerateToken |
+| **Admin login** | Auth Service | `POST /api/v1/auth/login` (userType=admin) | Auth validates via User Service gRPC |
+| **Token operations** | Auth Service | `POST /api/v1/auth/tokens/refresh`, validate, revoke | Auth Service |
+| **Password reset** | Customer Service | `POST /api/v1/customers/forgot-password`, `POST /api/v1/customers/reset-password` | Customer Service |
+| **Profile, addresses, preferences** | Customer Service | `GET/PUT /api/v1/customers/*` | Customer Service |
+
+- **JWT**: Auth Service uses **HS256** (symmetric) signing; short-lived access token and refresh token. Secret(s) via `JWT_SECRET` / `JWT_SECRETS`.
+- **Events**: Customer Service **consumes** `auth.login` and `auth.password_changed` (Dapr). Target event topics for analytics/loyalty: `auth.customer.registered`, `auth.customer.verified`, `auth.customer.login`, `auth.customer.logout` — publishers and subscriptions to be aligned with implementation.
 
 ---
 
@@ -40,44 +57,40 @@ This document describes the complete customer account management workflow includ
 ### **Phase 1: Customer Registration**
 
 #### **1.1 Registration Initiation**
-**Services**: Gateway → Auth → Customer → Notification
+**Services**: Gateway → **Customer Service** → Notification  
+**Implementation**: Entry point is **Customer Service**. Gateway path: `POST /api/v1/customers/register`.
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant G as Gateway
-    participant A as Auth Service
     participant CUS as Customer Service
     participant N as Notification Service
     participant Cache as Redis
     
-    C->>G: POST /auth/register
+    C->>G: POST /api/v1/customers/register
     Note over C: {email, password, first_name, last_name, phone}
     
     G->>G: Rate limiting (5 attempts/minute)
-    G->>A: RegisterCustomer(registration_data)
+    G->>CUS: Register(registration_data)
     
-    A->>A: Validate email format, password strength
-    A->>A: Check email uniqueness
+    CUS->>CUS: Validate email format, password strength
+    CUS->>CUS: Check email uniqueness
     
     alt Email already exists
-        A-->>G: Error: Email already registered
+        CUS-->>G: Error: Email already registered
         G-->>C: Registration failed
     else Email available
-        A->>A: Hash password (bcrypt)
-        A->>A: Generate verification token
-        A->>A: Create auth record (status: PENDING)
+        CUS->>CUS: Hash password (bcrypt)
+        CUS->>CUS: Generate verification token
+        CUS->>CUS: Create customer record (status: PENDING)
         
-        A->>CUS: CreateCustomerProfile(customer_data)
-        CUS->>CUS: Create customer record
-        CUS-->>A: Customer profile created
-        
-        A->>N: SendVerificationEmail(email, token)
+        CUS->>N: SendVerificationEmail(email, token)
         N->>N: Generate verification email
-        N-->>A: Email queued
+        N-->>CUS: Email queued
         
-        A->>Cache: StoreVerificationToken(token, ttl=24h)
-        A-->>G: Registration successful, verification required
+        CUS->>Cache: StoreVerificationToken(token, ttl=24h)
+        CUS-->>G: Registration successful, verification required
         G-->>C: Check email for verification
     end
 ```
@@ -90,41 +103,39 @@ sequenceDiagram
 - **Rate Limiting**: 5 registration attempts per minute per IP
 
 #### **1.2 Email Verification**
-**Services**: Gateway → Auth → Customer → Notification
+**Services**: Gateway → **Customer Service** → Loyalty, Notification  
+**Implementation**: Entry point is **Customer Service**. Gateway path: `POST /api/v1/customers/verify-email` (or equivalent with token).
 
 ```mermaid
 sequenceDiagram
     participant C as Customer
     participant G as Gateway
-    participant A as Auth Service
     participant CUS as Customer Service
     participant L as Loyalty Service
     participant N as Notification Service
     participant Cache as Redis
     
-    C->>G: GET /auth/verify?token={verification_token}
-    G->>A: VerifyEmail(token)
+    C->>G: POST /api/v1/customers/verify-email (token in body or query)
+    G->>CUS: VerifyEmail(token)
     
-    A->>Cache: GetVerificationToken(token)
+    CUS->>Cache: GetVerificationToken(token)
     alt Token valid and not expired
-        Cache-->>A: Token data
-        A->>A: Update auth status: VERIFIED
-        A->>CUS: ActivateCustomer(customer_id)
-        CUS->>CUS: Update customer status: ACTIVE
+        Cache-->>CUS: Token data
+        CUS->>CUS: Update customer status: ACTIVE (verified)
         
-        A->>L: CreateLoyaltyAccount(customer_id)
+        CUS->>L: CreateLoyaltyAccount(customer_id)
         L->>L: Create loyalty account with welcome bonus
-        L-->>A: Loyalty account created
+        L-->>CUS: Loyalty account created
         
-        A->>N: SendWelcomeEmail(customer_id)
-        N-->>A: Welcome email queued
+        CUS->>N: SendWelcomeEmail(customer_id)
+        N-->>CUS: Welcome email queued
         
-        A->>Cache: DeleteVerificationToken(token)
-        A-->>G: Verification successful
+        CUS->>Cache: DeleteVerificationToken(token)
+        CUS-->>G: Verification successful
         G-->>C: Account verified, redirect to login
     else Token invalid or expired
-        Cache-->>A: Token not found
-        A-->>G: Verification failed
+        Cache-->>CUS: Token not found
+        CUS-->>G: Verification failed
         G-->>C: Invalid or expired verification link
     end
 ```
@@ -140,7 +151,8 @@ sequenceDiagram
 ### **Phase 2: Authentication & Login**
 
 #### **2.1 Standard Login**
-**Services**: Gateway → Auth → Customer
+**Services**: Gateway → Auth (or Customer Service for customer-only path) → Customer/User  
+**Implementation**: Two paths: (1) **Auth Service** `POST /api/v1/auth/login` with `userType=admin|customer` — Auth validates via User or Customer gRPC and issues JWT; (2) **Customer Service** `POST /api/v1/customers/login` — Customer validates and calls Auth.GenerateToken. Both produce JWTs from Auth.
 
 ```mermaid
 sequenceDiagram
@@ -633,10 +645,10 @@ sequenceDiagram
 
 ### **Security Measures**
 - **Password Hashing**: bcrypt with salt rounds
-- **JWT Security**: RS256 signing, short-lived tokens
+- **JWT Security**: **HS256** (symmetric) signing, short-lived access token and refresh token; secrets via `JWT_SECRET` / `JWT_SECRETS` (min 32 chars in production)
 - **Rate Limiting**: Comprehensive rate limiting on all endpoints
-- **Session Security**: Secure HTTP-only cookies
-- **MFA Support**: TOTP and SMS-based authentication
+- **Session Security**: Secure HTTP-only cookies; session revocation on logout
+- **MFA Support**: TOTP and SMS-based authentication (implementation status: verify per service)
 
 ### **Compliance Features**
 - **GDPR Compliance**: Data export, deletion, consent management
@@ -695,6 +707,11 @@ sequenceDiagram
 ---
 
 ## 🔄 **Complete Account Management Event Flow**
+
+### **Implementation Note (Events)**
+
+- **Customer Service consumes**: `auth.login`, `auth.password_changed` (Dapr pub/sub) for last-login update and profile sync.
+- **Target event topics** (for analytics/loyalty): `auth.customer.registered`, `auth.customer.verified`, `auth.customer.login`, `auth.customer.logout` — publishers (Auth or Customer) and consumer subscriptions to be aligned with implementation.
 
 ### **Event Architecture Summary**
 
@@ -951,55 +968,64 @@ CREATE TABLE customer_preferences (
 
 ### **API Endpoints Summary**
 
-#### **Authentication Endpoints**
+Paths below are **Gateway paths** (prefix `/api/v1/`). Implementation routes **Auth Service** vs **Customer Service** as noted.
+
+#### **Auth Service** (Gateway prefix `/api/v1/auth/`)
 ```yaml
-# Registration & Verification
-POST /auth/register
-POST /auth/verify
-POST /auth/resend-verification
+# Login & Token Operations (admin and customer via userType)
+POST /api/v1/auth/login          # userType=admin|customer
+POST /api/v1/auth/logout
+POST /api/v1/auth/tokens/refresh
+POST /api/v1/auth/tokens/validate
+POST /api/v1/auth/tokens/revoke
 
-# Login & Logout
-POST /auth/login
-POST /auth/logout
-POST /auth/refresh
+# Current User
+GET /api/v1/auth/me (or GetCurrentUser)
 
-# OAuth
-GET /auth/oauth/{provider}
-GET /auth/oauth/callback
+# OAuth (implementation status: verify per service)
+GET /api/v1/auth/oauth/{provider}
+GET /api/v1/auth/oauth/callback
 
-# Password Management
-POST /auth/password/reset
-POST /auth/password/reset/confirm
-PUT /auth/password
-
-# MFA Management
-POST /auth/mfa/enable
-POST /auth/mfa/disable
-POST /auth/mfa/verify
-GET /auth/mfa/backup-codes
+# MFA (implementation status: verify per service)
+POST /api/v1/auth/mfa/enable
+POST /api/v1/auth/mfa/verify
 ```
 
-#### **Customer Management Endpoints**
+#### **Customer Service** (Gateway prefix `/api/v1/customers/`)
 ```yaml
+# Registration & Verification (customer entry point)
+POST /api/v1/customers/register
+POST /api/v1/customers/verify-email
+POST /api/v1/customers/resend-verification  # if implemented
+
+# Customer Login (alternative to Auth login with userType=customer)
+POST /api/v1/customers/login
+POST /api/v1/customers/refresh
+POST /api/v1/customers/validate              # internal Auth use
+
+# Password Management
+POST /api/v1/customers/forgot-password
+POST /api/v1/customers/reset-password
+
 # Profile Management
-GET /customers/profile
-PUT /customers/profile
-DELETE /customers/account
+GET /api/v1/customers/profile
+PUT /api/v1/customers/profile
+DELETE /api/v1/customers/account
 
 # Address Management
-GET /customers/addresses
-POST /customers/addresses
-PUT /customers/addresses/{id}
-DELETE /customers/addresses/{id}
+GET /api/v1/customers/addresses
+POST /api/v1/customers/addresses
+PUT /api/v1/customers/addresses/{id}
+DELETE /api/v1/customers/addresses/{id}
 
 # Preferences
-GET /customers/preferences
-PUT /customers/preferences
+GET /api/v1/customers/preferences
+PUT /api/v1/customers/preferences
 
 # Privacy & Data
-GET /customers/data-export
-POST /customers/consent
-GET /customers/dashboard
+GET /api/v1/customers/data-export
+POST /api/v1/customers/consent
+GET /api/v1/customers/dashboard
 ```
 
 ### **Caching Strategy**

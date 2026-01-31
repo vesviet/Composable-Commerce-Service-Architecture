@@ -51,6 +51,26 @@ Our customer journey documentation covers three critical phases of the customer 
 
 **Business Impact**: Customer satisfaction, inventory management, fraud prevention, cost optimization
 
+### **[Loyalty & Rewards](loyalty-rewards.md)**
+**Customer loyalty program and rewards journey**
+
+- **Scope**: Complete loyalty program participation from enrollment to redemption
+- **Services**: 6 services involved (Gateway, Loyalty, Customer, Order, Notification, Analytics)
+- **Duration**: Ongoing customer relationship with real-time points earning
+- **Key Features**: Points earning, tier progression, reward redemption, referral program
+
+**Business Impact**: Customer retention, lifetime value increase, repeat purchase encouragement
+
+### **[Product Reviews](product-reviews.md)**
+**Product review and rating customer experience**
+
+- **Scope**: Complete review lifecycle from submission to publication
+- **Services**: 6 services involved (Gateway, Review, Order, User, Notification, Analytics)
+- **Duration**: 5-30 minutes review submission, 1-24 hours moderation
+- **Key Features**: Review submission, content moderation, helpful voting, review discovery
+
+**Business Impact**: Customer trust, product feedback, purchase decision support
+
 ---
 
 ## 🔄 **Customer Journey Flow Overview**

@@ -2,9 +2,9 @@
 
 **Service Name**: Return Service  
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-29  
-**Review Status**: ✅ Reviewed - Order Logic Cleaned  
-**Production Ready**: 85% (Pending Security & Observability)  
+**Last Updated**: 2026-01-31  
+**Review Status**: ✅ Reviewed - Order Logic Cleaned; Checklist v3: docs/10-appendix/checklists/v3/return_service_checklist_v3.md  
+**Production Ready**: 85% (Pending server entry point, Security & Observability)  
 
 ---
 
@@ -63,7 +63,7 @@ return/
 │   │   ├── return_repo.go         # Return request repository
 │   │   └── return_item_repo.go   # Return item repository
 │   ├── service/                   # Service Layer (gRPC/HTTP)
-│   ├── server/                    # Server setup (HTTP/gRPC)
+│   ├── server/                    # HTTP/gRPC server, health, consul
 │   ├── config/                    # Configuration
 │   ├── client/                    # External service clients (stub)
 │   └── events/                    # Event publishing (stub)
@@ -73,7 +73,7 @@ return/
 └── configs/                       # Configuration files
 ```
 
-**Note**: All order-related models and repositories have been removed. Return Service now calls Order Service via gRPC to fetch order information.
+**Note**: All order-related models and repositories have been removed. Return Service now calls Order Service via gRPC to fetch order information. **Server entry point**: `cmd/return` (Kratos app + Wire); run with `make run` or `go run ./cmd/return -conf configs`. Health: `/health`, `/health/ready`, `/health/live`; metrics: `/metrics`.
 
 ### Ports & Endpoints
 - **HTTP API**: `:8006` - REST endpoints cho customer service và frontend

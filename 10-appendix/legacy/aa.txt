@@ -20,3 +20,13 @@ golangci-lint run
 commit và push
 
 Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name payment
+
+
+# Review single workflow
+Follow docs/07-development/standards/workflow-review-release-prompt.md and run the process for workflow **complete-order-flow** in category **sequence-diagrams**.
+
+# Review end-to-end workflow with services
+Follow docs/07-development/standards/end-to-end-workflow-review-prompt.md and run the complete workflow review for **complete-order-flow** in category **sequence-diagrams**.
+
+# Review all workflows in optimal order
+Follow docs/07-development/standards/workflow-review-sequence-guide.md and review workflows in the recommended sequence order.

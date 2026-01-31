@@ -17,6 +17,10 @@ This document describes the complete order fulfillment workflow including wareho
 - **Success Criteria**: Fast fulfillment, high accuracy, quality assurance
 - **Key Metrics**: Fulfillment time, accuracy rate, quality score, cost per shipment
 
+**Used in**: [Browse to Purchase (Customer Journey)](../customer-journey/browse-to-purchase.md) — Phase 5 Order Fulfillment (create fulfillment, pick, pack, QC, ship). This workflow doc provides the detailed fulfillment lifecycle; the customer journey doc shows the high-level sequence within the end-to-end flow.
+
+**Fulfillment creation trigger and idempotency**: Fulfillment is created when Order Service publishes event `order_status_changed` with `new_status == "confirmed"` (order confirmed and paid). Fulfillment Service subscribes to this topic and creates the fulfillment record; it also accepts a direct gRPC `CreateFulfillment` call. Both paths are **idempotent**: duplicate events or duplicate API calls for the same order return the existing fulfillment without creating a second one.
+
 ---
 
 ## 🏗️ **Service Architecture**
@@ -364,6 +368,17 @@ sequenceDiagram
 - **Completeness**: All accessories and documentation included
 - **Packaging Quality**: Secure and professional packaging
 - **Documentation**: Accurate packing slip and labels
+
+#### **3.4 QC Failure and Compensation**
+
+When QC inspection **fails** (e.g. wrong item, defect, missing photo), Fulfillment Service runs compensation so stock and stakeholders are consistent:
+
+1. **Status**: Fulfillment is updated with `QCPassed = false` (and optional `qc_failed` status if used).
+2. **Release stock**: Fulfillment calls Warehouse Service `ReleaseReservation(reservation_id)` so the reserved stock returns to available inventory for re-pick or replacement.
+3. **Notify**: Fulfillment publishes event `fulfillments.fulfillment.qc.failed` with `fulfillment_id`, `order_id`, `order_number`, `reason`, `checked_at`, and optional `reservation_id`. Notification Service (or other subscribers) can send alerts to staff or customers.
+4. **Return to packing** (optional): Per [fulfillment-shipping-flow.mmd](../sequence-diagrams/fulfillment-shipping-flow.mmd), the flow may return to packing for repack and re-inspect, or request replacement items from Warehouse.
+
+This aligns with Phase 4 of the fulfillment-shipping-flow sequence diagram (QC fail path and error handling).
 
 ---
 
