@@ -532,23 +532,30 @@ delivery:
 
 ### 📝 Code Review
 
-**Last Review**: 2026-01-29  
-**Review Document**: `docs/10-appendix/checklists/v2/notification_service_code_review.md`
+**Last Review**: 2026-01-31  
+**Review Document**: `docs/10-appendix/checklists/v3/notification_service_checklist_v3.md`
 
 **Key Findings**:
 - Clean Architecture implementation ✅
 - Good domain separation ✅
 - Common package usage ✅
-- Several TODO items need completion ⚠️
-- Low test coverage ⚠️
+- Wire and lint fixed (worker wire_gen, errcheck/gosimple/ineffassign) ✅
+- Several TODO items deferred (transaction extraction, soft delete, partial features) ⚠️
+- Test coverage skipped per review requirements ⚠️
 
 ### 🔄 Recent Updates
+
+**2026-01-31**:
+- Service review per docs/07-development/standards/service-review-release-prompt.md
+- Common package v1.9.0 → v1.9.1; go mod tidy; vendor synced
+- Worker wire regenerated (NewDeliveryUsecase + NotificationRepo)
+- Lint fixes: errcheck (logger.Log), gosimple (nil map check), ineffassign (env)
+- Checklist v3 created: `docs/10-appendix/checklists/v3/notification_service_checklist_v3.md`
 
 **2026-01-29**:
 - Updated common package from v1.7.3 → v1.8.3
 - Updated Kratos from v2.9.1 → v2.9.2
-- Code review completed
-- Checklist created in `docs/10-appendix/checklists/v2/`
+- Code review completed; checklist v2
 
 ---
 

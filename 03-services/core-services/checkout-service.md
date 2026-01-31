@@ -2,8 +2,8 @@
 
 **Service Name**: Checkout Service
 **Version**: 1.2.1
-**Last Updated**: 2026-01-29
-**Review Status**: ✅ **CODE REVIEW COMPLETE** - Linter clean, dependencies updated to latest tags, 13 TODOs tracked
+**Last Updated**: 2026-01-31
+**Review Status**: ✅ **CODE REVIEW COMPLETE** - Dependencies updated (no replace), build clean, checklist v3 aligned
 **Production Ready**: 🟢 **READY** - Code quality standards met, ready for production
 **Implementation Status**: ✅ **13 TODO items documented** (low priority - helper functions and future enhancements)
 
@@ -519,37 +519,29 @@ CHECKOUT_ENABLE_ADDRESS_VALIDATION=true
 
 ## 🔗 Dependencies
 
-### Go Modules (Updated January 29, 2026)
+### Go Modules (Updated January 31, 2026)
 ```go
 module gitlab.com/ta-microservices/checkout
 
 go 1.25.3
 
 require (
-    gitlab.com/ta-microservices/common v1.8.3
-    gitlab.com/ta-microservices/catalog v1.2.1
-    gitlab.com/ta-microservices/customer v1.0.2
-    gitlab.com/ta-microservices/order v1.0.2
-    gitlab.com/ta-microservices/payment v1.0.2
-    gitlab.com/ta-microservices/pricing v1.0.3
+    gitlab.com/ta-microservices/common v1.9.0
+    gitlab.com/ta-microservices/catalog v1.2.2
+    gitlab.com/ta-microservices/customer v1.0.7
+    gitlab.com/ta-microservices/order v1.0.6
+    gitlab.com/ta-microservices/payment v1.0.5
+    gitlab.com/ta-microservices/pricing v1.1.0-dev.1
     gitlab.com/ta-microservices/promotion v1.0.2
     gitlab.com/ta-microservices/shipping v1.1.0
-    gitlab.com/ta-microservices/warehouse v1.0.7
-    github.com/go-kratos/kratos/v2 v2.9.2
-    github.com/redis/go-redis/v9 v9.16.0
-    gorm.io/gorm v1.31.1
-    github.com/dapr/go-sdk v1.13.0
-    google.golang.org/protobuf v1.36.11
-    github.com/google/uuid v1.6.0
-    golang.org/x/sync v0.19.0
+    gitlab.com/ta-microservices/warehouse v1.0.8
+    // ... plus Kratos, Redis, GORM, Dapr, protobuf, etc.
 )
 ```
 
-**Dependency Updates** (January 29, 2026):
-- ✅ All gitlab.com/ta-microservices packages updated to latest stable tags
-- ✅ Catalog: v1.2.0-rc.1 → v1.2.1
-- ✅ Common: v1.8.3 (unchanged - already latest)
-- ✅ Other services: Updated to latest stable versions
+**Dependency Updates** (January 31, 2026):
+- ✅ All `replace` directives removed; dependencies use `go get @latest` (pricing v1.1.0-dev.1 for order/payment compatibility)
+- ✅ `go mod tidy` and `go mod vendor` run; production build passes
 
 ---
 
