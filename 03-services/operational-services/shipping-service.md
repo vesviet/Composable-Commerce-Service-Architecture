@@ -2,7 +2,9 @@
 
 **Service Name**: Shipping Service  
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-29  
+**Last Updated**: 2026-01-31  
+**Service Type**: Operational  
+**Status**: Active  
 **Production Ready**: 90% (Core functionality complete, testing and additional carriers needed)  
 
 ---
@@ -49,28 +51,29 @@ Shipping Service quản lý tất cả carrier integrations và shipment logisti
 ```
 shipping/
 ├── cmd/shipping/                 # Main service entry point
+├── cmd/worker/                   # Background workers
+├── cmd/migrate/                  # Database migration (goose)
 ├── internal/
 │   ├── biz/                      # Business logic domains
-│   │   ├── carrier/              # Carrier integrations
-│   │   │   ├── ghn/             # GHN integration
-│   │   │   ├── grab/            # Grab integration
-│   │   │   ├── vnpay/           # VNPay integration
-│   │   │   └── momo/            # MoMo integration
-│   │   ├── shipment/             # Shipment management
-│   │   ├── rate/                 # Rate calculation
-│   │   └── tracking/             # Tracking integration
-│   ├── data/                     # Data access (PostgreSQL)
+│   │   ├── carrier/              # Carrier biz
+│   │   ├── shipment/             # Shipment management, returns, events
+│   │   └── shipping_method/      # Rate calculation, cache
+│   ├── data/                     # Data access (postgres, cache, redis, eventbus)
 │   ├── service/                  # gRPC/HTTP API layer
-│   └── client/                   # External carrier APIs
+│   ├── client/                   # Catalog gRPC client
+│   ├── carrier/                  # Carrier implementations (GHN, Grab)
+│   ├── constants/                # Event topics
+│   └── events/                   # Event types
 ├── api/shipping/v1/              # Protocol buffers
-├── migrations/                   # Database schema
+├── migrations/                   # Database schema (Goose)
 └── configs/                      # Configuration
 ```
 
 ### Ports & Dependencies
-- **HTTP API**: `:8010` - REST endpoints
-- **gRPC API**: `:9010` - Internal communication
+- **HTTP API**: `:8000` - REST endpoints (config: `server.http.addr`)
+- **gRPC API**: `:9000` - Internal communication (config: `server.grpc.addr`)
 - **Database**: PostgreSQL (`shipping_db`)
+- **Cache**: Redis
 - **External APIs**: GHN, Grab, VNPay, MoMo carrier APIs
 
 ---

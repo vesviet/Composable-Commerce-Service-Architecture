@@ -41,8 +41,7 @@ Pricing Service là **core service** quản lý tất cả logic về giá, disc
 - **📈 Dynamic Pricing**: Stock-based và demand-based pricing adjustments
 
 ### ⚠️ Known Issues
-- **[P1-7] Concurrency**: `BulkUpdatePriceAsync` uses unmanaged goroutine. Will be fixed in v1.0.4.
-- **Dependency**: Reverted `common` to v1.8.0 due to issues in v1.8.5.
+- **[P1-7] Concurrency**: `BulkUpdatePriceAsync` uses unmanaged goroutine. Will be fixed in v1.0.7.
 
 ### Business Value
 - **Centralized Pricing**: Single source of truth cho tất cả pricing data
@@ -578,5 +577,5 @@ make wire
 ---
 
 **Last Updated**: 2026-01-30  
-**Version**: 1.0.5  
+**Version**: 1.0.6  
 **Maintainer**: Pricing Service Team

@@ -1,7 +1,7 @@
 # Pricing Service - Code Review Checklist v3
 
 **Service**: Pricing Service  
-**Version**: 1.0.0  
+**Version**: 1.0.6  
 **Last Updated**: 2026-01-31  
 **Status**: Production Ready (with pending concurrency fix)
 
@@ -473,6 +473,20 @@
 - ✅ `internal/data/postgres/price.go` - Removed unused variables
 
 **Result**: `golangci-lint run` passes with no violations.
+
+---
+
+### [V3-4] Update Common Dependency to v1.9.0
+**Status**: ✅ COMPLETED  
+**Priority**: HIGH  
+**Effort**: 15 minutes  
+**Completed**: 2026-01-31  
+
+**Description**: Updated `common` to v1.9.0 (fixing issues with v1.8.5).
+
+**Changes**:
+- ✅ Updated `gitlab.com/ta-microservices/common` to v1.9.0
+- ✅ Verified build and linting
 
 ---
 
