@@ -2,15 +2,15 @@
 
 **Service Name**: Loyalty-Rewards Service  
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-22  
-**Review Status**: ❌ Reviewed (Major architectural issues - needs refactoring)  
-**Production Ready**: 25%  
+**Last Updated**: 2026-01-31  
+**Review Status**: ✅ Reviewed (see [loyalty-rewards_service_checklist_v3.md](../../10-appendix/checklists/v3/loyalty-rewards_service_checklist_v3.md))  
+**Production Ready**: 95% (entry point `cmd/loyalty-rewards` missing in repo; architecture complete)  
 
 ---
 
 ## 📋 Table of Contents
 - [Overview](#-overview)
-- [Architecture Issues](#-architecture-issues)
+- [Architecture](#-architecture)
 - [Multi-Domain APIs](#-multi-domain-apis)
 - [Database Schema](#-database-schema)
 - [Business Logic](#-business-logic)
@@ -41,37 +41,22 @@ Loyalty-Rewards Service quản lý toàn bộ loyalty program trong e-commerce p
 - **Referral Marketing**: Viral growth through customer referrals
 - **Data-Driven**: Analytics for loyalty program optimization
 
-### Critical Architecture Issues 🚨
-Service hiện tại có **major architectural problems**:
-- **Monolithic Structure**: Single service thay vì multi-domain
-- **No Common Package**: Missing common package integration
-- **Missing Repository Layer**: No proper data abstraction
-- **No Service Layer**: Direct business logic exposure
-- **No Tests**: Zero test coverage
+### Architecture Summary
+- **Clean Architecture**: biz / data / service / client / events layers
+- **Multi-Domain**: account, transaction, tier, reward, redemption, referral, campaign
+- **Common Package**: Uses `gitlab.com/ta-microservices/common` (events, transaction, cache)
+- **Repository Pattern**: Interfaces in `internal/repository`, implementations in `internal/data/postgres`
+- **Event Publishing**: Dapr pub/sub via common/events; topic constants in `internal/constants`
+- **Note**: `cmd/loyalty-rewards` (main.go, wire) may be in a separate repo or pending; Makefile expects it for build/run
 
 ---
 
-## 🚨 Architecture Issues
+## 🏗️ Architecture
 
-### Current State (❌ BROKEN)
+### Current State (✅ IMPLEMENTED)
 ```
 loyalty-rewards/
-├── cmd/loyalty-rewards/main.go    # Single entry point (monolithic)
-├── internal/
-│   ├── biz/                      # Business logic (exists but incomplete)
-│   │   ├── account/             # Some domains exist
-│   │   ├── transaction/
-│   │   └── ...
-│   └── data/                     # Data layer (missing repository abstraction)
-│       └── postgres/            # Direct DB access (no interfaces)
-├── api/                          # Proto definitions (good structure)
-└── migrations/                   # DB schema (exists)
-```
-
-### Required State (✅ TARGET)
-```
-loyalty-rewards/
-├── cmd/loyalty-rewards/           # Main service entry point
+├── cmd/loyalty-rewards/           # Entry point (missing in repo; add main.go, wire.go)
 ├── internal/
 │   ├── biz/                       # Business Logic Layer (7 domains)
 │   │   ├── account/               # Account management domain
@@ -81,27 +66,26 @@ loyalty-rewards/
 │   │   ├── redemption/            # Redemption processing domain
 │   │   ├── referral/              # Referral program domain
 │   │   ├── campaign/              # Bonus campaigns domain
-│   │   └── events/                # Event publishing domain
+│   │   └── events/                # Event publishing (Dapr)
 │   ├── data/                      # Data Access Layer
 │   │   ├── postgres/              # PostgreSQL repositories
-│   │   └── redis/                 # Redis for caching
-│   ├── service/                   # Service Layer (gRPC/HTTP)
-│   ├── server/                    # Server setup
-│   ├── middleware/                # HTTP middleware
+│   │   └── redis/                 # Redis client
+│   ├── repository/                # Repository interfaces
+│   ├── cache/                     # Account, reward, tier cache
+│   ├── service/                   # gRPC/HTTP service layer
+│   ├── server/                    # HTTP, gRPC, Consul
+│   ├── client/                    # Order, customer, notification clients
+│   ├── constants/                 # Status, types, event topics
 │   ├── config/                    # Configuration
-│   └── constants/                 # Constants & enums
-├── api/                           # Protocol Buffers (7 domain services)
-├── migrations/                    # Database migrations
-└── configs/                       # Environment configs
+│   ├── observability/             # Metrics, tracing
+│   └── jobs/                      # Points expiration job
+├── api/loyalty/v1/                # Protocol Buffers
+├── migrations/                    # Goose migrations
+└── configs/                       # config.yaml, config-docker.yaml
 ```
 
-### Immediate Refactoring Required
-1. **❌ Import Common Package**: Service missing `gitlab.com/ta-microservices/common`
-2. **❌ Implement Repository Pattern**: Add proper data abstraction layer
-3. **❌ Create Service Layer**: Add gRPC/HTTP service implementations
-4. **❌ Add Wire Dependency Injection**: Replace manual DI
-5. **❌ Implement Multi-Domain Architecture**: Split monolithic structure
-6. **❌ Add Comprehensive Tests**: Zero test coverage currently
+### Checklist & Review
+See [loyalty-rewards_service_checklist_v3.md](../../10-appendix/checklists/v3/loyalty-rewards_service_checklist_v3.md) for P0/P1/P2 issues, dependencies (no replace), lint/build status, and docs.
 
 ---
 

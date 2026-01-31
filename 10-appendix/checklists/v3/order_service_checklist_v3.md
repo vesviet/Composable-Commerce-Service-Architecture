@@ -27,12 +27,12 @@ The order service implements order lifecycle management (cart, checkout, order, 
 - **Layout:** `cmd/order` (main.go, wire.go, wire_gen.go), `internal/biz` (order, cancellation, order_edit, status, validation), `internal/data` (postgres, eventbus, grpc_client), `internal/service`, `internal/client`, `internal/events`, `internal/constants`, `internal/repository`, `internal/model`, `internal/server`, `internal/middleware`, `internal/security`, `internal/observability`
 - **Proto:** API types from `api/order/v1` (generated/vendored); `make api` uses API_PROTO_FILES from api/
 - **Constants:** `internal/constants/constants.go` – event topics, cache keys, status strings, TTLs, saga state
-- **go.mod:** `gitlab.com/ta-microservices/order`, requires `common v1.8.8`, **replace** for `common`, `shipping`, `payment`
+- **go.mod:** `gitlab.com/ta-microservices/order`, requires `common v1.8.8`; no replace (removed); use `go get` for dependencies.
 
 ### 1.2 Review vs Standards
 
 - **Coding Standards:** Context first param, error wrapping, constants used (no magic strings in constants), interfaces in biz implemented in data, layers respected. ✅
-- **Team Lead Guide:** Biz does not call DB directly; service layer thin; DI (Wire). **Build broken** – see P1. ✅/⚠️
+- **Team Lead Guide:** Biz does not call DB directly; service layer thin; DI (Wire). Build passes (no replace). ✅
 - **Development Checklist:** Error handling, context propagation, validation, security (input sanitization, PII masker present). ✅
 
 ### 1.3 P0 / P1 / P2 Issues
@@ -64,9 +64,9 @@ The order service implements order lifecycle management (cart, checkout, order, 
 
 ## 3. Dependencies (Go Modules)
 
-- **Current:** `common v1.8.8`; **replace** for `common`, `shipping`, `payment` (lines 179–185 in go.mod).
+- **Current:** `common v1.8.8`; no replace; `go mod tidy` and `go mod vendor` run.
 - **Required:** Do not use `replace` for gitlab.com/ta-microservices; use `go get ...@<tag>`.
-- **Status:** Replace removed; `go mod tidy` and `go mod vendor` run; build succeeds.
+- **Status:** Replace removed; build succeeds.
 
 ---
 

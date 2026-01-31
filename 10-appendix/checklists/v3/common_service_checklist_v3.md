@@ -5,6 +5,33 @@
 **Last Updated**: 2026-01-30
 **Status**: P1 & P2 Issues Completed - Ready for Production
 
+**Cleanup plan**: See [common-package-cleanup-plan.md](./common-package-cleanup-plan.md). Common is base-only; no domain interfaces/DTOs; types per service.
+
+---
+
+### [P1-Cleanup] Remove domain interfaces/models from common/services
+**Status**: ✅ COMPLETED
+**Priority**: P1
+**Completed**: 2026-01-31
+
+**Description**: Domain service interfaces and DTOs removed from common; each service defines its own interfaces and uses types from owning services.
+
+**Current State**:
+- ✅ Package `common/services` removed (interfaces and models).
+- ✅ Checkout and return migrated off common/services (local interfaces and types).
+- ✅ Client slimmed to `CreateClient(serviceName, target)` only; events to BaseEvent + constants; validation/utils constants deprecated as documented.
+
+### [P1-Cleanup-Full] Full removal of deprecated code (validators + constants)
+**Status**: ✅ COMPLETED
+**Priority**: P1
+**Completed**: 2026-01-31
+
+**Description**: Deprecated validators and domain constants fully removed from common; internal usage moved to package-local constants.
+
+**Current State**:
+- ✅ **Validation**: Removed `ValidateCustomerID`, `ValidatePaymentMethodID`, `ValidatePayment`. Renamed `ValidatePaymentMethod` → `ValidateAllowedValue(value, allowedValues)`.
+- ✅ **utils/constants**: Removed Task*, Media*, ValidVisibility/ValidBrandTag/ValidMarginType/ValidProductType, StatusWaitingForApprove. Package-local constants added in `utils/image`, `utils/file`, `utils/csv` for internal use.
+
 ---
 
 ## 🔴 CRITICAL PRIORITY (P0 - Blocking Production)
@@ -191,11 +218,9 @@
    - TODO: Implement gRPC health checker
    - TODO: Implement disk space health checker
 
-2. **Service Client TODOs** (`client/service_clients.go`)
-   - TODO: Replace with actual protobuf call (10 instances)
-   - Methods: GetUser, ValidateUser, GetProduct, GetProductBySKU, etc.
+2. **Service clients**: `client/service_clients.go` was removed in common cleanup (base-only). Each service now creates gRPC clients via `CreateClient(serviceName, target)` and implements its own adapters; no central domain clients in common.
 
-**Impact**: Incomplete service integrations
+**Impact**: N/A (cleanup completed)
 
 ## ✅ COMPLETED ITEMS
 

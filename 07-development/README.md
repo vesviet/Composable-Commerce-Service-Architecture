@@ -9,6 +9,8 @@
 ## 📋 Quick Navigation
 
 ### **Development Standards**
+- **[Coding Standards](standards/coding-standards.md)** - Single reference for developers & AI agents when coding
+- **[Service Review & Release Prompt](standards/service-review-release-prompt.md)** - Single prompt/process for reviewing and releasing any service
 - **[Code Review Guide](standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md)** - Code review standards and checklist
 - **[Common Package Usage](standards/common-package-usage.md)** - Shared library guidelines
 - **[Platform Engineering](standards/platform-engineering/README.md)** - Platform-level development standards

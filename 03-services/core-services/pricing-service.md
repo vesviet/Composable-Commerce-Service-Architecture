@@ -1,7 +1,7 @@
 # 💰 Pricing Service - Complete Documentation
 
 **Service Name**: Pricing Service  
-**Version**: 1.0.3  
+**Version**: 1.0.5  
 **Last Updated**: 2026-01-31  
 **Review Status**: 🟢 Production Ready (with pending concurrency fix)
 **Production Ready**: 94% (16/17 issues completed)  
@@ -578,5 +578,5 @@ make wire
 ---
 
 **Last Updated**: 2026-01-30  
-**Version**: 1.0.3  
+**Version**: 1.0.5  
 **Maintainer**: Pricing Service Team
