@@ -2,8 +2,8 @@
 
 **Service Name**: Pricing Service  
 **Version**: 1.0.3  
-**Last Updated**: 2026-01-30  
-**Review Status**: 🟢 Production Ready  
+**Last Updated**: 2026-01-31  
+**Review Status**: 🟢 Production Ready (with pending concurrency fix)
 **Production Ready**: 94% (16/17 issues completed)  
 
 ---
@@ -39,6 +39,10 @@ Pricing Service là **core service** quản lý tất cả logic về giá, disc
 - **🔄 Price Sync**: Real-time sync prices to Catalog service (600x faster than API calls)
 - **🌍 Multi-Currency**: Currency conversion với exchange rate support
 - **📈 Dynamic Pricing**: Stock-based và demand-based pricing adjustments
+
+### ⚠️ Known Issues
+- **[P1-7] Concurrency**: `BulkUpdatePriceAsync` uses unmanaged goroutine. Will be fixed in v1.0.4.
+- **Dependency**: Reverted `common` to v1.8.0 due to issues in v1.8.5.
 
 ### Business Value
 - **Centralized Pricing**: Single source of truth cho tất cả pricing data

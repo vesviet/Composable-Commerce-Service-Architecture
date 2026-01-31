@@ -2,10 +2,19 @@
 
 **Service**: Pricing Service  
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-30  
-**Status**: Production Ready - All issues completed except tests (skipped per user request)
+**Last Updated**: 2026-01-31  
+**Status**: Production Ready (with pending concurrency fix)
 
 ---
+
+## 🆕 NEWLY DISCOVERED ISSUES (2026-01-31)
+
+### [P1-7] Unmanaged Goroutine in Bulk Update
+**Status**: 🔴 PENDING
+**Priority**: P1 - HIGH
+**Description**: `BulkUpdatePriceAsync` in `internal/biz/price/price.go` spawns a goroutine using `go func(...)`. This is unmanaged and can lead to lost work during graceful shutdown.
+**Required Action**: Use `errgroup` or a proper worker pool.
+
 
 ## 🔴 CRITICAL PRIORITY (P0 - Blocking Production)
 
