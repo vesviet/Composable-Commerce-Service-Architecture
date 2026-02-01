@@ -70,7 +70,7 @@ Checkout Service là microservice chuyên biệt xử lý quy trình checkout v�
 | CHK-CLIENT-005 | ✅ | Catalog Service Integration - Real gRPC client với GetProduct & GetProductPrice |
 | CHK-CLIENT-006 | ✅ | Warehouse Service Integration - Real gRPC clients for inventory & reservations |
 | CHK-CLIENT-007 | ✅ | Promotion Service Integration - Real gRPC client với ValidatePromotions |
-| CHK-CLIENT-008 | ⏳ | **PENDING** - Customer Service Integration (external dependency) |
+| CHK-CLIENT-008 | ✅ | Customer Service Integration - Real gRPC client với GetAddress & GetCustomerSegments |
 
 ### 🟡 MEDIUM PRIORITY - Infrastructure (4/4 completed)
 

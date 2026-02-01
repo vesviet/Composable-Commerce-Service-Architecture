@@ -1,22 +1,37 @@
 # Checkout Service Review Checklist v3
 
 **Service**: checkout  
-**Version**: (see go.mod)  
-**Review Date**: 2026-01-31  
-**Last Updated**: 2026-01-31  
-**Reviewer**: AI Code Review Agent  
-**Status**: ✅ COMPLETED - Dependencies Updated, Build Successful, Code Committed & Tagged v1.2.4
+**Version**: 1.2.5  
+**Review Date**: 2026-02-01  
+**Last Updated**: 2026-02-01  
+**Reviewer**: Antigravity  
+**Status**: 🟢 ACTIVE - Architectural issue in ConfirmCheckout resolved. Production code lint clean. Test sync remains P1.
 
 ---
 
-## Executive Summary
+## 🚩 PENDING ISSUES (Unfixed)
 
-The checkout service implements cart management and checkout orchestration (StartCheckout, GetCheckout, Update*, PreviewOrder, ConfirmCheckout) following Clean Architecture with biz/data/service/client/adapter/events layers. Constants are in `internal/constants` (business.go, constants.go). The codebase was reviewed against Coding Standards, Team Lead Code Review Guide, and Development Review Checklist. **Replace directives removed**; dependencies updated via `go get @latest` (pricing kept at v1.1.0-dev.1 for order/payment compatibility); **go mod vendor** run. **Production build passes** (`go build ./...`). Lint reports typecheck errors **only in test/mock code** (mocks out of sync with current gRPC client interfaces and biz types); no test-case tasks added per review requirements.
+| Severity | ID / Location | Description | Required Action |
+|----------|---------------|-------------|-----------------|
+| **🟡 P1** | `internal/biz/cart/*_test.go`, `mocks_test.go` | **Test Sync:** Test mocks reference undefined types and wrong struct fields. Mocks for Pricing/Promotion/Shipping/Payment do not match current interface signatures. | Regenerate/Update mocks to match current interfaces. |
+| **🟡 P1** | `internal/biz/checkout/*_test.go`, `mocks_test.go` | **Test Sync:** Same as above for checkout sub-package. | Regenerate/Update mocks. |
 
-**Overall Assessment:** 🟢 READY FOR PRODUCTION
-- **Strengths:** Clean Architecture, TransactionManager for atomic cart/checkout, centralized constants, health/metrics, Wire DI, Dapr events, circuit breakers, saga-style compensation
-- **Resolved:** Dependencies updated to latest, build clean, committed and tagged v1.2.4
-- **Remaining (P2):** Test mocks out of sync (optional to fix)
+---
+
+## 🆕 NEWLY DISCOVERED ISSUES
+
+| Category | Issue Title | Description | Suggested Fix |
+|----------|-------------|-------------|---------------|
+| **Docs** | Outdated Status | `docs/03-services/core-services/checkout-service.md` shows Customer Service as PENDING, but it is implemented. | Update documentation to reflect correct status. |
+
+---
+
+## ✅ RESOLVED / FIXED
+
+| **Architecture** | Refactored `ConfirmCheckout` to move external service calls outside local DB transactions. |
+| **Clean Code** | Removed leftover agent logs, hardcoded paths, and unused code. |
+| **Linter** | `golangci-lint` passes for all production code after removing dead code and fixing fmt.Sprintf issues. |
+| **Build** | `wire gen ./...` and `go build ./...` confirmed successful. |
 
 ---
 
@@ -25,78 +40,56 @@ The checkout service implements cart management and checkout orchestration (Star
 ### 1.1 Codebase Index
 
 - **Directory:** `checkout/`
-- **Layout:** `internal/biz` (cart, checkout), `internal/data` (cart_repo, checkout_repo, outbox, failed_compensation), `internal/service`, `internal/client`, `internal/adapter` (catalog, customer, payment, pricing, promotion, shipping, warehouse), `internal/events`, `internal/constants`, `internal/config`, `internal/server`, `internal/middleware`, `internal/cache`, `internal/observability`, `internal/repository` (cart, checkout, failed_compensation)
+- **Layout:** `internal/biz` (split into sub-packages), `internal/data` (repositories, transaction manager), `internal/service`, `internal/client`, `internal/adapter`, `internal/worker`, `internal/constants`.
 - **Proto:** `api/checkout/v1/cart.proto`, `checkout.proto`
-- **Constants:** `internal/constants/constants.go` (events, cache keys, statuses), `internal/constants/business.go` (limits, timeouts)
-- **go.mod:** `module gitlab.com/ta-microservices/checkout`; requires common v1.9.0, catalog, customer, order, payment, pricing v1.1.0-dev.1, promotion, shipping, warehouse; **replace removed**
-- **Entry point:** `cmd/server/` (main, wire), `cmd/worker/`, `cmd/migrate/`; `go build ./...` succeeds
+- **Constants:** `internal/constants/constants.go`, `internal/constants/business.go`
+- **go.mod:** `module gitlab.com/ta-microservices/checkout`; **replace removed**.
+- **Entry point:** `cmd/server/`, `cmd/worker/`, `cmd/migrate/`.
 
 ### 1.2 Review vs Standards
 
-- **Coding Standards:** Context first param, error wrapping, constants used; interfaces in biz implemented in data; layers respected. ✅
-- **Team Lead Guide:** Biz does not call DB directly; service layer thin; DI (Wire). TransactionManager for multi-write (cart add/update/remove/merge, checkout confirm). Health: /health, /health/ready, /health/live. ✅
-- **Development Checklist:** Error handling, context propagation; parameterized queries; no raw SQL with user input. ✅
-
-### 1.3 P0 / P1 / P2 Issues
-
-| Severity | ID / Location | Description |
-|----------|----------------|-------------|
-| ~~**P1**~~ | go.mod | **FIXED:** Replace directives removed; `go get ...@latest` (pricing @v1.1.0-dev.1); `go mod tidy` and `go mod vendor` run. |
-| **P2** | internal/biz/cart/*_test.go, mocks_test.go | Test mocks reference undefined types (e.g. biz.ShippingRateResponse, PriceCalculation) and wrong struct fields (ServiceCode vs current ShippingRate). Mocks for Pricing/Promotion/Shipping/Payment and CheckoutSessionRepo do not match current interface signatures. Production code builds; fix when updating tests. |
-| **P2** | internal/biz/checkout/*_test.go, mocks_test.go | Same: MockCheckoutSessionRepo.Create signature (want error-only return); MockPaymentService.ValidatePaymentMethodOwnership (string, string vs int64, string); gRPC client mocks missing methods (BulkCalculatePrice, ActivateCampaign, AssignShipment). |
-| **P2** | Lint | `golangci-lint run ./...` fails only due to typecheck in test packages; `go build ./...` (production) passes. |
+- **Coding Standards:** Layer separation and transaction boundaries respected. ✅
+- **Team Lead Guide:** DI via Wire used. Health probes in place. gRPC/HTTP dual protocol supported. ✅
+- **Development Checklist:** Error handling and context propagation follow standards. SQL injection prevention via GORM. ✅
 
 ---
 
 ## 2. Checklist & Todo for Checkout Service
 
-- [x] Architecture: Clean layers (biz / data / service / client / adapter / events)
-- [x] Constants: Centralized in `internal/constants` (events, cache, business limits)
+- [x] Architecture: Clean layers (biz / data / service / client / adapter)
+- [x] Constants: Centralized in `internal/constants`
 - [x] Context & errors: Propagated and wrapped
-- [x] **Dependencies:** Replace removed; `go get` @latest (pricing v1.1.0-dev.1); `go mod tidy` and `go mod vendor` run.
-- [x] **Build:** `make api`, `go build ./...` succeed.
-- [ ] **Lint (tests):** Test mocks and types need sync with current APIs for zero golangci-lint (P2). **Skipped:** test-case fixes omitted per request.
-- [x] **Health:** `/health`, `/health/ready`, `/health/live` (common observability/health).
-- [x] Docs: Checklist (this file); service doc and README updated (see step 5).
-
-*Test-case tasks omitted per review requirements.*
+- [x] **Dependencies:** Replace removed; `go get` @latest; `go mod tidy` run.
+- [x] **Build:** `wire gen`, `go build ./...` succeed.
+- [ ] **Lint (tests):** Test mocks out of sync (P1).
+- [x] **Health:** `/health`, `/health/ready`, `/health/live` implemented.
+- [x] Docs: Checklist updated; service doc and README verified.
 
 ---
 
 ## 3. Dependencies (Go Modules)
 
-- **Current:** common v1.9.0, catalog v1.2.2, customer v1.0.7, order v1.0.6, payment v1.0.5, pricing v1.1.0-dev.1, promotion v1.0.2, shipping v1.1.0, warehouse v1.0.8; **replace removed** (go mod tidy + go mod vendor run).
-- **Note:** pricing v1.1.0-dev.1 required by order/payment; do not downgrade to v1.0.x for checkout.
-- **Action:** Do not re-add `replace` for gitlab.com/ta-microservices; use `go get ...@<tag>` and publish tags for local deps.
+- **Status:** All `replace` directives removed.
+- **Action:** Use `go get gitlab.com/ta-microservices/<service>@latest` for all internal modules.
 
 ---
 
 ## 4. Lint & Build
 
-- **Lint:** `golangci-lint run ./...` — **FAILS** only in test code (typecheck: undefined types, interface mismatches in mocks). Production packages build and are lint-clean for non-test code.
-- **Build:** `make api`, `go build ./...` — **PASSED** (2026-01-31).
-- **Wire:** No `make wire` target in Makefile; `make generate` runs `go generate`. Wire gen present in cmd/server and cmd/worker.
+- **Lint:** `golangci-lint run ./... --tests=false` passes successfully. Test code still has mock mismatches (P1).
+- **Build:** `go build ./...` passed (2026-02-01).
+- **Wire:** `wire gen ./...` successfully executed for `server` and `worker`.
 
 ---
 
 ## 5. Docs
 
-- **Service doc:** `docs/03-services/core-services/checkout-service.md` — present and detailed; aligned with template (Overview, Architecture, API, Data, Config, Deployment, Monitoring, Troubleshooting).
-- **README:** `checkout/README.md` — present with Quick Start, API, Config, Testing, Build & Deploy; link to service doc.
+- **Service doc:** `docs/03-services/core-services/checkout-service.md` updated to reflect Customer Service as Active.
+- **README:** `checkout/README.md` verified.
 
 ---
 
 ## 6. Commit & Release
 
-- **Commit:** Use conventional commits: `feat(checkout): …`, `fix(checkout): …`, `docs(checkout): …`.
-- **Release (optional):** If tagging: update CHANGELOG.md, then `git tag -a v1.x.x -m "v1.x.x: description"`, `git push origin main && git push origin v1.x.x`.
-
----
-
-## Summary
-
-- **Process:** Index → review (3 standards) → checklist v3 (no test-case tasks) → **replace removed, go get @latest, go mod tidy, go mod vendor** → make api, go build ✅ → docs updated → commit/release steps documented.
-- **Production:** Build clean; health and metrics in place; dependencies on published modules without replace.
-- **Follow-up (P2):** Align test mocks and test-only types with current biz and gRPC client interfaces to achieve zero golangci-lint on full `./...` (skipped per request).
-- **Resolved (2026-01-31):** All production-code TODOs fixed: validation.go (discount/description from Coupon), totals.go (comments), calculations.go (shipping via CalculateRates), preview.go (shipping options via calculateShippingRates), warehouse_adapter (comment), promotion.go, refresh.go, cart_cleanup_retry.go, stubs.go.
-- **Latest Release:** v1.2.4 (2026-02-01) - Updated dependencies and regenerated code
+- **Commit:** `feat(checkout): remove debug logs and update review checklist`
+- **Tag:** (Pending User Approval)
