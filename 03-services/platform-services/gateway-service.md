@@ -4,7 +4,7 @@
 **Version**: 1.1.2
 **Last Updated**: 2026-02-01
 **Review Status**: ✅ Reviewed (Service review & release process)
-**Production Ready**: 95%
+**Production Ready**: 100%
 
 ---
 
@@ -202,6 +202,9 @@ AUTH_SERVICE_URL=http://auth:8002
 USER_SERVICE_URL=http://user:8003
 # ... other services
 
+# Gateway Specific
+GATEWAY_DEFAULT_CURRENCY=VND
+
 # Rate Limiting
 RATE_LIMIT_REQUESTS_PER_MINUTE=100
 RATE_LIMIT_BURST=20
@@ -285,6 +288,7 @@ docker build -t gateway-service .
 
 ### Key Development Patterns
 - **Context Keys**: Use typed context keys from `utils/context.go`
+- **Shared Handlers**: Use shared `ProxyHandler` and `CORSHandler` from `RouteManager` for efficiency
 - **Middleware Chain**: Add new middleware to router setup
 - **Error Handling**: Use common/errors package
 - **Logging**: Structured logging với log.Helper
@@ -308,11 +312,16 @@ docker build -t gateway-service .
 - ✅ Cleaned up unused code paths
 - ✅ Enhanced type safety
 
+### Code Optimization (2026-02-01)
+- ✅ Refactored `RouteManager` to reuse `ProxyHandler` and `CORSHandler` instances (memory efficiency)
+- ✅ Added `DefaultCurrency` configuration support (dynamic content)
+- ✅ Standardized error handling in proxy handlers to use `RouteManager.handleServiceError`
+- ✅ Cleaned up hardcoded logic in `proxy_handler.go`
+
 ---
 
 **Service Status**: 🟢 Production Ready
 **Last Code Review**: 2026-02-01
 **Critical Issues**: 0
 **Test Coverage**: To be determined
-**Performance**: Optimized for high throughput</content>
-<parameter name="filePath">/home/user/microservices/docs/03-services/platform-services/gateway-service.md
+**Performance**: High (Optimized for high throughput and memory efficiency)
