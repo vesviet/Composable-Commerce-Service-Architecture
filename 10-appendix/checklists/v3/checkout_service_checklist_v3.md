@@ -1,11 +1,11 @@
 # Checkout Service Review Checklist v3
 
 **Service**: checkout  
-**Version**: 1.2.5  
+**Version**: 1.2.6  
 **Review Date**: 2026-02-01  
 **Last Updated**: 2026-02-01  
-**Reviewer**: Antigravity  
-**Status**: 🟢 ACTIVE - Architectural issue in ConfirmCheckout resolved. Production code lint clean. Test sync remains P1.
+**Reviewer**: GitHub Copilot  
+**Status**: 🟢 ACTIVE - CartService HTTP routes registered. Production code lint clean. Test sync remains P1.
 
 ---
 
@@ -28,7 +28,10 @@
 
 ## ✅ RESOLVED / FIXED
 
+| Issue | Resolution |
+|-------|-----------|
 | **Architecture** | Refactored `ConfirmCheckout` to move external service calls outside local DB transactions. |
+| **CartService HTTP Routes** | Added `NewCartServiceHTTP` provider and `RegisterCartServiceHTTPServer` call to register `/api/v1/cart` routes in HTTP server. |
 | **Clean Code** | Removed leftover agent logs, hardcoded paths, and unused code. |
 | **Linter** | `golangci-lint` passes for all production code after removing dead code and fixing fmt.Sprintf issues. |
 | **Build** | `wire gen ./...` and `go build ./...` confirmed successful. |
