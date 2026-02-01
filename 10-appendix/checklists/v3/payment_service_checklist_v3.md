@@ -1,7 +1,7 @@
 # Payment Service Code Review Checklist v3
 
 **Service**: payment
-**Version**: v1.0.0
+**Version**: v1.0.8
 **Review Date**: 2026-02-01
 **Last Updated**: 2026-02-01
 **Reviewer**: AI Code Review Agent
