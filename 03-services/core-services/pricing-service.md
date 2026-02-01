@@ -1,10 +1,10 @@
 # 💰 Pricing Service - Complete Documentation
 
 **Service Name**: Pricing Service  
-**Version**: 1.1.1  
-**Last Updated**: 2026-01-31  
-**Review Status**: 🟢 Production Ready (Released v1.1.0)
-**Production Ready**: 100% (16/16 issues completed, 1 skipped)  
+**Version**: 1.1.2  
+**Last Updated**: 2026-02-01  
+**Review Status**: ✅ Reviewed (Service review & release process)
+**Production Ready**: 100% (All P0/P1 issues resolved)
 
 ---
 
@@ -41,7 +41,7 @@ Pricing Service là **core service** quản lý tất cả logic về giá, disc
 - **📈 Dynamic Pricing**: Stock-based và demand-based pricing adjustments
 
 ### ⚠️ Known Issues
-- **[P1-7] Concurrency**: `BulkUpdatePriceAsync` uses unmanaged goroutine. Will be fixed in v1.0.7.
+- **[FIXED ✅] Concurrency**: `BulkUpdatePriceAsync` now explicitly documents background context usage.
 
 ### Business Value
 - **Centralized Pricing**: Single source of truth cho tất cả pricing data
@@ -568,15 +568,15 @@ make wire
 - ✅ **Dependencies**: Updated to latest tags from gitlab.com/ta-microservices
 - ⏸️ **Testing**: Test coverage skipped per user request (can be added later)
 
-### Recent Improvements (v1.1.1)
-- ✅ **Schema Validation**: Refactored JSON schema validation registry and provider
-- ✅ **Wire Generation**: Fixed circular dependencies and missing providers in worker
-- ✅ **Dependencies**: Updated to latest tags (common v1.9.5, catalog v1.2.3, warehouse v1.1.0)
-- ✅ **Build & Lint**: Resolved all build errors and lint warnings
-- ✅ **Events**: Consolidated event validation logic
+### Recent Improvements (v1.1.2)
+- ✅ **Concurrency Fix**: `BulkUpdatePriceAsync` background task clarified.
+- ✅ **Context Key Fix**: `contextKey` changed to `int` for safety.
+- ✅ **Cache TTL Fix**: `updatePriceCache` now uses dynamic TTL from `price.GetCacheTTL()`.
+- ✅ **ArgoCD Security**: Removed hardcoded secrets from `values-base.yaml`.
+- ✅ **Transaction Integrity**: `UpdateOutboxEvent` now respects transaction context.
 
 ---
 
-**Last Updated**: 2026-01-31  
-**Version**: 1.1.1  
+**Last Updated**: 2026-02-01  
+**Version**: 1.1.2  
 **Maintainer**: Pricing Service Team

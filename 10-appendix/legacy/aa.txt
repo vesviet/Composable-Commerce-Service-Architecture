@@ -30,3 +30,5 @@ Follow docs/07-development/standards/end-to-end-workflow-review-prompt.md and ru
 
 # Review all workflows in optimal order
 Follow docs/07-development/standards/workflow-review-sequence-guide.md and review workflows in the recommended sequence order.
+
+review code, code quality, argocd config, business logic
