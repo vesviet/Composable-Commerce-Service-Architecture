@@ -1,7 +1,7 @@
 # Fulfillment Service
 
-**Version**: 1.0  
-**Last Updated**: 2026-01-31  
+**Version**: 1.0.8  
+**Last Updated**: 2026-02-01  
 **Service Type**: Core  
 **Status**: Active
 
