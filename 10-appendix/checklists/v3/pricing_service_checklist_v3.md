@@ -1,8 +1,9 @@
 # Pricing Service Review Checklist (v3)
 
 **Service**: Pricing Service  
-**Status**: 🟡 IN REVIEW  
+**Status**: ✅ COMPLETED  
 **Last Updated**: 2026-02-01
+**Version**: v1.1.4
 
 ### ✅ COMPLETED ITEMS
 - [x] **[P0] Unmanaged Goroutines**: Documented the fire-and-forget behavior in `BulkUpdatePriceAsync`.
