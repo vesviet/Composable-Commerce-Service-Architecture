@@ -1,8 +1,8 @@
 # 📦 Order Service - Complete Documentation
 
 **Service Name**: Order Service  
-**Version**: 2.0.0  
-**Last Updated**: 2026-01-31  
+**Version**: 2.0.1  
+**Last Updated**: 2026-02-01  
 **Review Status**: ✅ Reviewed (Post-Service Split); see [Order Service Checklist v3](../../10-appendix/checklists/v3/order_service_checklist_v3.md)  
 **Production Ready**: 95%  
 **Build**: Succeeds with `go build ./...` and `make build`; dependencies use `go get` (no `replace` in go.mod).  

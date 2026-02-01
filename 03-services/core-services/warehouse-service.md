@@ -1,11 +1,11 @@
 # 📦 Warehouse Service - Complete Documentation
 
 **Service Name**: Warehouse Service
-**Version**: 1.1.0
-**Last Updated**: 2026-01-31
-**Review Status**: ✅ **COMPLETED** - Service review release process (service-review-release-prompt) run 2026-01-31
+**Version**: 1.1.3
+**Last Updated**: 2026-02-01
+**Review Status**: ✅ **COMPLETED** - Service review release process (service-review-release-prompt) run 2026-02-01
 **Production Ready**: 100%
-**Code Review Date**: 2026-01-31
+**Code Review Date**: 2026-02-01
 
 ---
 
@@ -179,7 +179,7 @@ rpc CheckLowStock(CheckLowStockRequest) returns (CheckLowStockResponse);
 rpc SyncProductStock(SyncProductStockRequest) returns (SyncProductStockResponse);
 ```
 **Purpose**: Sync stock levels từ external systems (ERP, POS)
-**Integration**: Catalog Service v1.1.2+ required
+**Integration**: Catalog Service v1.2.4+ required
 **Features**: Bulk sync với conflict resolution
 
 ---
@@ -537,7 +537,7 @@ features:
 ## 🔗 Dependencies
 
 ### Internal Services
-- **Catalog Service v1.1.2+**: Product data và SyncProductStock endpoint
+- **Catalog Service v1.2.4+**: Product data và SyncProductStock endpoint
 - **Order Service**: Order lifecycle events
 - **Fulfillment Service**: Shipment status updates
 - **Notification Service**: Alert delivery
@@ -769,5 +769,5 @@ kubectl apply -f k8s/
 
 ---
 
-*This documentation is automatically synchronized with the service implementation. Last updated: 2026-01-29*</content>
+*This documentation is automatically synchronized with the service implementation. Last updated: 2026-02-01*</content>
 <parameter name="filePath">/Users/tuananh/Desktop/myproject/microservice/docs/03-services/core-services/warehouse-service.md
