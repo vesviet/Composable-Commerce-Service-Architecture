@@ -13,9 +13,9 @@
 
 ## 2. Implementation Validation
 - [x] Review Service – submission, moderation, publication
-- [ ] Order ↔ Review purchase verification (API or event) and eligibility window verified
-- [ ] Review display on product page (Catalog vs Review vs Search) documented
-- [ ] Consistency with Browse to Purchase (EnableReviewCollection) verified
+- [x] Order ↔ Review purchase verification (API or event) and eligibility window verified
+- [x] Review display on product page (Catalog vs Review vs Search) documented
+- [x] Consistency with Browse to Purchase (EnableReviewCollection) verified
 
 ## 3. Observability & Testing
 - [ ] Review submission and moderation metrics

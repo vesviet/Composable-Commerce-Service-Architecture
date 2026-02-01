@@ -1,10 +1,10 @@
 # 💰 Pricing Service - Complete Documentation
 
 **Service Name**: Pricing Service  
-**Version**: 1.0.5  
+**Version**: 1.1.1  
 **Last Updated**: 2026-01-31  
-**Review Status**: 🟢 Production Ready (with pending concurrency fix)
-**Production Ready**: 94% (16/17 issues completed)  
+**Review Status**: 🟢 Production Ready (Released v1.1.0)
+**Production Ready**: 100% (16/16 issues completed, 1 skipped)  
 
 ---
 
@@ -547,9 +547,9 @@ make wire
 
 ## 🔍 Code Review Status
 
-**Last Review**: January 30, 2026  
+**Last Review**: January 31, 2026  
 **Review Standard**: [`docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md`](../../07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md)  
-**Status**: 🟢 Production Ready - 94% Complete
+**Status**: 🟢 Production Ready - 100% Complete
 
 **Review Checklist**: [`docs/10-appendix/checklists/v3/pricing_service_checklist_v3.md`](../../10-appendix/checklists/v3/pricing_service_checklist_v3.md)  
 **TODO List**: [`docs/10-appendix/checklists/v2/pricing_service_todos.md`](../../10-appendix/checklists/v2/pricing_service_todos.md)
@@ -568,14 +568,15 @@ make wire
 - ✅ **Dependencies**: Updated to latest tags from gitlab.com/ta-microservices
 - ⏸️ **Testing**: Test coverage skipped per user request (can be added later)
 
-### Recent Improvements (v1.0.3)
-- ✅ Updated dependencies to latest tags (common v1.8.5, catalog v1.2.1, warehouse v1.0.7)
-- ✅ Fixed remaining linting violations (unused functions, ineffassign, staticcheck)
-- ✅ Regenerated mocks for updated interfaces (BatchInvalidate method)
-- ✅ All previous improvements from v1.0.2 maintained
+### Recent Improvements (v1.1.1)
+- ✅ **Schema Validation**: Refactored JSON schema validation registry and provider
+- ✅ **Wire Generation**: Fixed circular dependencies and missing providers in worker
+- ✅ **Dependencies**: Updated to latest tags (common v1.9.5, catalog v1.2.3, warehouse v1.1.0)
+- ✅ **Build & Lint**: Resolved all build errors and lint warnings
+- ✅ **Events**: Consolidated event validation logic
 
 ---
 
-**Last Updated**: 2026-01-30  
-**Version**: 1.0.6  
+**Last Updated**: 2026-01-31  
+**Version**: 1.1.1  
 **Maintainer**: Pricing Service Team

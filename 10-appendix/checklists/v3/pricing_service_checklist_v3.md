@@ -10,12 +10,15 @@
 ---
 
 ## 🆕 NEWLY DISCOVERED ISSUES (2026-01-31)
+(All new issues resolved)
 
 ### [P1-7] Unmanaged Goroutine in Bulk Update
-**Status**: 🔴 PENDING
+**Status**: ✅ COMPLETED
 **Priority**: P1 - HIGH
 **Description**: `BulkUpdatePriceAsync` in `internal/biz/price/price.go` spawns a goroutine using `go func(...)`. This is unmanaged and can lead to lost work during graceful shutdown.
-**Required Action**: Use `errgroup` or a proper worker pool.
+**Completed**: 2026-01-31
+**Resolution**: Removed unsafe `defer cancel()` from main thread, added mutex protection for shared state, and ensured context independence for background job.
+**Files Modified**: `internal/biz/price/price.go`
 
 
 ## 🔴 CRITICAL PRIORITY (P0 - Blocking Production)
@@ -519,8 +522,8 @@
 | P0 (Critical) | 1 | 1 | 0 | 0 |
 | P1 (High) | 6 | 5 | 0 | 1 |
 | P2 (Normal) | 7 | 7 | 0 | 0 |
-| V3 (Updates) | 3 | 3 | 0 | 0 |
-| **TOTAL** | **17** | **16** | **0** | **1** |
+| V3 (Updates) | 5 | 5 | 0 | 0 |
+| **TOTAL** | **19** | **18** | **0** | **1** |
 
 ---
 
@@ -545,6 +548,8 @@
 - ✅ V3-1: Update Dependencies to Latest Tags
 - ✅ V3-2: Fix Remaining Linting Violations
 - ✅ V3-3: Regenerate Mocks for Updated Interfaces
+- ✅ P1-7: Unmanaged Goroutine in Bulk Update
+- ✅ V3-4: Schema Validation & Wire Gen Fixes
 
 ### Skipped Issues (1):
 - ⏸️ P1-2: Increase Test Coverage (skipped per user request)

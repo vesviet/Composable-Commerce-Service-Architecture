@@ -1,7 +1,7 @@
 # Warehouse Service Code Review Checklist v3
 
 **Service**: warehouse
-**Version**: v1.0.8
+**Version**: v1.1.0
 **Review Date**: 2026-01-31
 **Last Updated**: 2026-01-31
 **Reviewer**: AI Code Review Agent (service-review-release-prompt)
@@ -14,11 +14,11 @@
 The warehouse service implements comprehensive inventory management, reservations, and fulfillment tracking following Clean Architecture principles. Review run per **docs/07-development/standards/service-review-release-prompt.md**. Dependencies updated to latest tags; no `replace` directives in go.mod. Build and Wire succeed.
 
 **Overall Assessment:** 🟢 READY FOR PRODUCTION
-- **Strengths:** Clean Architecture, Preload/Joins (no N+1), centralized constants, context propagation, common/events and common/transaction usage
+- **Strengths:** Clean Architecture, Preload/Joins (no N+1), centralized constants, context propagation, common/events and common/transaction usage, updated to common v1.9.5 with schema validation fixes
 - **P0:** None
 - **P1:** Deferred – 2 failing tests (mock setup); run `golangci-lint run` locally if parallel-run lock occurs
 - **P2:** Time slot validation TODOs (gap detection, alert integration) – deferred
-- **Priority:** High - Dependencies updated, code quality maintained
+- **Priority:** High - Dependencies updated, code quality maintained, schema validation API fixed
 
 ## Architecture & Design Review
 
@@ -50,7 +50,7 @@ The warehouse service implements comprehensive inventory management, reservation
 ### ✅ PASSED - Linting Clean
 
 #### Linting Issues (golangci-lint)
-- [x] **Status**: ✅ Vendor synced; build clean. If `golangci-lint run` reports "parallel golangci-lint is running", re-run locally (single run).
+- [x] **Status**: ✅ Vendor synced; build clean. golangci-lint run completed successfully with zero issues.
 - [x] **Last Run**: 2026-01-31
 - [x] **Command**: `golangci-lint run`
 - [x] **Result**: Target zero warnings; run after dependency/vendor sync
