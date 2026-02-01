@@ -16,11 +16,19 @@ This section contains the foundational architectural documentation for our micro
 - **[event-driven-architecture.md](event-driven-architecture.md)** - Event-driven communication patterns
 - **[api-architecture.md](api-architecture.md)** - API design standards and protocols
 
+### **📚 Infrastructure & Deployment**
+
+- **[infrastructure-architecture.md](infrastructure-architecture.md)** - Infrastructure components and platform services
+- **[deployment-architecture.md](deployment-architecture.md)** - Deployment patterns and operational architecture
+- **[integration-architecture.md](integration-architecture.md)** - Service integration patterns and data flow
+- **[observability-architecture.md](observability-architecture.md)** - Monitoring, logging, and tracing architecture
+
 ### **📚 Specialized Architecture**
 
 - **[data-architecture.md](data-architecture.md)** - Database design and data management
 - **[security-architecture.md](security-architecture.md)** - Security design and compliance
 - **[performance-architecture.md](performance-architecture.md)** - Performance considerations and optimization
+- **[governance-architecture.md](governance-architecture.md)** - Governance policies and architectural decision-making
 
 ---
 
@@ -70,18 +78,23 @@ For new team members, we recommend reading in this order:
 
 1. **[system-overview.md](system-overview.md)** - Get the big picture
 2. **[microservices-design.md](microservices-design.md)** - Understand the architectural approach
-3. **[event-driven-architecture.md](event-driven-architecture.md)** - Learn how services communicate
-4. **[api-architecture.md](api-architecture.md)** - API design standards
-5. **[data-architecture.md](data-architecture.md)** - Understand data management
-6. **[security-architecture.md](security-architecture.md)** - Security considerations
-7. **[performance-architecture.md](performance-architecture.md)** - Performance characteristics
+3. **[infrastructure-architecture.md](infrastructure-architecture.md)** - Learn about the infrastructure stack
+4. **[event-driven-architecture.md](event-driven-architecture.md)** - Learn how services communicate
+5. **[api-architecture.md](api-architecture.md)** - API design standards
+6. **[integration-architecture.md](integration-architecture.md)** - Service integration patterns
+7. **[data-architecture.md](data-architecture.md)** - Understand data management
+8. **[security-architecture.md](security-architecture.md)** - Security considerations
+9. **[performance-architecture.md](performance-architecture.md)** - Performance characteristics
+10. **[observability-architecture.md](observability-architecture.md)** - Monitoring and observability
+11. **[deployment-architecture.md](deployment-architecture.md)** - Deployment patterns
+12. **[governance-architecture.md](governance-architecture.md)** - Governance and decision-making
 
 ---
 
 ## 📊 **System Metrics**
 
 ### **Scale**
-- **Services**: 17+ microservices in production
+- **Services**: 22+ microservices in production
 - **Events**: 50+ event types across domains
 - **APIs**: 200+ endpoints with OpenAPI specs
 - **Databases**: 15+ domain-specific databases
