@@ -1,9 +1,9 @@
 # Shipping Service Code Review Checklist v3
 
 **Service**: shipping
-**Version**: (see go.mod)
-**Review Date**: 2026-01-31
-**Last Updated**: 2026-01-31
+**Version**: v1.1.1
+**Review Date**: 2026-02-01
+**Last Updated**: 2026-02-01
 **Reviewer**: AI Code Review Agent
 **Status**: Review Complete – Checklist & Fixes Applied
 
@@ -55,11 +55,11 @@ The shipping service implements multi-carrier integration (GHN, Grab), shipment 
 - [x] **Constants:** data/postgres and data/cache use internal/constants for cache keys (P2 fixed)
 - [x] Context & errors: Propagated and wrapped
 - [x] **Dependencies:** No replace in go.mod; go get @latest and go mod tidy run
-- [x] **Entry point:** cmd/shipping (main.go, wire.go, wire_gen.go); make build / make run succeed
-- [x] **Lint:** golangci-lint run (target: zero warnings)
-- [x] **Build:** make api, go build ./..., make wire succeed
-- [x] **Health:** /health, /health/live, /health/ready registered (K8s probes)
-- [x] Docs: Update checklist (this file); update service doc and README (step 5)
+- [x] **Entry point:** cmd/shipping (main.go, wire.go, wire_gen.go); make build / make run succeed ✅
+- [x] **Lint:** golangci-lint run (target: zero warnings) ✅
+- [x] **Build:** make api, go build ./..., make wire succeed ✅
+- [x] **Health:** /health, /health/live, /health/ready registered (K8s probes) ✅
+- [x] Docs: Update checklist (this file); update service doc and README (step 5) ✅
 
 *Test-case tasks omitted per review requirements.*
 

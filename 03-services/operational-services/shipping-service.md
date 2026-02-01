@@ -1,8 +1,8 @@
 # 📦 Shipping Service - Carrier Integrations & Logistics
 
 **Service Name**: Shipping Service  
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-31  
+**Version**: 1.1.1  
+**Last Updated**: 2026-02-01  
 **Service Type**: Operational  
 **Status**: Active  
 **Production Ready**: 90% (Core functionality complete, testing and additional carriers needed)  
