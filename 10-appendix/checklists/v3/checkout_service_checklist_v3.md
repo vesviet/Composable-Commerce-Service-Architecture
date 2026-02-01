@@ -4,8 +4,8 @@
 **Version**: 1.2.6  
 **Review Date**: 2026-02-01  
 **Last Updated**: 2026-02-01  
-**Reviewer**: GitHub Copilot  
-**Status**: 🟢 ACTIVE - CartService HTTP routes registered. Production code lint clean. Test sync remains P1.
+**Reviewer**: Cascade AI Assistant  
+**Status**: 🟢 ACTIVE - Build passes, customer ID extraction implemented, test mocks need sync
 
 ---
 
@@ -13,8 +13,11 @@
 
 | Severity | ID / Location | Description | Required Action |
 |----------|---------------|-------------|-----------------|
-| **🟡 P1** | `internal/biz/cart/*_test.go`, `mocks_test.go` | **Test Sync:** Test mocks reference undefined types and wrong struct fields. Mocks for Pricing/Promotion/Shipping/Payment do not match current interface signatures. | Regenerate/Update mocks to match current interfaces. |
+| **🔴 P1** | `internal/biz/cart/*_test.go`, `mocks_test.go` | **Test Sync:** Test mocks reference undefined types and wrong struct fields. Mocks for Pricing/Promotion/Shipping/Payment do not match current interface signatures. | Regenerate/Update mocks to match current interfaces. |
 | **🟡 P1** | `internal/biz/checkout/*_test.go`, `mocks_test.go` | **Test Sync:** Same as above for checkout sub-package. | Regenerate/Update mocks. |
+| **🟡 P1** | `internal/biz/biz.go:498,521` | **Field Naming Inconsistency:** `CartID` vs `session_id` in biz models causes confusion | Standardize field naming across all models |
+| **🟡 P2** | Cart creation, checkout flow | **Missing Validation:** Critical business operations lack comprehensive input validation | Add validation using common/validation package |
+| **🟡 P2** | Checkout flow, order creation | **Missing Transactions:** Multi-step operations lack atomic transaction boundaries | Implement database transactions for data consistency |
 
 ---
 
@@ -30,6 +33,7 @@
 
 | Issue | Resolution |
 |-------|-----------|
+| **🔴 P0 Customer ID Extraction** | Implemented automatic customer ID extraction from JWT gateway authentication in `StartCheckout`, `PreviewOrder`, `GetCart`, and `AddItem` methods. Customer ID is now auto-populated from middleware context when available. |
 | **Architecture** | Refactored `ConfirmCheckout` to move external service calls outside local DB transactions. |
 | **CartService HTTP Routes** | Added `NewCartServiceHTTP` provider and `RegisterCartServiceHTTPServer` call to register `/api/v1/cart` routes in HTTP server. |
 | **Clean Code** | Removed leftover agent logs, hardcoded paths, and unused code. |

@@ -1,17 +1,17 @@
 # Warehouse Service Code Review Checklist v3
 
 **Service**: warehouse
-**Version**: v1.1.3
-**Review Date**: 2026-02-01
-**Last Updated**: 2026-02-01
+**Version**: v1.1.0
+**Review Date**: 2026-01-31
+**Last Updated**: 2026-01-31
 **Reviewer**: AI Code Review Agent (service-review-release-prompt)
-**Status**: Production Ready - Dependencies Updated (2026-02-01)
+**Status**: Production Ready - Dependencies Updated (2026-01-31)
 
 ---
 
 ## Executive Summary
 
-The warehouse service implements comprehensive inventory management, reservations, and fulfillment tracking following Clean Architecture principles. Review run per **docs/07-development/standards/service-review-release-prompt.md**. Dependencies updated to latest tags; no `replace` directives in go.mod. Build and Wire succeed. Updated to v1.1.3 with latest catalog and notification service clients.
+The warehouse service implements comprehensive inventory management, reservations, and fulfillment tracking following Clean Architecture principles. Review run per **docs/07-development/standards/service-review-release-prompt.md**. Dependencies updated to latest tags; no `replace` directives in go.mod. Build and Wire succeed.
 
 **Overall Assessment:** 🟢 READY FOR PRODUCTION
 - **Strengths:** Clean Architecture, Preload/Joins (no N+1), centralized constants, context propagation, common/events and common/transaction usage, updated to common v1.9.5 with schema validation fixes
@@ -51,7 +51,7 @@ The warehouse service implements comprehensive inventory management, reservation
 
 #### Linting Issues (golangci-lint)
 - [x] **Status**: ✅ Vendor synced; build clean. golangci-lint run completed successfully with zero issues.
-- [x] **Last Run**: 2026-02-01
+- [x] **Last Run**: 2026-01-31
 - [x] **Command**: `golangci-lint run`
 - [x] **Result**: Target zero warnings; run after dependency/vendor sync
 
@@ -115,7 +115,7 @@ The warehouse service implements comprehensive inventory management, reservation
 
 ## Dependencies & Maintenance
 
-### ✅ PASSED - Dependencies Updated (2026-02-01)
+### ✅ PASSED - Dependencies Updated (2026-01-31)
 - [x] **No replace directives** in go.mod (all gitlab.com/ta-microservices use import @latest)
 - [x] **Dependency Management**
   - Vendor directory synced (`go mod vendor`) after `go get ...@latest` and `go mod tidy`
@@ -125,12 +125,12 @@ The warehouse service implements comprehensive inventory management, reservation
   - **Status:** Dependencies up-to-date
 
 **Updated Dependencies (this run):**
-- `gitlab.com/ta-microservices/catalog`: v1.2.2 → v1.2.4
-- `gitlab.com/ta-microservices/notification`: v1.1.2 → v1.1.3
-- `gitlab.com/ta-microservices/common`: v1.9.5 (already latest)
-- `gitlab.com/ta-microservices/common-operations`: v1.1.2 (already latest)
-- `gitlab.com/ta-microservices/location`: v1.0.2 (already latest)
-- `gitlab.com/ta-microservices/user`: v1.0.5 (already latest)
+- `gitlab.com/ta-microservices/catalog`: v1.1.2 → v1.2.2
+- `gitlab.com/ta-microservices/common-operations`: v1.0.0 → v1.1.0
+- `gitlab.com/ta-microservices/location`: v1.0.0 → v1.0.1
+- `gitlab.com/ta-microservices/notification`: v1.0.0 → v1.1.1
+- `gitlab.com/ta-microservices/user`: v1.0.0 → v1.0.4
+- `github.com/sirupsen/logrus`: v1.9.3 → v1.9.4
 
 ## TODO Items Review
 
@@ -147,7 +147,17 @@ The warehouse service implements comprehensive inventory management, reservation
 - [x] **Build Status**: ✅ SUCCESS
   - Command: `go build ./...` / `make build`
   - Result: Build successful
-  - Last Run: 2026-02-01
+  - Last Build: 2026-01-31
+
+- [x] **API Generation**: ✅ SUCCESS
+  - Command: `make api`
+  - Result: Proto files regenerated successfully
+  - Last Run: 2026-01-31
+
+- [x] **Wire Generation**: ✅ SUCCESS
+  - Command: `make wire`
+  - Result: Dependency injection code regenerated (wire_gen.go)
+  - Last Run: 2026-01-31
 
 ## Migration & Data Integrity
 
