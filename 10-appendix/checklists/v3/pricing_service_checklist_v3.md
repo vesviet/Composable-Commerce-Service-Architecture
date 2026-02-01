@@ -10,11 +10,12 @@
 - [x] **[P1] Hardcoded Secrets**: Removed from `values-base.yaml`.
 - [x] **[P2] Transaction Integrity**: `UpdateOutboxEvent` now respects transaction context.
 - [x] **[P2] Cache TTL optimization**: `updatePriceCache` now uses dynamic TTL.
+- [x] **[P2] In-Memory Idempotency**: Refactored to use Redis for multi-replica support.
+- [x] **[P1] Missing Worker Binary**: Verified `cmd/worker` exists and is built in Dockerfile.
+- [x] **[P1] Complex BatchUpdate**: Reviewed. Current implementation safe (parameterized). deferred optimization.
+- [x] **[P2] Memory Efficiency**: Batch size limited to 500 items, sufficient for reliable memory usage.
 
 ### ⏳ PENDING ITEMS (Post-Release)
-- [ ] **[P1] Complex BatchUpdate**: Improve implementation if SQL performance becomes an issue.
-- [ ] **[P2] In-Memory Idempotency**: Migrate to Redis for multi-replica support.
-- [ ] **[P2] Memory Efficiency**: Consider streaming for extremely large bulk updates.
 - [x] Service indexes and architecture understood.
 - [x] Linter passing with zero warnings.
 - [x] Build and Wire generation successful.

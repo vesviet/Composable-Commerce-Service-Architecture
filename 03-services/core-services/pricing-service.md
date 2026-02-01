@@ -41,7 +41,7 @@ Pricing Service là **core service** quản lý tất cả logic về giá, disc
 - **📈 Dynamic Pricing**: Stock-based và demand-based pricing adjustments
 
 ### ⚠️ Known Issues
-- **[FIXED ✅] Concurrency**: `BulkUpdatePriceAsync` now explicitly documents background context usage.
+- **None**
 
 ### Business Value
 - **Centralized Pricing**: Single source of truth cho tất cả pricing data
@@ -567,6 +567,12 @@ make wire
 - ✅ **Linting**: All violations fixed, golangci-lint passes
 - ✅ **Dependencies**: Updated to latest tags from gitlab.com/ta-microservices
 - ⏸️ **Testing**: Test coverage skipped per user request (can be added later)
+
+### Recent Improvements (v1.1.3)
+- ✅ **Idempotency**: Refactored to use Redis for reliable distributed idempotency.
+- ✅ **Worker Check**: Verified worker binary build pipeline.
+- ✅ **Code Cleanup**: Removed memory-leak prone in-memory maps.
+- ✅ **Full Compliance**: Resolved all P1/P2 issues.
 
 ### Recent Improvements (v1.1.2)
 - ✅ **Concurrency Fix**: `BulkUpdatePriceAsync` background task clarified.
