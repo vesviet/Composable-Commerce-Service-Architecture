@@ -1,7 +1,7 @@
 # Checkout Service Review Checklist v3
 
 **Service**: checkout  
-**Version**: 1.2.6  
+**Version**: 1.2.7  
 **Review Date**: 2026-02-01  
 **Last Updated**: 2026-02-01  
 **Reviewer**: Cascade AI Assistant  
@@ -29,12 +29,14 @@
 
 | Issue | Resolution |
 |-------|-----------|
-| **🔴 P0 Customer ID Extraction** | Implemented automatic customer ID extraction from JWT gateway authentication in `StartCheckout`, `PreviewOrder`, `GetCart`, and `AddItem` methods. Customer ID is now auto-populated from middleware context when available. |
+| **🔴 P1 Customer ID Extraction** | Implemented automatic customer ID extraction from JWT gateway authentication in `StartCheckout`, `PreviewOrder`, `GetCart`, and `AddItem` methods. Customer ID is now auto-populated from middleware context when available. |
 | **🔴 P1 Field Naming Inconsistency** | Standardized JSON field names across all domain models. Changed `session_id` to `cart_id` in Cart and CartItem structs, and CheckoutSession to match Go field names for consistency. |
 | **🔴 P1 Comprehensive Input Validation** | Enhanced validation using common/validation package with new validators: `validateProductID`, `validateQuantity`, `validateCurrency`, `validateCountryCode`, `validateAddress`, `validateShippingMethod`. Applied to AddItem and PreviewOrder methods. |
 | **🔴 P1 Database Transactions** | Verified proper transaction handling exists in cart operations (AddToCart) and checkout confirmation (ConfirmCheckout). Uses `WithTransaction` pattern with proper error handling and rollback. |
 | **🔴 P1 Dependencies Update** | Updated all internal service dependencies to latest versions: common, catalog, customer, order, payment, pricing, promotion, shipping, warehouse. Ran `go mod tidy` to clean up. |
 | **🔴 P1 Documentation Updates** | Updated service documentation and README.md to reflect customer authentication integration, validation enhancements, and current production status. |
+| **🔴 Bug Fix: Tax Calculation** | Fixed `rpc error: code = InvalidArgument desc = amount must be greater than 0` by ensuring `CalculateTax` is skipped if `taxableAmount` is 0. |
+| **🔴 Bug Fix: Add To Cart 500** | Fixed `session_id is required` 500 error by relaxing validation for new sessions (allowing guest_token/customer_id) and ensuring validation errors are mapped to gRPC 400 Bad Request. |
 | **Architecture** | Refactored `ConfirmCheckout` to move external service calls outside local DB transactions. |
 | **CartService HTTP Routes** | Added `NewCartServiceHTTP` provider and `RegisterCartServiceHTTPServer` call to register `/api/v1/cart` routes in HTTP server. |
 | **Clean Code** | Removed leftover agent logs, hardcoded paths, and unused code. |
