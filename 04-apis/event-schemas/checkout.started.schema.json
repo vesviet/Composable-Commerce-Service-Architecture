@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/checkout.started.v1.json",
+  "title": "Checkout Started Event",
+  "description": "Emitted when a customer begins the checkout process",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "checkout.started",
+      "description": "Event type identifier"
+    },
+    "event_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Event schema version"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event occurred"
+    },
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "checkout-service"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkout_session_id",
+        "customer_id",
+        "cart_id",
+        "total_amount"
+      ],
+      "properties": {
+        "checkout_session_id": {
+          "type": "string",
+          "description": "Unique checkout session identifier"
+        },
+        "customer_id": {
+          "type": "string",
+          "description": "Customer identifier"
+        },
+        "cart_id": {
+          "type": "string",
+          "description": "Shopping cart identifier"
+        },
+        "total_amount": {
+          "type": "object",
+          "description": "Total checkout amount",
+          "required": ["amount", "currency"],
+          "properties": {
+            "amount": {
+              "type": "number",
+              "format": "float",
+              "description": "Total amount in minor currency units"
+            },
+            "currency": {
+              "type": "string",
+              "description": "ISO 4217 currency code"
+            }
+          }
+        },
+        "item_count": {
+          "type": "integer",
+          "description": "Number of items in cart"
+        },
+        "shipping_address": {
+          "type": "object",
+          "description": "Shipping address if provided",
+          "properties": {
+            "country": {
+              "type": "string",
+              "description": "Country code"
+            },
+            "postal_code": {
+              "type": "string",
+              "description": "Postal/ZIP code"
+            }
+          }
+        },
+        "device_type": {
+          "type": "string",
+          "enum": ["mobile", "tablet", "desktop"],
+          "description": "Device type used for checkout"
+        },
+        "channel": {
+          "type": "string",
+          "enum": ["web", "mobile_app", "api"],
+          "description": "Checkout channel"
+        },
+        "promotion_code": {
+          "type": "string",
+          "description": "Promotion code applied if any"
+        },
+        "guest_checkout": {
+          "type": "boolean",
+          "description": "Whether this is a guest checkout"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440001",
+      "event_type": "checkout.started",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T10:30:00Z",
+      "source": "checkout-service",
+      "data": {
+        "checkout_session_id": "session_abc123",
+        "customer_id": "cust_456789",
+        "cart_id": "cart_def456",
+        "total_amount": {
+          "amount": 10497,
+          "currency": "USD"
+        },
+        "item_count": 3,
+        "shipping_address": {
+          "country": "US",
+          "postal_code": "94105"
+        },
+        "device_type": "desktop",
+        "channel": "web",
+        "guest_checkout": false
+      }
+    }
+  ]
+}

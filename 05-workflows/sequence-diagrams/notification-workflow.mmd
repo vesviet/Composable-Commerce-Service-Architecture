@@ -1,0 +1,221 @@
+sequenceDiagram
+    participant User as Customer
+    participant Frontend
+    participant Gateway
+    participant Order as Order Service
+    participant Payment as Payment Service
+    participant Shipping as Shipping Service
+    participant Notification as Notification Service
+    participant EmailProvider as Email Service
+    participant SMSProvider as SMS Service
+    participant PushProvider as Push Service
+    participant Analytics as Analytics Service
+
+    Note over User, Analytics: Order Confirmation Notifications
+    Order->>Order: Order Created
+    Order->>Notification: Publish order.created Event
+    Notification->>Notification: Process Order Confirmation
+    
+    par Email Notification
+        Notification->>EmailProvider: Send Order Confirmation Email
+        EmailProvider-->>Notification: Email Sent
+    and SMS Notification
+        Notification->>SMSProvider: Send Order Confirmation SMS
+        SMSProvider-->>Notification: SMS Sent
+    and Push Notification
+        Notification->>PushProvider: Send Order Confirmation Push
+        PushProvider-->>Notification: Push Sent
+    end
+    
+    Notification->>Analytics: Track Notification Metrics
+    Analytics-->>Notification: Metrics Recorded
+
+    Note over User, Analytics: Payment Processing Notifications
+    Payment->>Payment: Payment Processed
+    Payment->>Notification: Publish payment.processed Event
+    Notification->>Notification: Process Payment Success
+    
+    alt Payment Successful
+        Notification->>EmailProvider: Send Payment Confirmation Email
+        EmailProvider-->>Notification: Email Sent
+    else Payment Failed
+        Notification->>EmailProvider: Send Payment Failed Email
+        EmailProvider-->>Notification: Email Sent
+        Notification->>SMSProvider: Send Payment Failed SMS
+        SMSProvider-->>Notification: SMS Sent
+    end
+
+    Note over User, Analytics: Order Shipment Notifications
+    Shipping->>Shipping: Order Shipped
+    Shipping->>Notification: Publish order.shipped Event
+    Notification->>Notification: Process Shipment Notification
+    
+    par Email Notification
+        Notification->>EmailProvider: Send Shipment Confirmation Email
+        EmailProvider-->>Notification: Email Sent
+    and SMS Notification
+        Notification->>SMSProvider: Send Shipment Tracking SMS
+        SMSProvider-->>Notification: SMS Sent
+    and Push Notification
+        Notification->>PushProvider: Send Shipment Update Push
+        PushProvider-->>Notification: Push Sent
+    end
+
+    Note over User, Analytics: Delivery Notifications
+    Shipping->>Shipping: Order Delivered
+    Shipping->>Notification: Publish order.delivered Event
+    Notification->>Notification: Process Delivery Notification
+    
+    par Email Notification
+        Notification->>EmailProvider: Send Delivery Confirmation Email
+        EmailProvider-->>Notification: Email Sent
+    and SMS Notification
+        Notification->>SMSProvider: Send Delivery Confirmation SMS
+        SMSProvider-->>Notification: SMS Sent
+    and Push Notification
+        Notification->>PushProvider: Send Delivery Confirmation Push
+        PushProvider-->>Notification: Push Sent
+    end
+
+    Note over User, Analytics: Review Request Notifications
+    Shipping->>Shipping: Order Delivered (Wait 7 days)
+    Shipping->>Notification: Schedule Review Request
+    Notification->>Notification: Wait 7 Days
+    Notification->>Notification: Process Review Request
+    
+    par Email Notification
+        Notification->>EmailProvider: Send Review Request Email
+        EmailProvider-->>Notification: Email Sent
+    and Push Notification
+        Notification->>PushProvider: Send Review Request Push
+        PushProvider-->>Notification: Push Sent
+    end
+
+    Note over User, Analytics: Return Processing Notifications
+    User->>Frontend: Submit Return Request
+    Frontend->>Gateway: POST /api/v1/returns/returns
+    Gateway->>Return: Create Return Request
+    Return->>Notification: Publish return.requested Event
+    Notification->>Notification: Process Return Request
+    
+    Notification->>EmailProvider: Send Return Request Confirmation
+    EmailProvider-->>Notification: Email Sent
+
+    Note over User, Analytics: Return Status Updates
+    Return->>Return: Return Received
+    Return->>Notification: Publish return.received Event
+    Notification->>Notification: Process Return Received
+    
+    par Email Notification
+        Notification->>EmailProvider: Send Return Received Email
+        EmailProvider-->>Notification: Email Sent
+    and SMS Notification
+        Notification->>SMSProvider: Send Return Update SMS
+        SMSProvider-->>Notification: SMS Sent
+    end
+
+    Return->>Return: Return Processed
+    Return->>Notification: Publish return.processed Event
+    Notification->>Notification: Process Return Processed
+    
+    par Email Notification
+        Notification->>EmailProvider: Send Return Processed Email
+        EmailProvider-->>Notification: Email Sent
+    and SMS Notification
+        Notification->>SMSProvider: Send Refund Confirmation SMS
+        SMSProvider-->>Notification: SMS Sent
+    end
+
+    Note over User, Analytics: Marketing Notifications
+    Notification->>Notification: Scheduled Marketing Campaign
+    Notification->>Notification: Check Customer Preferences
+    
+    par Email Campaign
+        Notification->>EmailProvider: Send Marketing Email
+        EmailProvider-->>Notification: Email Sent
+    and SMS Campaign
+        Notification->>SMSProvider: Send Marketing SMS
+        SMSProvider-->>Notification: SMS Sent
+    and Push Campaign
+        Notification->>PushProvider: Send Marketing Push
+        PushProvider-->>Notification: Push Sent
+    end
+
+    Note over User, Analytics: Account Management Notifications
+    User->>Frontend: Register Account
+    Frontend->>Gateway: POST /api/v1/auth/register
+    Gateway->>Auth: Create User Account
+    Auth->>Notification: Publish user.registered Event
+    Notification->->Notification: Process User Registration
+    
+    Notification->>EmailProvider: Send Welcome Email
+    EmailProvider-->>Notification: Email Sent
+
+    User->>Frontend: Request Password Reset
+    Frontend->>Gateway: POST /api/v1/auth/forgot-password
+    Gateway->>Auth: Process Password Reset
+    Auth->>Notification: Publish password.reset.requested Event
+    Notification->->Notification: Process Password Reset
+    
+    Notification->>EmailProvider: Send Password Reset Email
+    EmailProvider-->>Notification: Email Sent
+
+    Note over User, Analytics: Notification Preferences Management
+    User->>Frontend: Update Notification Preferences
+    Frontend->>Gateway: PUT /api/v1/customers/preferences
+    Gateway->>Customer: Update Preferences
+    Customer->>Notification: Publish preferences.updated Event
+    Notification->->Notification: Update Notification Rules
+    
+    Notification->>Analytics: Track Preference Changes
+    Analytics-->>Notification: Metrics Recorded
+
+    Note over User, Analytics: Notification Delivery Tracking
+    Notification->>Notification: Monitor Delivery Status
+    
+    par Email Tracking
+        EmailProvider->>Notification: Email Delivery Status
+        alt Email Delivered
+            Notification->>Analytics: Track Email Success
+        else Email Bounced
+            Notification->>Analytics: Track Email Bounce
+            Notification->>Customer: Update Email Status
+        end
+    and SMS Tracking
+        SMSProvider->>Notification: SMS Delivery Status
+        Notification->>Analytics: Track SMS Delivery
+    and Push Tracking
+        PushProvider->>Notification: Push Delivery Status
+        Notification->->Analytics: Track Push Delivery
+    end
+
+    Note over User, Analytics: Failed Notification Retry Logic
+    Notification->>Notification: Check Failed Notifications
+    alt Failed Notification Found
+        Notification->>Notification: Calculate Retry Delay
+        alt Retry Count < 3
+            Notification->>Notification: Schedule Retry
+            Notification->>EmailProvider: Retry Email Send
+            EmailProvider-->>Notification: Retry Result
+        else Retry Count >= 3
+            Notification->>Analytics: Log Failed Notification
+            Notification->>Notification: Mark as Failed
+        end
+    end
+
+    Note over User, Analytics: Notification Analytics & Reporting
+    Notification->>Analytics: Publish Notification Metrics
+    Analytics->>Analytics: Generate Daily Reports
+    
+    par Email Metrics
+        Analytics->>Analytics: Calculate Email Open Rate
+        Analytics->>Analytics: Calculate Email Click Rate
+    and SMS Metrics
+        Analytics->>Analytics: Calculate SMS Delivery Rate
+    and Push Metrics
+        Analytics->>Analytics: Calculate Push Engagement Rate
+    end
+    
+    Analytics->>Notification: Send Daily Summary
+    Notification->>EmailProvider: Send Analytics Report
+    EmailProvider-->>Notification: Report Sent

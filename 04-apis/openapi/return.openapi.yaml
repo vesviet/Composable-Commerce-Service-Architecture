@@ -1,0 +1,901 @@
+openapi: 3.0.3
+info:
+  title: Return Service API
+  version: 1.0.0
+  description: Product returns and refunds management API
+  contact:
+    name: Return API Support
+    email: return-api@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.example.com/v1/returns
+    description: Production server
+  - url: https://staging-api.example.com/v1/returns
+    description: Staging server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if return service is healthy
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /returns:
+    get:
+      summary: List returns
+      description: Retrieve a paginated list of returns for the authenticated customer
+      operationId: listReturns
+      tags:
+        - Returns
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [requested, approved, rejected, in_transit, received, processed, completed]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Returns retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Return'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create return request
+      description: Create a new return request for an order
+      operationId: createReturn
+      tags:
+        - Returns
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReturnRequest'
+      responses:
+        '201':
+          description: Return request created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Return'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /returns/{returnId}:
+    get:
+      summary: Get return
+      description: Retrieve return details by ID
+      operationId: getReturn
+      tags:
+        - Returns
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Return retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Return'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update return
+      description: Update return information
+      operationId: updateReturn
+      tags:
+        - Returns
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReturnRequest'
+      responses:
+        '200':
+          description: Return updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Return'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /returns/{returnId}/cancel:
+    post:
+      summary: Cancel return
+      description: Cancel a return request
+      operationId: cancelReturn
+      tags:
+        - Returns
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: Customer changed mind
+                notes:
+                  type: string
+                  example: No longer need the item
+      responses:
+        '200':
+          description: Return cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Return'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Return cannot be cancelled in current status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+
+  /returns/{returnId}/shipping-label:
+    get:
+      summary: Get shipping label
+      description: Generate and retrieve shipping label for return
+      operationId: getShippingLabel
+      tags:
+        - Shipping
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [pdf, png]
+            default: pdf
+      responses:
+        '200':
+          description: Shipping label generated successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Shipping label not available for current status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+
+  /returns/{returnId}/tracking:
+    get:
+      summary: Get return tracking
+      description: Get tracking information for return shipment
+      operationId: getReturnTracking
+      tags:
+        - Shipping
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tracking information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TrackingInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /returns/{returnId}/items/{itemId}/photos:
+    post:
+      summary: Upload return photos
+      description: Upload photos for return item condition
+      operationId: uploadReturnPhotos
+      tags:
+        - Returns
+      parameters:
+        - name: returnId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photos:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Array of photo files
+      responses:
+        '200':
+          description: Photos uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      uploaded_photos:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+                              example: https://example.com/returns/photos/123.jpg
+                            id:
+                              type: string
+                              example: photo_123
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /return-policies:
+    get:
+      summary: Get return policies
+      description: Retrieve return policies and eligibility information
+      operationId: getReturnPolicies
+      tags:
+        - Policies
+      parameters:
+        - name: product_id
+          in: query
+          schema:
+            type: string
+        - name: category_id
+          in: query
+          schema:
+            type: string
+        - name: customer_segment
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Return policies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ReturnPolicy'
+
+  /return-reasons:
+    get:
+      summary: Get return reasons
+      description: Retrieve available return reasons
+      operationId: getReturnReasons
+      tags:
+        - Policies
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            description: Filter reasons by category
+      responses:
+        '200':
+          description: Return reasons retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReturnReason'
+
+  /order/{orderId}/return-eligibility:
+    get:
+      summary: Check return eligibility
+      description: Check if order items are eligible for return
+      operationId: checkReturnEligibility
+      tags:
+        - Eligibility
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Return eligibility checked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ReturnEligibility'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    Return:
+      type: object
+      properties:
+        id:
+          type: string
+          example: return_123
+        order_id:
+          type: string
+          example: order_456
+        customer_id:
+          type: string
+          example: cust_789
+        status:
+          type: string
+          enum: [requested, approved, rejected, in_transit, received, processed, completed, cancelled]
+          example: approved
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReturnItem'
+        return_method:
+          type: string
+          enum: [shipping, in_store]
+          example: shipping
+        reason:
+          $ref: '#/components/schemas/ReturnReason'
+        refund_method:
+          type: string
+          enum: [original_payment, store_credit, exchange]
+          example: original_payment
+        refund_amount:
+          type: number
+          format: float
+          example: 99.99
+        tax_refund:
+          type: number
+          format: float
+          example: 8.99
+        shipping_refund:
+          type: number
+          format: float
+          example: 5.99
+        total_refund:
+          type: number
+          format: float
+          example: 114.97
+        currency:
+          type: string
+          example: USD
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        tracking_number:
+          type: string
+          example: 1Z999AA1234567890
+        notes:
+          type: string
+          example: Item doesn't fit properly
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        approved_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    ReturnItem:
+      type: object
+      properties:
+        id:
+          type: string
+          example: item_123
+        order_item_id:
+          type: string
+          example: order_item_456
+        product_id:
+          type: string
+          example: prod_789
+        product_name:
+          type: string
+          example: Premium Widget
+        sku:
+          type: string
+          example: WIDGET-PREM-001
+        quantity:
+          type: integer
+          example: 1
+        return_quantity:
+          type: integer
+          example: 1
+        unit_price:
+          type: number
+          format: float
+          example: 99.99
+        total_price:
+          type: number
+          format: float
+          example: 99.99
+        condition:
+          type: string
+          enum: [new, like_new, good, fair, poor]
+          example: good
+        photos:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: photo_123
+              url:
+                type: string
+                example: https://example.com/returns/photos/123.jpg
+        notes:
+          type: string
+          example: Small scratch on side
+
+    CreateReturnRequest:
+      type: object
+      required:
+        - order_id
+        - items
+        - return_method
+        - reason_id
+        - refund_method
+      properties:
+        order_id:
+          type: string
+          example: order_456
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - order_item_id
+              - return_quantity
+            properties:
+              order_item_id:
+                type: string
+                example: order_item_123
+              return_quantity:
+                type: integer
+                minimum: 1
+                example: 1
+              condition:
+                type: string
+                enum: [new, like_new, good, fair, poor]
+                example: good
+              notes:
+                type: string
+                example: Item doesn't fit
+        return_method:
+          type: string
+          enum: [shipping, in_store]
+          example: shipping
+        reason_id:
+          type: string
+          example: reason_wrong_size
+        reason_notes:
+          type: string
+          example: Size is too small
+        refund_method:
+          type: string
+          enum: [original_payment, store_credit, exchange]
+          example: original_payment
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+
+    UpdateReturnRequest:
+      type: object
+      properties:
+        reason_notes:
+          type: string
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              condition:
+                type: string
+                enum: [new, like_new, good, fair, poor]
+              notes:
+                type: string
+
+    ReturnPolicy:
+      type: object
+      properties:
+        return_window_days:
+          type: integer
+          example: 30
+        restocking_fee_percentage:
+          type: number
+          format: float
+          example: 0.0
+        free_return_shipping:
+          type: boolean
+          example: true
+        condition_requirements:
+          type: array
+          items:
+            type: string
+            example: original_tags
+        non_returnable_categories:
+          type: array
+          items:
+            type: string
+            example: clearance
+        refund_methods:
+          type: array
+          items:
+            type: string
+            example: original_payment
+        exchange_policy:
+          type: string
+          example: Exchange within 30 days
+        store_credit_bonus:
+          type: number
+          format: float
+          example: 0.10
+
+    ReturnReason:
+      type: object
+      properties:
+        id:
+          type: string
+          example: reason_wrong_size
+        name:
+          type: string
+          example: Wrong Size
+        description:
+          type: string
+          example: Item doesn't fit as expected
+        category:
+          type: string
+          enum: [fit, quality, damage, changed_mind, other]
+          example: fit
+        requires_photo:
+          type: boolean
+          example: false
+        restocking_fee:
+          type: number
+          format: float
+          example: 0.0
+
+    ReturnEligibility:
+      type: object
+      properties:
+        eligible:
+          type: boolean
+          example: true
+        eligible_items:
+          type: array
+          items:
+            type: object
+            properties:
+              order_item_id:
+                type: string
+              eligible_quantity:
+                type: integer
+              reason:
+                type: string
+              return_deadline:
+                type: string
+                format: date
+        ineligible_items:
+          type: array
+          items:
+            type: object
+            properties:
+              order_item_id:
+                type: string
+              reason:
+                type: string
+              example: Return window expired
+        return_policy:
+          $ref: '#/components/schemas/ReturnPolicy'
+
+    TrackingInfo:
+      type: object
+      properties:
+        tracking_number:
+          type: string
+          example: 1Z999AA1234567890
+        carrier:
+          type: string
+          example: UPS
+        status:
+          type: string
+          example: In Transit
+        estimated_delivery:
+          type: string
+          format: date-time
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              status:
+                type: string
+                example: Package picked up
+              location:
+                type: string
+                example: San Francisco, CA
+
+    Address:
+      type: object
+      required:
+        - street
+        - city
+        - state
+        - postal_code
+        - country
+      properties:
+        street:
+          type: string
+          example: 123 Main St
+        street2:
+          type: string
+          example: Apt 4B
+        city:
+          type: string
+          example: San Francisco
+        state:
+          type: string
+          example: CA
+        postal_code:
+          type: string
+          example: 94105
+        country:
+          type: string
+          example: US
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 2
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 45
+        pages:
+          type: integer
+          example: 3
+        has_next:
+          type: boolean
+          example: true
+        has_prev:
+          type: boolean
+          example: true
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Request validation failed
+        details:
+          type: object
+          additionalProperties: true
+
+    Meta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          example: req_abc123
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

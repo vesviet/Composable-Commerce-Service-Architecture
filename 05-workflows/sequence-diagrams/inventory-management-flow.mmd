@@ -1,0 +1,153 @@
+sequenceDiagram
+    participant User as Customer
+    participant Frontend
+    participant Gateway
+    participant Checkout as Checkout Service
+    participant Order as Order Service
+    participant Warehouse as Warehouse Service
+    participant Search as Search Service
+    participant Catalog as Catalog Service
+    participant Notification as Notification Service
+    participant Analytics as Analytics Service
+
+    Note over User, Analytics: Product Discovery & Inventory Check
+    User->>Frontend: Browse Products
+    Frontend->>Gateway: GET /api/v1/catalog/products
+    Gateway->>Catalog: Get Products with Inventory
+    Catalog->>Warehouse: Check Stock Levels
+    Warehouse-->>Catalog: Real-time Stock Data
+    Catalog-->>Gateway: Products + Stock Info
+    Gateway-->>Frontend: Product List
+    Frontend-->>User: Display Products with Stock Status
+
+    Note over User, Analytics: Add to Cart with Stock Validation
+    User->>Frontend: Add Product to Cart
+    Frontend->>Gateway: POST /api/v1/checkout/cart
+    Gateway->>Checkout: Add to Cart Request
+    Checkout->>Warehouse: Validate Stock Availability
+    Warehouse->>Warehouse: Check Current Stock - Reservations
+    alt Stock Available
+        Warehouse->>Warehouse: Reserve Stock (TTL: 30min)
+        Warehouse-->>Checkout: Stock Reserved
+        Checkout-->>Gateway: Item Added to Cart
+        Gateway-->>Frontend: 200 OK
+        Frontend-->>User: Item Added to Cart
+    else Insufficient Stock
+        Warehouse-->>Checkout: Out of Stock
+        Checkout-->>Gateway: 400 Bad Request
+        Gateway-->>Frontend: 400 Bad Request
+        Frontend-->>User: Product Out of Stock
+    end
+
+    Note over User, Analytics: Cart Management & Stock Updates
+    User->>Frontend: Update Cart Quantity
+    Frontend->>Gateway: PUT /api/v1/checkout/cart
+    Gateway->>Checkout: Update Cart Request
+    Checkout->>Warehouse: Update Stock Reservation
+    alt Increase Quantity
+        Warehouse->>Warehouse: Check Additional Stock
+        alt Additional Stock Available
+            Warehouse->>Warehouse: Increase Reservation
+            Warehouse-->>Checkout: Reservation Updated
+        else No Additional Stock
+            Warehouse-->>Checkout: Insufficient Stock
+        end
+    else Decrease Quantity
+        Warehouse->>Warehouse: Release Stock
+        Warehouse-->>Checkout: Stock Released
+    end
+    Checkout-->>Gateway: Cart Updated
+    Gateway-->>Frontend: 200 OK
+    Frontend-->>User: Cart Updated
+
+    Note over User, Analytics: Order Placement & Stock Confirmation
+    User->>Frontend: Place Order
+    Frontend->>Gateway: POST /api/v1/checkout/checkout
+    Gateway->>Checkout: Start Checkout
+    Checkout->>Order: Create Order
+    Order->>Warehouse: Confirm Stock Reservation
+    Warehouse->>Warehouse: Convert Reservation to Allocated
+    Warehouse-->>Order: Stock Allocated
+    Order-->>Checkout: Order Created
+    Checkout->>Warehouse: Finalize Stock Deduction
+    Warehouse->>Warehouse: Update Stock Levels
+    Warehouse->>Search: Update Search Index
+    Search-->>Warehouse: Index Updated
+    Warehouse->>Catalog: Update Product Availability
+    Catalog-->>Warehouse: Availability Updated
+    Warehouse-->>Checkout: Stock Confirmed
+    Checkout-->>Gateway: Order Created
+    Gateway-->>Frontend: 201 Created
+    Frontend-->>User: Order Confirmation
+
+    Note over User, Analytics: Real-time Stock Synchronization
+    Warehouse->>Warehouse: Stock Change Event
+    Warehouse->>Search: Publish stock.updated Event
+    Search->>Search: Update Real-time Index
+    Warehouse->>Catalog: Publish stock.updated Event
+    Catalog->>Catalog: Update Product Stock
+    Warehouse->>Analytics: Publish stock.updated Event
+    Analytics->>Analytics: Update Inventory Metrics
+
+    Note over User, Analytics: Low Stock Alert & Reorder
+    Warehouse->>Warehouse: Monitor Stock Levels
+    alt Stock Below Reorder Point
+        Warehouse->>Notification: Send Low Stock Alert
+        Warehouse->>Analytics: Log Low Stock Event
+        Notification-->>Warehouse: Alert Sent
+    end
+
+    Note over User, Analytics: Order Cancellation & Stock Release
+    User->>Frontend: Cancel Order
+    Frontend->>Gateway: POST /api/v1/orders/{id}/cancel
+    Gateway->>Order: Cancel Order Request
+    Order->>Warehouse: Release Allocated Stock
+    Warehouse->>Warehouse: Add Stock Back to Available
+    Warehouse->>Search: Update Stock in Search Index
+    Search-->>Warehouse: Index Updated
+    Warehouse->>Catalog: Update Product Availability
+    Catalog-->>Warehouse: Availability Updated
+    Warehouse-->>Order: Stock Released
+    Order-->>Gateway: Order Cancelled
+    Gateway-->>Frontend: 200 OK
+    Frontend-->>User: Order Cancelled
+
+    Note over User, Analytics: Return Processing & Stock Restoration
+    User->>Frontend: Initiate Return
+    Frontend->>Gateway: POST /api/v1/returns/returns
+    Gateway->>Return: Create Return Request
+    Return->>Warehouse: Reserve Return Stock
+    Warehouse->>Warehouse: Create Return Reservation
+    Warehouse-->>Return: Return Reservation Created
+    Return-->>Gateway: Return Created
+    Gateway-->>Frontend: 201 Created
+    Frontend-->>User: Return Initiated
+
+    Note over User, Analytics: Return Received & Stock Update
+    Return->>Return: Return Received at Warehouse
+    Return->>Warehouse: Process Return Stock
+    Warehouse->>Warehouse: Quality Check Return
+    alt Return Approved
+        Warehouse->>Warehouse: Add Stock to Available
+        Warehouse->>Search: Update Stock in Search Index
+        Search-->>Warehouse: Index Updated
+        Warehouse->>Catalog: Update Product Availability
+        Catalog-->>Warehouse: Availability Updated
+        Warehouse->>Analytics: Log Return Processing
+    else Return Damaged
+        Warehouse->>Warehouse: Move to Damaged Inventory
+        Warehouse->>Analytics: Log Damaged Return
+    end
+    Warehouse-->>Return: Return Processed
+    Return->>Notification: Send Return Status Update
+    Notification-->>Return: Update Sent
+
+    Note over User, Analytics: Inventory Reconciliation
+    Warehouse->>Warehouse: Daily Stock Reconciliation
+    alt Discrepancy Found
+        Warehouse->>Analytics: Log Discrepancy
+        Warehouse->>Notification: Send Reconciliation Alert
+        Notification-->>Warehouse: Alert Sent
+    end
+    Warehouse->>Analytics: Publish Daily Inventory Report
+    Analytics-->>Warehouse: Report Generated

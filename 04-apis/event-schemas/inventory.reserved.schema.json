@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/inventory.reserved.v1.json",
+  "title": "Inventory Reserved Event",
+  "description": "Emitted when inventory is reserved for an order",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "inventory.reserved",
+      "description": "Event type identifier"
+    },
+    "event_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Event schema version"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event occurred"
+    },
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "warehouse-service"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reservation_id",
+        "order_id",
+        "items",
+        "warehouse_id"
+      ],
+      "properties": {
+        "reservation_id": {
+          "type": "string",
+          "description": "Unique inventory reservation identifier"
+        },
+        "order_id": {
+          "type": "string",
+          "description": "Order identifier for which inventory is reserved"
+        },
+        "customer_id": {
+          "type": "string",
+          "description": "Customer identifier"
+        },
+        "items": {
+          "type": "array",
+          "description": "Items for which inventory is reserved",
+          "items": {
+            "type": "object",
+            "required": ["product_id", "quantity_reserved", "location"],
+            "properties": {
+              "product_id": {
+                "type": "string",
+                "description": "Product identifier"
+              },
+              "sku": {
+                "type": "string",
+                "description": "Product SKU"
+              },
+              "quantity_reserved": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Quantity reserved"
+              },
+              "location": {
+                "type": "object",
+                "description": "Storage location",
+                "properties": {
+                  "warehouse_id": {
+                    "type": "string",
+                    "description": "Warehouse identifier"
+                  },
+                  "zone": {
+                    "type": "string",
+                    "description": "Storage zone"
+                  },
+                  "aisle": {
+                    "type": "string",
+                    "description": "Storage aisle"
+                  },
+                  "shelf": {
+                    "type": "string",
+                    "description": "Shelf location"
+                  }
+                }
+              },
+              "batch_number": {
+                "type": "string",
+                "description": "Batch or lot number"
+              },
+              "expiry_date": {
+                "type": "string",
+                "format": "date",
+                "description": "Expiry date for batched items"
+              }
+            }
+          }
+        },
+        "warehouse_id": {
+          "type": "string",
+          "description": "Warehouse where inventory is reserved"
+        },
+        "reservation_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the reservation expires"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "normal", "high", "urgent"],
+          "default": "normal",
+          "description": "Reservation priority"
+        },
+        "fulfillment_method": {
+          "type": "string",
+          "enum": ["ship", "pickup", "digital"],
+          "description": "Intended fulfillment method"
+        },
+        "shipping_address": {
+          "type": "object",
+          "description": "Shipping address for planning purposes",
+          "properties": {
+            "country": {
+              "type": "string",
+              "description": "Destination country"
+            },
+            "postal_code": {
+              "type": "string",
+              "description": "Destination postal code"
+            }
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440003",
+      "event_type": "inventory.reserved",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T10:30:00Z",
+      "source": "warehouse-service",
+      "data": {
+        "reservation_id": "res_123456",
+        "order_id": "order_789012",
+        "customer_id": "cust_345678",
+        "items": [
+          {
+            "product_id": "prod_111",
+            "sku": "WIDGET-BLUE-M",
+            "quantity_reserved": 2,
+            "location": {
+              "warehouse_id": "wh_01",
+              "zone": "A",
+              "aisle": "12",
+              "shelf": "B3"
+            },
+            "batch_number": "BATCH-2026-001"
+          },
+          {
+            "product_id": "prod_222",
+            "sku": "GADGET-RED-L",
+            "quantity_reserved": 1,
+            "location": {
+              "warehouse_id": "wh_01",
+              "zone": "C",
+              "aisle": "05",
+              "shelf": "A1"
+            }
+          }
+        ],
+        "warehouse_id": "wh_01",
+        "reservation_expires_at": "2026-02-02T18:30:00Z",
+        "priority": "normal",
+        "fulfillment_method": "ship",
+        "shipping_address": {
+          "country": "US",
+          "postal_code": "94105"
+        }
+      }
+    }
+  ]
+}

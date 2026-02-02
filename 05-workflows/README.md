@@ -25,11 +25,13 @@ Internal business operations and processes
 - **[pricing-promotions.md](operational-flows/pricing-promotions.md)** - Dynamic pricing and promotion management
 - **[shipping-logistics.md](operational-flows/shipping-logistics.md)** - Multi-carrier shipping and delivery tracking
 - **[quality-control.md](operational-flows/quality-control.md)** - Fulfillment quality control and inspection processes
+- **[customer-service-workflow.md](operational-flows/customer-service-workflow.md)** - Customer support operations and ticket management
 
 #### **[Integration Flows](integration-flows/)**
 System integrations and data synchronization
 - **[event-processing.md](integration-flows/event-processing.md)** - Event-driven architecture flows across 19 services
 - **[data-synchronization.md](integration-flows/data-synchronization.md)** - Real-time data sync patterns (product, price, stock)
+- **[real-time-data-sync.md](integration-flows/real-time-data-sync.md)** - Advanced real-time synchronization patterns
 - **[external-apis.md](integration-flows/external-apis.md)** - Third-party integrations (payment gateways, shipping carriers)
 - **[search-indexing.md](integration-flows/search-indexing.md)** - Elasticsearch indexing and search workflows
 
@@ -40,6 +42,9 @@ Visual representations of system interactions
 - **[fulfillment-shipping-flow.mmd](sequence-diagrams/fulfillment-shipping-flow.mmd)** - Fulfillment and shipping workflow
 - **[return-refund-flow.mmd](sequence-diagrams/return-refund-flow.mmd)** - Return and refund processing sequence
 - **[search-discovery-flow.mmd](sequence-diagrams/search-discovery-flow.mmd)** - Product search and discovery workflow
+- **[user-authentication-flow.mmd](sequence-diagrams/user-authentication-flow.mmd)** - User authentication and authorization flow
+- **[inventory-management-flow.mmd](sequence-diagrams/inventory-management-flow.mmd)** - Real-time inventory synchronization
+- **[notification-workflow.mmd](sequence-diagrams/notification-workflow.mmd)** - Multi-channel notification processing
 
 ---
 
@@ -253,6 +258,6 @@ Each workflow document includes:
 
 ---
 
-**Last Updated**: January 29, 2026  
+**Last Updated**: February 2, 2026  
 **Platform Status**: 88% Complete, 16/19 Services Production Ready  
 **Maintained By**: Business Process & Architecture Team

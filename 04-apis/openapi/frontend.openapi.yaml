@@ -1,0 +1,927 @@
+openapi: 3.0.3
+info:
+  title: Frontend Service API
+  version: 1.0.0
+  description: Frontend aggregation and content delivery API
+  contact:
+    name: Frontend API Support
+    email: frontend-api@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.example.com/v1/frontend
+    description: Production server
+  - url: https://staging-api.example.com/v1/frontend
+    description: Staging server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if frontend service is healthy
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /pages/home:
+    get:
+      summary: Get home page data
+      description: Retrieve aggregated data for home page
+      operationId: getHomePage
+      tags:
+        - Pages
+      parameters:
+        - name: theme
+          in: query
+          schema:
+            type: string
+            enum: [light, dark]
+            default: light
+        - name: locale
+          in: query
+          schema:
+            type: string
+            default: en-US
+        - name: device
+          in: query
+          schema:
+            type: string
+            enum: [mobile, tablet, desktop]
+            default: desktop
+      responses:
+        '200':
+          description: Home page data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/HomePage'
+
+  /pages/product/{productId}:
+    get:
+      summary: Get product page data
+      description: Retrieve aggregated data for product detail page
+      operationId: getProductPage
+      tags:
+        - Pages
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locale
+          in: query
+          schema:
+            type: string
+            default: en-US
+        - name: include_reviews
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: include_recommendations
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Product page data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProductPage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /pages/category/{categoryId}:
+    get:
+      summary: Get category page data
+      description: Retrieve aggregated data for category page
+      operationId: getCategoryPage
+      tags:
+        - Pages
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [name_asc, name_desc, price_asc, price_desc, newest, rating]
+            default: newest
+        - name: filters
+          in: query
+          schema:
+            type: object
+            additionalProperties: true
+      responses:
+        '200':
+          description: Category page data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CategoryPage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /pages/search:
+    get:
+      summary: Get search results page data
+      description: Retrieve aggregated data for search results
+      operationId: getSearchPage
+      tags:
+        - Pages
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: price_min
+          in: query
+          schema:
+            type: number
+            format: float
+        - name: price_max
+          in: query
+          schema:
+            type: number
+            format: float
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [relevance, price_asc, price_desc, rating, newest]
+            default: relevance
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SearchPage'
+
+  /navigation:
+    get:
+      summary: Get navigation menu
+      description: Retrieve site navigation structure
+      operationId: getNavigation
+      tags:
+        - Navigation
+      parameters:
+        - name: locale
+          in: query
+          schema:
+            type: string
+            default: en-US
+        - name: level
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 3
+            default: 2
+      responses:
+        '200':
+          description: Navigation retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NavigationItem'
+
+  /banners:
+    get:
+      summary: Get banners
+      description: Retrieve promotional banners for display
+      operationId: getBanners
+      tags:
+        - Content
+      parameters:
+        - name: placement
+          in: query
+          schema:
+            type: string
+            enum: [home, category, product, cart, checkout]
+        - name: locale
+          in: query
+          schema:
+            type: string
+            default: en-US
+        - name: device
+          in: query
+          schema:
+            type: string
+            enum: [mobile, tablet, desktop]
+      responses:
+        '200':
+          description: Banners retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Banner'
+
+  /recommendations:
+    get:
+      summary: Get personalized recommendations
+      description: Retrieve personalized product recommendations
+      operationId: getRecommendations
+      tags:
+        - Recommendations
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [home, product, cart, similar, trending]
+            default: home
+        - name: product_id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Recommendations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductRecommendation'
+
+  /widgets/{widgetId}:
+    get:
+      summary: Get widget data
+      description: Retrieve data for specific frontend widget
+      operationId: getWidget
+      tags:
+        - Widgets
+      parameters:
+        - name: widgetId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: context
+          in: query
+          schema:
+            type: object
+            additionalProperties: true
+      responses:
+        '200':
+          description: Widget data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Widget'
+
+  /content/blocks:
+    get:
+      summary: Get content blocks
+      description: Retrieve CMS content blocks
+      operationId: getContentBlocks
+      tags:
+        - Content
+      parameters:
+        - name: identifiers
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          description: Array of block identifiers
+        - name: locale
+          in: query
+          schema:
+            type: string
+            default: en-US
+      responses:
+        '200':
+          description: Content blocks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/ContentBlock'
+
+  /analytics/track:
+    post:
+      summary: Track analytics event
+      description: Track user interaction events
+      operationId: trackEvent
+      tags:
+        - Analytics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyticsEvent'
+      responses:
+        '200':
+          description: Event tracked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+components:
+  schemas:
+    HomePage:
+      type: object
+      properties:
+        hero_banner:
+          $ref: '#/components/schemas/Banner'
+        featured_products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        promotions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Promotion'
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductRecommendation'
+        banners:
+          type: array
+          items:
+            $ref: '#/components/schemas/Banner'
+
+    ProductPage:
+      type: object
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductVariant'
+        reviews:
+          type: object
+          properties:
+            average_rating:
+              type: number
+              format: float
+              example: 4.5
+            total_reviews:
+              type: integer
+              example: 128
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Review'
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductRecommendation'
+        specifications:
+          type: object
+          additionalProperties:
+            type: string
+        related_products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+
+    CategoryPage:
+      type: object
+      properties:
+        category:
+          $ref: '#/components/schemas/Category'
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Filter'
+        sort_options:
+          type: array
+          items:
+            $ref: '#/components/schemas/SortOption'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        breadcrumbs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Breadcrumb'
+
+    SearchPage:
+      type: object
+      properties:
+        query:
+          type: string
+          example: wireless headphones
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        total_count:
+          type: integer
+          example: 45
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Filter'
+        suggestions:
+          type: array
+          items:
+            type: string
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          example: prod_123
+        name:
+          type: string
+          example: Wireless Headphones
+        description:
+          type: string
+          example: Premium wireless headphones with noise cancellation
+        price:
+          type: number
+          format: float
+          example: 199.99
+        original_price:
+          type: number
+          format: float
+          example: 249.99
+        currency:
+          type: string
+          example: USD
+        image_url:
+          type: string
+          example: https://example.com/images/headphones.jpg
+        rating:
+          type: number
+          format: float
+          example: 4.5
+        review_count:
+          type: integer
+          example: 128
+        in_stock:
+          type: boolean
+          example: true
+        badge:
+          type: string
+          example: Best Seller
+        url:
+          type: string
+          example: /products/wireless-headphones
+
+    ProductVariant:
+      type: object
+      properties:
+        id:
+          type: string
+          example: variant_456
+        name:
+          type: string
+          example: Black, Large
+        sku:
+          type: string
+          example: WH-BL-L-001
+        price:
+          type: number
+          format: float
+          example: 199.99
+        in_stock:
+          type: boolean
+          example: true
+        image_url:
+          type: string
+          example: https://example.com/images/headphones-black.jpg
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cat_123
+        name:
+          type: string
+          example: Electronics
+        description:
+          type: string
+          example: Latest electronic gadgets and accessories
+        image_url:
+          type: string
+          example: https://example.com/images/electronics.jpg
+        product_count:
+          type: integer
+          example: 1250
+        url:
+          type: string
+          example: /categories/electronics
+
+    NavigationItem:
+      type: object
+      properties:
+        id:
+          type: string
+          example: nav_123
+        label:
+          type: string
+          example: Electronics
+        url:
+          type: string
+          example: /categories/electronics
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/NavigationItem'
+        badge:
+          type: string
+          example: New
+
+    Banner:
+      type: object
+      properties:
+        id:
+          type: string
+          example: banner_123
+        title:
+          type: string
+          example: Summer Sale
+        subtitle:
+          type: string
+          example: Up to 50% off
+        image_url:
+          type: string
+          example: https://example.com/banners/summer-sale.jpg
+        mobile_image_url:
+          type: string
+          example: https://example.com/banners/summer-sale-mobile.jpg
+        link_url:
+          type: string
+          example: /categories/summer-sale
+        placement:
+          type: string
+          example: home
+        priority:
+          type: integer
+          example: 1
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+
+    ProductRecommendation:
+      type: object
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        reason:
+          type: string
+          example: Because you viewed similar items
+        score:
+          type: number
+          format: float
+          example: 0.95
+
+    Widget:
+      type: object
+      properties:
+        id:
+          type: string
+          example: widget_123
+        type:
+          type: string
+          example: product_carousel
+        title:
+          type: string
+          example: Featured Products
+        config:
+          type: object
+          additionalProperties: true
+        data:
+          type: object
+          additionalProperties: true
+
+    ContentBlock:
+      type: object
+      properties:
+        id:
+          type: string
+          example: block_123
+        type:
+          type: string
+          enum: [text, html, image, video]
+          example: html
+        content:
+          type: string
+          example: <p>Welcome to our store!</p>
+        metadata:
+          type: object
+          additionalProperties: true
+
+    Filter:
+      type: object
+      properties:
+        id:
+          type: string
+          example: filter_price
+        type:
+          type: string
+          enum: [range, select, checkbox]
+          example: range
+        label:
+          type: string
+          example: Price Range
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              label:
+                type: string
+              count:
+                type: integer
+
+    SortOption:
+      type: object
+      properties:
+        value:
+          type: string
+          example: price_asc
+        label:
+          type: string
+          example: Price: Low to High
+
+    Breadcrumb:
+      type: object
+      properties:
+        label:
+          type: string
+          example: Electronics
+        url:
+          type: string
+          example: /categories/electronics
+
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 2
+        total_pages:
+          type: integer
+          example: 8
+        total_items:
+          type: integer
+          example: 150
+        items_per_page:
+          type: integer
+          example: 20
+        has_next:
+          type: boolean
+          example: true
+        has_prev:
+          type: boolean
+          example: true
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          example: review_123
+        rating:
+          type: integer
+          example: 5
+        title:
+          type: string
+          example: Excellent product!
+        content:
+          type: string
+          example: Great sound quality and comfortable to wear.
+        author:
+          type: string
+          example: John D.
+        created_at:
+          type: string
+          format: date-time
+
+    Promotion:
+      type: object
+      properties:
+        id:
+          type: string
+          example: promo_123
+        title:
+          type: string
+          example: 20% Off Electronics
+        description:
+          type: string
+          example: Get 20% off on all electronics this weekend
+        code:
+          type: string
+          example: ELECTRO20
+        image_url:
+          type: string
+          example: https://example.com/promotions/electronics.jpg
+
+    AnalyticsEvent:
+      type: object
+      required:
+        - event_type
+        - timestamp
+      properties:
+        event_type:
+          type: string
+          example: product_view
+        properties:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+        session_id:
+          type: string
+        page_url:
+          type: string
+        user_agent:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Request validation failed
+        details:
+          type: object
+          additionalProperties: true
+
+    Meta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          example: req_abc123
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

@@ -1,0 +1,671 @@
+openapi: 3.0.3
+info:
+  title: Admin Service API
+  version: 1.0.0
+  description: Administrative operations for microservices platform
+  contact:
+    name: Admin API Support
+    email: admin-api@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.example.com/v1/admin
+    description: Production server
+  - url: https://staging-api.example.com/v1/admin
+    description: Staging server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if admin service is healthy
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /users:
+    get:
+      summary: List users
+      description: Retrieve a paginated list of all users
+      operationId: listUsers
+      tags:
+        - Users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search users by name or email
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, suspended]
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [admin, user, moderator]
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      summary: Create user
+      description: Create a new user account
+      operationId: createUser
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{userId}:
+    get:
+      summary: Get user
+      description: Retrieve user details by ID
+      operationId: getUser
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update user
+      description: Update user information
+      operationId: updateUser
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete user
+      description: Delete user account
+      operationId: deleteUser
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /services:
+    get:
+      summary: List services
+      description: Retrieve list of all microservices
+      operationId: listServices
+      tags:
+        - Services
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [running, stopped, error]
+        - name: environment
+          in: query
+          schema:
+            type: string
+            enum: [production, staging, development]
+      responses:
+        '200':
+          description: Services retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+
+  /services/{serviceId}/restart:
+    post:
+      summary: Restart service
+      description: Restart a specific microservice
+      operationId: restartService
+      tags:
+        - Services
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service restart initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Service restart initiated
+                  service_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [restarting, pending]
+
+  /metrics:
+    get:
+      summary: Get system metrics
+      description: Retrieve system performance metrics
+      operationId: getMetrics
+      tags:
+        - Monitoring
+      parameters:
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [1h, 24h, 7d, 30d]
+            default: 24h
+        - name: services
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          description: Specific services to get metrics for
+      responses:
+        '200':
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SystemMetrics'
+                  timeframe:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /audit-logs:
+    get:
+      summary: Get audit logs
+      description: Retrieve system audit logs
+      operationId: getAuditLogs
+      tags:
+        - Audit
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: resource
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        '200':
+          description: Audit logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: user_123
+        email:
+          type: string
+          format: email
+          example: admin@example.com
+        name:
+          type: string
+          example: John Admin
+        role:
+          type: string
+          enum: [admin, user, moderator]
+          example: admin
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - name
+        - role
+      properties:
+        email:
+          type: string
+          format: email
+          example: newuser@example.com
+        name:
+          type: string
+          example: New User
+        role:
+          type: string
+          enum: [admin, user, moderator]
+          example: user
+        password:
+          type: string
+          format: password
+          example: securePassword123
+        send_welcome_email:
+          type: boolean
+          default: true
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Updated Name
+        role:
+          type: string
+          enum: [admin, user, moderator]
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        email:
+          type: string
+          format: email
+
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+          example: auth-service
+        name:
+          type: string
+          example: Authentication Service
+        status:
+          type: string
+          enum: [running, stopped, error, deploying]
+          example: running
+        version:
+          type: string
+          example: 1.2.3
+        environment:
+          type: string
+          enum: [production, staging, development]
+          example: production
+        replicas:
+          type: integer
+          example: 3
+        cpu_usage:
+          type: number
+          format: float
+          example: 0.75
+        memory_usage:
+          type: number
+          format: float
+          example: 0.68
+        last_deployed:
+          type: string
+          format: date-time
+
+    SystemMetrics:
+      type: object
+      properties:
+        total_requests:
+          type: integer
+          example: 1500000
+        error_rate:
+          type: number
+          format: float
+          example: 0.002
+        avg_response_time:
+          type: number
+          format: float
+          example: 145.5
+        uptime:
+          type: number
+          format: float
+          example: 99.98
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceMetrics'
+
+    ServiceMetrics:
+      type: object
+      properties:
+        service_name:
+          type: string
+          example: auth-service
+        requests_per_minute:
+          type: integer
+          example: 250
+        avg_response_time:
+          type: number
+          format: float
+          example: 120.5
+        error_rate:
+          type: number
+          format: float
+          example: 0.001
+        cpu_usage:
+          type: number
+          format: float
+          example: 0.65
+        memory_usage:
+          type: number
+          format: float
+          example: 0.72
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          example: audit_456
+        timestamp:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+          example: user_123
+        user_email:
+          type: string
+          example: admin@example.com
+        action:
+          type: string
+          example: user.created
+        resource:
+          type: string
+          example: users/user_456
+        ip_address:
+          type: string
+          example: 192.168.1.100
+        user_agent:
+          type: string
+          example: Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+        details:
+          type: object
+          additionalProperties: true
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 2
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 150
+        pages:
+          type: integer
+          example: 8
+        has_next:
+          type: boolean
+          example: true
+        has_prev:
+          type: boolean
+          example: true
+
+    Meta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          example: req_abc123
+        timestamp:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Request validation failed
+        details:
+          type: object
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

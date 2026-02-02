@@ -28,6 +28,24 @@ HTTP/REST APIs for external clients and frontend applications
 - Order API (`order.openapi.yaml`)
 - Payment API (`payment.openapi.yaml`)
 - Customer API (`customer.openapi.yaml`)
+- Admin API (`admin.openapi.yaml`)
+- Checkout API (`checkout.openapi.yaml`)
+- Frontend API (`frontend.openapi.yaml`)
+- Return API (`return.openapi.yaml`)
+- Analytics API (`analytics.openapi.yaml`)
+- Fulfillment API (`fulfillment.openapi.yaml`)
+- Gateway API (`gateway.openapi.yaml`)
+- Location API (`location.openapi.yaml`)
+- Loyalty Rewards API (`loyalty-rewards.openapi.yaml`)
+- Notification API (`notification.openapi.yaml`)
+- Pricing API (`pricing.openapi.yaml`)
+- Promotion API (`promotion.openapi.yaml`)
+- Review API (`review.openapi.yaml`)
+- Search API (`search.openapi.yaml`)
+- Shipping API (`shipping.openapi.yaml`)
+- User API (`user.openapi.yaml`)
+- Warehouse API (`warehouse.openapi.yaml`)
+- Common Operations API (`common-operations.openapi.yaml`)
 - [View all OpenAPI specs](openapi/)
 
 ### **⚡ gRPC APIs**
@@ -47,6 +65,9 @@ Asynchronous event-driven communication between services
 - Inventory events (stock changes, reservations)
 - Payment events (processed, failed, refunded)
 - Customer events (registered, updated, deleted)
+- Cart events (item added, checked out)
+- Return events (requested, processed)
+- User events (registration, authentication)
 - [View all event schemas](event-schemas/)
 
 ---
@@ -149,19 +170,30 @@ Event schemas are defined using JSON Schema Draft 7:
 
 ### **Common Endpoints**
 ```
-Authentication:  POST /api/v1/auth/login
-User Profile:    GET  /api/v1/customers/profile
-Product Search:  GET  /api/v1/catalog/products
-Create Order:    POST /api/v1/orders
-Payment:         POST /api/v1/payments/process
+Authentication:     POST /api/v1/auth/login
+User Profile:       GET  /api/v1/customers/profile
+Product Search:     GET  /api/v1/catalog/products
+Create Order:       POST /api/v1/orders
+Payment:            POST /api/v1/payments/process
+Cart Management:    GET  /api/v1/checkout/cart
+Start Checkout:     POST /api/v1/checkout/checkout
+Create Return:      POST /api/v1/returns/returns
+Admin Users:        GET  /api/v1/admin/users
+Frontend Home:      GET  /api/v1/frontend/pages/home
 ```
 
 ### **Common Events**
 ```
-Order Created:     orders.order.created
-Stock Updated:     warehouse.inventory.stock_changed
-Payment Processed: payments.payment.confirmed
-User Registered:   customers.customer.created
+Order Created:        orders.order.created
+Stock Updated:        warehouse.inventory.stock_changed
+Payment Processed:    payments.payment.confirmed
+User Registered:      customers.user.registered
+Cart Checked Out:     checkout.cart.checked_out
+Return Requested:     returns.return.requested
+Inventory Reserved:   warehouse.inventory.reserved
+Product Created:      catalog.product.created
+Shipment Created:     shipping.shipment.created
+Price Updated:        pricing.price.updated
 ```
 
 ### **Authentication**
@@ -177,5 +209,5 @@ curl -H "Authorization: Bearer <token>" /api/v1/customers/profile
 
 ---
 
-**Last Updated**: January 26, 2026  
+**Last Updated**: February 2, 2026  
 **Maintained By**: API Team & Service Owners

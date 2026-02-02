@@ -1,0 +1,955 @@
+openapi: 3.0.3
+info:
+  title: Checkout Service API
+  version: 1.0.0
+  description: Checkout and order processing API for e-commerce platform
+  contact:
+    name: Checkout API Support
+    email: checkout-api@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.example.com/v1/checkout
+    description: Production server
+  - url: https://staging-api.example.com/v1/checkout
+    description: Staging server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if checkout service is healthy
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /cart:
+    get:
+      summary: Get cart
+      description: Retrieve current user's shopping cart
+      operationId: getCart
+      tags:
+        - Cart
+      responses:
+        '200':
+          description: Cart retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Cart not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+
+    post:
+      summary: Add item to cart
+      description: Add a product to the shopping cart
+      operationId: addToCart
+      tags:
+        - Cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToCartRequest'
+      responses:
+        '200':
+          description: Item added to cart successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update cart item
+      description: Update quantity or remove item from cart
+      operationId: updateCartItem
+      tags:
+        - Cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItemRequest'
+      responses:
+        '200':
+          description: Cart item updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Clear cart
+      description: Remove all items from the shopping cart
+      operationId: clearCart
+      tags:
+        - Cart
+      responses:
+        '204':
+          description: Cart cleared successfully
+
+  /cart/items/{itemId}:
+    delete:
+      summary: Remove cart item
+      description: Remove specific item from shopping cart
+      operationId: removeCartItem
+      tags:
+        - Cart
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /checkout:
+    post:
+      summary: Start checkout
+      description: Begin the checkout process for current cart
+      operationId: startCheckout
+      tags:
+        - Checkout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartCheckoutRequest'
+      responses:
+        '201':
+          description: Checkout started successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CheckoutSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /checkout/{sessionId}:
+    get:
+      summary: Get checkout session
+      description: Retrieve checkout session details
+      operationId: getCheckoutSession
+      tags:
+        - Checkout
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Checkout session retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CheckoutSession'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update checkout session
+      description: Update checkout information
+      operationId: updateCheckoutSession
+      tags:
+        - Checkout
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCheckoutRequest'
+      responses:
+        '200':
+          description: Checkout session updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CheckoutSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /checkout/{sessionId}/shipping:
+    post:
+      summary: Set shipping method
+      description: Set shipping method for checkout
+      operationId: setShippingMethod
+      tags:
+        - Checkout
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetShippingMethodRequest'
+      responses:
+        '200':
+          description: Shipping method set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CheckoutSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /checkout/{sessionId}/payment:
+    post:
+      summary: Process payment
+      description: Process payment for checkout session
+      operationId: processPayment
+      tags:
+        - Checkout
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessPaymentRequest'
+      responses:
+        '200':
+          description: Payment processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PaymentResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          description: Payment failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+
+  /checkout/{sessionId}/complete:
+    post:
+      summary: Complete checkout
+      description: Complete checkout and create order
+      operationId: completeCheckout
+      tags:
+        - Checkout
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Checkout completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /shipping-methods:
+    get:
+      summary: Get shipping methods
+      description: Retrieve available shipping methods
+      operationId: getShippingMethods
+      tags:
+        - Shipping
+      parameters:
+        - name: address
+          in: query
+          schema:
+            type: string
+          description: Shipping address for method availability
+        - name: cart_value
+          in: query
+          schema:
+            type: number
+            format: float
+          description: Cart total value for method eligibility
+      responses:
+        '200':
+          description: Shipping methods retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ShippingMethod'
+
+  /payment-methods:
+    get:
+      summary: Get payment methods
+      description: Retrieve available payment methods
+      operationId: getPaymentMethods
+      tags:
+        - Payment
+      responses:
+        '200':
+          description: Payment methods retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaymentMethod'
+
+  /promotions/validate:
+    post:
+      summary: Validate promotion
+      description: Validate and apply promotion code
+      operationId: validatePromotion
+      tags:
+        - Promotions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidatePromotionRequest'
+      responses:
+        '200':
+          description: Promotion validated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PromotionResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Invalid promotion code
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Cart:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cart_123
+        customer_id:
+          type: string
+          example: cust_456
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        subtotal:
+          type: number
+          format: float
+          example: 99.99
+        tax:
+          type: number
+          format: float
+          example: 8.99
+        shipping:
+          type: number
+          format: float
+          example: 5.99
+        discount:
+          type: number
+          format: float
+          example: 10.00
+        total:
+          type: number
+          format: float
+          example: 104.97
+        currency:
+          type: string
+          example: USD
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: string
+          example: item_789
+        product_id:
+          type: string
+          example: prod_123
+        product_name:
+          type: string
+          example: Premium Widget
+        sku:
+          type: string
+          example: WIDGET-PREM-001
+        quantity:
+          type: integer
+          example: 2
+        unit_price:
+          type: number
+          format: float
+          example: 49.99
+        total_price:
+          type: number
+          format: float
+          example: 99.98
+        image_url:
+          type: string
+          example: https://example.com/images/widget.jpg
+        in_stock:
+          type: boolean
+          example: true
+
+    AddToCartRequest:
+      type: object
+      required:
+        - product_id
+        - quantity
+      properties:
+        product_id:
+          type: string
+          example: prod_123
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        variant_id:
+          type: string
+          example: variant_456
+
+    UpdateCartItemRequest:
+      type: object
+      required:
+        - item_id
+      properties:
+        item_id:
+          type: string
+          example: item_789
+        quantity:
+          type: integer
+          minimum: 0
+          example: 1
+
+    CheckoutSession:
+      type: object
+      properties:
+        id:
+          type: string
+          example: session_123
+        cart_id:
+          type: string
+          example: cart_456
+        customer_id:
+          type: string
+          example: cust_789
+        status:
+          type: string
+          enum: [initialized, shipping_set, payment_ready, payment_processed, completed, expired]
+          example: payment_ready
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        billing_address:
+          $ref: '#/components/schemas/Address'
+        shipping_method:
+          $ref: '#/components/schemas/ShippingMethod'
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethod'
+        order_summary:
+          $ref: '#/components/schemas/OrderSummary'
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+
+    StartCheckoutRequest:
+      type: object
+      properties:
+        cart_id:
+          type: string
+          example: cart_123
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        billing_address:
+          $ref: '#/components/schemas/Address'
+        save_addresses:
+          type: boolean
+          default: false
+
+    UpdateCheckoutRequest:
+      type: object
+      properties:
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        billing_address:
+          $ref: '#/components/schemas/Address'
+        promotion_code:
+          type: string
+          example: SAVE20
+
+    SetShippingMethodRequest:
+      type: object
+      required:
+        - shipping_method_id
+      properties:
+        shipping_method_id:
+          type: string
+          example: ship_standard
+
+    ProcessPaymentRequest:
+      type: object
+      required:
+        - payment_method_id
+      properties:
+        payment_method_id:
+          type: string
+          example: pm_card_123
+        save_payment_method:
+          type: boolean
+          default: false
+
+    PaymentResult:
+      type: object
+      properties:
+        payment_id:
+          type: string
+          example: pay_123
+        status:
+          type: string
+          enum: [succeeded, failed, requires_action]
+          example: succeeded
+        amount:
+          type: number
+          format: float
+          example: 104.97
+        currency:
+          type: string
+          example: USD
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethod'
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          example: order_123
+        order_number:
+          type: string
+          example: ORD-2026-001234
+        customer_id:
+          type: string
+          example: cust_456
+        status:
+          type: string
+          enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+          example: confirmed
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        shipping_address:
+          $ref: '#/components/schemas/Address'
+        billing_address:
+          $ref: '#/components/schemas/Address'
+        order_summary:
+          $ref: '#/components/schemas/OrderSummary'
+        created_at:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      properties:
+        product_id:
+          type: string
+          example: prod_123
+        product_name:
+          type: string
+          example: Premium Widget
+        sku:
+          type: string
+          example: WIDGET-PREM-001
+        quantity:
+          type: integer
+          example: 2
+        unit_price:
+          type: number
+          format: float
+          example: 49.99
+        total_price:
+          type: number
+          format: float
+          example: 99.98
+
+    OrderSummary:
+      type: object
+      properties:
+        subtotal:
+          type: number
+          format: float
+          example: 99.99
+        tax:
+          type: number
+          format: float
+          example: 8.99
+        shipping:
+          type: number
+          format: float
+          example: 5.99
+        discount:
+          type: number
+          format: float
+          example: 10.00
+        total:
+          type: number
+          format: float
+          example: 104.97
+        currency:
+          type: string
+          example: USD
+
+    Address:
+      type: object
+      required:
+        - street
+        - city
+        - state
+        - postal_code
+        - country
+      properties:
+        street:
+          type: string
+          example: 123 Main St
+        street2:
+          type: string
+          example: Apt 4B
+        city:
+          type: string
+          example: San Francisco
+        state:
+          type: string
+          example: CA
+        postal_code:
+          type: string
+          example: 94105
+        country:
+          type: string
+          example: US
+        type:
+          type: string
+          enum: [shipping, billing]
+          example: shipping
+
+    ShippingMethod:
+      type: object
+      properties:
+        id:
+          type: string
+          example: ship_standard
+        name:
+          type: string
+          example: Standard Shipping
+        description:
+          type: string
+          example: 5-7 business days
+        cost:
+          type: number
+          format: float
+          example: 5.99
+        estimated_days:
+          type: integer
+          example: 6
+        available:
+          type: boolean
+          example: true
+
+    PaymentMethod:
+      type: object
+      properties:
+        id:
+          type: string
+          example: pm_card_123
+        type:
+          type: string
+          enum: [card, bank_transfer, digital_wallet]
+          example: card
+        brand:
+          type: string
+          example: visa
+        last4:
+          type: string
+          example: 4242
+        expiry_month:
+          type: integer
+          example: 12
+        expiry_year:
+          type: integer
+          example: 2026
+        is_default:
+          type: boolean
+          example: false
+
+    ValidatePromotionRequest:
+      type: object
+      required:
+        - promotion_code
+        - cart_id
+      properties:
+        promotion_code:
+          type: string
+          example: SAVE20
+        cart_id:
+          type: string
+          example: cart_123
+
+    PromotionResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: true
+        promotion:
+          $ref: '#/components/schemas/Promotion'
+        discount_amount:
+          type: number
+          format: float
+          example: 20.00
+
+    Promotion:
+      type: object
+      properties:
+        id:
+          type: string
+          example: promo_123
+        code:
+          type: string
+          example: SAVE20
+        name:
+          type: string
+          example: 20% Off Everything
+        description:
+          type: string
+          example: Get 20% off your entire order
+        discount_type:
+          type: string
+          enum: [percentage, fixed_amount, free_shipping]
+          example: percentage
+        discount_value:
+          type: number
+          format: float
+          example: 20.00
+        minimum_amount:
+          type: number
+          format: float
+          example: 50.00
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Request validation failed
+        details:
+          type: object
+          additionalProperties: true
+
+    Meta:
+      type: object
+      properties:
+        request_id:
+          type: string
+          example: req_abc123
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              meta:
+                $ref: '#/components/schemas/Meta'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

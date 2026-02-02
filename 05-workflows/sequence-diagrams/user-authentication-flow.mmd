@@ -1,0 +1,148 @@
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Gateway
+    participant Auth as Auth Service
+    participant UserDB as User Database
+    participant Redis as Redis Cache
+    participant Notification as Notification Service
+
+    Note over User, Notification: User Registration Flow
+    User->>Frontend: Submit Registration Form
+    Frontend->>Gateway: POST /api/v1/auth/register
+    Gateway->>Auth: Forward Registration Request
+    Auth->>Auth: Validate Input Data
+    Auth->>UserDB: Check if Email Exists
+    UserDB-->>Auth: Email Available/Exists Response
+    alt Email Available
+        Auth->>Auth: Hash Password (bcrypt)
+        Auth->>UserDB: Create User Record
+        UserDB-->>Auth: User Created with ID
+        Auth->>Redis: Cache User Session
+        Auth->>Notification: Send Welcome Email
+        Auth-->>Gateway: Registration Success + JWT Token
+        Gateway-->>Frontend: 201 Created + JWT Token
+        Frontend-->>User: Registration Success
+    else Email Exists
+        Auth-->>Gateway: 409 Conflict
+        Gateway-->>Frontend: 409 Conflict
+        Frontend-->>User: Email Already Registered
+    end
+
+    Note over User, Notification: User Login Flow
+    User->>Frontend: Submit Login Credentials
+    Frontend->>Gateway: POST /api/v1/auth/login
+    Gateway->>Auth: Forward Login Request
+    Auth->>Redis: Check Cache for Failed Attempts
+    Redis-->>Auth: Failed Attempts Count
+    alt Too Many Failed Attempts
+        Auth-->>Gateway: 429 Too Many Requests
+        Gateway-->>Frontend: 429 Too Many Requests
+        Frontend-->>User: Account Temporarily Locked
+    else Proceed with Login
+        Auth->>UserDB: Find User by Email
+        UserDB-->>Auth: User Record
+        alt User Found
+            Auth->>Auth: Verify Password Hash
+            alt Password Valid
+                Auth->>Auth: Generate JWT Token
+                Auth->>Redis: Cache Session + Reset Failed Attempts
+                Auth->>UserDB: Update Last Login
+                Auth-->>Gateway: Login Success + JWT Token
+                Gateway-->>Frontend: 200 OK + JWT Token
+                Frontend-->>User: Login Success
+            else Password Invalid
+                Auth->>Redis: Increment Failed Attempts
+                Auth-->>Gateway: 401 Unauthorized
+                Gateway-->>Frontend: 401 Unauthorized
+                Frontend-->>User: Invalid Credentials
+            end
+        else User Not Found
+            Auth-->>Gateway: 401 Unauthorized
+            Gateway-->>Frontend: 401 Unauthorized
+            Frontend-->>User: Invalid Credentials
+        end
+    end
+
+    Note over User, Notification: Token Refresh Flow
+    Frontend->>Gateway: POST /api/v1/auth/refresh
+    Gateway->>Auth: Forward Refresh Request
+    Auth->>Redis: Validate Refresh Token
+    Redis-->>Auth: Token Valid/Invalid
+    alt Token Valid
+        Auth->>Auth: Generate New JWT Token
+        Auth->>Redis: Update Cache
+        Auth-->>Gateway: New JWT Token
+        Gateway-->>Frontend: 200 OK + New JWT Token
+    else Token Invalid
+        Auth-->>Gateway: 401 Unauthorized
+        Gateway-->>Frontend: 401 Unauthorized
+        Frontend->>Frontend: Clear Local Storage
+        Frontend-->>User: Redirect to Login
+    end
+
+    Note over User, Notification: Protected API Access
+    User->>Frontend: Request Protected Resource
+    Frontend->>Gateway: GET /api/v1/customers/profile + JWT
+    Gateway->>Gateway: Validate JWT Token
+    alt Token Valid
+        Gateway->>Customer: Forward Request with User Context
+        Customer-->>Gateway: Customer Data
+        Gateway-->>Frontend: 200 OK + Customer Data
+        Frontend-->>User: Display Profile
+    else Token Invalid/Expired
+        Gateway-->>Frontend: 401 Unauthorized
+        Frontend->>Frontend: Attempt Token Refresh
+        alt Refresh Successful
+            Frontend->>Gateway: Retry Original Request
+            Gateway->>Customer: Forward Request with New Token
+            Customer-->>Gateway: Customer Data
+            Gateway-->>Frontend: 200 OK + Customer Data
+            Frontend-->>User: Display Profile
+        else Refresh Failed
+            Frontend-->>User: Redirect to Login
+        end
+    end
+
+    Note over User, Notification: Password Reset Flow
+    User->>Frontend: Request Password Reset
+    Frontend->>Gateway: POST /api/v1/auth/forgot-password
+    Gateway->>Auth: Forward Reset Request
+    Auth->>UserDB: Find User by Email
+    UserDB-->>Auth: User Record
+    alt User Found
+        Auth->>Auth: Generate Reset Token
+        Auth->>Redis: Cache Reset Token (15min TTL)
+        Auth->>Notification: Send Reset Email
+        Auth-->>Gateway: 200 OK (Always success for security)
+        Gateway-->>Frontend: 200 OK
+        Frontend-->>User: Check Email for Reset Link
+    else User Not Found
+        Auth-->>Gateway: 200 OK (Don't reveal user existence)
+        Gateway-->>Frontend: 200 OK
+        Frontend-->>User: If account exists, check email
+    end
+
+    User->>Frontend: Click Reset Link
+    Frontend->>Gateway: GET /api/v1/auth/reset-password?token=xxx
+    Gateway->>Auth: Validate Reset Token
+    Auth->>Redis: Check Token Validity
+    Redis-->>Auth: Token Valid/Invalid
+    alt Token Valid
+        Auth-->>Gateway: 200 OK + Token Valid
+        Gateway-->>Frontend: Show Reset Password Form
+        User->>Frontend: Submit New Password
+        Frontend->>Gateway: POST /api/v1/auth/reset-password
+        Gateway->>Auth: Forward New Password
+        Auth->>Auth: Hash New Password
+        Auth->>UserDB: Update Password
+        Auth->>Redis: Invalidate All User Sessions
+        Auth->>Notification: Send Password Changed Notification
+        Auth-->>Gateway: 200 OK
+        Gateway-->>Frontend: 200 OK
+        Frontend-->>User: Password Reset Success
+    else Token Invalid/Expired
+        Auth-->>Gateway: 400 Bad Request
+        Gateway-->>Frontend: 400 Bad Request
+        Frontend-->>User: Reset Link Expired
+    end
