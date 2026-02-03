@@ -1,0 +1,773 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /api/v1/helpful/review/{reviewId}:
+        get:
+            tags:
+                - HelpfulService
+            operationId: HelpfulService_GetHelpfulVotes
+            parameters:
+                - name: reviewId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.GetHelpfulVotesResponse'
+    /api/v1/helpful/review/{reviewId}/count:
+        get:
+            tags:
+                - HelpfulService
+            operationId: HelpfulService_GetHelpfulCount
+            parameters:
+                - name: reviewId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.GetHelpfulCountResponse'
+    /api/v1/helpful/vote:
+        post:
+            tags:
+                - HelpfulService
+            operationId: HelpfulService_VoteHelpful
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.VoteHelpfulRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Helpful'
+        delete:
+            tags:
+                - HelpfulService
+            operationId: HelpfulService_RemoveVote
+            parameters:
+                - name: reviewId
+                  in: query
+                  schema:
+                    type: string
+                - name: userId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content: {}
+    /api/v1/moderation/auto/{reviewId}:
+        post:
+            tags:
+                - ModerationService
+            operationId: ModerationService_AutoModerate
+            parameters:
+                - name: reviewId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Moderation'
+    /api/v1/moderation/manual:
+        post:
+            tags:
+                - ModerationService
+            operationId: ModerationService_ManualModerate
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.ManualModerateRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Moderation'
+    /api/v1/moderation/reports:
+        post:
+            tags:
+                - ModerationService
+            operationId: ModerationService_CreateReport
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.CreateReportRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Report'
+    /api/v1/moderation/reports/pending:
+        get:
+            tags:
+                - ModerationService
+            operationId: ModerationService_ListPendingReports
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.ListPendingReportsResponse'
+    /api/v1/ratings/{productId}:
+        get:
+            tags:
+                - RatingService
+            operationId: RatingService_GetRating
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Rating'
+    /api/v1/ratings/{productId}/recalculate:
+        post:
+            tags:
+                - RatingService
+            operationId: RatingService_RecalculateRating
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Rating'
+    /api/v1/reviews:
+        get:
+            tags:
+                - ReviewService
+            operationId: ReviewService_ListReviews
+            parameters:
+                - name: productId
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: rating
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: minRating
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: isVerified
+                  in: query
+                  schema:
+                    type: boolean
+                - name: isFeatured
+                  in: query
+                  schema:
+                    type: boolean
+                - name: sortBy
+                  in: query
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.ListReviewsResponse'
+        post:
+            tags:
+                - ReviewService
+            operationId: ReviewService_CreateReview
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.CreateReviewRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Review'
+    /api/v1/reviews/customer/{customerId}:
+        get:
+            tags:
+                - ReviewService
+            operationId: ReviewService_GetReviewsByCustomer
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.ListReviewsResponse'
+    /api/v1/reviews/product/{productId}:
+        get:
+            tags:
+                - ReviewService
+            operationId: ReviewService_GetReviewsByProduct
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: rating
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: minRating
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: isVerified
+                  in: query
+                  schema:
+                    type: boolean
+                - name: isFeatured
+                  in: query
+                  schema:
+                    type: boolean
+                - name: sortBy
+                  in: query
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.ListReviewsResponse'
+    /api/v1/reviews/{id}:
+        get:
+            tags:
+                - ReviewService
+            operationId: ReviewService_GetReview
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Review'
+        put:
+            tags:
+                - ReviewService
+            operationId: ReviewService_UpdateReview
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.UpdateReviewRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Review'
+    /api/v1/reviews/{reviewId}/seller-response:
+        post:
+            tags:
+                - ReviewService
+            operationId: ReviewService_AddSellerResponse
+            parameters:
+                - name: reviewId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.review.v1.AddSellerResponseRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.Review'
+    /health:
+        get:
+            tags:
+                - ReviewMainService
+            description: Health check
+            operationId: ReviewMainService_Health
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.review.v1.HealthResponse'
+components:
+    schemas:
+        api.review.v1.AddSellerResponseRequest:
+            type: object
+            properties:
+                reviewId:
+                    type: string
+                sellerId:
+                    type: string
+                response:
+                    type: string
+        api.review.v1.CreateReportRequest:
+            type: object
+            properties:
+                reviewId:
+                    type: string
+                reporterId:
+                    type: string
+                reason:
+                    type: string
+                description:
+                    type: string
+        api.review.v1.CreateReviewRequest:
+            type: object
+            properties:
+                productId:
+                    type: string
+                customerId:
+                    type: string
+                orderId:
+                    type: string
+                rating:
+                    type: integer
+                    format: int32
+                title:
+                    type: string
+                content:
+                    type: string
+                images:
+                    type: array
+                    items:
+                        type: string
+                pros:
+                    type: string
+                cons:
+                    type: string
+                recommended:
+                    type: boolean
+                isAnonymous:
+                    type: boolean
+                isVerified:
+                    type: boolean
+        api.review.v1.GetHelpfulCountResponse:
+            type: object
+            properties:
+                helpfulCount:
+                    type: string
+                notHelpfulCount:
+                    type: string
+        api.review.v1.GetHelpfulVotesResponse:
+            type: object
+            properties:
+                votes:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.review.v1.Helpful'
+        api.review.v1.HealthResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+                service:
+                    type: string
+                version:
+                    type: string
+            description: Health response
+        api.review.v1.Helpful:
+            type: object
+            properties:
+                id:
+                    type: string
+                reviewId:
+                    type: string
+                userId:
+                    type: string
+                isHelpful:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Helpful Messages
+        api.review.v1.ListPendingReportsResponse:
+            type: object
+            properties:
+                reports:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.review.v1.Report'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+        api.review.v1.ListReviewsResponse:
+            type: object
+            properties:
+                reviews:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.review.v1.Review'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+        api.review.v1.ManualModerateRequest:
+            type: object
+            properties:
+                reviewId:
+                    type: string
+                action:
+                    type: string
+                reason:
+                    type: string
+                moderatorId:
+                    type: string
+        api.review.v1.Moderation:
+            type: object
+            properties:
+                id:
+                    type: string
+                reviewId:
+                    type: string
+                action:
+                    type: string
+                reason:
+                    type: string
+                moderatorId:
+                    type: string
+                isAuto:
+                    type: boolean
+                score:
+                    type: number
+                    format: double
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Moderation Messages
+        api.review.v1.Rating:
+            type: object
+            properties:
+                id:
+                    type: string
+                productId:
+                    type: string
+                averageRating:
+                    type: number
+                    format: double
+                totalReviews:
+                    type: integer
+                    format: int32
+                rating1Count:
+                    type: integer
+                    format: int32
+                rating2Count:
+                    type: integer
+                    format: int32
+                rating3Count:
+                    type: integer
+                    format: int32
+                rating4Count:
+                    type: integer
+                    format: int32
+                rating5Count:
+                    type: integer
+                    format: int32
+                verifiedCount:
+                    type: integer
+                    format: int32
+                lastCalculatedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Rating Messages
+        api.review.v1.Report:
+            type: object
+            properties:
+                id:
+                    type: string
+                reviewId:
+                    type: string
+                reporterId:
+                    type: string
+                reason:
+                    type: string
+                description:
+                    type: string
+                status:
+                    type: string
+                reviewedBy:
+                    type: string
+                reviewedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        api.review.v1.Review:
+            type: object
+            properties:
+                id:
+                    type: string
+                productId:
+                    type: string
+                customerId:
+                    type: string
+                orderId:
+                    type: string
+                rating:
+                    type: integer
+                    format: int32
+                title:
+                    type: string
+                content:
+                    type: string
+                images:
+                    type: array
+                    items:
+                        type: string
+                pros:
+                    type: string
+                cons:
+                    type: string
+                recommended:
+                    type: boolean
+                isAnonymous:
+                    type: boolean
+                sellerResponse:
+                    type: string
+                sellerId:
+                    type: string
+                sellerRespondedAt:
+                    type: string
+                    format: date-time
+                status:
+                    type: string
+                isVerified:
+                    type: boolean
+                isFeatured:
+                    type: boolean
+                helpfulCount:
+                    type: integer
+                    format: int32
+                reportCount:
+                    type: integer
+                    format: int32
+                moderationReason:
+                    type: string
+                moderatedBy:
+                    type: string
+                moderatedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Review Messages
+        api.review.v1.UpdateReviewRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                rating:
+                    type: integer
+                    format: int32
+                title:
+                    type: string
+                content:
+                    type: string
+                images:
+                    type: array
+                    items:
+                        type: string
+                pros:
+                    type: string
+                cons:
+                    type: string
+                recommended:
+                    type: boolean
+        api.review.v1.VoteHelpfulRequest:
+            type: object
+            properties:
+                reviewId:
+                    type: string
+                userId:
+                    type: string
+                isHelpful:
+                    type: boolean
+tags:
+    - name: HelpfulService
+      description: Helpful Service - Manages helpful votes on reviews
+    - name: ModerationService
+      description: Moderation Service - Manages review moderation
+    - name: RatingService
+      description: Rating Service - Manages product rating aggregation
+    - name: ReviewMainService
+      description: Main Review Service - Aggregates all sub-services
+    - name: ReviewService
+      description: Review Service - Manages product reviews

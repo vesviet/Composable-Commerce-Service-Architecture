@@ -1,0 +1,2071 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /api/v1/adjustments/requests:
+        get:
+            tags:
+                - InventoryService
+            operationId: InventoryService_ListAdjustmentRequests
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: requestedBy
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.ListAdjustmentRequestsResponse'
+        post:
+            tags:
+                - InventoryService
+            description: Adjustment Requests (Approval Workflow)
+            operationId: InventoryService_CreateAdjustmentRequest
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.CreateAdjustmentRequestRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.CreateAdjustmentRequestResponse'
+    /api/v1/adjustments/requests/{id}:
+        get:
+            tags:
+                - InventoryService
+            operationId: InventoryService_GetAdjustmentRequest
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetAdjustmentRequestResponse'
+    /api/v1/adjustments/requests/{id}/approve:
+        post:
+            tags:
+                - InventoryService
+            operationId: InventoryService_ApproveAdjustmentRequest
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.ApproveAdjustmentRequestRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.ApproveAdjustmentRequestResponse'
+    /api/v1/adjustments/requests/{id}/reject:
+        post:
+            tags:
+                - InventoryService
+            operationId: InventoryService_RejectAdjustmentRequest
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.RejectAdjustmentRequestRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.RejectAdjustmentRequestResponse'
+    /api/v1/analytics/stock-levels:
+        get:
+            tags:
+                - InventoryService
+            description: Analytics
+            operationId: InventoryService_GetStockLevels
+            parameters:
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: productId
+                  in: query
+                  schema:
+                    type: string
+                - name: includeReserved
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetStockLevelsResponse'
+    /api/v1/analytics/valuation:
+        get:
+            tags:
+                - InventoryService
+            operationId: InventoryService_GetInventoryValuation
+            parameters:
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: valuationMethod
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetInventoryValuationResponse'
+    /api/v1/batch/adjust:
+        post:
+            tags:
+                - InventoryService
+            description: Batch Operations
+            operationId: InventoryService_BulkAdjustStock
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.BulkAdjustStockRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.BulkAdjustStockResponse'
+    /api/v1/batch/stock:
+        post:
+            tags:
+                - InventoryService
+            description: Batch Stock Queries (for Catalog service optimization)
+            operationId: InventoryService_GetBulkStock
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.GetBulkStockRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetBulkStockResponse'
+    /api/v1/batch/transfer:
+        post:
+            tags:
+                - InventoryService
+            operationId: InventoryService_BulkTransferStock
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.BulkTransferStockRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.BulkTransferStockResponse'
+    /api/v1/distributors:
+        get:
+            tags:
+                - DistributorService
+            operationId: DistributorService_ListDistributors
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: countryCode
+                  in: query
+                  schema:
+                    type: string
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.distributor.v1.ListDistributorsReply'
+        post:
+            tags:
+                - DistributorService
+            operationId: DistributorService_CreateDistributor
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.distributor.v1.CreateDistributorRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.distributor.v1.CreateDistributorReply'
+    /api/v1/distributors/{id}:
+        get:
+            tags:
+                - DistributorService
+            operationId: DistributorService_GetDistributor
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.distributor.v1.GetDistributorReply'
+        put:
+            tags:
+                - DistributorService
+            operationId: DistributorService_UpdateDistributor
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.distributor.v1.UpdateDistributorRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.distributor.v1.UpdateDistributorReply'
+        delete:
+            tags:
+                - DistributorService
+            operationId: DistributorService_DeleteDistributor
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.distributor.v1.DeleteDistributorReply'
+    /api/v1/distributors/{id}/warehouses:
+        get:
+            tags:
+                - DistributorService
+            operationId: DistributorService_GetDistributorWarehouses
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.distributor.v1.GetDistributorWarehousesReply'
+    /api/v1/inventory:
+        get:
+            tags:
+                - InventoryService
+            operationId: InventoryService_ListInventory
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: productId
+                  in: query
+                  schema:
+                    type: string
+                - name: sku
+                  in: query
+                  schema:
+                    type: string
+                - name: locationCode
+                  in: query
+                  schema:
+                    type: string
+                - name: lowStockOnly
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.ListInventoryResponse'
+        post:
+            tags:
+                - InventoryService
+            operationId: InventoryService_CreateInventory
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.CreateInventoryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.CreateInventoryResponse'
+    /api/v1/inventory/low-stock:
+        get:
+            tags:
+                - InventoryService
+            operationId: InventoryService_GetLowStockItems
+            parameters:
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetLowStockItemsResponse'
+    /api/v1/inventory/product/{productId}:
+        get:
+            tags:
+                - InventoryService
+            operationId: InventoryService_GetInventoryByProduct
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetInventoryByProductResponse'
+    /api/v1/inventory/recently-updated:
+        post:
+            tags:
+                - InventoryService
+            operationId: InventoryService_GetRecentlyUpdated
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.GetRecentlyUpdatedRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetRecentlyUpdatedResponse'
+    /api/v1/inventory/{id}:
+        get:
+            tags:
+                - InventoryService
+            operationId: InventoryService_GetInventory
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetInventoryResponse'
+        put:
+            tags:
+                - InventoryService
+            operationId: InventoryService_UpdateInventory
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.UpdateInventoryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.UpdateInventoryResponse'
+        delete:
+            tags:
+                - InventoryService
+            operationId: InventoryService_DeleteInventory
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.DeleteInventoryResponse'
+    /api/v1/reservations:
+        get:
+            tags:
+                - InventoryService
+            description: Reservations
+            operationId: InventoryService_ListReservations
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: productId
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: reservationType
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.ListReservationsResponse'
+    /api/v1/reservations/{id}:
+        get:
+            tags:
+                - InventoryService
+            operationId: InventoryService_GetReservation
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetReservationResponse'
+    /api/v1/stock/adjust:
+        post:
+            tags:
+                - InventoryService
+            description: Stock Operations
+            operationId: InventoryService_AdjustStock
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.AdjustStockRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.AdjustStockResponse'
+    /api/v1/stock/movements:
+        get:
+            tags:
+                - InventoryService
+            description: Stock Movements
+            operationId: InventoryService_ListStockMovements
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: productId
+                  in: query
+                  schema:
+                    type: string
+                - name: sku
+                  in: query
+                  schema:
+                    type: string
+                - name: movementType
+                  in: query
+                  schema:
+                    type: string
+                - name: referenceType
+                  in: query
+                  schema:
+                    type: string
+                - name: referenceId
+                  in: query
+                  schema:
+                    type: string
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.ListStockMovementsResponse'
+    /api/v1/stock/movements/{id}:
+        get:
+            tags:
+                - InventoryService
+            operationId: InventoryService_GetStockMovement
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.GetStockMovementResponse'
+    /api/v1/stock/release:
+        post:
+            tags:
+                - InventoryService
+            operationId: InventoryService_ReleaseReservation
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.ReleaseReservationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.ReleaseReservationResponse'
+    /api/v1/stock/reserve:
+        post:
+            tags:
+                - InventoryService
+            operationId: InventoryService_ReserveStock
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.ReserveStockRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.ReserveStockResponse'
+    /api/v1/stock/transfer:
+        post:
+            tags:
+                - InventoryService
+            operationId: InventoryService_TransferStock
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.inventory.v1.TransferStockRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.inventory.v1.TransferStockResponse'
+    /api/v1/warehouses:
+        get:
+            tags:
+                - WarehouseService
+            description: List all warehouses
+            operationId: WarehouseService_ListWarehouses
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: warehouseType
+                  in: query
+                  schema:
+                    type: string
+                - name: countryCode
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.warehouse.v1.ListWarehousesResponse'
+        post:
+            tags:
+                - WarehouseService
+            description: Create a new warehouse
+            operationId: WarehouseService_CreateWarehouse
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.warehouse.v1.CreateWarehouseRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.warehouse.v1.CreateWarehouseResponse'
+    /api/v1/warehouses/{id}:
+        get:
+            tags:
+                - WarehouseService
+            description: Get a specific warehouse
+            operationId: WarehouseService_GetWarehouse
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.warehouse.v1.GetWarehouseResponse'
+        delete:
+            tags:
+                - WarehouseService
+            description: Delete a warehouse
+            operationId: WarehouseService_DeleteWarehouse
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.warehouse.v1.DeleteWarehouseResponse'
+        patch:
+            tags:
+                - WarehouseService
+            description: Update warehouse details (PATCH is preferred for partial updates)
+            operationId: WarehouseService_UpdateWarehouse
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.warehouse.v1.UpdateWarehouseRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.warehouse.v1.UpdateWarehouseResponse'
+    /api/v1/warehouses/{id}:activate:
+        post:
+            tags:
+                - WarehouseService
+            description: Activate a warehouse
+            operationId: WarehouseService_ActivateWarehouse
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.warehouse.v1.ActivateWarehouseRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.warehouse.v1.ActivateWarehouseResponse'
+    /api/v1/warehouses/{id}:deactivate:
+        post:
+            tags:
+                - WarehouseService
+            description: Deactivate a warehouse
+            operationId: WarehouseService_DeactivateWarehouse
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.warehouse.v1.DeactivateWarehouseRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.warehouse.v1.DeactivateWarehouseResponse'
+components:
+    schemas:
+        api.common.v1.Pagination:
+            type: object
+            properties:
+                page:
+                    type: integer
+                    format: int32
+                limit:
+                    type: integer
+                    format: int32
+                total:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+                hasNext:
+                    type: boolean
+                hasPrev:
+                    type: boolean
+            description: Pagination for list responses
+        api.common.v1.PaginationRequest:
+            type: object
+            properties:
+                page:
+                    type: integer
+                    format: int32
+                limit:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+            description: Pagination request parameters
+        api.distributor.v1.CreateDistributorReply:
+            type: object
+            properties:
+                distributor:
+                    $ref: '#/components/schemas/api.distributor.v1.Distributor'
+        api.distributor.v1.CreateDistributorRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                contactName:
+                    type: string
+                contactEmail:
+                    type: string
+                contactPhone:
+                    type: string
+                addressLine1:
+                    type: string
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                status:
+                    type: string
+                regionCodes:
+                    type: array
+                    items:
+                        type: string
+        api.distributor.v1.DeleteDistributorReply:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.distributor.v1.Distributor:
+            type: object
+            properties:
+                id:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                contactName:
+                    type: string
+                contactEmail:
+                    type: string
+                contactPhone:
+                    type: string
+                addressLine1:
+                    type: string
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                status:
+                    type: string
+                regionCodes:
+                    type: array
+                    items:
+                        type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Distributor Messages
+        api.distributor.v1.GetDistributorReply:
+            type: object
+            properties:
+                distributor:
+                    $ref: '#/components/schemas/api.distributor.v1.Distributor'
+        api.distributor.v1.GetDistributorWarehousesReply:
+            type: object
+            properties:
+                warehouses:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.warehouse.v1.Warehouse'
+        api.distributor.v1.ListDistributorsReply:
+            type: object
+            properties:
+                distributors:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.distributor.v1.Distributor'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.distributor.v1.UpdateDistributorReply:
+            type: object
+            properties:
+                distributor:
+                    $ref: '#/components/schemas/api.distributor.v1.Distributor'
+        api.distributor.v1.UpdateDistributorRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                contactName:
+                    type: string
+                contactEmail:
+                    type: string
+                contactPhone:
+                    type: string
+                addressLine1:
+                    type: string
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                status:
+                    type: string
+                regionCodes:
+                    type: array
+                    items:
+                        type: string
+        api.inventory.v1.AdjustStockRequest:
+            type: object
+            properties:
+                warehouseId:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantityChange:
+                    type: integer
+                    format: int32
+                reason:
+                    type: string
+                referenceType:
+                    type: string
+                referenceId:
+                    type: string
+                unitCost:
+                    type: number
+                    format: double
+                notes:
+                    type: string
+                createdBy:
+                    type: string
+            description: Stock Operation Messages
+        api.inventory.v1.AdjustStockResponse:
+            type: object
+            properties:
+                movement:
+                    $ref: '#/components/schemas/api.inventory.v1.StockMovement'
+                updatedInventory:
+                    $ref: '#/components/schemas/api.inventory.v1.Inventory'
+        api.inventory.v1.AdjustmentRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                warehouseId:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantityChange:
+                    type: integer
+                    format: int32
+                reason:
+                    type: string
+                notes:
+                    type: string
+                status:
+                    type: string
+                requestedBy:
+                    type: string
+                requestedAt:
+                    type: string
+                    format: date-time
+                approvedBy:
+                    type: string
+                approvedAt:
+                    type: string
+                    format: date-time
+                rejectedBy:
+                    type: string
+                rejectedAt:
+                    type: string
+                    format: date-time
+                rejectionReason:
+                    type: string
+                executedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Adjustment Request Messages
+        api.inventory.v1.ApproveAdjustmentRequestRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                approvedBy:
+                    type: string
+        api.inventory.v1.ApproveAdjustmentRequestResponse:
+            type: object
+            properties:
+                request:
+                    $ref: '#/components/schemas/api.inventory.v1.AdjustmentRequest'
+        api.inventory.v1.BulkAdjustStockRequest:
+            type: object
+            properties:
+                adjustments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.AdjustStockRequest'
+            description: Batch Operation Messages
+        api.inventory.v1.BulkAdjustStockResponse:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.AdjustStockResponse'
+                successCount:
+                    type: integer
+                    format: int32
+                errorCount:
+                    type: integer
+                    format: int32
+                errors:
+                    type: array
+                    items:
+                        type: string
+        api.inventory.v1.BulkTransferStockRequest:
+            type: object
+            properties:
+                transfers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.TransferStockRequest'
+        api.inventory.v1.BulkTransferStockResponse:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.TransferStockResponse'
+                successCount:
+                    type: integer
+                    format: int32
+                errorCount:
+                    type: integer
+                    format: int32
+                errors:
+                    type: array
+                    items:
+                        type: string
+        api.inventory.v1.CreateAdjustmentRequestRequest:
+            type: object
+            properties:
+                warehouseId:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantityChange:
+                    type: integer
+                    format: int32
+                reason:
+                    type: string
+                notes:
+                    type: string
+                requestedBy:
+                    type: string
+        api.inventory.v1.CreateAdjustmentRequestResponse:
+            type: object
+            properties:
+                request:
+                    $ref: '#/components/schemas/api.inventory.v1.AdjustmentRequest'
+        api.inventory.v1.CreateInventoryRequest:
+            type: object
+            properties:
+                warehouseId:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantityAvailable:
+                    type: integer
+                    format: int32
+                reorderPoint:
+                    type: integer
+                    format: int32
+                reorderQuantity:
+                    type: integer
+                    format: int32
+                maxStockLevel:
+                    type: integer
+                    format: int32
+                minStockLevel:
+                    type: integer
+                    format: int32
+                unitCost:
+                    type: number
+                    format: double
+                locationCode:
+                    type: string
+                binLocation:
+                    type: string
+                expiryDate:
+                    type: string
+                    format: date-time
+                batchNumber:
+                    type: string
+                serialNumbers:
+                    type: array
+                    items:
+                        type: string
+        api.inventory.v1.CreateInventoryResponse:
+            type: object
+            properties:
+                inventory:
+                    $ref: '#/components/schemas/api.inventory.v1.Inventory'
+        api.inventory.v1.DeleteInventoryResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.inventory.v1.GetAdjustmentRequestResponse:
+            type: object
+            properties:
+                request:
+                    $ref: '#/components/schemas/api.inventory.v1.AdjustmentRequest'
+        api.inventory.v1.GetBulkStockRequest:
+            type: object
+            properties:
+                productIds:
+                    type: array
+                    items:
+                        type: string
+                warehouseId:
+                    type: string
+            description: Batch Stock Query Messages
+        api.inventory.v1.GetBulkStockResponse:
+            type: object
+            properties:
+                stocks:
+                    type: object
+                    additionalProperties:
+                        type: string
+                stockDetails:
+                    type: object
+                    additionalProperties:
+                        $ref: '#/components/schemas/api.inventory.v1.StockInfo'
+        api.inventory.v1.GetInventoryByProductResponse:
+            type: object
+            properties:
+                inventory:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.Inventory'
+        api.inventory.v1.GetInventoryResponse:
+            type: object
+            properties:
+                inventory:
+                    $ref: '#/components/schemas/api.inventory.v1.Inventory'
+        api.inventory.v1.GetInventoryValuationResponse:
+            type: object
+            properties:
+                valuation:
+                    $ref: '#/components/schemas/api.inventory.v1.InventoryValuation'
+        api.inventory.v1.GetLowStockItemsResponse:
+            type: object
+            properties:
+                inventory:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.Inventory'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.inventory.v1.GetRecentlyUpdatedRequest:
+            type: object
+            properties:
+                since:
+                    type: string
+                    format: date-time
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.PaginationRequest'
+                warehouseId:
+                    type: string
+        api.inventory.v1.GetRecentlyUpdatedResponse:
+            type: object
+            properties:
+                inventory:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.Inventory'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.inventory.v1.GetReservationResponse:
+            type: object
+            properties:
+                reservation:
+                    $ref: '#/components/schemas/api.inventory.v1.InventoryReservation'
+        api.inventory.v1.GetStockLevelsResponse:
+            type: object
+            properties:
+                stockLevels:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.StockLevel'
+        api.inventory.v1.GetStockMovementResponse:
+            type: object
+            properties:
+                movement:
+                    $ref: '#/components/schemas/api.inventory.v1.StockMovement'
+        api.inventory.v1.Inventory:
+            type: object
+            properties:
+                id:
+                    type: string
+                warehouseId:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantityAvailable:
+                    type: integer
+                    format: int32
+                quantityReserved:
+                    type: integer
+                    format: int32
+                quantityOnOrder:
+                    type: integer
+                    format: int32
+                availableStock:
+                    type: integer
+                    format: int32
+                stockStatus:
+                    type: string
+                reorderPoint:
+                    type: integer
+                    format: int32
+                reorderQuantity:
+                    type: integer
+                    format: int32
+                maxStockLevel:
+                    type: integer
+                    format: int32
+                minStockLevel:
+                    type: integer
+                    format: int32
+                unitCost:
+                    type: number
+                    format: double
+                totalValue:
+                    type: number
+                    format: double
+                lastCountedAt:
+                    type: string
+                    format: date-time
+                lastMovementAt:
+                    type: string
+                    format: date-time
+                locationCode:
+                    type: string
+                binLocation:
+                    type: string
+                expiryDate:
+                    type: string
+                    format: date-time
+                batchNumber:
+                    type: string
+                serialNumbers:
+                    type: array
+                    items:
+                        type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Inventory Messages
+        api.inventory.v1.InventoryReservation:
+            type: object
+            properties:
+                id:
+                    type: string
+                warehouseId:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantityReserved:
+                    type: integer
+                    format: int32
+                reservationType:
+                    type: string
+                referenceType:
+                    type: string
+                referenceId:
+                    type: string
+                customerId:
+                    type: string
+                reservedBy:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+                status:
+                    type: string
+                quantityFulfilled:
+                    type: integer
+                    format: int32
+                notes:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Reservation Messages
+        api.inventory.v1.InventoryValuation:
+            type: object
+            properties:
+                warehouseId:
+                    type: string
+                warehouseName:
+                    type: string
+                valuationMethod:
+                    type: string
+                totalValue:
+                    type: number
+                    format: double
+                totalItems:
+                    type: integer
+                    format: int32
+                uniqueProducts:
+                    type: integer
+                    format: int32
+                productValuations:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.ProductValuation'
+                calculatedAt:
+                    type: string
+                    format: date-time
+        api.inventory.v1.ListAdjustmentRequestsResponse:
+            type: object
+            properties:
+                requests:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.AdjustmentRequest'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.inventory.v1.ListInventoryResponse:
+            type: object
+            properties:
+                inventory:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.Inventory'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.inventory.v1.ListReservationsResponse:
+            type: object
+            properties:
+                reservations:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.InventoryReservation'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.inventory.v1.ListStockMovementsResponse:
+            type: object
+            properties:
+                movements:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.StockMovement'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.inventory.v1.ProductValuation:
+            type: object
+            properties:
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                unitCost:
+                    type: number
+                    format: double
+                totalValue:
+                    type: number
+                    format: double
+        api.inventory.v1.RejectAdjustmentRequestRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                rejectedBy:
+                    type: string
+                reason:
+                    type: string
+        api.inventory.v1.RejectAdjustmentRequestResponse:
+            type: object
+            properties:
+                request:
+                    $ref: '#/components/schemas/api.inventory.v1.AdjustmentRequest'
+        api.inventory.v1.ReleaseReservationRequest:
+            type: object
+            properties:
+                reservationId:
+                    type: string
+        api.inventory.v1.ReleaseReservationResponse:
+            type: object
+            properties:
+                reservation:
+                    $ref: '#/components/schemas/api.inventory.v1.InventoryReservation'
+                updatedInventory:
+                    $ref: '#/components/schemas/api.inventory.v1.Inventory'
+        api.inventory.v1.ReserveStockRequest:
+            type: object
+            properties:
+                warehouseId:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                reservationType:
+                    type: string
+                referenceType:
+                    type: string
+                referenceId:
+                    type: string
+                customerId:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+                paymentMethod:
+                    type: string
+                notes:
+                    type: string
+                reservedBy:
+                    type: string
+        api.inventory.v1.ReserveStockResponse:
+            type: object
+            properties:
+                reservation:
+                    $ref: '#/components/schemas/api.inventory.v1.InventoryReservation'
+                updatedInventory:
+                    $ref: '#/components/schemas/api.inventory.v1.Inventory'
+        api.inventory.v1.StockInfo:
+            type: object
+            properties:
+                totalAvailable:
+                    type: string
+                totalReserved:
+                    type: string
+                availableStock:
+                    type: string
+                stockStatus:
+                    type: string
+                warehouseStocks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.inventory.v1.WarehouseStock'
+        api.inventory.v1.StockLevel:
+            type: object
+            properties:
+                warehouseId:
+                    type: string
+                warehouseName:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantityAvailable:
+                    type: integer
+                    format: int32
+                quantityReserved:
+                    type: integer
+                    format: int32
+                quantityOnOrder:
+                    type: integer
+                    format: int32
+                totalQuantity:
+                    type: integer
+                    format: int32
+                unitCost:
+                    type: number
+                    format: double
+                totalValue:
+                    type: number
+                    format: double
+        api.inventory.v1.StockMovement:
+            type: object
+            properties:
+                id:
+                    type: string
+                warehouseId:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                movementType:
+                    type: string
+                movementReason:
+                    type: string
+                referenceType:
+                    type: string
+                referenceId:
+                    type: string
+                quantityBefore:
+                    type: integer
+                    format: int32
+                quantityChange:
+                    type: integer
+                    format: int32
+                quantityAfter:
+                    type: integer
+                    format: int32
+                unitCost:
+                    type: number
+                    format: double
+                totalCost:
+                    type: number
+                    format: double
+                fromWarehouseId:
+                    type: string
+                toWarehouseId:
+                    type: string
+                fromLocation:
+                    type: string
+                toLocation:
+                    type: string
+                batchNumber:
+                    type: string
+                expiryDate:
+                    type: string
+                    format: date-time
+                notes:
+                    type: string
+                createdBy:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                transferId:
+                    type: string
+            description: Stock Movement Messages
+        api.inventory.v1.TransferStockRequest:
+            type: object
+            properties:
+                fromWarehouseId:
+                    type: string
+                toWarehouseId:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                reason:
+                    type: string
+                referenceType:
+                    type: string
+                referenceId:
+                    type: string
+                notes:
+                    type: string
+                createdBy:
+                    type: string
+        api.inventory.v1.TransferStockResponse:
+            type: object
+            properties:
+                outboundMovement:
+                    $ref: '#/components/schemas/api.inventory.v1.StockMovement'
+                inboundMovement:
+                    $ref: '#/components/schemas/api.inventory.v1.StockMovement'
+                sourceInventory:
+                    $ref: '#/components/schemas/api.inventory.v1.Inventory'
+                destinationInventory:
+                    $ref: '#/components/schemas/api.inventory.v1.Inventory'
+        api.inventory.v1.UpdateInventoryRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                quantityAvailable:
+                    type: integer
+                    format: int32
+                reorderPoint:
+                    type: integer
+                    format: int32
+                reorderQuantity:
+                    type: integer
+                    format: int32
+                maxStockLevel:
+                    type: integer
+                    format: int32
+                minStockLevel:
+                    type: integer
+                    format: int32
+                unitCost:
+                    type: number
+                    format: double
+                locationCode:
+                    type: string
+                binLocation:
+                    type: string
+                expiryDate:
+                    type: string
+                    format: date-time
+                batchNumber:
+                    type: string
+                serialNumbers:
+                    type: array
+                    items:
+                        type: string
+                quantityOnOrder:
+                    type: integer
+                    format: int32
+        api.inventory.v1.UpdateInventoryResponse:
+            type: object
+            properties:
+                inventory:
+                    $ref: '#/components/schemas/api.inventory.v1.Inventory'
+        api.inventory.v1.WarehouseStock:
+            type: object
+            properties:
+                warehouseId:
+                    type: string
+                quantityAvailable:
+                    type: string
+                quantityReserved:
+                    type: string
+                availableStock:
+                    type: string
+        api.warehouse.v1.ActivateWarehouseRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+        api.warehouse.v1.ActivateWarehouseResponse:
+            type: object
+            properties:
+                warehouse:
+                    $ref: '#/components/schemas/api.warehouse.v1.Warehouse'
+        api.warehouse.v1.CreateWarehouseRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                warehouseType:
+                    type: string
+                addressLine1:
+                    type: string
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                phone:
+                    type: string
+                email:
+                    type: string
+                managerName:
+                    type: string
+                capacityCubicMeters:
+                    type: number
+                    format: double
+                capacityWeightKg:
+                    type: number
+                    format: double
+                operatingHours:
+                    type: string
+                settings:
+                    type: string
+                isDefault:
+                    type: boolean
+                distributorId:
+                    type: string
+        api.warehouse.v1.CreateWarehouseResponse:
+            type: object
+            properties:
+                warehouse:
+                    $ref: '#/components/schemas/api.warehouse.v1.Warehouse'
+        api.warehouse.v1.DeactivateWarehouseRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+        api.warehouse.v1.DeactivateWarehouseResponse:
+            type: object
+            properties:
+                warehouse:
+                    $ref: '#/components/schemas/api.warehouse.v1.Warehouse'
+        api.warehouse.v1.DeleteWarehouseResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.warehouse.v1.GetWarehouseResponse:
+            type: object
+            properties:
+                warehouse:
+                    $ref: '#/components/schemas/api.warehouse.v1.Warehouse'
+        api.warehouse.v1.ListWarehousesResponse:
+            type: object
+            properties:
+                warehouses:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.warehouse.v1.Warehouse'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.warehouse.v1.UpdateWarehouseRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                warehouseType:
+                    type: string
+                addressLine1:
+                    type: string
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                phone:
+                    type: string
+                email:
+                    type: string
+                managerName:
+                    type: string
+                distributorId:
+                    type: string
+                capacityCubicMeters:
+                    type: number
+                    format: double
+                capacityWeightKg:
+                    type: number
+                    format: double
+                operatingHours:
+                    type: string
+                settings:
+                    type: string
+                isDefault:
+                    type: boolean
+        api.warehouse.v1.UpdateWarehouseResponse:
+            type: object
+            properties:
+                warehouse:
+                    $ref: '#/components/schemas/api.warehouse.v1.Warehouse'
+        api.warehouse.v1.Warehouse:
+            type: object
+            properties:
+                id:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                warehouseType:
+                    type: string
+                status:
+                    type: string
+                addressLine1:
+                    type: string
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                phone:
+                    type: string
+                email:
+                    type: string
+                managerName:
+                    type: string
+                capacityCubicMeters:
+                    type: number
+                    format: double
+                capacityWeightKg:
+                    type: number
+                    format: double
+                operatingHours:
+                    type: string
+                settings:
+                    type: string
+                isDefault:
+                    type: boolean
+                distributorId:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Warehouse Messages
+tags:
+    - name: DistributorService
+      description: Distributor Service
+    - name: InventoryService
+      description: Inventory Service
+    - name: WarehouseService
+      description: Warehouse Service

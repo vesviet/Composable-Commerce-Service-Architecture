@@ -1,0 +1,208 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/return.requested.v1.json",
+  "title": "Return Requested Event",
+  "description": "Emitted when a customer requests a product return",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "return.requested",
+      "description": "Event type identifier"
+    },
+    "event_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Event schema version"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event occurred"
+    },
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "return-service"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "return_id",
+        "order_id",
+        "customer_id",
+        "items",
+        "return_method",
+        "reason"
+      ],
+      "properties": {
+        "return_id": {
+          "type": "string",
+          "description": "Unique return request identifier"
+        },
+        "order_id": {
+          "type": "string",
+          "description": "Original order identifier"
+        },
+        "customer_id": {
+          "type": "string",
+          "description": "Customer identifier"
+        },
+        "items": {
+          "type": "array",
+          "description": "Items being returned",
+          "items": {
+            "type": "object",
+            "required": ["order_item_id", "product_id", "quantity"],
+            "properties": {
+              "order_item_id": {
+                "type": "string",
+                "description": "Original order item identifier"
+              },
+              "product_id": {
+                "type": "string",
+                "description": "Product identifier"
+              },
+              "sku": {
+                "type": "string",
+                "description": "Product SKU"
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Quantity being returned"
+              },
+              "unit_price": {
+                "type": "number",
+                "format": "float",
+                "description": "Unit price at time of purchase"
+              }
+            }
+          }
+        },
+        "return_method": {
+          "type": "string",
+          "enum": ["shipping", "in_store"],
+          "description": "How the items will be returned"
+        },
+        "reason": {
+          "type": "object",
+          "description": "Return reason details",
+          "required": ["code", "description"],
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Return reason code"
+            },
+            "description": {
+              "type": "string",
+              "description": "Return reason description"
+            },
+            "category": {
+              "type": "string",
+              "enum": ["fit", "quality", "damage", "changed_mind", "other"],
+              "description": "Return reason category"
+            }
+          }
+        },
+        "refund_method": {
+          "type": "string",
+          "enum": ["original_payment", "store_credit", "exchange"],
+          "description": "Preferred refund method"
+        },
+        "refund_amount": {
+          "type": "object",
+          "description": "Expected refund amount",
+          "properties": {
+            "subtotal": {
+              "type": "number",
+              "format": "float",
+              "description": "Item subtotal refund"
+            },
+            "tax": {
+              "type": "number",
+              "format": "float",
+              "description": "Tax refund"
+            },
+            "shipping": {
+              "type": "number",
+              "format": "float",
+              "description": "Shipping refund"
+            },
+            "total": {
+              "type": "number",
+              "format": "float",
+              "description": "Total refund amount"
+            },
+            "currency": {
+              "type": "string",
+              "description": "Currency code"
+            }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Customer notes about the return"
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the return was requested"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440002",
+      "event_type": "return.requested",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T10:30:00Z",
+      "source": "return-service",
+      "data": {
+        "return_id": "return_123456",
+        "order_id": "order_789012",
+        "customer_id": "cust_345678",
+        "items": [
+          {
+            "order_item_id": "item_111",
+            "product_id": "prod_222",
+            "sku": "WIDGET-BLUE-M",
+            "quantity": 1,
+            "unit_price": 99.99
+          }
+        ],
+        "return_method": "shipping",
+        "reason": {
+          "code": "wrong_size",
+          "description": "Item doesn't fit properly",
+          "category": "fit"
+        },
+        "refund_method": "original_payment",
+        "refund_amount": {
+          "subtotal": 99.99,
+          "tax": 8.99,
+          "shipping": 5.99,
+          "total": 114.97,
+          "currency": "USD"
+        },
+        "notes": "The item is too small for my needs",
+        "requested_at": "2026-02-02T10:30:00Z"
+      }
+    }
+  ]
+}

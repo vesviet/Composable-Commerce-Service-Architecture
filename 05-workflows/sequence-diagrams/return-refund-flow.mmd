@@ -1,0 +1,222 @@
+sequenceDiagram
+    title Return & Refund Processing Flow
+    
+    participant C as Customer
+    participant F as Frontend
+    participant G as Gateway
+    participant R as Return Service
+    participant O as Order Service
+    participant P as Payment Service
+    participant W as Warehouse Service
+    participant S as Shipping Service
+    participant N as Notification Service
+    participant A as Analytics Service
+    
+    Note over C,A: Phase 1: Return Request Initiation
+    C->>F: Request return for order item
+    F->>G: GET /api/v1/orders/{order_id}/return-eligibility
+    G->>R: CheckReturnEligibility(order_id, item_id)
+    R->>O: GetOrderDetails(order_id)
+    O-->>R: Order details and status
+    R->>R: Validate return window (30 days)
+    R->>R: Check item return policy
+    R-->>G: Return eligibility result
+    G-->>F: Eligibility status
+    F-->>C: Display return options
+    
+    Note over C,A: Phase 2: Return Request Submission
+    C->>F: Submit return request
+    F->>G: POST /api/v1/returns
+    G->>R: CreateReturnRequest(order_id, items, reason)
+    R->>R: Generate return ID
+    R->>R: Calculate refund amount
+    R->>R: Set return status to "requested"
+    R-->>G: Return request created
+    G-->>F: Return confirmation
+    F-->>C: Display return details
+    
+    Note over C,A: Phase 3: Return Approval Process
+    R->>R: Auto-evaluate return request
+    
+    alt Auto-approval criteria met
+        R->>R: Update status to "approved"
+        R->>S: GenerateReturnLabel(return_id, pickup_address)
+        S->>S: Create return shipment
+        S-->>R: Return label generated
+    else Manual review required
+        R->>R: Update status to "pending_review"
+        R-->>N: ReturnReviewRequired event
+        N->>N: Notify return team
+        
+        Note over R,N: Manual Review Process
+        R->>R: Return team reviews request
+        alt Approve return
+            R->>R: Update status to "approved"
+            R->>S: GenerateReturnLabel(return_id)
+            S-->>R: Return label generated
+        else Reject return
+            R->>R: Update status to "rejected"
+            R-->>N: ReturnRejected event
+            N-->>C: Rejection notification
+        end
+    end
+    
+    Note over C,A: Phase 4: Return Shipping
+    alt Return approved
+        R-->>N: ReturnApproved event
+        N->>N: Send return label to customer
+        N-->>C: Email with return instructions
+        
+        C->>C: Package item with return label
+        C->>C: Drop off at shipping location
+        
+        S->>S: Track return shipment
+        S-->>R: Return shipment in transit
+        R->>R: Update status to "in_transit"
+        
+        loop Tracking updates
+            S->>S: Receive tracking update
+            S-->>R: Tracking status update
+            R-->>N: ReturnTrackingUpdate event
+            N-->>C: Tracking notification
+        end
+    end
+    
+    Note over C,A: Phase 5: Return Receipt & Inspection
+    S->>S: Return delivered to warehouse
+    S-->>R: Return delivered
+    R->>R: Update status to "received"
+    R->>W: ScheduleReturnInspection(return_id)
+    W->>W: Assign to inspection team
+    
+    W->>W: Inspect returned item
+    W->>W: Check item condition
+    W->>W: Verify return reason
+    
+    alt Item in acceptable condition
+        W-->>R: Inspection passed
+        R->>R: Update status to "inspection_passed"
+        R->>W: RestockItem(item_id, quantity)
+        W->>W: Add item back to inventory
+        W-->>R: Item restocked
+    else Item damaged/not returnable
+        W-->>R: Inspection failed (reason)
+        R->>R: Update status to "inspection_failed"
+        R-->>N: ReturnInspectionFailed event
+        N-->>C: Inspection failure notification
+    end
+    
+    Note over C,A: Phase 6: Refund Processing
+    alt Inspection passed
+        R->>P: ProcessRefund(return_id, refund_amount)
+        P->>P: Validate refund eligibility
+        P->>P: Calculate refund amount
+        
+        alt Original payment method available
+            P->>P: Refund to original payment method
+            P-->>R: Refund processed successfully
+        else Original method unavailable
+            P->>P: Issue store credit
+            P-->>R: Store credit issued
+        end
+        
+        R->>R: Update status to "refunded"
+        R->>O: UpdateOrderRefund(order_id, refund_details)
+        O->>O: Update order refund status
+        
+        R-->>N: RefundProcessed event
+        N->>N: Send refund confirmation
+        N-->>C: Refund notification
+        
+    else Inspection failed
+        R->>S: ReturnItemToCustomer(return_id)
+        S->>S: Create return shipment to customer
+        S-->>R: Return shipment created
+        R->>R: Update status to "returned_to_customer"
+        R-->>N: ItemReturnedToCustomer event
+        N-->>C: Item return notification
+    end
+    
+    Note over C,A: Phase 7: Analytics & Completion
+    par Analytics Update
+        R-->>A: ReturnCompleted event
+        A->>A: Update return metrics
+        A->>A: Analyze return reasons
+        A->>A: Track refund amounts
+    and Order Update
+        R->>O: FinalizeReturn(order_id, return_details)
+        O->>O: Update order return status
+        O-->>A: OrderReturnFinalized event
+    end
+    
+    R->>R: Update status to "completed"
+    R-->>N: ReturnCompleted event
+    N-->>C: Return process completion notification
+    
+    Note over C,A: Alternative Flow: Exchange Request
+    
+    rect rgb(240, 255, 240)
+        Note over C,R: Exchange Instead of Refund
+        C->>F: Request exchange for different size/color
+        F->>G: POST /api/v1/returns/exchange
+        G->>R: CreateExchangeRequest(order_id, original_item, new_item)
+        R->>W: CheckExchangeAvailability(new_item)
+        alt Exchange item available
+            W-->>R: Exchange item available
+            R->>R: Create exchange order
+            R->>R: Process as return + new order
+            R-->>N: ExchangeApproved event
+        else Exchange item unavailable
+            R-->>N: ExchangeUnavailable event
+            N-->>C: Suggest alternatives or refund
+        end
+    end
+    
+    Note over C,A: Error Handling Scenarios
+    
+    rect rgb(255, 240, 240)
+        Note over R,S: Return Label Generation Failure
+        S-->>R: Label generation failed
+        R->>S: RetryLabelGeneration(return_id)
+        alt Retry success
+            S-->>R: Label generated
+        else Retry failed
+            R->>R: Flag for manual processing
+            R-->>N: ManualLabelRequired event
+            N->>N: Notify operations team
+        end
+    end
+    
+    rect rgb(240, 240, 255)
+        Note over P,R: Refund Processing Failure
+        P-->>R: Refund failed (payment gateway error)
+        R->>P: RetryRefund(return_id)
+        alt Retry success
+            P-->>R: Refund processed
+        else Retry failed
+            R->>R: Flag for manual refund
+            R-->>N: ManualRefundRequired event
+            N->>N: Notify finance team
+        end
+    end
+    
+    rect rgb(255, 255, 240)
+        Note over W,R: Inventory Restock Failure
+        W-->>R: Restock failed (item damaged)
+        R->>W: MarkItemAsDefective(item_id)
+        W->>W: Remove from sellable inventory
+        W->>W: Add to defective inventory
+        W-->>R: Item marked as defective
+        R->>R: Adjust refund calculation
+        R->>R: Continue with refund process
+    end
+    
+    rect rgb(240, 255, 255)
+        Note over R,O: Return Window Expired
+        R->>R: Check return eligibility
+        R->>R: Return window expired (>30 days)
+        R->>R: Update status to "ineligible"
+        R-->>N: ReturnIneligible event
+        N-->>C: Return ineligibility notification
+        N->>N: Suggest customer service contact
+    end

@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.company.com/schemas/events/payment.processed/v1.0.0",
+  "title": "Payment Processed Event",
+  "description": "Event published when a payment transaction is successfully processed",
+  "type": "object",
+  "required": ["eventType", "paymentId", "orderId", "status", "amount", "timestamp"],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "const": "payment.processed",
+      "description": "Event type identifier"
+    },
+    "paymentId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique payment transaction identifier"
+    },
+    "orderId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Associated order identifier"
+    },
+    "customerId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Customer who made the payment"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["SUCCESS", "FAILED", "PENDING", "REFUNDED"],
+      "description": "Payment status"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Payment amount"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "default": "USD"
+    },
+    "paymentMethod": {
+      "type": "string",
+      "enum": ["CREDIT_CARD", "DEBIT_CARD", "PAYPAL", "STRIPE", "VNPAY", "BANK_TRANSFER"],
+      "description": "Payment method used"
+    },
+    "transactionId": {
+      "type": "string",
+      "description": "External payment gateway transaction ID"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
+

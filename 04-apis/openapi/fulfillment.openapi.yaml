@@ -1,0 +1,2009 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /api/v1/fulfillments:
+        get:
+            tags:
+                - FulfillmentService
+            description: List fulfillments with filters
+            operationId: FulfillmentService_ListFulfillments
+            parameters:
+                - name: orderId
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.ListFulfillmentsResponse'
+        post:
+            tags:
+                - FulfillmentService
+            description: Create fulfillment from order
+            operationId: FulfillmentService_CreateFulfillment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.CreateFulfillmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.CreateFulfillmentResponse'
+    /api/v1/fulfillments/order/{orderId}:
+        get:
+            tags:
+                - FulfillmentService
+            description: Get fulfillment by order ID
+            operationId: FulfillmentService_GetFulfillmentByOrderID
+            parameters:
+                - name: orderId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.GetFulfillmentResponse'
+    /api/v1/fulfillments/{fulfillmentId}/cancel:
+        post:
+            tags:
+                - FulfillmentService
+            description: Cancel fulfillment
+            operationId: FulfillmentService_CancelFulfillment
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.CancelFulfillmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.CancelFulfillmentResponse'
+    /api/v1/fulfillments/{fulfillmentId}/pack-failed:
+        post:
+            tags:
+                - FulfillmentService
+            description: Mark pack failed
+            operationId: FulfillmentService_MarkPackFailed
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.MarkPackFailedRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.MarkPackFailedResponse'
+    /api/v1/fulfillments/{fulfillmentId}/packed:
+        post:
+            tags:
+                - FulfillmentService
+            description: Confirm packed items
+            operationId: FulfillmentService_ConfirmPacked
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.ConfirmPackedRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.ConfirmPackedResponse'
+    /api/v1/fulfillments/{fulfillmentId}/pick-failed:
+        post:
+            tags:
+                - FulfillmentService
+            description: Mark pick failed
+            operationId: FulfillmentService_MarkPickFailed
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.MarkPickFailedRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.MarkPickFailedResponse'
+    /api/v1/fulfillments/{fulfillmentId}/picked:
+        post:
+            tags:
+                - FulfillmentService
+            description: Confirm picked items
+            operationId: FulfillmentService_ConfirmPicked
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.ConfirmPickedRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.ConfirmPickedResponse'
+    /api/v1/fulfillments/{fulfillmentId}/picklist:
+        post:
+            tags:
+                - FulfillmentService
+            description: Generate picklist
+            operationId: FulfillmentService_GeneratePicklist
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.GeneratePicklistRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.GeneratePicklistResponse'
+    /api/v1/fulfillments/{fulfillmentId}/planning:
+        post:
+            tags:
+                - FulfillmentService
+            description: Start planning (assign warehouse)
+            operationId: FulfillmentService_StartPlanning
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.StartPlanningRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.StartPlanningResponse'
+    /api/v1/fulfillments/{fulfillmentId}/qc:
+        get:
+            tags:
+                - FulfillmentService
+            description: Get QC result for fulfillment
+            operationId: FulfillmentService_GetQCResult
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.GetQCResultResponse'
+        post:
+            tags:
+                - FulfillmentService
+            description: Perform quality control check
+            operationId: FulfillmentService_PerformQC
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.PerformQCRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.PerformQCResponse'
+    /api/v1/fulfillments/{fulfillmentId}/ready:
+        post:
+            tags:
+                - FulfillmentService
+            description: Mark ready to ship
+            operationId: FulfillmentService_MarkReadyToShip
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.MarkReadyToShipRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.MarkReadyToShipResponse'
+    /api/v1/fulfillments/{fulfillmentId}/retry-pack:
+        post:
+            tags:
+                - FulfillmentService
+            description: Retry pack
+            operationId: FulfillmentService_RetryPack
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.RetryPackRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.RetryPackResponse'
+    /api/v1/fulfillments/{fulfillmentId}/retry-pick:
+        post:
+            tags:
+                - FulfillmentService
+            description: Retry pick
+            operationId: FulfillmentService_RetryPick
+            parameters:
+                - name: fulfillmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.RetryPickRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.RetryPickResponse'
+    /api/v1/fulfillments/{id}:
+        get:
+            tags:
+                - FulfillmentService
+            description: Get fulfillment by ID
+            operationId: FulfillmentService_GetFulfillment
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.GetFulfillmentResponse'
+    /api/v1/fulfillments/{id}/status:
+        patch:
+            tags:
+                - FulfillmentService
+            description: Update fulfillment status
+            operationId: FulfillmentService_UpdateFulfillmentStatus
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.fulfillment.v1.UpdateFulfillmentStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.fulfillment.v1.UpdateFulfillmentStatusResponse'
+    /api/v1/packages:
+        get:
+            tags:
+                - PackageService
+            description: List packages with filters
+            operationId: PackageService_ListPackages
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: fulfillmentId
+                  in: query
+                  schema:
+                    type: string
+                - name: trackingNumber
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.package.v1.ListPackagesResponse'
+    /api/v1/packages/merge:
+        post:
+            tags:
+                - PackageService
+            description: Merge multiple packages into one package
+            operationId: PackageService_MergePackages
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.package.v1.MergePackagesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.package.v1.MergePackagesResponse'
+    /api/v1/packages/{id}:
+        get:
+            tags:
+                - PackageService
+            description: Get package by ID
+            operationId: PackageService_GetPackage
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.package.v1.GetPackageResponse'
+    /api/v1/packages/{packageId}/cancel:
+        post:
+            tags:
+                - PackageService
+            description: Cancel package
+            operationId: PackageService_CancelPackage
+            parameters:
+                - name: packageId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.package.v1.CancelPackageRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.package.v1.CancelPackageResponse'
+    /api/v1/packages/{packageId}/photo:
+        post:
+            tags:
+                - PackageService
+            description: Upload package photo for QC verification
+            operationId: PackageService_UploadPackagePhoto
+            parameters:
+                - name: packageId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.package.v1.UploadPackagePhotoRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.package.v1.UploadPackagePhotoResponse'
+    /api/v1/packages/{packageId}/ready:
+        post:
+            tags:
+                - PackageService
+            description: Mark package ready to ship
+            operationId: PackageService_MarkPackageReady
+            parameters:
+                - name: packageId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.package.v1.MarkPackageReadyRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.package.v1.MarkPackageReadyResponse'
+    /api/v1/packages/{packageId}/shipping-status:
+        post:
+            tags:
+                - PackageService
+            description: Update package status from shipping service (webhook)
+            operationId: PackageService_UpdatePackageStatusFromShipping
+            parameters:
+                - name: packageId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.package.v1.UpdatePackageStatusFromShippingRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.package.v1.UpdatePackageStatusFromShippingResponse'
+    /api/v1/packages/{packageId}/split:
+        post:
+            tags:
+                - PackageService
+            description: Split package into multiple packages
+            operationId: PackageService_SplitPackage
+            parameters:
+                - name: packageId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.package.v1.SplitPackageRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.package.v1.SplitPackageResponse'
+    /api/v1/packages/{packageId}/tracking:
+        patch:
+            tags:
+                - PackageService
+            description: Update package tracking
+            operationId: PackageService_UpdatePackageTracking
+            parameters:
+                - name: packageId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.package.v1.UpdatePackageTrackingRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.package.v1.UpdatePackageTrackingResponse'
+    /api/v1/picklists:
+        get:
+            tags:
+                - PicklistService
+            description: List picklists with filters
+            operationId: PicklistService_ListPicklists
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: fulfillmentId
+                  in: query
+                  schema:
+                    type: string
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: assignedTo
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.ListPicklistsResponse'
+    /api/v1/picklists/batch:
+        post:
+            tags:
+                - PicklistService
+            description: Generate batch picklist for multiple fulfillments
+            operationId: PicklistService_GenerateBatchPicklist
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.GenerateBatchPicklistRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.GenerateBatchPicklistResponse'
+    /api/v1/picklists/{id}:
+        get:
+            tags:
+                - PicklistService
+            description: Get picklist by ID
+            operationId: PicklistService_GetPicklist
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.GetPicklistResponse'
+    /api/v1/picklists/{picklistId}/assign:
+        post:
+            tags:
+                - PicklistService
+            description: Assign picklist to picker
+            operationId: PicklistService_AssignPicklist
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.AssignPicklistRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.AssignPicklistResponse'
+    /api/v1/picklists/{picklistId}/cancel:
+        post:
+            tags:
+                - PicklistService
+            description: Cancel picklist
+            operationId: PicklistService_CancelPicklist
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.CancelPicklistRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.CancelPicklistResponse'
+    /api/v1/picklists/{picklistId}/complete:
+        post:
+            tags:
+                - PicklistService
+            description: Complete picklist manually
+            operationId: PicklistService_CompletePicklist
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.CompletePicklistRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.CompletePicklistResponse'
+    /api/v1/picklists/{picklistId}/confirm-picked:
+        post:
+            tags:
+                - PicklistService
+            description: Confirm picked items (batch)
+            operationId: PicklistService_ConfirmPickedItems
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.ConfirmPickedItemsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.ConfirmPickedItemsResponse'
+    /api/v1/picklists/{picklistId}/items/{itemId}:
+        patch:
+            tags:
+                - PicklistService
+            description: Update picklist item details
+            operationId: PicklistService_UpdatePicklistItem
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: itemId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.UpdatePicklistItemRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.UpdatePicklistItemResponse'
+    /api/v1/picklists/{picklistId}/items/{itemId}/confirm:
+        post:
+            tags:
+                - PicklistService
+            description: Confirm individual picklist item
+            operationId: PicklistService_ConfirmPicklistItem
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: itemId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.ConfirmPicklistItemRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.ConfirmPicklistItemResponse'
+    /api/v1/picklists/{picklistId}/notes:
+        patch:
+            tags:
+                - PicklistService
+            description: Update picklist notes
+            operationId: PicklistService_UpdatePicklistNotes
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.UpdatePicklistNotesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.UpdatePicklistNotesResponse'
+    /api/v1/picklists/{picklistId}/priority:
+        patch:
+            tags:
+                - PicklistService
+            description: Update picklist priority
+            operationId: PicklistService_UpdatePicklistPriority
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.UpdatePicklistPriorityRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.UpdatePicklistPriorityResponse'
+    /api/v1/picklists/{picklistId}/reassign:
+        post:
+            tags:
+                - PicklistService
+            description: Reassign picklist to another picker
+            operationId: PicklistService_ReassignPicklist
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.ReassignPicklistRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.ReassignPicklistResponse'
+    /api/v1/picklists/{picklistId}/start:
+        post:
+            tags:
+                - PicklistService
+            description: Start picklist picking
+            operationId: PicklistService_StartPicklist
+            parameters:
+                - name: picklistId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.picklist.v1.StartPicklistRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.picklist.v1.StartPicklistResponse'
+components:
+    schemas:
+        api.fulfillment.v1.CancelFulfillmentRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+                reason:
+                    type: string
+        api.fulfillment.v1.CancelFulfillmentResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.ConfirmPackedRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+                package:
+                    $ref: '#/components/schemas/api.fulfillment.v1.PackageData'
+        api.fulfillment.v1.ConfirmPackedResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+                packageId:
+                    type: string
+        api.fulfillment.v1.ConfirmPickedRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+                pickedItems:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.fulfillment.v1.PickedItemData'
+        api.fulfillment.v1.ConfirmPickedResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.CreateFulfillmentRequest:
+            type: object
+            properties:
+                orderId:
+                    type: string
+                orderNumber:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.fulfillment.v1.OrderItemData'
+                codAmount:
+                    type: number
+                    format: double
+                codCurrency:
+                    type: string
+            description: Request/Response messages
+        api.fulfillment.v1.CreateFulfillmentResponse:
+            type: object
+            properties:
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.Fulfillment:
+            type: object
+            properties:
+                id:
+                    type: string
+                fulfillmentNumber:
+                    type: string
+                orderId:
+                    type: string
+                orderNumber:
+                    type: string
+                status:
+                    type: string
+                warehouseId:
+                    type: string
+                assignedPickerId:
+                    type: string
+                assignedPackerId:
+                    type: string
+                picklistId:
+                    type: string
+                packageId:
+                    type: string
+                requiresCodCollection:
+                    type: boolean
+                codAmount:
+                    type: number
+                    format: double
+                codCurrency:
+                    type: string
+                plannedAt:
+                    type: string
+                    format: date-time
+                pickedAt:
+                    type: string
+                    format: date-time
+                packedAt:
+                    type: string
+                    format: date-time
+                readyAt:
+                    type: string
+                    format: date-time
+                shippedAt:
+                    type: string
+                    format: date-time
+                completedAt:
+                    type: string
+                    format: date-time
+                cancelledAt:
+                    type: string
+                    format: date-time
+                notes:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.fulfillment.v1.FulfillmentItem'
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Fulfillment message
+        api.fulfillment.v1.FulfillmentItem:
+            type: object
+            properties:
+                id:
+                    type: string
+                fulfillmentId:
+                    type: string
+                productId:
+                    type: string
+                productSku:
+                    type: string
+                productName:
+                    type: string
+                variantId:
+                    type: string
+                quantityOrdered:
+                    type: integer
+                    format: int32
+                quantityPicked:
+                    type: integer
+                    format: int32
+                quantityPacked:
+                    type: integer
+                    format: int32
+                warehouseLocation:
+                    type: string
+                binLocation:
+                    type: string
+                unitPrice:
+                    type: number
+                    format: double
+                totalPrice:
+                    type: number
+                    format: double
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: FulfillmentItem message
+        api.fulfillment.v1.GeneratePicklistRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+        api.fulfillment.v1.GeneratePicklistResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklistId:
+                    type: string
+        api.fulfillment.v1.GetFulfillmentResponse:
+            type: object
+            properties:
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.GetQCResultResponse:
+            type: object
+            properties:
+                qcResult:
+                    $ref: '#/components/schemas/api.fulfillment.v1.QCResult'
+        api.fulfillment.v1.ListFulfillmentsResponse:
+            type: object
+            properties:
+                fulfillments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+                total:
+                    type: string
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.fulfillment.v1.MarkPackFailedRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+                reason:
+                    type: string
+        api.fulfillment.v1.MarkPackFailedResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.MarkPickFailedRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+                reason:
+                    type: string
+            description: Exception handling messages
+        api.fulfillment.v1.MarkPickFailedResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.MarkReadyToShipRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+        api.fulfillment.v1.MarkReadyToShipResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.OrderItemData:
+            type: object
+            properties:
+                productId:
+                    type: string
+                productSku:
+                    type: string
+                productName:
+                    type: string
+                variantId:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                unitPrice:
+                    type: number
+                    format: double
+                totalPrice:
+                    type: number
+                    format: double
+        api.fulfillment.v1.PackageData:
+            type: object
+            properties:
+                packageType:
+                    type: string
+                weightKg:
+                    type: number
+                    format: double
+                lengthCm:
+                    type: number
+                    format: double
+                widthCm:
+                    type: number
+                    format: double
+                heightCm:
+                    type: number
+                    format: double
+                packedBy:
+                    type: string
+                notes:
+                    type: string
+        api.fulfillment.v1.PerformQCRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+                checkerId:
+                    type: string
+            description: QC related messages
+        api.fulfillment.v1.PerformQCResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                qcResult:
+                    $ref: '#/components/schemas/api.fulfillment.v1.QCResult'
+        api.fulfillment.v1.PickedItemData:
+            type: object
+            properties:
+                fulfillmentItemId:
+                    type: string
+                quantityPicked:
+                    type: integer
+                    format: int32
+        api.fulfillment.v1.QCCheck:
+            type: object
+            properties:
+                id:
+                    type: string
+                qcResultId:
+                    type: string
+                type:
+                    type: string
+                passed:
+                    type: boolean
+                message:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+        api.fulfillment.v1.QCResult:
+            type: object
+            properties:
+                id:
+                    type: string
+                fulfillmentId:
+                    type: string
+                checkerId:
+                    type: string
+                passed:
+                    type: boolean
+                reason:
+                    type: string
+                checks:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.fulfillment.v1.QCCheck'
+                checkedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+        api.fulfillment.v1.RetryPackRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+        api.fulfillment.v1.RetryPackResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.RetryPickRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+        api.fulfillment.v1.RetryPickResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.StartPlanningRequest:
+            type: object
+            properties:
+                fulfillmentId:
+                    type: string
+                warehouseId:
+                    type: string
+        api.fulfillment.v1.StartPlanningResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.fulfillment.v1.UpdateFulfillmentStatusRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                status:
+                    type: string
+                reason:
+                    type: string
+        api.fulfillment.v1.UpdateFulfillmentStatusResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                fulfillment:
+                    $ref: '#/components/schemas/api.fulfillment.v1.Fulfillment'
+        api.package.v1.CancelPackageRequest:
+            type: object
+            properties:
+                packageId:
+                    type: string
+                reason:
+                    type: string
+            description: CancelPackage
+        api.package.v1.CancelPackageResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                package:
+                    $ref: '#/components/schemas/api.package.v1.Package'
+        api.package.v1.GetPackageResponse:
+            type: object
+            properties:
+                package:
+                    $ref: '#/components/schemas/api.package.v1.Package'
+        api.package.v1.ListPackagesResponse:
+            type: object
+            properties:
+                packages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.package.v1.Package'
+                total:
+                    type: string
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.package.v1.MarkPackageReadyRequest:
+            type: object
+            properties:
+                packageId:
+                    type: string
+            description: MarkPackageReady
+        api.package.v1.MarkPackageReadyResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                package:
+                    $ref: '#/components/schemas/api.package.v1.Package'
+        api.package.v1.MergePackagesRequest:
+            type: object
+            properties:
+                packageIds:
+                    type: array
+                    items:
+                        type: string
+                targetPackageId:
+                    type: string
+            description: MergePackages
+        api.package.v1.MergePackagesResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                package:
+                    $ref: '#/components/schemas/api.package.v1.Package'
+        api.package.v1.Package:
+            type: object
+            properties:
+                id:
+                    type: string
+                fulfillmentId:
+                    type: string
+                packageNumber:
+                    type: string
+                status:
+                    type: string
+                packageType:
+                    type: string
+                weightKg:
+                    type: number
+                    format: double
+                lengthCm:
+                    type: number
+                    format: double
+                widthCm:
+                    type: number
+                    format: double
+                heightCm:
+                    type: number
+                    format: double
+                packedBy:
+                    type: string
+                packedAt:
+                    type: string
+                    format: date-time
+                totalItems:
+                    type: integer
+                    format: int32
+                shippingLabelUrl:
+                    type: string
+                packingSlipUrl:
+                    type: string
+                photoUrl:
+                    type: string
+                trackingNumber:
+                    type: string
+                notes:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.package.v1.PackageItem'
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Package message
+        api.package.v1.PackageItem:
+            type: object
+            properties:
+                id:
+                    type: string
+                packageId:
+                    type: string
+                fulfillmentItemId:
+                    type: string
+                quantityPacked:
+                    type: integer
+                    format: int32
+            description: PackageItem message
+        api.package.v1.SplitItemDetail:
+            type: object
+            properties:
+                fulfillmentItemId:
+                    type: string
+                quantityPacked:
+                    type: integer
+                    format: int32
+            description: SplitPackage
+        api.package.v1.SplitPackageData:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.package.v1.SplitItemDetail'
+                weightKg:
+                    type: number
+                    format: double
+                lengthCm:
+                    type: number
+                    format: double
+                widthCm:
+                    type: number
+                    format: double
+                heightCm:
+                    type: number
+                    format: double
+        api.package.v1.SplitPackageRequest:
+            type: object
+            properties:
+                packageId:
+                    type: string
+                splitPackages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.package.v1.SplitPackageData'
+        api.package.v1.SplitPackageResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                packages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.package.v1.Package'
+        api.package.v1.UpdatePackageStatusFromShippingRequest:
+            type: object
+            properties:
+                packageId:
+                    type: string
+                status:
+                    type: string
+                trackingNumber:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: UpdatePackageStatusFromShipping
+        api.package.v1.UpdatePackageStatusFromShippingResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                package:
+                    $ref: '#/components/schemas/api.package.v1.Package'
+        api.package.v1.UpdatePackageTrackingRequest:
+            type: object
+            properties:
+                packageId:
+                    type: string
+                trackingNumber:
+                    type: string
+                shippingLabelUrl:
+                    type: string
+            description: Request/Response messages
+        api.package.v1.UpdatePackageTrackingResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                package:
+                    $ref: '#/components/schemas/api.package.v1.Package'
+        api.package.v1.UploadPackagePhotoRequest:
+            type: object
+            properties:
+                packageId:
+                    type: string
+                photoData:
+                    type: string
+                    format: bytes
+                contentType:
+                    type: string
+            description: UploadPackagePhoto
+        api.package.v1.UploadPackagePhotoResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                photoUrl:
+                    type: string
+                package:
+                    $ref: '#/components/schemas/api.package.v1.Package'
+        api.picklist.v1.AssignPicklistRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+                pickerId:
+                    type: string
+            description: Request/Response messages
+        api.picklist.v1.AssignPicklistResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+        api.picklist.v1.CancelPicklistRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+                reason:
+                    type: string
+        api.picklist.v1.CancelPicklistResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+        api.picklist.v1.CompletePicklistRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+                reason:
+                    type: string
+            description: 'Phase 1: Complete and Confirm Item'
+        api.picklist.v1.CompletePicklistResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+        api.picklist.v1.ConfirmPickedItemsRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+                pickedItems:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.picklist.v1.PickedItemData'
+        api.picklist.v1.ConfirmPickedItemsResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+        api.picklist.v1.ConfirmPicklistItemRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+                itemId:
+                    type: string
+                quantityPicked:
+                    type: integer
+                    format: int32
+                scannedBarcode:
+                    type: string
+                pickedBy:
+                    type: string
+        api.picklist.v1.ConfirmPicklistItemResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+                item:
+                    $ref: '#/components/schemas/api.picklist.v1.PicklistItem'
+        api.picklist.v1.GenerateBatchPicklistRequest:
+            type: object
+            properties:
+                fulfillmentIds:
+                    type: array
+                    items:
+                        type: string
+                warehouseId:
+                    type: string
+            description: GenerateBatchPicklist
+        api.picklist.v1.GenerateBatchPicklistResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklistId:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+        api.picklist.v1.GetPicklistResponse:
+            type: object
+            properties:
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+        api.picklist.v1.ListPicklistsResponse:
+            type: object
+            properties:
+                picklists:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.picklist.v1.Picklist'
+                total:
+                    type: string
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.picklist.v1.PickedItemData:
+            type: object
+            properties:
+                fulfillmentItemId:
+                    type: string
+                quantityPicked:
+                    type: integer
+                    format: int32
+                pickedBy:
+                    type: string
+        api.picklist.v1.Picklist:
+            type: object
+            properties:
+                id:
+                    type: string
+                fulfillmentId:
+                    type: string
+                picklistNumber:
+                    type: string
+                warehouseId:
+                    type: string
+                assignedTo:
+                    type: string
+                assignedAt:
+                    type: string
+                    format: date-time
+                status:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                startedAt:
+                    type: string
+                    format: date-time
+                completedAt:
+                    type: string
+                    format: date-time
+                totalItems:
+                    type: integer
+                    format: int32
+                pickedItems:
+                    type: integer
+                    format: int32
+                notes:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.picklist.v1.PicklistItem'
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Picklist message
+        api.picklist.v1.PicklistItem:
+            type: object
+            properties:
+                id:
+                    type: string
+                picklistId:
+                    type: string
+                fulfillmentItemId:
+                    type: string
+                productId:
+                    type: string
+                productSku:
+                    type: string
+                productName:
+                    type: string
+                quantityToPick:
+                    type: integer
+                    format: int32
+                quantityPicked:
+                    type: integer
+                    format: int32
+                warehouseLocation:
+                    type: string
+                binLocation:
+                    type: string
+                aisle:
+                    type: string
+                shelf:
+                    type: string
+                pickedBy:
+                    type: string
+                pickedAt:
+                    type: string
+                    format: date-time
+                pickSequence:
+                    type: integer
+                    format: int32
+                notes:
+                    type: string
+            description: PicklistItem message
+        api.picklist.v1.ReassignPicklistRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+                pickerId:
+                    type: string
+                reason:
+                    type: string
+            description: 'Phase 2: Reassign, Update Item, Confirm Picked Items'
+        api.picklist.v1.ReassignPicklistResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+        api.picklist.v1.StartPicklistRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+        api.picklist.v1.StartPicklistResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+        api.picklist.v1.UpdatePicklistItemRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+                itemId:
+                    type: string
+                quantityToPick:
+                    type: integer
+                    format: int32
+                warehouseLocation:
+                    type: string
+                binLocation:
+                    type: string
+                aisle:
+                    type: string
+                shelf:
+                    type: string
+                pickSequence:
+                    type: integer
+                    format: int32
+                notes:
+                    type: string
+        api.picklist.v1.UpdatePicklistItemResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+                item:
+                    $ref: '#/components/schemas/api.picklist.v1.PicklistItem'
+        api.picklist.v1.UpdatePicklistNotesRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+                notes:
+                    type: string
+        api.picklist.v1.UpdatePicklistNotesResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+        api.picklist.v1.UpdatePicklistPriorityRequest:
+            type: object
+            properties:
+                picklistId:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+            description: 'Phase 3: Update Priority and Notes'
+        api.picklist.v1.UpdatePicklistPriorityResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                picklist:
+                    $ref: '#/components/schemas/api.picklist.v1.Picklist'
+tags:
+    - name: FulfillmentService
+      description: Fulfillment Service
+    - name: PackageService
+      description: PackageService handles package operations
+    - name: PicklistService
+      description: PicklistService handles picklist operations

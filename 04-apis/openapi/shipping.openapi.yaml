@@ -1,0 +1,2011 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ShippingService API
+    description: Shipping service definition
+    version: 0.0.1
+paths:
+    /admin/v1/shipping/carriers:
+        get:
+            tags:
+                - ShippingService
+            description: 'Admin: List all carriers (with pagination)'
+            operationId: ShippingService_ListCarriers
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: enabled
+                  in: query
+                  schema:
+                    type: boolean
+                - name: search
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.ListCarriersResponse'
+        post:
+            tags:
+                - ShippingService
+            description: 'Admin: Create carrier'
+            operationId: ShippingService_CreateCarrier
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.CreateCarrierRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.CreateCarrierResponse'
+    /admin/v1/shipping/carriers/{carrierId}/rates:
+        post:
+            tags:
+                - ShippingService
+            description: 'Admin: Get carrier rates'
+            operationId: ShippingService_GetCarrierRates
+            parameters:
+                - name: carrierId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.GetCarrierRatesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.GetCarrierRatesResponse'
+    /admin/v1/shipping/carriers/{carrierId}/test-connection:
+        post:
+            tags:
+                - ShippingService
+            description: 'Admin: Test carrier connection'
+            operationId: ShippingService_TestCarrierConnection
+            parameters:
+                - name: carrierId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.TestCarrierConnectionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.TestCarrierConnectionResponse'
+    /admin/v1/shipping/carriers/{id}:
+        get:
+            tags:
+                - ShippingService
+            description: 'Admin: Get carrier by ID'
+            operationId: ShippingService_GetCarrier
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.GetCarrierResponse'
+        put:
+            tags:
+                - ShippingService
+            description: 'Admin: Update carrier'
+            operationId: ShippingService_UpdateCarrier
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.UpdateCarrierRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.UpdateCarrierResponse'
+        delete:
+            tags:
+                - ShippingService
+            description: 'Admin: Delete carrier'
+            operationId: ShippingService_DeleteCarrier
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.DeleteCarrierResponse'
+    /admin/v1/shipping/methods:
+        get:
+            tags:
+                - ShippingService
+            description: 'Admin: List shipping methods'
+            operationId: ShippingService_ListShippingMethods
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: enabled
+                  in: query
+                  schema:
+                    type: boolean
+                - name: type
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.ListShippingMethodsResponse'
+        post:
+            tags:
+                - ShippingService
+            description: 'Admin: Create shipping method'
+            operationId: ShippingService_CreateShippingMethod
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.CreateShippingMethodRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.CreateShippingMethodResponse'
+    /admin/v1/shipping/methods/{id}:
+        get:
+            tags:
+                - ShippingService
+            description: 'Admin: Get shipping method by ID'
+            operationId: ShippingService_GetShippingMethod
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.GetShippingMethodResponse'
+        put:
+            tags:
+                - ShippingService
+            description: 'Admin: Update shipping method'
+            operationId: ShippingService_UpdateShippingMethod
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.UpdateShippingMethodRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.UpdateShippingMethodResponse'
+        delete:
+            tags:
+                - ShippingService
+            description: 'Admin: Delete shipping method'
+            operationId: ShippingService_DeleteShippingMethod
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.DeleteShippingMethodResponse'
+    /admin/v1/shipping/methods/{id}/toggle:
+        patch:
+            tags:
+                - ShippingService
+            description: 'Admin: Toggle shipping method enabled status'
+            operationId: ShippingService_ToggleShippingMethod
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.ToggleShippingMethodRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.ToggleShippingMethodResponse'
+    /admin/v1/shipping/providers/schemas:
+        get:
+            tags:
+                - ShippingService
+            description: 'Admin: Get provider configuration schemas'
+            operationId: ShippingService_GetProviderConfigSchemas
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.GetProviderConfigSchemasResponse'
+    /api/v1/carriers:
+        get:
+            tags:
+                - ShippingService
+            description: Get available carriers
+            operationId: ShippingService_GetCarriers
+            parameters:
+                - name: enabledOnly
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.GetCarriersResponse'
+    /api/v1/returns:
+        post:
+            tags:
+                - ShippingService
+            description: Create return request
+            operationId: ShippingService_CreateReturn
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.CreateReturnRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.CreateReturnResponse'
+    /api/v1/returns/{returnId}:
+        get:
+            tags:
+                - ShippingService
+            description: Get return details
+            operationId: ShippingService_GetReturn
+            parameters:
+                - name: returnId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.GetReturnResponse'
+    /api/v1/returns/{returnId}/status:
+        put:
+            tags:
+                - ShippingService
+            description: Update return status
+            operationId: ShippingService_UpdateReturnStatus
+            parameters:
+                - name: returnId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.UpdateReturnStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.UpdateReturnStatusResponse'
+    /api/v1/shipments:
+        get:
+            tags:
+                - ShippingService
+            description: List shipments
+            operationId: ShippingService_ListShipments
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: orderId
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+                - name: carrier
+                  in: query
+                  schema:
+                    type: string
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.ListShipmentsResponse'
+        post:
+            tags:
+                - ShippingService
+            description: Create shipment
+            operationId: ShippingService_CreateShipment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.CreateShipmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.CreateShipmentResponse'
+    /api/v1/shipments/batch:
+        post:
+            tags:
+                - ShippingService
+            description: Batch create shipments
+            operationId: ShippingService_BatchCreateShipments
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.BatchCreateShipmentsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.BatchCreateShipmentsResponse'
+    /api/v1/shipments/{shipmentId}:
+        get:
+            tags:
+                - ShippingService
+            description: Get shipment details
+            operationId: ShippingService_GetShipment
+            parameters:
+                - name: shipmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.GetShipmentResponse'
+    /api/v1/shipments/{shipmentId}/assign:
+        post:
+            tags:
+                - ShippingService
+            description: Assign shipment to shipper (Admin only)
+            operationId: ShippingService_AssignShipment
+            parameters:
+                - name: shipmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.AssignShipmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.AssignShipmentResponse'
+    /api/v1/shipments/{shipmentId}/cancel:
+        post:
+            tags:
+                - ShippingService
+            description: Cancel shipment
+            operationId: ShippingService_CancelShipment
+            parameters:
+                - name: shipmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.CancelShipmentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.CancelShipmentResponse'
+    /api/v1/shipments/{shipmentId}/delivery:
+        post:
+            tags:
+                - ShippingService
+            description: Confirm delivery (Shipper)
+            operationId: ShippingService_ConfirmDelivery
+            parameters:
+                - name: shipmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.ConfirmDeliveryRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.ConfirmDeliveryResponse'
+    /api/v1/shipments/{shipmentId}/status:
+        put:
+            tags:
+                - ShippingService
+            description: Update shipment status
+            operationId: ShippingService_UpdateShipmentStatus
+            parameters:
+                - name: shipmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.UpdateShipmentStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.UpdateShipmentStatusResponse'
+    /api/v1/shipments/{shipmentId}/tracking:
+        get:
+            tags:
+                - ShippingService
+            description: Track shipment
+            operationId: ShippingService_TrackShipment
+            parameters:
+                - name: shipmentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.TrackShipmentResponse'
+    /api/v1/shipping/labels:
+        post:
+            tags:
+                - ShippingService
+            description: Generate shipping label
+            operationId: ShippingService_GenerateLabel
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.GenerateLabelRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.GenerateLabelResponse'
+    /api/v1/shipping/rates:
+        post:
+            tags:
+                - ShippingService
+            description: Calculate shipping rates
+            operationId: ShippingService_CalculateRates
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.CalculateRatesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.CalculateRatesResponse'
+    /api/v1/tracking/{trackingNumber}:
+        get:
+            tags:
+                - ShippingService
+            description: Track by tracking number
+            operationId: ShippingService_TrackByNumber
+            parameters:
+                - name: trackingNumber
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: carrier
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.TrackByNumberResponse'
+    /api/v1/webhooks/{carrier}:
+        post:
+            tags:
+                - ShippingService
+            description: Process carrier webhook
+            operationId: ShippingService_ProcessWebhook
+            parameters:
+                - name: carrier
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.shipping.v1.ProcessWebhookRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.ProcessWebhookResponse'
+    /v1/shipping/health:
+        get:
+            tags:
+                - ShippingService
+            description: Health check
+            operationId: ShippingService_HealthCheck
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.HealthCheckReply'
+    /v1/shipping/info:
+        get:
+            tags:
+                - ShippingService
+            description: Service information
+            operationId: ShippingService_GetServiceInfo
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.shipping.v1.GetServiceInfoReply'
+components:
+    schemas:
+        api.shipping.v1.Address:
+            type: object
+            properties:
+                name:
+                    type: string
+                company:
+                    type: string
+                addressLine1:
+                    type: string
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                state:
+                    type: string
+                postalCode:
+                    type: string
+                country:
+                    type: string
+                phone:
+                    type: string
+                email:
+                    type: string
+            description: Address message
+        api.shipping.v1.AssignShipmentRequest:
+            type: object
+            properties:
+                shipmentId:
+                    type: string
+                shipperId:
+                    type: string
+                notes:
+                    type: string
+            description: Assign shipment to shipper
+        api.shipping.v1.AssignShipmentResponse:
+            type: object
+            properties:
+                shipment:
+                    $ref: '#/components/schemas/api.shipping.v1.Shipment'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.shipping.v1.BatchCreateShipmentsRequest:
+            type: object
+            properties:
+                requests:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.CreateShipmentRequest'
+        api.shipping.v1.BatchCreateShipmentsResponse:
+            type: object
+            properties:
+                responses:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.CreateShipmentResponse'
+                successCount:
+                    type: integer
+                    format: int32
+                failureCount:
+                    type: integer
+                    format: int32
+        api.shipping.v1.CalculateRatesRequest:
+            type: object
+            properties:
+                fromAddress:
+                    $ref: '#/components/schemas/api.shipping.v1.Address'
+                toAddress:
+                    $ref: '#/components/schemas/api.shipping.v1.Address'
+                weight:
+                    type: number
+                    format: double
+                length:
+                    type: number
+                    format: double
+                width:
+                    type: number
+                    format: double
+                height:
+                    type: number
+                    format: double
+                packageType:
+                    type: string
+                carriers:
+                    type: array
+                    items:
+                        type: string
+                insuranceRequired:
+                    type: boolean
+                signatureRequired:
+                    type: boolean
+                orderTotal:
+                    type: number
+                    format: double
+                itemCount:
+                    type: integer
+                    format: int32
+                currency:
+                    type: string
+        api.shipping.v1.CalculateRatesResponse:
+            type: object
+            properties:
+                rates:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.ShippingRate'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.shipping.v1.CancelShipmentRequest:
+            type: object
+            properties:
+                shipmentId:
+                    type: string
+                reason:
+                    type: string
+        api.shipping.v1.CancelShipmentResponse:
+            type: object
+            properties:
+                shipment:
+                    $ref: '#/components/schemas/api.shipping.v1.Shipment'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.shipping.v1.Carrier:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                code:
+                    type: string
+                enabled:
+                    type: boolean
+                sandbox:
+                    type: boolean
+                services:
+                    type: array
+                    items:
+                        type: string
+                supportsTracking:
+                    type: boolean
+                supportsLabels:
+                    type: boolean
+                supportsInsurance:
+                    type: boolean
+                supportsSignature:
+                    type: boolean
+                supportsInternational:
+                    type: boolean
+                maxWeight:
+                    type: number
+                    format: double
+                maxDimensions:
+                    type: string
+                avgDeliveryDays:
+                    type: integer
+                    format: int32
+                successRate:
+                    type: number
+                    format: double
+                lastHealthCheck:
+                    type: string
+                    format: date-time
+                credentials:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: Credentials (only returned in admin APIs, masked in public APIs)
+                zones:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: Zones and rates configuration
+                baseRates:
+                    type: object
+                    additionalProperties:
+                        type: string
+                restrictedItems:
+                    type: array
+                    items:
+                        type: string
+                    description: Restricted items
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: Metadata
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Carrier message
+        api.shipping.v1.CarrierRate:
+            type: object
+            properties:
+                serviceType:
+                    type: string
+                serviceName:
+                    type: string
+                rate:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                estimatedDays:
+                    type: integer
+                    format: int32
+                carrierCode:
+                    type: string
+                carrierName:
+                    type: string
+        api.shipping.v1.ConfirmDeliveryRequest:
+            type: object
+            properties:
+                shipmentId:
+                    type: string
+                signatureUrl:
+                    type: string
+                photoUrl:
+                    type: string
+                notes:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Confirm delivery
+        api.shipping.v1.ConfirmDeliveryResponse:
+            type: object
+            properties:
+                shipment:
+                    $ref: '#/components/schemas/api.shipping.v1.Shipment'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.shipping.v1.CreateCarrierRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                code:
+                    type: string
+                enabled:
+                    type: boolean
+                sandbox:
+                    type: boolean
+                services:
+                    type: array
+                    items:
+                        type: string
+                supportsTracking:
+                    type: boolean
+                supportsLabels:
+                    type: boolean
+                supportsInsurance:
+                    type: boolean
+                supportsSignature:
+                    type: boolean
+                supportsInternational:
+                    type: boolean
+                maxWeight:
+                    type: number
+                    format: double
+                maxDimensions:
+                    type: string
+                credentials:
+                    type: object
+                    additionalProperties:
+                        type: string
+                zones:
+                    type: object
+                    additionalProperties:
+                        type: string
+                baseRates:
+                    type: object
+                    additionalProperties:
+                        type: string
+                restrictedItems:
+                    type: array
+                    items:
+                        type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: 'Admin: Create carrier request'
+        api.shipping.v1.CreateCarrierResponse:
+            type: object
+            properties:
+                carrier:
+                    $ref: '#/components/schemas/api.shipping.v1.Carrier'
+                success:
+                    type: boolean
+                message:
+                    type: string
+            description: 'Admin: Create carrier response'
+        api.shipping.v1.CreateReturnRequest:
+            type: object
+            properties:
+                orderId:
+                    type: string
+                shipmentId:
+                    type: string
+                customerId:
+                    type: string
+                returnType:
+                    type: integer
+                    format: enum
+                reason:
+                    type: string
+                description:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.ReturnItem'
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.shipping.v1.CreateReturnResponse:
+            type: object
+            properties:
+                return:
+                    $ref: '#/components/schemas/api.shipping.v1.Return'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.shipping.v1.CreateShipmentRequest:
+            type: object
+            properties:
+                orderId:
+                    type: string
+                fulfillmentId:
+                    type: string
+                customerId:
+                    type: string
+                carrier:
+                    type: string
+                serviceType:
+                    type: string
+                weight:
+                    type: number
+                    format: double
+                length:
+                    type: number
+                    format: double
+                width:
+                    type: number
+                    format: double
+                height:
+                    type: number
+                    format: double
+                packageType:
+                    type: string
+                fromAddress:
+                    $ref: '#/components/schemas/api.shipping.v1.Address'
+                toAddress:
+                    $ref: '#/components/schemas/api.shipping.v1.Address'
+                deliveryInstructions:
+                    type: string
+                specialInstructions:
+                    type: string
+                insuranceRequired:
+                    type: boolean
+                signatureRequired:
+                    type: boolean
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Request/Response messages
+        api.shipping.v1.CreateShipmentResponse:
+            type: object
+            properties:
+                shipment:
+                    $ref: '#/components/schemas/api.shipping.v1.Shipment'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.shipping.v1.CreateShippingMethodRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                type:
+                    type: string
+                enabled:
+                    type: boolean
+                config:
+                    type: object
+                displayOrder:
+                    type: integer
+                    format: int32
+                iconUrl:
+                    type: string
+                estimatedDaysMin:
+                    type: integer
+                    format: int32
+                estimatedDaysMax:
+                    type: integer
+                    format: int32
+                conditions:
+                    type: object
+            description: 'Admin: Create shipping method request'
+        api.shipping.v1.CreateShippingMethodResponse:
+            type: object
+            properties:
+                method:
+                    $ref: '#/components/schemas/api.shipping.v1.ShippingMethod'
+                success:
+                    type: boolean
+                message:
+                    type: string
+            description: 'Admin: Create shipping method response'
+        api.shipping.v1.DeleteCarrierResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+            description: 'Admin: Delete carrier response'
+        api.shipping.v1.DeleteShippingMethodResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+            description: 'Admin: Delete shipping method response'
+        api.shipping.v1.FieldOption:
+            type: object
+            properties:
+                value:
+                    type: string
+                label:
+                    type: string
+            description: Field option for select fields
+        api.shipping.v1.FieldValidation:
+            type: object
+            properties:
+                min:
+                    type: number
+                    format: double
+                max:
+                    type: number
+                    format: double
+                pattern:
+                    type: string
+                message:
+                    type: string
+            description: Field validation rules
+        api.shipping.v1.GenerateLabelRequest:
+            type: object
+            properties:
+                shipmentId:
+                    type: string
+                format:
+                    type: string
+        api.shipping.v1.GenerateLabelResponse:
+            type: object
+            properties:
+                labelUrl:
+                    type: string
+                labelData:
+                    type: string
+                    format: bytes
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.shipping.v1.GetCarrierRatesRequest:
+            type: object
+            properties:
+                carrierId:
+                    type: string
+                fromAddress:
+                    $ref: '#/components/schemas/api.shipping.v1.Address'
+                toAddress:
+                    $ref: '#/components/schemas/api.shipping.v1.Address'
+                weight:
+                    type: number
+                    format: double
+                length:
+                    type: number
+                    format: double
+                width:
+                    type: number
+                    format: double
+                height:
+                    type: number
+                    format: double
+                value:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+            description: 'Admin: Get carrier rates request'
+        api.shipping.v1.GetCarrierRatesResponse:
+            type: object
+            properties:
+                rates:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.CarrierRate'
+                success:
+                    type: boolean
+                message:
+                    type: string
+            description: 'Admin: Get carrier rates response'
+        api.shipping.v1.GetCarrierResponse:
+            type: object
+            properties:
+                carrier:
+                    $ref: '#/components/schemas/api.shipping.v1.Carrier'
+            description: 'Admin: Get carrier response'
+        api.shipping.v1.GetCarriersResponse:
+            type: object
+            properties:
+                carriers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.Carrier'
+        api.shipping.v1.GetProviderConfigSchemasResponse:
+            type: object
+            properties:
+                schemas:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.ProviderConfigSchema'
+            description: 'Admin: Get provider config schemas response'
+        api.shipping.v1.GetReturnResponse:
+            type: object
+            properties:
+                return:
+                    $ref: '#/components/schemas/api.shipping.v1.Return'
+        api.shipping.v1.GetServiceInfoReply:
+            type: object
+            properties:
+                name:
+                    type: string
+                version:
+                    type: string
+                description:
+                    type: string
+                capabilities:
+                    type: array
+                    items:
+                        type: string
+                metrics:
+                    $ref: '#/components/schemas/api.shipping.v1.ServiceMetrics'
+        api.shipping.v1.GetShipmentResponse:
+            type: object
+            properties:
+                shipment:
+                    $ref: '#/components/schemas/api.shipping.v1.Shipment'
+        api.shipping.v1.GetShippingMethodResponse:
+            type: object
+            properties:
+                method:
+                    $ref: '#/components/schemas/api.shipping.v1.ShippingMethod'
+            description: 'Admin: Get shipping method response'
+        api.shipping.v1.HealthCheckReply:
+            type: object
+            properties:
+                status:
+                    type: string
+                service:
+                    type: string
+                version:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+                dependencies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.ServiceStatus'
+        api.shipping.v1.ListCarriersResponse:
+            type: object
+            properties:
+                carriers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.Carrier'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                limit:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+            description: 'Admin: List carriers response'
+        api.shipping.v1.ListShipmentsResponse:
+            type: object
+            properties:
+                shipments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.Shipment'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.shipping.v1.ListShippingMethodsResponse:
+            type: object
+            properties:
+                methods:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.ShippingMethod'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                limit:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+            description: 'Admin: List shipping methods response'
+        api.shipping.v1.ProcessWebhookRequest:
+            type: object
+            properties:
+                carrier:
+                    type: string
+                webhookId:
+                    type: string
+                signature:
+                    type: string
+                payload:
+                    type: string
+                    format: bytes
+                headers:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.shipping.v1.ProcessWebhookResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                processed:
+                    type: boolean
+        api.shipping.v1.ProviderConfigField:
+            type: object
+            properties:
+                name:
+                    type: string
+                type:
+                    type: string
+                label:
+                    type: string
+                description:
+                    type: string
+                required:
+                    type: boolean
+                defaultValue:
+                    type: string
+                placeholder:
+                    type: string
+                options:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.FieldOption'
+                validation:
+                    $ref: '#/components/schemas/api.shipping.v1.FieldValidation'
+            description: Provider configuration field
+        api.shipping.v1.ProviderConfigSchema:
+            type: object
+            properties:
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                category:
+                    type: string
+                fields:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.ProviderConfigField'
+            description: Provider configuration schema
+        api.shipping.v1.Return:
+            type: object
+            properties:
+                id:
+                    type: string
+                returnId:
+                    type: string
+                orderId:
+                    type: string
+                shipmentId:
+                    type: string
+                customerId:
+                    type: string
+                returnType:
+                    type: integer
+                    format: enum
+                reason:
+                    type: string
+                description:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.ReturnItem'
+                status:
+                    type: integer
+                    format: enum
+                returnCarrier:
+                    type: string
+                returnTrackingNumber:
+                    type: string
+                returnLabelUrl:
+                    type: string
+                returnShippingCost:
+                    type: number
+                    format: double
+                approvedBy:
+                    type: string
+                approvedAt:
+                    type: string
+                    format: date-time
+                receivedBy:
+                    type: string
+                receivedAt:
+                    type: string
+                    format: date-time
+                inspectedBy:
+                    type: string
+                inspectedAt:
+                    type: string
+                    format: date-time
+                refundAmount:
+                    type: number
+                    format: double
+                restockingFee:
+                    type: number
+                    format: double
+                returnShippingFee:
+                    type: number
+                    format: double
+                netRefundAmount:
+                    type: number
+                    format: double
+                conditionNotes:
+                    type: string
+                photos:
+                    type: array
+                    items:
+                        type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                completedAt:
+                    type: string
+                    format: date-time
+                cancelledAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                rmaNumber:
+                    type: string
+            description: Return message
+        api.shipping.v1.ReturnItem:
+            type: object
+            properties:
+                productId:
+                    type: string
+                productSku:
+                    type: string
+                productName:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                reason:
+                    type: string
+                condition:
+                    type: string
+                refundAmount:
+                    type: number
+                    format: double
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Return item message
+        api.shipping.v1.ServiceMetrics:
+            type: object
+            properties:
+                totalShipments:
+                    type: string
+                totalFulfillments:
+                    type: string
+                totalCarriers:
+                    type: string
+        api.shipping.v1.ServiceStatus:
+            type: object
+            properties:
+                name:
+                    type: string
+                status:
+                    type: string
+                message:
+                    type: string
+        api.shipping.v1.Shipment:
+            type: object
+            properties:
+                id:
+                    type: string
+                shipmentId:
+                    type: string
+                orderId:
+                    type: string
+                fulfillmentId:
+                    type: string
+                customerId:
+                    type: string
+                carrier:
+                    type: string
+                serviceType:
+                    type: string
+                trackingNumber:
+                    type: string
+                labelUrl:
+                    type: string
+                weight:
+                    type: number
+                    format: double
+                length:
+                    type: number
+                    format: double
+                width:
+                    type: number
+                    format: double
+                height:
+                    type: number
+                    format: double
+                packageType:
+                    type: string
+                shippingCost:
+                    type: number
+                    format: double
+                insuranceCost:
+                    type: number
+                    format: double
+                totalCost:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                fromAddress:
+                    $ref: '#/components/schemas/api.shipping.v1.Address'
+                toAddress:
+                    $ref: '#/components/schemas/api.shipping.v1.Address'
+                status:
+                    type: integer
+                    format: enum
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                shippedAt:
+                    type: string
+                    format: date-time
+                deliveredAt:
+                    type: string
+                    format: date-time
+                cancelledAt:
+                    type: string
+                    format: date-time
+                deliverySignature:
+                    type: string
+                deliveryInstructions:
+                    type: string
+                specialInstructions:
+                    type: string
+                assignedTo:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                trackingEvents:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.TrackingEvent'
+            description: Shipment message
+        api.shipping.v1.ShippingMethod:
+            type: object
+            properties:
+                id:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                type:
+                    type: string
+                enabled:
+                    type: boolean
+                config:
+                    type: object
+                displayOrder:
+                    type: integer
+                    format: int32
+                iconUrl:
+                    type: string
+                estimatedDaysMin:
+                    type: integer
+                    format: int32
+                estimatedDaysMax:
+                    type: integer
+                    format: int32
+                conditions:
+                    type: object
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Shipping Method messages
+        api.shipping.v1.ShippingRate:
+            type: object
+            properties:
+                carrier:
+                    type: string
+                serviceType:
+                    type: string
+                serviceName:
+                    type: string
+                rate:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                estimatedDays:
+                    type: integer
+                    format: int32
+                estimatedDelivery:
+                    type: string
+                    format: date-time
+                insuranceAvailable:
+                    type: boolean
+                signatureAvailable:
+                    type: boolean
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                methodId:
+                    type: string
+                    description: Shipping method fields
+                methodCode:
+                    type: string
+                methodName:
+                    type: string
+                isFree:
+                    type: boolean
+                description:
+                    type: string
+                estimatedDaysMin:
+                    type: integer
+                    format: int32
+                estimatedDaysMax:
+                    type: integer
+                    format: int32
+            description: Shipping rate message
+        api.shipping.v1.TestCarrierConnectionRequest:
+            type: object
+            properties:
+                carrierId:
+                    type: string
+            description: 'Admin: Test carrier connection request'
+        api.shipping.v1.TestCarrierConnectionResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                details:
+                    $ref: '#/components/schemas/api.shipping.v1.TestConnectionDetails'
+            description: 'Admin: Test carrier connection response'
+        api.shipping.v1.TestConnectionDetails:
+            type: object
+            properties:
+                provider:
+                    type: string
+                responseTimeMs:
+                    type: string
+                error:
+                    type: string
+        api.shipping.v1.ToggleShippingMethodRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                enabled:
+                    type: boolean
+            description: 'Admin: Toggle shipping method request'
+        api.shipping.v1.ToggleShippingMethodResponse:
+            type: object
+            properties:
+                method:
+                    $ref: '#/components/schemas/api.shipping.v1.ShippingMethod'
+                success:
+                    type: boolean
+                message:
+                    type: string
+            description: 'Admin: Toggle shipping method response'
+        api.shipping.v1.TrackByNumberResponse:
+            type: object
+            properties:
+                events:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.TrackingEvent'
+                currentStatus:
+                    type: integer
+                    format: enum
+                estimatedDelivery:
+                    type: string
+                    format: date-time
+        api.shipping.v1.TrackShipmentResponse:
+            type: object
+            properties:
+                events:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.shipping.v1.TrackingEvent'
+                currentStatus:
+                    type: integer
+                    format: enum
+                estimatedDelivery:
+                    type: string
+                    format: date-time
+        api.shipping.v1.TrackingEvent:
+            type: object
+            properties:
+                id:
+                    type: string
+                eventType:
+                    type: string
+                eventCode:
+                    type: string
+                eventDescription:
+                    type: string
+                eventLocation:
+                    type: string
+                eventTimestamp:
+                    type: string
+                    format: date-time
+                city:
+                    type: string
+                state:
+                    type: string
+                country:
+                    type: string
+                postalCode:
+                    type: string
+                carrier:
+                    type: string
+                carrierEventId:
+                    type: string
+                isDelivered:
+                    type: boolean
+                isException:
+                    type: boolean
+                exceptionReason:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+            description: Tracking event message
+        api.shipping.v1.UpdateCarrierRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                code:
+                    type: string
+                enabled:
+                    type: boolean
+                sandbox:
+                    type: boolean
+                services:
+                    type: array
+                    items:
+                        type: string
+                supportsTracking:
+                    type: boolean
+                supportsLabels:
+                    type: boolean
+                supportsInsurance:
+                    type: boolean
+                supportsSignature:
+                    type: boolean
+                supportsInternational:
+                    type: boolean
+                maxWeight:
+                    type: number
+                    format: double
+                maxDimensions:
+                    type: string
+                credentials:
+                    type: object
+                    additionalProperties:
+                        type: string
+                zones:
+                    type: object
+                    additionalProperties:
+                        type: string
+                baseRates:
+                    type: object
+                    additionalProperties:
+                        type: string
+                restrictedItems:
+                    type: array
+                    items:
+                        type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: 'Admin: Update carrier request'
+        api.shipping.v1.UpdateCarrierResponse:
+            type: object
+            properties:
+                carrier:
+                    $ref: '#/components/schemas/api.shipping.v1.Carrier'
+                success:
+                    type: boolean
+                message:
+                    type: string
+            description: 'Admin: Update carrier response'
+        api.shipping.v1.UpdateReturnStatusRequest:
+            type: object
+            properties:
+                returnId:
+                    type: string
+                status:
+                    type: integer
+                    format: enum
+                userId:
+                    type: string
+                notes:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.shipping.v1.UpdateReturnStatusResponse:
+            type: object
+            properties:
+                return:
+                    $ref: '#/components/schemas/api.shipping.v1.Return'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.shipping.v1.UpdateShipmentStatusRequest:
+            type: object
+            properties:
+                shipmentId:
+                    type: string
+                status:
+                    type: integer
+                    format: enum
+                reason:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.shipping.v1.UpdateShipmentStatusResponse:
+            type: object
+            properties:
+                shipment:
+                    $ref: '#/components/schemas/api.shipping.v1.Shipment'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.shipping.v1.UpdateShippingMethodRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                type:
+                    type: string
+                enabled:
+                    type: boolean
+                config:
+                    type: object
+                displayOrder:
+                    type: integer
+                    format: int32
+                iconUrl:
+                    type: string
+                estimatedDaysMin:
+                    type: integer
+                    format: int32
+                estimatedDaysMax:
+                    type: integer
+                    format: int32
+                conditions:
+                    type: object
+            description: 'Admin: Update shipping method request'
+        api.shipping.v1.UpdateShippingMethodResponse:
+            type: object
+            properties:
+                method:
+                    $ref: '#/components/schemas/api.shipping.v1.ShippingMethod'
+                success:
+                    type: boolean
+                message:
+                    type: string
+            description: 'Admin: Update shipping method response'
+tags:
+    - name: ShippingService

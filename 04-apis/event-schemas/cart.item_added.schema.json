@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.company.com/schemas/events/cart.item_added/v1.0.0",
+  "title": "Cart Item Added Event",
+  "description": "Event published when an item is added to shopping cart",
+  "type": "object",
+  "required": ["eventType", "cartId", "itemId", "productId", "sku", "quantity", "timestamp"],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "const": "orders.cart.item_added",
+      "description": "Event type identifier"
+    },
+    "cartId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Shopping cart identifier"
+    },
+    "customerId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Customer identifier (null for guest carts)"
+    },
+    "sessionId": {
+      "type": "string",
+      "description": "Session identifier for guest carts"
+    },
+    "itemId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Cart item identifier"
+    },
+    "productId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Product identifier"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Product SKU"
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Item quantity added"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price per unit at time of addition"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when item was added"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
+

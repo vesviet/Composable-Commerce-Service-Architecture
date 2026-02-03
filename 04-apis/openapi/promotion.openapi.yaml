@@ -1,0 +1,1449 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: PromotionService API
+    version: 0.0.1
+paths:
+    /api/v1/promotion/analytics/summary:
+        get:
+            tags:
+                - PromotionService
+            operationId: PromotionService_GetAnalyticsSummary
+            parameters:
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.GetAnalyticsSummaryResponse'
+    /api/v1/promotion/campaigns:
+        get:
+            tags:
+                - PromotionService
+            description: Campaign Management
+            operationId: PromotionService_ListCampaigns
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: campaignType
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.ListCampaignsResponse'
+        post:
+            tags:
+                - PromotionService
+            operationId: PromotionService_CreateCampaign
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.CreateCampaignRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.CreateCampaignResponse'
+    /api/v1/promotion/campaigns/{id}:
+        get:
+            tags:
+                - PromotionService
+            operationId: PromotionService_GetCampaign
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.GetCampaignResponse'
+        put:
+            tags:
+                - PromotionService
+            operationId: PromotionService_UpdateCampaign
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.UpdateCampaignRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.UpdateCampaignResponse'
+        delete:
+            tags:
+                - PromotionService
+            operationId: PromotionService_DeleteCampaign
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.DeleteCampaignResponse'
+    /api/v1/promotion/campaigns/{id}/activate:
+        post:
+            tags:
+                - PromotionService
+            operationId: PromotionService_ActivateCampaign
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.ActivateCampaignRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.ActivateCampaignResponse'
+    /api/v1/promotion/campaigns/{id}/analytics:
+        get:
+            tags:
+                - PromotionService
+            description: Analytics
+            operationId: PromotionService_GetCampaignAnalytics
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.GetCampaignAnalyticsResponse'
+    /api/v1/promotion/campaigns/{id}/deactivate:
+        post:
+            tags:
+                - PromotionService
+            operationId: PromotionService_DeactivateCampaign
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.DeactivateCampaignRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.DeactivateCampaignResponse'
+    /api/v1/promotion/coupons:
+        get:
+            tags:
+                - PromotionService
+            description: Coupon Management
+            operationId: PromotionService_ListCoupons
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: promotionId
+                  in: query
+                  schema:
+                    type: string
+                - name: couponType
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.ListCouponsResponse'
+        post:
+            tags:
+                - PromotionService
+            operationId: PromotionService_CreateCoupon
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.CreateCouponRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.CreateCouponResponse'
+    /api/v1/promotion/coupons/generate:
+        post:
+            tags:
+                - PromotionService
+            operationId: PromotionService_GenerateBulkCoupons
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.GenerateBulkCouponsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.GenerateBulkCouponsResponse'
+    /api/v1/promotion/coupons/validate:
+        post:
+            tags:
+                - PromotionService
+            operationId: PromotionService_ValidateCoupon
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.ValidateCouponRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.ValidateCouponResponse'
+    /api/v1/promotion/coupons/{code}:
+        get:
+            tags:
+                - PromotionService
+            operationId: PromotionService_GetCoupon
+            parameters:
+                - name: code
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.GetCouponResponse'
+    /api/v1/promotion/coupons/{id}:
+        put:
+            tags:
+                - PromotionService
+            operationId: PromotionService_UpdateCoupon
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.UpdateCouponRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.UpdateCouponResponse'
+        delete:
+            tags:
+                - PromotionService
+            operationId: PromotionService_DeleteCoupon
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.DeleteCouponResponse'
+    /api/v1/promotion/promotions:
+        get:
+            tags:
+                - PromotionService
+            description: Promotion Management
+            operationId: PromotionService_ListPromotions
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: campaignId
+                  in: query
+                  schema:
+                    type: string
+                - name: promotionType
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+                - name: requiresCoupon
+                  in: query
+                  schema:
+                    type: boolean
+                - name: skus
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: categoryIds
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: brandIds
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                - name: customerSegments
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.ListPromotionsResponse'
+        post:
+            tags:
+                - PromotionService
+            operationId: PromotionService_CreatePromotion
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.CreatePromotionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.CreatePromotionResponse'
+    /api/v1/promotion/promotions/validate:
+        post:
+            tags:
+                - PromotionService
+            operationId: PromotionService_ValidatePromotions
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.ValidatePromotionsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.ValidatePromotionsResponse'
+    /api/v1/promotion/promotions/{id}:
+        get:
+            tags:
+                - PromotionService
+            operationId: PromotionService_GetPromotion
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.GetPromotionResponse'
+        put:
+            tags:
+                - PromotionService
+            operationId: PromotionService_UpdatePromotion
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.promotion.v1.UpdatePromotionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.UpdatePromotionResponse'
+        delete:
+            tags:
+                - PromotionService
+            operationId: PromotionService_DeletePromotion
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.DeletePromotionResponse'
+    /api/v1/promotion/promotions/{id}/usage:
+        get:
+            tags:
+                - PromotionService
+            operationId: PromotionService_GetPromotionUsage
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.GetPromotionUsageResponse'
+    /health:
+        get:
+            tags:
+                - PromotionService
+            description: Health Check
+            operationId: PromotionService_Health
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.promotion.v1.HealthResponse'
+components:
+    schemas:
+        api.common.v1.Pagination:
+            type: object
+            properties:
+                page:
+                    type: integer
+                    format: int32
+                limit:
+                    type: integer
+                    format: int32
+                total:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+                hasNext:
+                    type: boolean
+                hasPrev:
+                    type: boolean
+            description: Pagination for list responses
+        api.promotion.v1.ActivateCampaignRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+        api.promotion.v1.ActivateCampaignResponse:
+            type: object
+            properties:
+                campaign:
+                    $ref: '#/components/schemas/api.promotion.v1.Campaign'
+        api.promotion.v1.AnalyticsSummary:
+            type: object
+            properties:
+                totalCampaigns:
+                    type: string
+                activeCampaigns:
+                    type: string
+                totalPromotions:
+                    type: string
+                activePromotions:
+                    type: string
+                totalCoupons:
+                    type: string
+                usedCoupons:
+                    type: string
+                totalDiscountGiven:
+                    type: number
+                    format: double
+                uniqueCustomers:
+                    type: string
+                overallConversionRate:
+                    type: number
+                    format: double
+        api.promotion.v1.Campaign:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                campaignType:
+                    type: string
+                status:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                startsAt:
+                    type: string
+                    format: date-time
+                endsAt:
+                    type: string
+                    format: date-time
+                budgetLimit:
+                    type: number
+                    format: double
+                budgetUsed:
+                    type: number
+                    format: double
+                targetAudience:
+                    type: string
+                metadata:
+                    type: string
+                createdBy:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Campaign Messages
+        api.promotion.v1.CampaignAnalytics:
+            type: object
+            properties:
+                campaignId:
+                    type: string
+                totalPromotions:
+                    type: string
+                activePromotions:
+                    type: string
+                totalCoupons:
+                    type: string
+                usedCoupons:
+                    type: string
+                totalDiscountGiven:
+                    type: number
+                    format: double
+                budgetUsed:
+                    type: number
+                    format: double
+                budgetRemaining:
+                    type: number
+                    format: double
+                uniqueCustomers:
+                    type: string
+                conversionRate:
+                    type: number
+                    format: double
+        api.promotion.v1.Coupon:
+            type: object
+            properties:
+                id:
+                    type: string
+                promotionId:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                couponType:
+                    type: string
+                usageLimit:
+                    type: integer
+                    format: int32
+                usageCount:
+                    type: integer
+                    format: int32
+                customerId:
+                    type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                minimumOrderAmount:
+                    type: number
+                    format: double
+                isActive:
+                    type: boolean
+                startsAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Coupon Messages
+        api.promotion.v1.CreateCampaignRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                description:
+                    type: string
+                campaignType:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                startsAt:
+                    type: string
+                    format: date-time
+                endsAt:
+                    type: string
+                    format: date-time
+                budgetLimit:
+                    type: number
+                    format: double
+                targetAudience:
+                    type: string
+                metadata:
+                    type: string
+                createdBy:
+                    type: string
+        api.promotion.v1.CreateCampaignResponse:
+            type: object
+            properties:
+                campaign:
+                    $ref: '#/components/schemas/api.promotion.v1.Campaign'
+        api.promotion.v1.CreateCouponRequest:
+            type: object
+            properties:
+                promotionId:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                couponType:
+                    type: string
+                usageLimit:
+                    type: integer
+                    format: int32
+                customerId:
+                    type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                minimumOrderAmount:
+                    type: number
+                    format: double
+                startsAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: string
+        api.promotion.v1.CreateCouponResponse:
+            type: object
+            properties:
+                coupon:
+                    $ref: '#/components/schemas/api.promotion.v1.Coupon'
+        api.promotion.v1.CreatePromotionRequest:
+            type: object
+            properties:
+                campaignId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                ruleType:
+                    type: string
+                promotionType:
+                    type: string
+                discountType:
+                    type: string
+                discountValue:
+                    type: number
+                    format: double
+                minimumOrderAmount:
+                    type: number
+                    format: double
+                maximumDiscountAmount:
+                    type: number
+                    format: double
+                applicableProducts:
+                    type: array
+                    items:
+                        type: string
+                applicableCategories:
+                    type: array
+                    items:
+                        type: string
+                applicableBrands:
+                    type: array
+                    items:
+                        type: string
+                excludedProducts:
+                    type: array
+                    items:
+                        type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                usageLimitPerCustomer:
+                    type: integer
+                    format: int32
+                totalUsageLimit:
+                    type: integer
+                    format: int32
+                conditions:
+                    type: string
+                actions:
+                    type: string
+                isStackable:
+                    type: boolean
+                requiresCoupon:
+                    type: boolean
+                stopRulesProcessing:
+                    type: boolean
+                priority:
+                    type: integer
+                    format: int32
+                startsAt:
+                    type: string
+                    format: date-time
+                endsAt:
+                    type: string
+                    format: date-time
+        api.promotion.v1.CreatePromotionResponse:
+            type: object
+            properties:
+                promotion:
+                    $ref: '#/components/schemas/api.promotion.v1.Promotion'
+        api.promotion.v1.DeactivateCampaignRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+        api.promotion.v1.DeactivateCampaignResponse:
+            type: object
+            properties:
+                campaign:
+                    $ref: '#/components/schemas/api.promotion.v1.Campaign'
+        api.promotion.v1.DeleteCampaignResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.promotion.v1.DeleteCouponResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.promotion.v1.DeletePromotionResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.promotion.v1.GenerateBulkCouponsRequest:
+            type: object
+            properties:
+                promotionId:
+                    type: string
+                count:
+                    type: integer
+                    format: int32
+                name:
+                    type: string
+                description:
+                    type: string
+                couponType:
+                    type: string
+                usageLimit:
+                    type: integer
+                    format: int32
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                minimumOrderAmount:
+                    type: number
+                    format: double
+                startsAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+        api.promotion.v1.GenerateBulkCouponsResponse:
+            type: object
+            properties:
+                coupons:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.promotion.v1.Coupon'
+                generatedCount:
+                    type: integer
+                    format: int32
+        api.promotion.v1.GetAnalyticsSummaryResponse:
+            type: object
+            properties:
+                summary:
+                    $ref: '#/components/schemas/api.promotion.v1.AnalyticsSummary'
+        api.promotion.v1.GetCampaignAnalyticsResponse:
+            type: object
+            properties:
+                analytics:
+                    $ref: '#/components/schemas/api.promotion.v1.CampaignAnalytics'
+        api.promotion.v1.GetCampaignResponse:
+            type: object
+            properties:
+                campaign:
+                    $ref: '#/components/schemas/api.promotion.v1.Campaign'
+        api.promotion.v1.GetCouponResponse:
+            type: object
+            properties:
+                coupon:
+                    $ref: '#/components/schemas/api.promotion.v1.Coupon'
+        api.promotion.v1.GetPromotionResponse:
+            type: object
+            properties:
+                promotion:
+                    $ref: '#/components/schemas/api.promotion.v1.Promotion'
+        api.promotion.v1.GetPromotionUsageResponse:
+            type: object
+            properties:
+                usage:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.promotion.v1.PromotionUsage'
+                stats:
+                    $ref: '#/components/schemas/api.promotion.v1.UsageStats'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.promotion.v1.HealthResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+                service:
+                    type: string
+                version:
+                    type: string
+        api.promotion.v1.InvalidPromotion:
+            type: object
+            properties:
+                promotionId:
+                    type: string
+                couponCode:
+                    type: string
+                reason:
+                    type: string
+        api.promotion.v1.ListCampaignsResponse:
+            type: object
+            properties:
+                campaigns:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.promotion.v1.Campaign'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.promotion.v1.ListCouponsResponse:
+            type: object
+            properties:
+                coupons:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.promotion.v1.Coupon'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.promotion.v1.ListPromotionsResponse:
+            type: object
+            properties:
+                promotions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.promotion.v1.Promotion'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.promotion.v1.Promotion:
+            type: object
+            properties:
+                id:
+                    type: string
+                campaignId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                ruleType:
+                    type: string
+                promotionType:
+                    type: string
+                discountType:
+                    type: string
+                discountValue:
+                    type: number
+                    format: double
+                minimumOrderAmount:
+                    type: number
+                    format: double
+                maximumDiscountAmount:
+                    type: number
+                    format: double
+                applicableProducts:
+                    type: array
+                    items:
+                        type: string
+                applicableCategories:
+                    type: array
+                    items:
+                        type: string
+                applicableBrands:
+                    type: array
+                    items:
+                        type: string
+                excludedProducts:
+                    type: array
+                    items:
+                        type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                usageLimitPerCustomer:
+                    type: integer
+                    format: int32
+                totalUsageLimit:
+                    type: integer
+                    format: int32
+                currentUsageCount:
+                    type: integer
+                    format: int32
+                conditions:
+                    type: string
+                actions:
+                    type: string
+                isStackable:
+                    type: boolean
+                requiresCoupon:
+                    type: boolean
+                isActive:
+                    type: boolean
+                stopRulesProcessing:
+                    type: boolean
+                priority:
+                    type: integer
+                    format: int32
+                startsAt:
+                    type: string
+                    format: date-time
+                endsAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Promotion Messages
+        api.promotion.v1.PromotionUsage:
+            type: object
+            properties:
+                id:
+                    type: string
+                promotionId:
+                    type: string
+                couponId:
+                    type: string
+                customerId:
+                    type: string
+                orderId:
+                    type: string
+                usageType:
+                    type: string
+                discountAmount:
+                    type: number
+                    format: double
+                originalAmount:
+                    type: number
+                    format: double
+                finalAmount:
+                    type: number
+                    format: double
+                usedAt:
+                    type: string
+                    format: date-time
+        api.promotion.v1.UpdateCampaignRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                campaignType:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                startsAt:
+                    type: string
+                    format: date-time
+                endsAt:
+                    type: string
+                    format: date-time
+                budgetLimit:
+                    type: number
+                    format: double
+                targetAudience:
+                    type: string
+                metadata:
+                    type: string
+        api.promotion.v1.UpdateCampaignResponse:
+            type: object
+            properties:
+                campaign:
+                    $ref: '#/components/schemas/api.promotion.v1.Campaign'
+        api.promotion.v1.UpdateCouponRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                couponType:
+                    type: string
+                usageLimit:
+                    type: integer
+                    format: int32
+                customerId:
+                    type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                minimumOrderAmount:
+                    type: number
+                    format: double
+                isActive:
+                    type: boolean
+                startsAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: string
+        api.promotion.v1.UpdateCouponResponse:
+            type: object
+            properties:
+                coupon:
+                    $ref: '#/components/schemas/api.promotion.v1.Coupon'
+        api.promotion.v1.UpdatePromotionRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                ruleType:
+                    type: string
+                promotionType:
+                    type: string
+                discountType:
+                    type: string
+                discountValue:
+                    type: number
+                    format: double
+                minimumOrderAmount:
+                    type: number
+                    format: double
+                maximumDiscountAmount:
+                    type: number
+                    format: double
+                applicableProducts:
+                    type: array
+                    items:
+                        type: string
+                applicableCategories:
+                    type: array
+                    items:
+                        type: string
+                applicableBrands:
+                    type: array
+                    items:
+                        type: string
+                excludedProducts:
+                    type: array
+                    items:
+                        type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                usageLimitPerCustomer:
+                    type: integer
+                    format: int32
+                totalUsageLimit:
+                    type: integer
+                    format: int32
+                conditions:
+                    type: string
+                actions:
+                    type: string
+                isStackable:
+                    type: boolean
+                requiresCoupon:
+                    type: boolean
+                isActive:
+                    type: boolean
+                stopRulesProcessing:
+                    type: boolean
+                priority:
+                    type: integer
+                    format: int32
+                startsAt:
+                    type: string
+                    format: date-time
+                endsAt:
+                    type: string
+                    format: date-time
+        api.promotion.v1.UpdatePromotionResponse:
+            type: object
+            properties:
+                promotion:
+                    $ref: '#/components/schemas/api.promotion.v1.Promotion'
+        api.promotion.v1.UsageStats:
+            type: object
+            properties:
+                totalUsage:
+                    type: string
+                uniqueCustomers:
+                    type: string
+                totalDiscount:
+                    type: number
+                    format: double
+                averageDiscount:
+                    type: number
+                    format: double
+                conversionRate:
+                    type: number
+                    format: double
+        api.promotion.v1.ValidPromotion:
+            type: object
+            properties:
+                promotionId:
+                    type: string
+                couponId:
+                    type: string
+                name:
+                    type: string
+                discountAmount:
+                    type: number
+                    format: double
+                discountType:
+                    type: string
+                isStackable:
+                    type: boolean
+        api.promotion.v1.ValidateCouponRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+                customerId:
+                    type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                orderAmount:
+                    type: number
+                    format: double
+        api.promotion.v1.ValidateCouponResponse:
+            type: object
+            properties:
+                isValid:
+                    type: boolean
+                coupon:
+                    $ref: '#/components/schemas/api.promotion.v1.Coupon'
+                reason:
+                    type: string
+        api.promotion.v1.ValidatePromotionsRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                productIds:
+                    type: array
+                    items:
+                        type: string
+                categoryIds:
+                    type: array
+                    items:
+                        type: string
+                brandIds:
+                    type: array
+                    items:
+                        type: string
+                orderAmount:
+                    type: number
+                    format: double
+                couponCodes:
+                    type: array
+                    items:
+                        type: string
+                subtotal:
+                    type: number
+                    description: Advanced cart conditions
+                    format: double
+                totalItemsQty:
+                    type: integer
+                    format: int32
+                totalWeight:
+                    type: number
+                    format: double
+                shippingMethod:
+                    type: string
+                shippingCountry:
+                    type: string
+                shippingRegion:
+                    type: string
+                shippingState:
+                    type: string
+                shippingPostcode:
+                    type: string
+                paymentMethod:
+                    type: string
+                productAttributes:
+                    type: string
+                    description: Product details (JSON strings for complex data)
+                productPrices:
+                    type: string
+                productQuantities:
+                    type: string
+                productWeights:
+                    type: string
+                productHasSpecialPrice:
+                    type: string
+        api.promotion.v1.ValidatePromotionsResponse:
+            type: object
+            properties:
+                validPromotions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.promotion.v1.ValidPromotion'
+                invalidPromotions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.promotion.v1.InvalidPromotion'
+                totalDiscount:
+                    type: number
+                    format: double
+                shippingDiscount:
+                    type: number
+                    format: double
+                finalAmount:
+                    type: number
+                    format: double
+tags:
+    - name: PromotionService

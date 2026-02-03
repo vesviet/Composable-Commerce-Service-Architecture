@@ -1,0 +1,1170 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /api/v1/loyalty/accounts:
+        post:
+            tags:
+                - AccountService
+            operationId: AccountService_CreateAccount
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.loyalty.v1.CreateAccountRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.LoyaltyAccount'
+    /api/v1/loyalty/accounts/{customerId}:
+        get:
+            tags:
+                - AccountService
+            operationId: AccountService_GetAccount
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.LoyaltyAccount'
+        put:
+            tags:
+                - AccountService
+            operationId: AccountService_UpdateAccount
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.loyalty.v1.UpdateAccountRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.LoyaltyAccount'
+    /api/v1/loyalty/analytics:
+        get:
+            tags:
+                - LoyaltyService
+            description: Analytics (cross-domain)
+            operationId: LoyaltyService_GetAnalytics
+            parameters:
+                - name: period
+                  in: query
+                  schema:
+                    type: string
+                - name: days
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.GetAnalyticsResponse'
+    /api/v1/loyalty/campaigns:
+        get:
+            tags:
+                - CampaignService
+            description: List campaigns with filters
+            operationId: CampaignService_ListCampaigns
+            parameters:
+                - name: campaignType
+                  in: query
+                  schema:
+                    type: string
+                - name: tier
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.ListCampaignsResponse'
+        post:
+            tags:
+                - CampaignService
+            description: Create a new bonus campaign
+            operationId: CampaignService_CreateCampaign
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.loyalty.v1.CreateCampaignRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.Campaign'
+    /api/v1/loyalty/campaigns/active/{tier}:
+        get:
+            tags:
+                - CampaignService
+            description: Get active campaigns for a tier
+            operationId: CampaignService_GetActiveCampaigns
+            parameters:
+                - name: tier
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.GetActiveCampaignsResponse'
+    /api/v1/loyalty/campaigns/{id}:
+        get:
+            tags:
+                - CampaignService
+            description: Get campaign by ID
+            operationId: CampaignService_GetCampaign
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.Campaign'
+        put:
+            tags:
+                - CampaignService
+            description: Update campaign
+            operationId: CampaignService_UpdateCampaign
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.loyalty.v1.UpdateCampaignRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.Campaign'
+    /api/v1/loyalty/points/earn:
+        post:
+            tags:
+                - TransactionService
+            operationId: TransactionService_EarnPoints
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.loyalty.v1.EarnPointsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.EarnPointsResponse'
+    /api/v1/loyalty/points/redeem:
+        post:
+            tags:
+                - TransactionService
+            operationId: TransactionService_RedeemPoints
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.loyalty.v1.RedeemPointsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.RedeemPointsResponse'
+    /api/v1/loyalty/redemptions:
+        post:
+            tags:
+                - RedemptionService
+            operationId: RedemptionService_RedeemReward
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.loyalty.v1.RedeemRewardRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.RedeemRewardResponse'
+    /api/v1/loyalty/redemptions/{customerId}:
+        get:
+            tags:
+                - RedemptionService
+            operationId: RedemptionService_GetRedemptions
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.GetRedemptionsResponse'
+    /api/v1/loyalty/referrals:
+        post:
+            tags:
+                - ReferralService
+            operationId: ReferralService_CreateReferral
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.loyalty.v1.CreateReferralRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.ReferralProgram'
+    /api/v1/loyalty/referrals/complete:
+        post:
+            tags:
+                - ReferralService
+            operationId: ReferralService_CompleteReferral
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.loyalty.v1.CompleteReferralRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.CompleteReferralResponse'
+    /api/v1/loyalty/referrals/{customerId}:
+        get:
+            tags:
+                - ReferralService
+            operationId: ReferralService_GetReferrals
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.GetReferralsResponse'
+    /api/v1/loyalty/rewards:
+        get:
+            tags:
+                - RewardService
+            operationId: RewardService_GetRewards
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: rewardType
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+                - name: featuredOnly
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.GetRewardsResponse'
+    /api/v1/loyalty/rewards/{id}:
+        get:
+            tags:
+                - RewardService
+            operationId: RewardService_GetReward
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.LoyaltyReward'
+    /api/v1/loyalty/tiers:
+        get:
+            tags:
+                - TierService
+            operationId: TierService_GetTiers
+            parameters:
+                - name: activeOnly
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.GetTiersResponse'
+    /api/v1/loyalty/tiers/{customerId}:
+        get:
+            tags:
+                - TierService
+            operationId: TierService_GetCustomerTier
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.GetCustomerTierResponse'
+    /api/v1/loyalty/transactions/{customerId}:
+        get:
+            tags:
+                - TransactionService
+            operationId: TransactionService_GetTransactions
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: transactionType
+                  in: query
+                  schema:
+                    type: string
+                - name: source
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.GetTransactionsResponse'
+    /health:
+        get:
+            tags:
+                - LoyaltyService
+            description: Health check
+            operationId: LoyaltyService_Health
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.loyalty.v1.HealthResponse'
+components:
+    schemas:
+        api.loyalty.v1.Campaign:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                campaignType:
+                    type: string
+                bonusMultiplier:
+                    type: number
+                    format: double
+                bonusPoints:
+                    type: integer
+                    format: int32
+                bonusType:
+                    type: string
+                bonusValue:
+                    type: number
+                    format: double
+                minPurchase:
+                    type: number
+                    format: double
+                targetTier:
+                    type: string
+                eligibleTiers:
+                    type: array
+                    items:
+                        type: string
+                eligibleCustomers:
+                    type: array
+                    items:
+                        type: string
+                isActive:
+                    type: boolean
+                startDate:
+                    type: string
+                    format: date-time
+                endDate:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Campaign message
+        api.loyalty.v1.CompleteReferralRequest:
+            type: object
+            properties:
+                referralCode:
+                    type: string
+                refereeCustomerId:
+                    type: string
+        api.loyalty.v1.CompleteReferralResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                referrerPoints:
+                    type: integer
+                    format: int32
+                refereePoints:
+                    type: integer
+                    format: int32
+                referral:
+                    $ref: '#/components/schemas/api.loyalty.v1.ReferralProgram'
+        api.loyalty.v1.CreateAccountRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                referredBy:
+                    type: string
+        api.loyalty.v1.CreateCampaignRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                description:
+                    type: string
+                campaignType:
+                    type: string
+                bonusMultiplier:
+                    type: number
+                    format: double
+                bonusPoints:
+                    type: integer
+                    format: int32
+                minPurchase:
+                    type: number
+                    format: double
+                targetTier:
+                    type: string
+                eligibleTiers:
+                    type: array
+                    items:
+                        type: string
+                eligibleCustomers:
+                    type: array
+                    items:
+                        type: string
+                startDate:
+                    type: string
+                    format: date-time
+                endDate:
+                    type: string
+                    format: date-time
+            description: Create Campaign Request
+        api.loyalty.v1.CreateReferralRequest:
+            type: object
+            properties:
+                referrerCustomerId:
+                    type: string
+                refereeEmail:
+                    type: string
+                refereePhone:
+                    type: string
+        api.loyalty.v1.EarnPointsRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                points:
+                    type: integer
+                    format: int32
+                source:
+                    type: string
+                sourceId:
+                    type: string
+                description:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.loyalty.v1.EarnPointsResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                pointsEarned:
+                    type: integer
+                    format: int32
+                newBalance:
+                    type: integer
+                    format: int32
+                tierChange:
+                    type: string
+                transaction:
+                    $ref: '#/components/schemas/api.loyalty.v1.LoyaltyTransaction'
+        api.loyalty.v1.GetActiveCampaignsResponse:
+            type: object
+            properties:
+                campaigns:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.loyalty.v1.Campaign'
+            description: Get Active Campaigns Response
+        api.loyalty.v1.GetAnalyticsResponse:
+            type: object
+            properties:
+                totalCustomers:
+                    type: integer
+                    format: int32
+                activeCustomers:
+                    type: integer
+                    format: int32
+                totalPointsEarned:
+                    type: string
+                totalPointsRedeemed:
+                    type: string
+                totalRedemptions:
+                    type: integer
+                    format: int32
+                tierDistribution:
+                    type: object
+                    additionalProperties:
+                        type: integer
+                        format: int32
+                pointsBySource:
+                    type: object
+                    additionalProperties:
+                        type: integer
+                        format: int32
+                redemptionsByType:
+                    type: object
+                    additionalProperties:
+                        type: integer
+                        format: int32
+                averagePointsPerCustomer:
+                    type: number
+                    format: double
+                redemptionRate:
+                    type: number
+                    format: double
+        api.loyalty.v1.GetCustomerTierResponse:
+            type: object
+            properties:
+                currentTier:
+                    $ref: '#/components/schemas/api.loyalty.v1.LoyaltyTier'
+                nextTier:
+                    $ref: '#/components/schemas/api.loyalty.v1.LoyaltyTier'
+                pointsToNextTier:
+                    type: integer
+                    format: int32
+                progressPercentage:
+                    type: number
+                    format: double
+        api.loyalty.v1.GetRedemptionsResponse:
+            type: object
+            properties:
+                redemptions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.loyalty.v1.LoyaltyRedemption'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+        api.loyalty.v1.GetReferralsResponse:
+            type: object
+            properties:
+                referrals:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.loyalty.v1.ReferralProgram'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+        api.loyalty.v1.GetRewardsResponse:
+            type: object
+            properties:
+                rewards:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.loyalty.v1.LoyaltyReward'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+        api.loyalty.v1.GetTiersResponse:
+            type: object
+            properties:
+                tiers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.loyalty.v1.LoyaltyTier'
+        api.loyalty.v1.GetTransactionsResponse:
+            type: object
+            properties:
+                transactions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.loyalty.v1.LoyaltyTransaction'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+        api.loyalty.v1.HealthResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+                service:
+                    type: string
+                version:
+                    type: string
+            description: Health response
+        api.loyalty.v1.ListCampaignsResponse:
+            type: object
+            properties:
+                campaigns:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.loyalty.v1.Campaign'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+            description: List Campaigns Response
+        api.loyalty.v1.LoyaltyAccount:
+            type: object
+            properties:
+                id:
+                    type: string
+                customerId:
+                    type: string
+                currentPoints:
+                    type: integer
+                    format: int32
+                lifetimePoints:
+                    type: integer
+                    format: int32
+                currentTier:
+                    type: string
+                tierProgress:
+                    type: integer
+                    format: int32
+                nextTier:
+                    type: string
+                pointsToNextTier:
+                    type: integer
+                    format: int32
+                referralCode:
+                    type: string
+                referredBy:
+                    type: string
+                status:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Account Messages
+        api.loyalty.v1.LoyaltyRedemption:
+            type: object
+            properties:
+                id:
+                    type: string
+                customerId:
+                    type: string
+                rewardId:
+                    type: string
+                pointsUsed:
+                    type: integer
+                    format: int32
+                status:
+                    type: string
+                redemptionCode:
+                    type: string
+                orderId:
+                    type: string
+                usedAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                notes:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+            description: Redemption Messages
+        api.loyalty.v1.LoyaltyReward:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                rewardType:
+                    type: string
+                pointsRequired:
+                    type: integer
+                    format: int32
+                value:
+                    type: number
+                    format: double
+                discountType:
+                    type: string
+                discountValue:
+                    type: number
+                    format: double
+                productId:
+                    type: string
+                categoryId:
+                    type: string
+                imageUrl:
+                    type: string
+                termsConditions:
+                    type: string
+                minTier:
+                    type: string
+                maxRedemptionsPerCustomer:
+                    type: integer
+                    format: int32
+                totalAvailable:
+                    type: integer
+                    format: int32
+                totalRedeemed:
+                    type: integer
+                    format: int32
+                isActive:
+                    type: boolean
+                isFeatured:
+                    type: boolean
+                validFrom:
+                    type: string
+                    format: date-time
+                validUntil:
+                    type: string
+                    format: date-time
+            description: Reward Messages
+        api.loyalty.v1.LoyaltyTier:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                displayName:
+                    type: string
+                minPoints:
+                    type: integer
+                    format: int32
+                maxPoints:
+                    type: integer
+                    format: int32
+                pointMultiplier:
+                    type: number
+                    format: double
+                benefits:
+                    type: array
+                    items:
+                        type: string
+                color:
+                    type: string
+                iconUrl:
+                    type: string
+                description:
+                    type: string
+                isActive:
+                    type: boolean
+                sortOrder:
+                    type: integer
+                    format: int32
+            description: Tier Messages
+        api.loyalty.v1.LoyaltyTransaction:
+            type: object
+            properties:
+                id:
+                    type: string
+                customerId:
+                    type: string
+                transactionType:
+                    type: string
+                points:
+                    type: integer
+                    format: int32
+                balanceBefore:
+                    type: integer
+                    format: int32
+                balanceAfter:
+                    type: integer
+                    format: int32
+                source:
+                    type: string
+                sourceId:
+                    type: string
+                description:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+                processedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+            description: Transaction Messages
+        api.loyalty.v1.RedeemPointsRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                points:
+                    type: integer
+                    format: int32
+                description:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.loyalty.v1.RedeemPointsResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                pointsRedeemed:
+                    type: integer
+                    format: int32
+                newBalance:
+                    type: integer
+                    format: int32
+                transaction:
+                    $ref: '#/components/schemas/api.loyalty.v1.LoyaltyTransaction'
+        api.loyalty.v1.RedeemRewardRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                rewardId:
+                    type: string
+                notes:
+                    type: string
+        api.loyalty.v1.RedeemRewardResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                redemptionCode:
+                    type: string
+                pointsUsed:
+                    type: integer
+                    format: int32
+                newBalance:
+                    type: integer
+                    format: int32
+                redemption:
+                    $ref: '#/components/schemas/api.loyalty.v1.LoyaltyRedemption'
+        api.loyalty.v1.ReferralProgram:
+            type: object
+            properties:
+                id:
+                    type: string
+                referrerCustomerId:
+                    type: string
+                refereeCustomerId:
+                    type: string
+                referralCode:
+                    type: string
+                refereeEmail:
+                    type: string
+                refereePhone:
+                    type: string
+                status:
+                    type: string
+                referrerPoints:
+                    type: integer
+                    format: int32
+                refereePoints:
+                    type: integer
+                    format: int32
+                completedAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+            description: Referral Messages
+        api.loyalty.v1.UpdateAccountRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                status:
+                    type: string
+        api.loyalty.v1.UpdateCampaignRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                campaignType:
+                    type: string
+                bonusMultiplier:
+                    type: number
+                    format: double
+                bonusPoints:
+                    type: integer
+                    format: int32
+                minPurchase:
+                    type: number
+                    format: double
+                targetTier:
+                    type: string
+                eligibleTiers:
+                    type: array
+                    items:
+                        type: string
+                eligibleCustomers:
+                    type: array
+                    items:
+                        type: string
+                isActive:
+                    type: boolean
+                startDate:
+                    type: string
+                    format: date-time
+                endDate:
+                    type: string
+                    format: date-time
+            description: Update Campaign Request
+tags:
+    - name: AccountService
+      description: Account Service - Manages loyalty accounts
+    - name: CampaignService
+      description: Campaign Service - Bonus Campaign Management
+    - name: LoyaltyService
+      description: |-
+        Main Loyalty Service - Aggregates all sub-services
+         This service acts as a unified gateway for all loyalty operations
+    - name: RedemptionService
+      description: Redemption Service - Manages reward redemptions
+    - name: ReferralService
+      description: Referral Service - Manages referral programs
+    - name: RewardService
+      description: Reward Service - Manages rewards catalog
+    - name: TierService
+      description: Tier Service - Manages loyalty tiers
+    - name: TransactionService
+      description: Transaction Service - Manages points transactions

@@ -1,0 +1,1054 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: PaymentService API
+    description: Payment service definition
+    version: 0.0.1
+paths:
+    /api/v1/customers/{customerId}/payment-methods:
+        get:
+            tags:
+                - PaymentService
+            description: Get customer payment methods
+            operationId: PaymentService_GetCustomerPaymentMethods
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: activeOnly
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.GetCustomerPaymentMethodsResponse'
+        post:
+            tags:
+                - PaymentService
+            description: Add payment method
+            operationId: PaymentService_AddPaymentMethod
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.payment.v1.AddPaymentMethodRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.AddPaymentMethodResponse'
+    /api/v1/customers/{customerId}/transactions:
+        get:
+            tags:
+                - PaymentService
+            description: Get customer transactions
+            operationId: PaymentService_GetCustomerTransactions
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: type
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.GetCustomerTransactionsResponse'
+    /api/v1/payment-methods/{paymentMethodId}:
+        put:
+            tags:
+                - PaymentService
+            description: Update payment method
+            operationId: PaymentService_UpdatePaymentMethod
+            parameters:
+                - name: paymentMethodId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.payment.v1.UpdatePaymentMethodRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.UpdatePaymentMethodResponse'
+        delete:
+            tags:
+                - PaymentService
+            description: Delete payment method
+            operationId: PaymentService_DeletePaymentMethod
+            parameters:
+                - name: paymentMethodId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.DeletePaymentMethodResponse'
+    /api/v1/payments:
+        get:
+            tags:
+                - PaymentService
+            description: List payments
+            operationId: PaymentService_ListPayments
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+                - name: orderId
+                  in: query
+                  schema:
+                    type: string
+                - name: paymentProvider
+                  in: query
+                  schema:
+                    type: string
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.ListPaymentsResponse'
+        post:
+            tags:
+                - PaymentService
+            description: Process a payment
+            operationId: PaymentService_ProcessPayment
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.payment.v1.ProcessPaymentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.ProcessPaymentResponse'
+    /api/v1/payments/health:
+        get:
+            tags:
+                - PaymentService
+            description: Health check
+            operationId: PaymentService_HealthCheck
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.HealthCheckReply'
+    /api/v1/payments/{paymentId}:
+        get:
+            tags:
+                - PaymentService
+            description: Get payment details
+            operationId: PaymentService_GetPayment
+            parameters:
+                - name: paymentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.GetPaymentResponse'
+    /api/v1/payments/{paymentId}/capture:
+        post:
+            tags:
+                - PaymentService
+            description: Capture authorized payment
+            operationId: PaymentService_CapturePayment
+            parameters:
+                - name: paymentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.payment.v1.CapturePaymentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.CapturePaymentResponse'
+    /api/v1/payments/{paymentId}/refund:
+        post:
+            tags:
+                - PaymentService
+            description: Process refund
+            operationId: PaymentService_ProcessRefund
+            parameters:
+                - name: paymentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.payment.v1.ProcessRefundRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.ProcessRefundResponse'
+    /api/v1/payments/{paymentId}/status:
+        put:
+            tags:
+                - PaymentService
+            description: Update payment status
+            operationId: PaymentService_UpdatePaymentStatus
+            parameters:
+                - name: paymentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.payment.v1.UpdatePaymentStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.UpdatePaymentStatusResponse'
+    /api/v1/payments/{paymentId}/transactions:
+        get:
+            tags:
+                - PaymentService
+            description: Get transactions for payment
+            operationId: PaymentService_GetPaymentTransactions
+            parameters:
+                - name: paymentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.GetPaymentTransactionsResponse'
+    /api/v1/payments/{paymentId}/void:
+        post:
+            tags:
+                - PaymentService
+            description: Void payment
+            operationId: PaymentService_VoidPayment
+            parameters:
+                - name: paymentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.payment.v1.VoidPaymentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.VoidPaymentResponse'
+    /api/v1/public/settings/payment:
+        get:
+            tags:
+                - PaymentService
+            description: Payment Settings - Public endpoint (no auth required)
+            operationId: PaymentService_GetPublicPaymentSettings
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.GetPublicPaymentSettingsResponse'
+    /api/v1/refunds/{refundId}:
+        get:
+            tags:
+                - PaymentService
+            description: Get refund details
+            operationId: PaymentService_GetRefund
+            parameters:
+                - name: refundId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.GetRefundResponse'
+    /api/v1/settings/payment:
+        get:
+            tags:
+                - PaymentService
+            description: Payment Settings - Admin endpoint (auth required)
+            operationId: PaymentService_GetPaymentSettings
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.GetPaymentSettingsResponse'
+        put:
+            tags:
+                - PaymentService
+            description: Payment Settings - Update (admin only)
+            operationId: PaymentService_UpdatePaymentSettings
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.payment.v1.UpdatePaymentSettingsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.UpdatePaymentSettingsResponse'
+    /api/v1/webhooks/{provider}:
+        post:
+            tags:
+                - PaymentService
+            description: Webhook endpoint for payment gateways
+            operationId: PaymentService_ProcessWebhook
+            parameters:
+                - name: provider
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.payment.v1.ProcessWebhookRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.payment.v1.ProcessWebhookResponse'
+components:
+    schemas:
+        api.payment.v1.AddPaymentMethodRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                type:
+                    type: integer
+                    format: enum
+                provider:
+                    type: string
+                token:
+                    type: string
+                isDefault:
+                    type: boolean
+                nickname:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.payment.v1.AddPaymentMethodResponse:
+            type: object
+            properties:
+                paymentMethod:
+                    $ref: '#/components/schemas/api.payment.v1.PaymentMethod'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.payment.v1.CapturePaymentRequest:
+            type: object
+            properties:
+                paymentId:
+                    type: string
+                amount:
+                    type: number
+                    format: double
+                description:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.payment.v1.CapturePaymentResponse:
+            type: object
+            properties:
+                payment:
+                    $ref: '#/components/schemas/api.payment.v1.Payment'
+                transaction:
+                    $ref: '#/components/schemas/api.payment.v1.Transaction'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.payment.v1.DeletePaymentMethodResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.payment.v1.GetCustomerPaymentMethodsResponse:
+            type: object
+            properties:
+                paymentMethods:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.payment.v1.PaymentMethod'
+        api.payment.v1.GetCustomerTransactionsResponse:
+            type: object
+            properties:
+                transactions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.payment.v1.Transaction'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.payment.v1.GetPaymentResponse:
+            type: object
+            properties:
+                payment:
+                    $ref: '#/components/schemas/api.payment.v1.Payment'
+                transactions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.payment.v1.Transaction'
+                refunds:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.payment.v1.Refund'
+        api.payment.v1.GetPaymentSettingsResponse:
+            type: object
+            properties:
+                stripeEnabled:
+                    type: boolean
+                stripePublicKey:
+                    type: string
+                paypalEnabled:
+                    type: boolean
+                codEnabled:
+                    type: boolean
+                bankTransferEnabled:
+                    type: boolean
+        api.payment.v1.GetPaymentTransactionsResponse:
+            type: object
+            properties:
+                transactions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.payment.v1.Transaction'
+        api.payment.v1.GetPublicPaymentSettingsResponse:
+            type: object
+            properties:
+                stripeEnabled:
+                    type: boolean
+                paypalEnabled:
+                    type: boolean
+                codEnabled:
+                    type: boolean
+                bankTransferEnabled:
+                    type: boolean
+        api.payment.v1.GetRefundResponse:
+            type: object
+            properties:
+                refund:
+                    $ref: '#/components/schemas/api.payment.v1.Refund'
+        api.payment.v1.HealthCheckReply:
+            type: object
+            properties:
+                status:
+                    type: string
+                service:
+                    type: string
+                version:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+        api.payment.v1.ListPaymentsResponse:
+            type: object
+            properties:
+                payments:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.payment.v1.Payment'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.payment.v1.Payment:
+            type: object
+            properties:
+                id:
+                    type: string
+                paymentId:
+                    type: string
+                orderId:
+                    type: string
+                customerId:
+                    type: string
+                amount:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                status:
+                    type: integer
+                    format: enum
+                paymentMethod:
+                    type: string
+                paymentProvider:
+                    type: string
+                gatewayPaymentId:
+                    type: string
+                gatewayCustomerId:
+                    type: string
+                description:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                authorizedAt:
+                    type: string
+                    format: date-time
+                capturedAt:
+                    type: string
+                    format: date-time
+                failedAt:
+                    type: string
+                    format: date-time
+                cancelledAt:
+                    type: string
+                    format: date-time
+                failureCode:
+                    type: string
+                failureMessage:
+                    type: string
+                fraudScore:
+                    type: number
+                    format: double
+                fraudStatus:
+                    type: integer
+                    format: enum
+                retryCount:
+                    type: integer
+                    format: int32
+                maxRetries:
+                    type: integer
+                    format: int32
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                gatewayResponse:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Payment message
+        api.payment.v1.PaymentMethod:
+            type: object
+            properties:
+                id:
+                    type: string
+                customerId:
+                    type: string
+                type:
+                    type: integer
+                    format: enum
+                provider:
+                    type: string
+                token:
+                    type: string
+                gatewayCustomerId:
+                    type: string
+                gatewayPaymentMethodId:
+                    type: string
+                cardLast4:
+                    type: string
+                cardBrand:
+                    type: string
+                cardExpMonth:
+                    type: integer
+                    format: int32
+                cardExpYear:
+                    type: integer
+                    format: int32
+                cardCountry:
+                    type: string
+                bankName:
+                    type: string
+                bankAccountLast4:
+                    type: string
+                bankAccountType:
+                    type: string
+                walletEmail:
+                    type: string
+                walletPhone:
+                    type: string
+                isDefault:
+                    type: boolean
+                isVerified:
+                    type: boolean
+                isActive:
+                    type: boolean
+                nickname:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                verifiedAt:
+                    type: string
+                    format: date-time
+                lastUsedAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Payment method message
+        api.payment.v1.ProcessPaymentRequest:
+            type: object
+            properties:
+                orderId:
+                    type: string
+                customerId:
+                    type: string
+                amount:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                paymentMethod:
+                    type: string
+                paymentProvider:
+                    type: string
+                paymentMethodId:
+                    type: string
+                description:
+                    type: string
+                autoCapture:
+                    type: boolean
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Request/Response messages
+        api.payment.v1.ProcessPaymentResponse:
+            type: object
+            properties:
+                payment:
+                    $ref: '#/components/schemas/api.payment.v1.Payment'
+                success:
+                    type: boolean
+                message:
+                    type: string
+                clientSecret:
+                    type: string
+                redirectUrl:
+                    type: string
+        api.payment.v1.ProcessRefundRequest:
+            type: object
+            properties:
+                paymentId:
+                    type: string
+                amount:
+                    type: number
+                    format: double
+                reason:
+                    type: string
+                description:
+                    type: string
+                refundType:
+                    type: integer
+                    format: enum
+                initiatedBy:
+                    type: string
+                initiatedByType:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.payment.v1.ProcessRefundResponse:
+            type: object
+            properties:
+                refund:
+                    $ref: '#/components/schemas/api.payment.v1.Refund'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.payment.v1.ProcessWebhookRequest:
+            type: object
+            properties:
+                provider:
+                    type: string
+                webhookId:
+                    type: string
+                signature:
+                    type: string
+                payload:
+                    type: string
+                    format: bytes
+                headers:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.payment.v1.ProcessWebhookResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                processed:
+                    type: boolean
+        api.payment.v1.Refund:
+            type: object
+            properties:
+                id:
+                    type: string
+                refundId:
+                    type: string
+                paymentId:
+                    type: string
+                transactionId:
+                    type: string
+                amount:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                status:
+                    type: integer
+                    format: enum
+                reason:
+                    type: string
+                description:
+                    type: string
+                refundType:
+                    type: integer
+                    format: enum
+                gatewayRefundId:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                processedAt:
+                    type: string
+                    format: date-time
+                failedAt:
+                    type: string
+                    format: date-time
+                failureCode:
+                    type: string
+                failureMessage:
+                    type: string
+                initiatedBy:
+                    type: string
+                initiatedByType:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                gatewayResponse:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Refund message
+        api.payment.v1.Transaction:
+            type: object
+            properties:
+                id:
+                    type: string
+                transactionId:
+                    type: string
+                paymentId:
+                    type: string
+                type:
+                    type: integer
+                    format: enum
+                amount:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                status:
+                    type: integer
+                    format: enum
+                gatewayTransactionId:
+                    type: string
+                description:
+                    type: string
+                reference:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                processedAt:
+                    type: string
+                    format: date-time
+                failedAt:
+                    type: string
+                    format: date-time
+                failureCode:
+                    type: string
+                failureMessage:
+                    type: string
+                parentTransactionId:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                gatewayResponse:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Transaction message
+        api.payment.v1.UpdatePaymentMethodRequest:
+            type: object
+            properties:
+                paymentMethodId:
+                    type: string
+                isDefault:
+                    type: boolean
+                isActive:
+                    type: boolean
+                nickname:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.payment.v1.UpdatePaymentMethodResponse:
+            type: object
+            properties:
+                paymentMethod:
+                    $ref: '#/components/schemas/api.payment.v1.PaymentMethod'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.payment.v1.UpdatePaymentSettingsRequest:
+            type: object
+            properties:
+                stripeEnabled:
+                    type: boolean
+                stripePublicKey:
+                    type: string
+                paypalEnabled:
+                    type: boolean
+                codEnabled:
+                    type: boolean
+                bankTransferEnabled:
+                    type: boolean
+        api.payment.v1.UpdatePaymentSettingsResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.payment.v1.UpdatePaymentStatusRequest:
+            type: object
+            properties:
+                paymentId:
+                    type: string
+                status:
+                    type: integer
+                    format: enum
+                reason:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.payment.v1.UpdatePaymentStatusResponse:
+            type: object
+            properties:
+                payment:
+                    $ref: '#/components/schemas/api.payment.v1.Payment'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.payment.v1.VoidPaymentRequest:
+            type: object
+            properties:
+                paymentId:
+                    type: string
+                reason:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.payment.v1.VoidPaymentResponse:
+            type: object
+            properties:
+                payment:
+                    $ref: '#/components/schemas/api.payment.v1.Payment'
+                transaction:
+                    $ref: '#/components/schemas/api.payment.v1.Transaction'
+                success:
+                    type: boolean
+                message:
+                    type: string
+tags:
+    - name: PaymentService

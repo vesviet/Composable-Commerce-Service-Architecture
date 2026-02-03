@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.company.com/schemas/events/stock.updated/v1.0.0",
+  "title": "Stock Updated Event",
+  "description": "Event published when inventory stock level changes",
+  "type": "object",
+  "required": ["eventType", "sku", "warehouseId", "quantity", "timestamp"],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "const": "warehouse.stock.updated",
+      "description": "Event type identifier"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Stock Keeping Unit identifier"
+    },
+    "warehouseId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Warehouse identifier"
+    },
+    "quantity": {
+      "type": "integer",
+      "description": "New stock quantity (can be negative for adjustments)"
+    },
+    "previousQuantity": {
+      "type": "integer",
+      "description": "Previous stock quantity before update"
+    },
+    "changeType": {
+      "type": "string",
+      "enum": ["INCREMENT", "DECREMENT", "SET", "RESERVED", "RELEASED", "TRANSFERRED"],
+      "description": "Type of stock change"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for stock change (e.g., 'ORDER_FULFILLMENT', 'ADJUSTMENT', 'RETURN')"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when stock was updated"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
+

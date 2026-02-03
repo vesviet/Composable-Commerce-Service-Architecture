@@ -1,0 +1,192 @@
+sequenceDiagram
+    title Fulfillment & Shipping Workflow
+    
+    participant O as Order Service
+    participant F as Fulfillment Service
+    participant W as Warehouse Service
+    participant S as Shipping Service
+    participant C as Catalog Service
+    participant N as Notification Service
+    participant L as Location Service
+    participant A as Analytics Service
+    
+    Note over O,A: Phase 1: Fulfillment Initiation
+    O->>F: CreateFulfillment(order_id, items)
+    F->>W: GetWarehouseAssignment(items, delivery_address)
+    W->>W: Calculate optimal warehouse
+    W-->>F: Warehouse assignment
+    F->>F: Create fulfillment record
+    F-->>O: Fulfillment created (fulfillment_id)
+    
+    Note over O,A: Phase 2: Picking Process
+    F->>W: GeneratePickingList(fulfillment_id)
+    W->>W: Optimize picking route
+    W->>C: GetProductDetails(product_ids)
+    C-->>W: Product specifications
+    W-->>F: Picking list with locations
+    
+    F->>F: Assign to picker
+    F->>F: Update status to "picking"
+    
+    loop For each item in picking list
+        F->>W: PickItem(item_id, location, quantity)
+        W->>W: Validate item and location
+        W->>W: Update inventory
+        W-->>F: Item picked confirmation
+        F->>F: Update picking progress
+    end
+    
+    F->>F: Validate all items picked
+    F->>F: Update status to "picked"
+    
+    Note over O,A: Phase 3: Packing Process
+    F->>F: Assign to packer
+    F->>F: Update status to "packing"
+    F->>W: GetPackagingRequirements(items)
+    W-->>F: Packaging specifications
+    
+    F->>F: Calculate package dimensions
+    F->>F: Generate packing slip
+    F->>F: Pack items with protection
+    F->>F: Weigh package
+    F->>F: Update status to "packed"
+    
+    Note over O,A: Phase 4: Quality Control (if required)
+    alt High-value order OR Random sampling
+        F->>F: Trigger quality control
+        F->>F: Assign to QC inspector
+        F->>F: Update status to "quality_check"
+        
+        F->>F: Inspect package contents
+        F->>F: Verify order accuracy
+        F->>F: Check product condition
+        F->>F: Validate packaging quality
+        
+        alt QC Pass
+            F->>F: Update status to "qc_passed"
+        else QC Fail
+            F->>F: Update status to "qc_failed"
+            F->>F: Return to packing
+            Note right of F: Repack and re-inspect
+        end
+    end
+    
+    Note over O,A: Phase 5: Shipping Preparation
+    F->>S: CreateShipment(fulfillment_id, package_details)
+    S->>L: ValidateAddress(delivery_address)
+    L-->>S: Address validated
+    
+    S->>S: Select optimal carrier
+    S->>S: Calculate shipping rates
+    S->>S: Create shipment with carrier
+    S-->>F: Shipment created (tracking_number)
+    
+    F->>S: GenerateShippingLabel(shipment_id)
+    S->>S: Generate label with carrier
+    S-->>F: Shipping label PDF
+    
+    F->>F: Attach label to package
+    F->>F: Update status to "ready_to_ship"
+    
+    Note over O,A: Phase 6: Package Handover
+    F->>F: Schedule carrier pickup
+    F->>F: Update status to "awaiting_pickup"
+    
+    F->>S: NotifyCarrierPickup(shipment_id)
+    S->>S: Notify carrier for pickup
+    S-->>F: Pickup scheduled
+    
+    F->>F: Package handed to carrier
+    F->>F: Update status to "shipped"
+    F->>O: UpdateOrderStatus(order_id, "shipped")
+    O->>O: Update order status
+    
+    Note over O,A: Phase 7: Tracking Activation
+    S->>S: Activate tracking with carrier
+    S->>S: Set up tracking webhooks
+    S-->>F: Tracking activated
+    
+    F-->>N: FulfillmentShipped event
+    N->>N: Send shipping notification
+    N-->>O: Customer notified
+    
+    Note over O,A: Phase 8: Delivery Tracking
+    loop Tracking updates
+        S->>S: Receive carrier tracking update
+        S->>S: Process tracking event
+        S-->>N: TrackingUpdated event
+        N->>N: Send tracking update
+        
+        alt Delivery milestone
+            N-->>O: Delivery notification
+        end
+    end
+    
+    Note over O,A: Phase 9: Delivery Confirmation
+    S->>S: Receive delivery confirmation
+    S->>O: UpdateOrderStatus(order_id, "delivered")
+    O->>O: Update order to delivered
+    O-->>N: OrderDelivered event
+    N->>N: Send delivery confirmation
+    
+    par Analytics Update
+        O-->>A: OrderDelivered event
+        A->>A: Update delivery metrics
+        A->>A: Calculate fulfillment KPIs
+    and Inventory Finalization
+        O-->>W: FulfillmentCompleted event
+        W->>W: Finalize inventory changes
+        W->>W: Update stock analytics
+    end
+    
+    Note over O,A: Error Handling Scenarios
+    
+    rect rgb(255, 240, 240)
+        Note over F,W: Inventory Shortage During Picking
+        W-->>F: Item not available
+        F->>F: Check for alternatives
+        alt Alternative available
+            F->>W: PickAlternativeItem(alternative_id)
+            W-->>F: Alternative picked
+        else No alternative
+            F->>O: PartialFulfillment(missing_items)
+            O->>O: Update order status
+            O-->>N: PartialShipment event
+        end
+    end
+    
+    rect rgb(240, 255, 240)
+        Note over F,S: Shipping Label Generation Failure
+        S-->>F: Label generation failed
+        F->>S: RetryLabelGeneration(shipment_id)
+        alt Retry success
+            S-->>F: Label generated
+        else Retry failed
+            F->>F: Flag for manual processing
+            F-->>N: ManualProcessingRequired event
+        end
+    end
+    
+    rect rgb(240, 240, 255)
+        Note over S,N: Carrier Pickup Delay
+        S->>S: Pickup time exceeded
+        S-->>F: Pickup delayed
+        F->>F: Update estimated ship date
+        F-->>N: ShipmentDelayed event
+        N->>N: Notify customer of delay
+    end
+    
+    rect rgb(255, 255, 240)
+        Note over F,W: Quality Control Failure
+        F->>F: QC inspection failed
+        F->>W: ReturnToInventory(defective_items)
+        W->>W: Mark items as defective
+        F->>W: RequestReplacement(items)
+        alt Replacement available
+            W-->>F: Replacement items allocated
+            F->>F: Restart packing process
+        else No replacement
+            F->>O: CancelPartialOrder(items)
+            O-->>N: PartialCancellation event
+        end
+    end

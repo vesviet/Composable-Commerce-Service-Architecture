@@ -1,0 +1,445 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: LocationService API
+    description: Location Service - Manages hierarchical geographic location data
+    version: 0.0.1
+paths:
+    /api/v1/location:
+        get:
+            tags:
+                - LocationService
+            description: List locations with filters
+            operationId: LocationService_ListLocations
+            parameters:
+                - name: parentId
+                  in: query
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: countryCode
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: sortBy
+                  in: query
+                  schema:
+                    type: string
+                - name: sortOrder
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.ListLocationsReply'
+    /api/v1/location/health:
+        get:
+            tags:
+                - LocationService
+            description: Health check
+            operationId: LocationService_HealthCheck
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.HealthCheckReply'
+    /api/v1/location/info:
+        get:
+            tags:
+                - LocationService
+            description: Service information
+            operationId: LocationService_GetServiceInfo
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.GetServiceInfoReply'
+    /api/v1/location/search:
+        get:
+            tags:
+                - LocationService
+            description: Search locations by name or code
+            operationId: LocationService_SearchLocations
+            parameters:
+                - name: query
+                  in: query
+                  schema:
+                    type: string
+                - name: countryCode
+                  in: query
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.SearchLocationsReply'
+    /api/v1/location/tree:
+        get:
+            tags:
+                - LocationService
+            description: Get full location tree from root
+            operationId: LocationService_GetLocationTree
+            parameters:
+                - name: rootId
+                  in: query
+                  schema:
+                    type: string
+                - name: countryCode
+                  in: query
+                  schema:
+                    type: string
+                - name: maxDepth
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: includeInactive
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.GetLocationTreeReply'
+    /api/v1/location/validate:
+        post:
+            tags:
+                - LocationService
+            description: Validate location hierarchy
+            operationId: LocationService_ValidateLocation
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.location.v1.ValidateLocationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.ValidateLocationReply'
+    /api/v1/location/{id}:
+        get:
+            tags:
+                - LocationService
+            description: Get single location by ID or code
+            operationId: LocationService_GetLocation
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: code
+                  in: query
+                  schema:
+                    type: string
+                - name: parentId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.GetLocationReply'
+    /api/v1/location/{id}/ancestors:
+        get:
+            tags:
+                - LocationService
+            description: Get ancestor locations (parent chain)
+            operationId: LocationService_GetAncestors
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.GetAncestorsReply'
+    /api/v1/location/{id}/path:
+        get:
+            tags:
+                - LocationService
+            description: Get path from root to location
+            operationId: LocationService_GetLocationPath
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.GetLocationPathReply'
+    /api/v1/location/{parentId}/children:
+        get:
+            tags:
+                - LocationService
+            description: Get child locations
+            operationId: LocationService_GetChildren
+            parameters:
+                - name: parentId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: includeInactive
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.location.v1.GetChildrenReply'
+components:
+    schemas:
+        api.location.v1.GetAncestorsReply:
+            type: object
+            properties:
+                ancestors:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.location.v1.Location'
+        api.location.v1.GetChildrenReply:
+            type: object
+            properties:
+                children:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.location.v1.Location'
+                total:
+                    type: string
+        api.location.v1.GetLocationPathReply:
+            type: object
+            properties:
+                path:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.location.v1.Location'
+        api.location.v1.GetLocationReply:
+            type: object
+            properties:
+                location:
+                    $ref: '#/components/schemas/api.location.v1.Location'
+        api.location.v1.GetLocationTreeReply:
+            type: object
+            properties:
+                tree:
+                    $ref: '#/components/schemas/api.location.v1.Location'
+        api.location.v1.GetServiceInfoReply:
+            type: object
+            properties:
+                name:
+                    type: string
+                version:
+                    type: string
+                description:
+                    type: string
+                capabilities:
+                    type: array
+                    items:
+                        type: string
+                metrics:
+                    $ref: '#/components/schemas/api.location.v1.ServiceMetrics'
+        api.location.v1.HealthCheckReply:
+            type: object
+            properties:
+                status:
+                    type: string
+                service:
+                    type: string
+                version:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+                dependencies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.location.v1.ServiceStatus'
+        api.location.v1.ListLocationsReply:
+            type: object
+            properties:
+                locations:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.location.v1.Location'
+                total:
+                    type: string
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.location.v1.Location:
+            type: object
+            properties:
+                id:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                nameEn:
+                    type: string
+                nameVi:
+                    type: string
+                type:
+                    type: integer
+                    format: enum
+                parentId:
+                    type: string
+                countryCode:
+                    type: string
+                level:
+                    type: integer
+                    format: int32
+                postalCodes:
+                    type: array
+                    items:
+                        type: string
+                latitude:
+                    type: number
+                    format: double
+                longitude:
+                    type: number
+                    format: double
+                isActive:
+                    type: boolean
+                sortOrder:
+                    type: integer
+                    format: int32
+                metadata:
+                    type: object
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                children:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.location.v1.Location'
+                    description: Children locations (for tree structure)
+            description: Location message
+        api.location.v1.SearchLocationsReply:
+            type: object
+            properties:
+                locations:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.location.v1.Location'
+                total:
+                    type: string
+        api.location.v1.ServiceMetrics:
+            type: object
+            properties:
+                totalLocations:
+                    type: string
+                totalCountries:
+                    type: string
+                locationsByCountry:
+                    type: object
+                    additionalProperties:
+                        type: string
+                lastUpdated:
+                    type: string
+                    format: date-time
+        api.location.v1.ServiceStatus:
+            type: object
+            properties:
+                name:
+                    type: string
+                status:
+                    type: string
+                message:
+                    type: string
+        api.location.v1.ValidateLocationReply:
+            type: object
+            properties:
+                valid:
+                    type: boolean
+                errors:
+                    type: array
+                    items:
+                        type: string
+                warnings:
+                    type: array
+                    items:
+                        type: string
+        api.location.v1.ValidateLocationRequest:
+            type: object
+            properties:
+                location:
+                    $ref: '#/components/schemas/api.location.v1.Location'
+            description: Validate location messages
+tags:
+    - name: LocationService

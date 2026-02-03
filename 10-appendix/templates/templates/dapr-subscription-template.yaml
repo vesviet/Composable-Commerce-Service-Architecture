@@ -1,0 +1,31 @@
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: {service-name}-{event-type}-subscription
+  namespace: {namespace}
+spec:
+  pubsubname: pubsub-redis
+  topic: {event-type}
+  routes:
+    default: /api/v1/events/{event-type}
+  scopes:
+    - {service-name}
+  metadata:
+    # Redis Streams specific settings
+    maxRetryCount: "3"
+    retryInterval: "5s"
+    # Dead letter queue topic (optional)
+    deadLetterTopic: "dlq.{event-type}"
+    # Message ordering (if required)
+    # ordered: "true"
+    # Consumer group for Redis Streams
+    consumerGroup: "{service-name}-{event-type}-consumers"
+    # Max messages per batch
+    maxMessagesPerBatch: "10"
+    # Processing timeout
+    processingTimeout: "60s"
+  # Filter (optional - for event filtering)
+  # filter:
+  #   type: "event"
+  #   expression: "data.status == 'ACTIVE'"
+

@@ -1,0 +1,1451 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: PricingService API
+    version: 0.0.1
+paths:
+    /api/v1/pricing/bulk:
+        post:
+            tags:
+                - PricingService
+            description: Bulk Price API (for catalog sync)
+            operationId: PricingService_GetPricesBulk
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.GetPricesBulkRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.GetPricesBulkResponse'
+    /api/v1/pricing/bulk-calculate:
+        post:
+            tags:
+                - PricingService
+            operationId: PricingService_BulkCalculatePrice
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.BulkCalculatePriceRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.BulkCalculatePriceResponse'
+    /api/v1/pricing/calculate:
+        post:
+            tags:
+                - PricingService
+            description: Price Calculation
+            operationId: PricingService_CalculatePrice
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.CalculatePriceRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.CalculatePriceResponse'
+    /api/v1/pricing/compare:
+        post:
+            tags:
+                - PricingService
+            description: Warehouse & SKU Pricing
+            operationId: PricingService_ComparePrices
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.ComparePricesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.ComparePricesResponse'
+    /api/v1/pricing/discounts:
+        get:
+            tags:
+                - PricingService
+            description: Discount Management
+            operationId: PricingService_ListDiscounts
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: discountType
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.ListDiscountsResponse'
+        post:
+            tags:
+                - PricingService
+            operationId: PricingService_CreateDiscount
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.CreateDiscountRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.CreateDiscountResponse'
+    /api/v1/pricing/discounts/{id}:
+        get:
+            tags:
+                - PricingService
+            operationId: PricingService_GetDiscount
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.GetDiscountResponse'
+        put:
+            tags:
+                - PricingService
+            operationId: PricingService_UpdateDiscount
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.UpdateDiscountRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.UpdateDiscountResponse'
+        delete:
+            tags:
+                - PricingService
+            operationId: PricingService_DeleteDiscount
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.DeleteDiscountResponse'
+    /api/v1/pricing/prices:
+        get:
+            tags:
+                - PricingService
+            description: Price Management
+            operationId: PricingService_ListPrices
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: productId
+                  in: query
+                  schema:
+                    type: string
+                - name: sku
+                  in: query
+                  schema:
+                    type: string
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: currency
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.ListPricesResponse'
+    /api/v1/pricing/prices/{id}:
+        delete:
+            tags:
+                - PricingService
+            operationId: PricingService_DeletePrice
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.DeletePriceResponse'
+    /api/v1/pricing/products/{productId}/price:
+        get:
+            tags:
+                - PricingService
+            description: Price Management
+            operationId: PricingService_GetPrice
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: sku
+                  in: query
+                  schema:
+                    type: string
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: currency
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.GetPriceResponse'
+        put:
+            tags:
+                - PricingService
+            operationId: PricingService_UpdatePrice
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.UpdatePriceRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.UpdatePriceResponse'
+        post:
+            tags:
+                - PricingService
+            operationId: PricingService_SetPrice
+            parameters:
+                - name: productId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.SetPriceRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.SetPriceResponse'
+    /api/v1/pricing/rules:
+        get:
+            tags:
+                - PricingService
+            description: Price Rule Management
+            operationId: PricingService_ListPriceRules
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: ruleType
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.ListPriceRulesResponse'
+        post:
+            tags:
+                - PricingService
+            operationId: PricingService_CreatePriceRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.CreatePriceRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.CreatePriceRuleResponse'
+    /api/v1/pricing/rules/{id}:
+        get:
+            tags:
+                - PricingService
+            operationId: PricingService_GetPriceRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.GetPriceRuleResponse'
+        put:
+            tags:
+                - PricingService
+            operationId: PricingService_UpdatePriceRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.UpdatePriceRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.UpdatePriceRuleResponse'
+        delete:
+            tags:
+                - PricingService
+            operationId: PricingService_DeletePriceRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.DeletePriceRuleResponse'
+    /api/v1/pricing/skus/{sku}/prices:
+        get:
+            tags:
+                - PricingService
+            operationId: PricingService_ListPricesBySKU
+            parameters:
+                - name: sku
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: currency
+                  in: query
+                  schema:
+                    type: string
+                - name: warehouseId
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.ListPricesBySKUResponse'
+    /api/v1/pricing/tax/calculate:
+        post:
+            tags:
+                - PricingService
+            description: Tax Calculation
+            operationId: PricingService_CalculateTax
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.CalculateTaxRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.CalculateTaxResponse'
+    /api/v1/pricing/tax/rules:
+        get:
+            tags:
+                - PricingService
+            description: Tax Rule Management
+            operationId: PricingService_ListTaxRules
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: countryCode
+                  in: query
+                  schema:
+                    type: string
+                - name: stateProvince
+                  in: query
+                  schema:
+                    type: string
+                - name: taxType
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.ListTaxRulesResponse'
+        post:
+            tags:
+                - PricingService
+            operationId: PricingService_CreateTaxRule
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.CreateTaxRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.CreateTaxRuleResponse'
+    /api/v1/pricing/tax/rules/{id}:
+        get:
+            tags:
+                - PricingService
+            operationId: PricingService_GetTaxRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.GetTaxRuleResponse'
+        put:
+            tags:
+                - PricingService
+            operationId: PricingService_UpdateTaxRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.pricing.v1.UpdateTaxRuleRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.UpdateTaxRuleResponse'
+        delete:
+            tags:
+                - PricingService
+            operationId: PricingService_DeleteTaxRule
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.DeleteTaxRuleResponse'
+    /api/v1/pricing/warehouses/{warehouseId}/prices:
+        get:
+            tags:
+                - PricingService
+            operationId: PricingService_ListPricesByWarehouse
+            parameters:
+                - name: warehouseId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: currency
+                  in: query
+                  schema:
+                    type: string
+                - name: productId
+                  in: query
+                  schema:
+                    type: string
+                - name: isActive
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.ListPricesByWarehouseResponse'
+    /health:
+        get:
+            tags:
+                - PricingService
+            description: Health Check
+            operationId: PricingService_Health
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.pricing.v1.HealthResponse'
+components:
+    schemas:
+        api.common.v1.Pagination:
+            type: object
+            properties:
+                page:
+                    type: integer
+                    format: int32
+                limit:
+                    type: integer
+                    format: int32
+                total:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+                hasNext:
+                    type: boolean
+                hasPrev:
+                    type: boolean
+            description: Pagination for list responses
+        api.pricing.v1.AppliedDiscount:
+            type: object
+            properties:
+                discountId:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                discountType:
+                    type: string
+                amount:
+                    type: number
+                    format: double
+        api.pricing.v1.AppliedTaxRule:
+            type: object
+            properties:
+                taxRuleId:
+                    type: string
+                name:
+                    type: string
+                taxType:
+                    type: string
+                rate:
+                    type: number
+                    format: double
+                amount:
+                    type: number
+                    format: double
+        api.pricing.v1.BulkCalculatePriceRequest:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.CalculatePriceRequest'
+        api.pricing.v1.BulkCalculatePriceResponse:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.CalculatePriceResponse'
+                totalBasePrice:
+                    type: number
+                    format: double
+                totalDiscountAmount:
+                    type: number
+                    format: double
+                totalTaxAmount:
+                    type: number
+                    format: double
+                totalFinalPrice:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+        api.pricing.v1.CalculatePriceRequest:
+            type: object
+            properties:
+                productId:
+                    type: string
+                sku:
+                    type: string
+                warehouseId:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                currency:
+                    type: string
+                customerId:
+                    type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                countryCode:
+                    type: string
+                stateProvince:
+                    type: string
+                discountCodes:
+                    type: array
+                    items:
+                        type: string
+            description: Price Calculation Messages
+        api.pricing.v1.CalculatePriceResponse:
+            type: object
+            properties:
+                productId:
+                    type: string
+                sku:
+                    type: string
+                warehouseId:
+                    type: string
+                basePrice:
+                    type: number
+                    format: double
+                priceSource:
+                    type: string
+                discountAmount:
+                    type: number
+                    format: double
+                taxAmount:
+                    type: number
+                    format: double
+                finalPrice:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                appliedDiscounts:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.AppliedDiscount'
+                appliedTaxRules:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.AppliedTaxRule'
+        api.pricing.v1.CalculateTaxRequest:
+            type: object
+            properties:
+                amount:
+                    type: number
+                    format: double
+                countryCode:
+                    type: string
+                stateProvince:
+                    type: string
+                productCategories:
+                    type: array
+                    items:
+                        type: string
+            description: Tax Messages
+        api.pricing.v1.CalculateTaxResponse:
+            type: object
+            properties:
+                taxAmount:
+                    type: number
+                    format: double
+                totalAmount:
+                    type: number
+                    format: double
+                appliedTaxRules:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.AppliedTaxRule'
+        api.pricing.v1.ComparePricesRequest:
+            type: object
+            properties:
+                sku:
+                    type: string
+                currency:
+                    type: string
+                warehouseIds:
+                    type: array
+                    items:
+                        type: string
+            description: Warehouse & SKU Pricing Messages
+        api.pricing.v1.ComparePricesResponse:
+            type: object
+            properties:
+                sku:
+                    type: string
+                currency:
+                    type: string
+                prices:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.WarehousePrice'
+                lowestPrice:
+                    $ref: '#/components/schemas/api.pricing.v1.WarehousePrice'
+                highestPrice:
+                    $ref: '#/components/schemas/api.pricing.v1.WarehousePrice'
+        api.pricing.v1.CreateDiscountRequest:
+            type: object
+            properties:
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                discountType:
+                    type: string
+                discountValue:
+                    type: number
+                    format: double
+                minimumAmount:
+                    type: number
+                    format: double
+                maximumDiscount:
+                    type: number
+                    format: double
+                usageLimit:
+                    type: integer
+                    format: int32
+                applicableProducts:
+                    type: array
+                    items:
+                        type: string
+                applicableCategories:
+                    type: array
+                    items:
+                        type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                startsAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+        api.pricing.v1.CreateDiscountResponse:
+            type: object
+            properties:
+                discount:
+                    $ref: '#/components/schemas/api.pricing.v1.Discount'
+        api.pricing.v1.CreatePriceRuleRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                description:
+                    type: string
+                ruleType:
+                    type: string
+                conditions:
+                    type: string
+                actions:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                effectiveFrom:
+                    type: string
+                    format: date-time
+                effectiveTo:
+                    type: string
+                    format: date-time
+        api.pricing.v1.CreatePriceRuleResponse:
+            type: object
+            properties:
+                rule:
+                    $ref: '#/components/schemas/api.pricing.v1.PriceRule'
+        api.pricing.v1.CreateTaxRuleRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                countryCode:
+                    type: string
+                stateProvince:
+                    type: string
+                taxType:
+                    type: string
+                taxRate:
+                    type: number
+                    format: double
+                applicableCategories:
+                    type: array
+                    items:
+                        type: string
+                effectiveFrom:
+                    type: string
+                    format: date-time
+                effectiveTo:
+                    type: string
+                    format: date-time
+        api.pricing.v1.CreateTaxRuleResponse:
+            type: object
+            properties:
+                rule:
+                    $ref: '#/components/schemas/api.pricing.v1.TaxRule'
+        api.pricing.v1.DeleteDiscountResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.pricing.v1.DeletePriceResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.pricing.v1.DeletePriceRuleResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.pricing.v1.DeleteTaxRuleResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+        api.pricing.v1.Discount:
+            type: object
+            properties:
+                id:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                discountType:
+                    type: string
+                discountValue:
+                    type: number
+                    format: double
+                minimumAmount:
+                    type: number
+                    format: double
+                maximumDiscount:
+                    type: number
+                    format: double
+                usageLimit:
+                    type: integer
+                    format: int32
+                usageCount:
+                    type: integer
+                    format: int32
+                applicableProducts:
+                    type: array
+                    items:
+                        type: string
+                applicableCategories:
+                    type: array
+                    items:
+                        type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                isActive:
+                    type: boolean
+                startsAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Discount Messages
+        api.pricing.v1.GetDiscountResponse:
+            type: object
+            properties:
+                discount:
+                    $ref: '#/components/schemas/api.pricing.v1.Discount'
+        api.pricing.v1.GetPriceResponse:
+            type: object
+            properties:
+                price:
+                    $ref: '#/components/schemas/api.pricing.v1.Price'
+        api.pricing.v1.GetPriceRuleResponse:
+            type: object
+            properties:
+                rule:
+                    $ref: '#/components/schemas/api.pricing.v1.PriceRule'
+        api.pricing.v1.GetPricesBulkRequest:
+            type: object
+            properties:
+                productIds:
+                    type: array
+                    items:
+                        type: string
+                skus:
+                    type: array
+                    items:
+                        type: string
+                currency:
+                    type: string
+                warehouseId:
+                    type: string
+            description: Bulk Price Messages
+        api.pricing.v1.GetPricesBulkResponse:
+            type: object
+            properties:
+                prices:
+                    type: object
+                    additionalProperties:
+                        $ref: '#/components/schemas/api.pricing.v1.Price'
+                total:
+                    type: integer
+                    format: int32
+        api.pricing.v1.GetTaxRuleResponse:
+            type: object
+            properties:
+                rule:
+                    $ref: '#/components/schemas/api.pricing.v1.TaxRule'
+        api.pricing.v1.HealthResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+                service:
+                    type: string
+                version:
+                    type: string
+        api.pricing.v1.ListDiscountsResponse:
+            type: object
+            properties:
+                discounts:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.Discount'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.pricing.v1.ListPriceRulesResponse:
+            type: object
+            properties:
+                rules:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.PriceRule'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.pricing.v1.ListPricesBySKUResponse:
+            type: object
+            properties:
+                prices:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.Price'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.pricing.v1.ListPricesByWarehouseResponse:
+            type: object
+            properties:
+                prices:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.Price'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.pricing.v1.ListPricesResponse:
+            type: object
+            properties:
+                prices:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.Price'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.pricing.v1.ListTaxRulesResponse:
+            type: object
+            properties:
+                rules:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.pricing.v1.TaxRule'
+                pagination:
+                    $ref: '#/components/schemas/api.common.v1.Pagination'
+        api.pricing.v1.Price:
+            type: object
+            properties:
+                id:
+                    type: string
+                productId:
+                    type: string
+                sku:
+                    type: string
+                warehouseId:
+                    type: string
+                currency:
+                    type: string
+                basePrice:
+                    type: number
+                    format: double
+                salePrice:
+                    type: number
+                    format: double
+                costPrice:
+                    type: number
+                    format: double
+                marginPercent:
+                    type: number
+                    format: double
+                effectiveFrom:
+                    type: string
+                    format: date-time
+                effectiveTo:
+                    type: string
+                    format: date-time
+                isActive:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Price Messages
+        api.pricing.v1.PriceRule:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                ruleType:
+                    type: string
+                conditions:
+                    type: string
+                actions:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                isActive:
+                    type: boolean
+                effectiveFrom:
+                    type: string
+                    format: date-time
+                effectiveTo:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Price Rule Messages
+        api.pricing.v1.SetPriceRequest:
+            type: object
+            properties:
+                productId:
+                    type: string
+                sku:
+                    type: string
+                warehouseId:
+                    type: string
+                currency:
+                    type: string
+                basePrice:
+                    type: number
+                    format: double
+                salePrice:
+                    type: number
+                    format: double
+                costPrice:
+                    type: number
+                    format: double
+                marginPercent:
+                    type: number
+                    format: double
+                effectiveFrom:
+                    type: string
+                    format: date-time
+                effectiveTo:
+                    type: string
+                    format: date-time
+        api.pricing.v1.SetPriceResponse:
+            type: object
+            properties:
+                price:
+                    $ref: '#/components/schemas/api.pricing.v1.Price'
+        api.pricing.v1.TaxRule:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                countryCode:
+                    type: string
+                stateProvince:
+                    type: string
+                taxType:
+                    type: string
+                taxRate:
+                    type: number
+                    format: double
+                applicableCategories:
+                    type: array
+                    items:
+                        type: string
+                isActive:
+                    type: boolean
+                effectiveFrom:
+                    type: string
+                    format: date-time
+                effectiveTo:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Tax Rule Messages
+        api.pricing.v1.UpdateDiscountRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                code:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                discountType:
+                    type: string
+                discountValue:
+                    type: number
+                    format: double
+                minimumAmount:
+                    type: number
+                    format: double
+                maximumDiscount:
+                    type: number
+                    format: double
+                usageLimit:
+                    type: integer
+                    format: int32
+                applicableProducts:
+                    type: array
+                    items:
+                        type: string
+                applicableCategories:
+                    type: array
+                    items:
+                        type: string
+                customerSegments:
+                    type: array
+                    items:
+                        type: string
+                isActive:
+                    type: boolean
+                startsAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+        api.pricing.v1.UpdateDiscountResponse:
+            type: object
+            properties:
+                discount:
+                    $ref: '#/components/schemas/api.pricing.v1.Discount'
+        api.pricing.v1.UpdatePriceRequest:
+            type: object
+            properties:
+                productId:
+                    type: string
+                currency:
+                    type: string
+                basePrice:
+                    type: number
+                    format: double
+                salePrice:
+                    type: number
+                    format: double
+                costPrice:
+                    type: number
+                    format: double
+                marginPercent:
+                    type: number
+                    format: double
+                effectiveFrom:
+                    type: string
+                    format: date-time
+                effectiveTo:
+                    type: string
+                    format: date-time
+                isActive:
+                    type: boolean
+        api.pricing.v1.UpdatePriceResponse:
+            type: object
+            properties:
+                price:
+                    $ref: '#/components/schemas/api.pricing.v1.Price'
+        api.pricing.v1.UpdatePriceRuleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                ruleType:
+                    type: string
+                conditions:
+                    type: string
+                actions:
+                    type: string
+                priority:
+                    type: integer
+                    format: int32
+                isActive:
+                    type: boolean
+                effectiveFrom:
+                    type: string
+                    format: date-time
+                effectiveTo:
+                    type: string
+                    format: date-time
+        api.pricing.v1.UpdatePriceRuleResponse:
+            type: object
+            properties:
+                rule:
+                    $ref: '#/components/schemas/api.pricing.v1.PriceRule'
+        api.pricing.v1.UpdateTaxRuleRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                countryCode:
+                    type: string
+                stateProvince:
+                    type: string
+                taxType:
+                    type: string
+                taxRate:
+                    type: number
+                    format: double
+                applicableCategories:
+                    type: array
+                    items:
+                        type: string
+                isActive:
+                    type: boolean
+                effectiveFrom:
+                    type: string
+                    format: date-time
+                effectiveTo:
+                    type: string
+                    format: date-time
+        api.pricing.v1.UpdateTaxRuleResponse:
+            type: object
+            properties:
+                rule:
+                    $ref: '#/components/schemas/api.pricing.v1.TaxRule'
+        api.pricing.v1.WarehousePrice:
+            type: object
+            properties:
+                warehouseId:
+                    type: string
+                warehouseName:
+                    type: string
+                basePrice:
+                    type: number
+                    format: double
+                finalPrice:
+                    type: number
+                    format: double
+                stockAvailable:
+                    type: integer
+                    format: int32
+tags:
+    - name: PricingService

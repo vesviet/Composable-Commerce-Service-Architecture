@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.company.com/schemas/events/order.status_changed/v1.0.0",
+  "title": "Order Status Changed Event",
+  "description": "Event published when order status changes",
+  "type": "object",
+  "required": ["eventType", "orderId", "oldStatus", "newStatus", "timestamp"],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "const": "orders.order.status_changed",
+      "description": "Event type identifier"
+    },
+    "orderId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Order identifier"
+    },
+    "customerId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Customer who placed the order"
+    },
+    "oldStatus": {
+      "type": "string",
+      "enum": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", ""],
+      "description": "Previous order status (empty string for new orders)"
+    },
+    "newStatus": {
+      "type": "string",
+      "enum": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"],
+      "description": "New order status"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for status change (optional)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when status changed"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "additionalProperties": true
+    }
+  }
+}
+

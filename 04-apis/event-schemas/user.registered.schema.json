@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/user.registered.v1.json",
+  "title": "User Registered Event",
+  "description": "Emitted when a new user account is created",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "user.registered",
+      "description": "Event type identifier"
+    },
+    "event_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Event schema version"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event occurred"
+    },
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "auth-service"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_id",
+        "email",
+        "name",
+        "registration_source"
+      ],
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "Unique user identifier"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User's email address"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name"
+        },
+        "registration_source": {
+          "type": "string",
+          "enum": ["web", "mobile", "admin", "api"],
+          "description": "How the user registered"
+        },
+        "customer_id": {
+          "type": "string",
+          "description": "Associated customer ID if applicable"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["customer", "admin", "moderator"],
+          "default": "customer",
+          "description": "User's initial role"
+        },
+        "ip_address": {
+          "type": "string",
+          "format": "ipv4",
+          "description": "IP address used for registration"
+        },
+        "user_agent": {
+          "type": "string",
+          "description": "User agent string from registration request"
+        },
+        "referral_code": {
+          "type": "string",
+          "description": "Referral code used if any"
+        },
+        "marketing_consent": {
+          "type": "boolean",
+          "description": "User consented to marketing communications"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440000",
+      "event_type": "user.registered",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T10:30:00Z",
+      "source": "auth-service",
+      "data": {
+        "user_id": "user_123456",
+        "email": "john.doe@example.com",
+        "name": "John Doe",
+        "registration_source": "web",
+        "customer_id": "cust_789012",
+        "role": "customer",
+        "ip_address": "192.168.1.100",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "marketing_consent": true
+      }
+    }
+  ]
+}

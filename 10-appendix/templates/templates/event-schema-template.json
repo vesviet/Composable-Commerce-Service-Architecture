@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.company.com/schemas/events/{event-name}/v{version}",
+  "title": "{Event Name} Event",
+  "description": "{Brief description of when and why this event is published}",
+  "type": "object",
+  "required": [
+    "eventType",
+    "timestamp",
+    "source",
+    "specversion"
+  ],
+  "properties": {
+    "specversion": {
+      "type": "string",
+      "const": "1.0",
+      "description": "CloudEvents specification version"
+    },
+    "type": {
+      "type": "string",
+      "const": "{service}.{domain}.{action}",
+      "description": "Event type identifier following pattern: {service}.{domain}.{action}"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "{service}.{domain}.{action}",
+      "description": "Legacy event type (for backward compatibility)"
+    },
+    "source": {
+      "type": "string",
+      "format": "uri",
+      "description": "URI identifying the service that published this event",
+      "pattern": "^https://api\\.company\\.com/services/[a-z-]+$"
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique event identifier (UUID)"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when event was created"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Legacy timestamp field (for backward compatibility)"
+    },
+    "datacontenttype": {
+      "type": "string",
+      "const": "application/json",
+      "description": "Content type of the data payload"
+    },
+    "data": {
+      "type": "object",
+      "description": "Event payload data",
+      "required": [
+        "{required-field-1}",
+        "{required-field-2}"
+      ],
+      "properties": {
+        "{field-name}": {
+          "type": "{string|number|integer|boolean|object|array}",
+          "description": "{Field description}",
+          "example": "{example-value}"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata (correlation IDs, trace IDs, etc.)",
+      "properties": {
+        "correlationId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Correlation ID for tracing related events"
+        },
+        "traceId": {
+          "type": "string",
+          "description": "Distributed trace ID (Jaeger/OpenTelemetry)"
+        },
+        "spanId": {
+          "type": "string",
+          "description": "Span ID for distributed tracing"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "User ID who triggered this event (if applicable)"
+        },
+        "requestId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Request ID from the originating API call"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "specversion": "1.0",
+      "type": "{service}.{domain}.{action}",
+      "eventType": "{service}.{domain}.{action}",
+      "source": "https://api.company.com/services/{service-name}",
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "time": "2025-11-17T10:00:00Z",
+      "timestamp": "2025-11-17T10:00:00Z",
+      "datacontenttype": "application/json",
+      "data": {
+        "{field-name}": "{example-value}"
+      },
+      "metadata": {
+        "correlationId": "550e8400-e29b-41d4-a716-446655440001",
+        "traceId": "1234567890abcdef",
+        "spanId": "abcdef1234567890"
+      }
+    }
+  ]
+}
+

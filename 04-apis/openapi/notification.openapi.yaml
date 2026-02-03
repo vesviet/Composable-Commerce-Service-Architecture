@@ -1,0 +1,2165 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /api/v1/delivery/stats:
+        get:
+            tags:
+                - DeliveryService
+            description: Get delivery statistics
+            operationId: DeliveryService_GetDeliveryStats
+            parameters:
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: channel
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: provider
+                  in: query
+                  schema:
+                    type: string
+                - name: recipientType
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.GetDeliveryStatsResponse'
+    /api/v1/delivery/webhook:
+        post:
+            tags:
+                - DeliveryService
+            description: Process delivery webhook
+            operationId: DeliveryService_ProcessWebhook
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.ProcessWebhookRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.ProcessWebhookResponse'
+    /api/v1/events/{eventType}/notify:
+        post:
+            tags:
+                - SubscriptionService
+            description: Process event notification
+            operationId: SubscriptionService_ProcessEvent
+            parameters:
+                - name: eventType
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.ProcessEventRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.ProcessEventResponse'
+    /api/v1/messages:
+        get:
+            tags:
+                - MessageService
+            description: List messages with pagination
+            operationId: MessageService_ListMessages
+            parameters:
+                - name: category
+                  in: query
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.ListMessagesResponse'
+        post:
+            tags:
+                - MessageService
+            description: Create or update a message with translations
+            operationId: MessageService_UpsertMessage
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.UpsertMessageRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.UpsertMessageResponse'
+    /api/v1/messages/batch:
+        post:
+            tags:
+                - MessageService
+            description: Get multiple localized messages
+            operationId: MessageService_GetMessages
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.GetMessagesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.GetMessagesResponse'
+    /api/v1/messages/{key}:
+        get:
+            tags:
+                - MessageService
+            description: Get a single localized message
+            operationId: MessageService_GetMessage
+            parameters:
+                - name: key
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: language
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.GetMessageResponse'
+        delete:
+            tags:
+                - MessageService
+            description: Delete a message
+            operationId: MessageService_DeleteMessage
+            parameters:
+                - name: key
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.DeleteMessageResponse'
+    /api/v1/notification/health:
+        get:
+            tags:
+                - NotificationServiceAggregator
+            description: Health check
+            operationId: NotificationServiceAggregator_HealthCheck
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.HealthCheckReply'
+    /api/v1/notification/info:
+        get:
+            tags:
+                - NotificationServiceAggregator
+            description: Service information
+            operationId: NotificationServiceAggregator_GetServiceInfo
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.GetServiceInfoReply'
+    /api/v1/notifications:
+        get:
+            tags:
+                - NotificationService
+            description: List notifications
+            operationId: NotificationService_ListNotifications
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: recipientType
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: recipientId
+                  in: query
+                  schema:
+                    type: string
+                - name: channel
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: type
+                  in: query
+                  schema:
+                    type: string
+                - name: status
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: priority
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.ListNotificationsResponse'
+        post:
+            tags:
+                - NotificationService
+            description: Send notification
+            operationId: NotificationService_SendNotification
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.SendNotificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.SendNotificationResponse'
+    /api/v1/notifications/bulk:
+        post:
+            tags:
+                - NotificationService
+            description: Send bulk notifications
+            operationId: NotificationService_SendBulkNotifications
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.SendBulkNotificationsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.SendBulkNotificationsResponse'
+    /api/v1/notifications/schedule:
+        post:
+            tags:
+                - NotificationService
+            description: Schedule notification
+            operationId: NotificationService_ScheduleNotification
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.ScheduleNotificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.ScheduleNotificationResponse'
+    /api/v1/notifications/{notificationId}:
+        get:
+            tags:
+                - NotificationService
+            description: Get notification details
+            operationId: NotificationService_GetNotification
+            parameters:
+                - name: notificationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.GetNotificationResponse'
+    /api/v1/notifications/{notificationId}/cancel:
+        post:
+            tags:
+                - NotificationService
+            description: Cancel notification
+            operationId: NotificationService_CancelNotification
+            parameters:
+                - name: notificationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.CancelNotificationRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.CancelNotificationResponse'
+    /api/v1/notifications/{notificationId}/status:
+        put:
+            tags:
+                - NotificationService
+            description: Update notification status
+            operationId: NotificationService_UpdateNotificationStatus
+            parameters:
+                - name: notificationId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.UpdateNotificationStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.UpdateNotificationStatusResponse'
+    /api/v1/subscriptions:
+        get:
+            tags:
+                - SubscriptionService
+            description: List subscriptions
+            operationId: SubscriptionService_ListSubscriptions
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: eventType
+                  in: query
+                  schema:
+                    type: string
+                - name: eventSource
+                  in: query
+                  schema:
+                    type: string
+                - name: channel
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: recipientType
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: enabledOnly
+                  in: query
+                  schema:
+                    type: boolean
+                - name: status
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.ListSubscriptionsResponse'
+        post:
+            tags:
+                - SubscriptionService
+            description: Create event subscription
+            operationId: SubscriptionService_CreateSubscription
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.CreateSubscriptionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.CreateSubscriptionResponse'
+    /api/v1/subscriptions/{subscriptionId}:
+        get:
+            tags:
+                - SubscriptionService
+            description: Get subscription
+            operationId: SubscriptionService_GetSubscription
+            parameters:
+                - name: subscriptionId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.GetSubscriptionResponse'
+        put:
+            tags:
+                - SubscriptionService
+            description: Update subscription
+            operationId: SubscriptionService_UpdateSubscription
+            parameters:
+                - name: subscriptionId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.UpdateSubscriptionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.UpdateSubscriptionResponse'
+        delete:
+            tags:
+                - SubscriptionService
+            description: Delete subscription
+            operationId: SubscriptionService_DeleteSubscription
+            parameters:
+                - name: subscriptionId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.DeleteSubscriptionResponse'
+    /api/v1/templates:
+        get:
+            tags:
+                - TemplateService
+            description: List templates
+            operationId: TemplateService_ListTemplates
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: category
+                  in: query
+                  schema:
+                    type: string
+                - name: type
+                  in: query
+                  schema:
+                    type: string
+                - name: channel
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+                - name: language
+                  in: query
+                  schema:
+                    type: string
+                - name: activeOnly
+                  in: query
+                  schema:
+                    type: boolean
+                - name: status
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.ListTemplatesResponse'
+        post:
+            tags:
+                - TemplateService
+            description: Create template
+            operationId: TemplateService_CreateTemplate
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.CreateTemplateRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.CreateTemplateResponse'
+    /api/v1/templates/{templateId}:
+        get:
+            tags:
+                - TemplateService
+            description: Get template
+            operationId: TemplateService_GetTemplate
+            parameters:
+                - name: templateId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.GetTemplateResponse'
+        put:
+            tags:
+                - TemplateService
+            description: Update template
+            operationId: TemplateService_UpdateTemplate
+            parameters:
+                - name: templateId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.UpdateTemplateRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.UpdateTemplateResponse'
+        delete:
+            tags:
+                - TemplateService
+            description: Delete template
+            operationId: TemplateService_DeleteTemplate
+            parameters:
+                - name: templateId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.DeleteTemplateResponse'
+    /api/v1/templates/{templateId}/test:
+        post:
+            tags:
+                - TemplateService
+            description: Test template
+            operationId: TemplateService_TestTemplate
+            parameters:
+                - name: templateId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.TestTemplateRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.TestTemplateResponse'
+    /api/v1/users/{userId}/preferences:
+        get:
+            tags:
+                - PreferenceService
+            description: Get user preferences
+            operationId: PreferenceService_GetUserPreferences
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: userType
+                  in: query
+                  schema:
+                    type: integer
+                    format: enum
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.GetUserPreferencesResponse'
+        put:
+            tags:
+                - PreferenceService
+            description: Update user preferences
+            operationId: PreferenceService_UpdateUserPreferences
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.UpdateUserPreferencesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.UpdateUserPreferencesResponse'
+    /api/v1/users/{userId}/subscribe:
+        post:
+            tags:
+                - PreferenceService
+            description: Subscribe to notifications
+            operationId: PreferenceService_Subscribe
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.SubscribeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.SubscribeResponse'
+    /api/v1/users/{userId}/unsubscribe:
+        post:
+            tags:
+                - PreferenceService
+            description: Unsubscribe from notifications
+            operationId: PreferenceService_Unsubscribe
+            parameters:
+                - name: userId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.notification.v1.UnsubscribeRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.notification.v1.UnsubscribeResponse'
+components:
+    schemas:
+        api.notification.v1.BulkNotificationResult:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                notificationId:
+                    type: string
+                error:
+                    type: string
+        api.notification.v1.CancelNotificationRequest:
+            type: object
+            properties:
+                notificationId:
+                    type: string
+                reason:
+                    type: string
+        api.notification.v1.CancelNotificationResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.CreateSubscriptionRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                description:
+                    type: string
+                eventType:
+                    type: string
+                eventSource:
+                    type: string
+                eventFilters:
+                    type: object
+                    additionalProperties:
+                        type: string
+                templateId:
+                    type: string
+                channel:
+                    type: integer
+                    format: enum
+                priority:
+                    type: integer
+                    format: enum
+                recipientType:
+                    type: integer
+                    format: enum
+                recipientQuery:
+                    type: object
+                    additionalProperties:
+                        type: string
+                staticRecipients:
+                    type: array
+                    items:
+                        type: string
+                batchEnabled:
+                    type: boolean
+                batchSize:
+                    type: integer
+                    format: int32
+                batchDelayMinutes:
+                    type: integer
+                    format: int32
+                createdBy:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Request/Response messages
+        api.notification.v1.CreateSubscriptionResponse:
+            type: object
+            properties:
+                subscription:
+                    $ref: '#/components/schemas/api.notification.v1.Subscription'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.CreateTemplateRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                description:
+                    type: string
+                category:
+                    type: string
+                type:
+                    type: string
+                channel:
+                    type: integer
+                    format: enum
+                subject:
+                    type: string
+                content:
+                    type: string
+                htmlContent:
+                    type: string
+                variables:
+                    type: object
+                    additionalProperties:
+                        type: string
+                requiredVariables:
+                    type: array
+                    items:
+                        type: string
+                language:
+                    type: string
+                createdBy:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Request/Response messages
+        api.notification.v1.CreateTemplateResponse:
+            type: object
+            properties:
+                template:
+                    $ref: '#/components/schemas/api.notification.v1.Template'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.DeleteMessageResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+            description: DeleteMessageResponse - Response after deleting message
+        api.notification.v1.DeleteSubscriptionResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.DeleteTemplateResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.DeliveryLog:
+            type: object
+            properties:
+                id:
+                    type: string
+                notificationId:
+                    type: string
+                attemptNumber:
+                    type: integer
+                    format: int32
+                provider:
+                    type: string
+                channel:
+                    type: integer
+                    format: enum
+                status:
+                    type: integer
+                    format: enum
+                responseCode:
+                    type: string
+                responseMessage:
+                    type: string
+                providerMessageId:
+                    type: string
+                providerResponse:
+                    type: object
+                    additionalProperties:
+                        type: string
+                sentAt:
+                    type: string
+                    format: date-time
+                deliveredAt:
+                    type: string
+                    format: date-time
+                failedAt:
+                    type: string
+                    format: date-time
+                errorType:
+                    type: string
+                errorCode:
+                    type: string
+                errorMessage:
+                    type: string
+                isPermanentFailure:
+                    type: boolean
+                openedAt:
+                    type: string
+                    format: date-time
+                clickedAt:
+                    type: string
+                    format: date-time
+                bouncedAt:
+                    type: string
+                    format: date-time
+                complainedAt:
+                    type: string
+                    format: date-time
+                unsubscribedAt:
+                    type: string
+                    format: date-time
+                processingTimeMs:
+                    type: integer
+                    format: int32
+                queueTimeMs:
+                    type: integer
+                    format: int32
+                createdAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Delivery log message (used in GetNotificationResponse)
+        api.notification.v1.GetDeliveryStatsResponse:
+            type: object
+            properties:
+                totalSent:
+                    type: integer
+                    format: int32
+                totalDelivered:
+                    type: integer
+                    format: int32
+                totalFailed:
+                    type: integer
+                    format: int32
+                totalBounced:
+                    type: integer
+                    format: int32
+                totalComplained:
+                    type: integer
+                    format: int32
+                totalUnsubscribed:
+                    type: integer
+                    format: int32
+                deliveryRate:
+                    type: number
+                    format: double
+                bounceRate:
+                    type: number
+                    format: double
+                complaintRate:
+                    type: number
+                    format: double
+                unsubscribeRate:
+                    type: number
+                    format: double
+                channelStats:
+                    type: object
+                    additionalProperties:
+                        type: integer
+                        format: int32
+                providerStats:
+                    type: object
+                    additionalProperties:
+                        type: integer
+                        format: int32
+        api.notification.v1.GetMessageResponse:
+            type: object
+            properties:
+                content:
+                    type: string
+                found:
+                    type: boolean
+                language:
+                    type: string
+                fallback:
+                    type: boolean
+            description: GetMessageResponse - Response with localized message
+        api.notification.v1.GetMessagesRequest:
+            type: object
+            properties:
+                keys:
+                    type: array
+                    items:
+                        type: string
+                language:
+                    type: string
+                variables:
+                    type: object
+                    additionalProperties:
+                        $ref: '#/components/schemas/api.notification.v1.MessageVariables'
+            description: GetMessagesRequest - Get multiple localized messages
+        api.notification.v1.GetMessagesResponse:
+            type: object
+            properties:
+                messages:
+                    type: object
+                    additionalProperties:
+                        type: string
+                missingKeys:
+                    type: array
+                    items:
+                        type: string
+            description: GetMessagesResponse - Response with multiple localized messages
+        api.notification.v1.GetNotificationResponse:
+            type: object
+            properties:
+                notification:
+                    $ref: '#/components/schemas/api.notification.v1.Notification'
+                deliveryLogs:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.notification.v1.DeliveryLog'
+        api.notification.v1.GetServiceInfoReply:
+            type: object
+            properties:
+                name:
+                    type: string
+                version:
+                    type: string
+                description:
+                    type: string
+                capabilities:
+                    type: array
+                    items:
+                        type: string
+                metrics:
+                    $ref: '#/components/schemas/api.notification.v1.ServiceMetrics'
+        api.notification.v1.GetSubscriptionResponse:
+            type: object
+            properties:
+                subscription:
+                    $ref: '#/components/schemas/api.notification.v1.Subscription'
+        api.notification.v1.GetTemplateResponse:
+            type: object
+            properties:
+                template:
+                    $ref: '#/components/schemas/api.notification.v1.Template'
+        api.notification.v1.GetUserPreferencesResponse:
+            type: object
+            properties:
+                preferences:
+                    $ref: '#/components/schemas/api.notification.v1.UserPreferences'
+        api.notification.v1.HealthCheckReply:
+            type: object
+            properties:
+                status:
+                    type: string
+                service:
+                    type: string
+                version:
+                    type: string
+                timestamp:
+                    type: string
+                    format: date-time
+                dependencies:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.notification.v1.ServiceStatus'
+        api.notification.v1.ListMessagesResponse:
+            type: object
+            properties:
+                messages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.notification.v1.Message'
+                total:
+                    type: string
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+            description: ListMessagesResponse - Response with paginated messages
+        api.notification.v1.ListNotificationsResponse:
+            type: object
+            properties:
+                notifications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.notification.v1.Notification'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+        api.notification.v1.ListSubscriptionsResponse:
+            type: object
+            properties:
+                subscriptions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.notification.v1.Subscription'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+        api.notification.v1.ListTemplatesResponse:
+            type: object
+            properties:
+                templates:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.notification.v1.Template'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+                totalPages:
+                    type: integer
+                    format: int32
+        api.notification.v1.Message:
+            type: object
+            properties:
+                id:
+                    type: string
+                key:
+                    type: string
+                category:
+                    type: string
+                description:
+                    type: string
+                translations:
+                    type: object
+                    additionalProperties:
+                        $ref: '#/components/schemas/api.notification.v1.Translation'
+                variables:
+                    type: object
+                    additionalProperties:
+                        type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Message represents an i18n message with translations
+        api.notification.v1.MessageVariables:
+            type: object
+            properties:
+                variables:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: MessageVariables - Variables for a specific message
+        api.notification.v1.Notification:
+            type: object
+            properties:
+                id:
+                    type: string
+                notificationId:
+                    type: string
+                recipientType:
+                    type: integer
+                    format: enum
+                recipientId:
+                    type: string
+                recipientEmail:
+                    type: string
+                recipientPhone:
+                    type: string
+                recipientDeviceToken:
+                    type: string
+                channel:
+                    type: integer
+                    format: enum
+                type:
+                    type: string
+                subject:
+                    type: string
+                content:
+                    type: string
+                htmlContent:
+                    type: string
+                templateId:
+                    type: string
+                templateVersion:
+                    type: integer
+                    format: int32
+                templateData:
+                    type: object
+                    additionalProperties:
+                        type: string
+                priority:
+                    type: integer
+                    format: enum
+                scheduledAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                status:
+                    type: integer
+                    format: enum
+                sentAt:
+                    type: string
+                    format: date-time
+                deliveredAt:
+                    type: string
+                    format: date-time
+                readAt:
+                    type: string
+                    format: date-time
+                failedAt:
+                    type: string
+                    format: date-time
+                attemptCount:
+                    type: integer
+                    format: int32
+                maxAttempts:
+                    type: integer
+                    format: int32
+                nextRetryAt:
+                    type: string
+                    format: date-time
+                provider:
+                    type: string
+                providerMessageId:
+                    type: string
+                providerResponse:
+                    type: object
+                    additionalProperties:
+                        type: string
+                errorCode:
+                    type: string
+                errorMessage:
+                    type: string
+                opened:
+                    type: boolean
+                clicked:
+                    type: boolean
+                bounced:
+                    type: boolean
+                complained:
+                    type: boolean
+                unsubscribed:
+                    type: boolean
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                sourceService:
+                    type: string
+                sourceEvent:
+                    type: string
+                correlationId:
+                    type: string
+            description: Notification message
+        api.notification.v1.ProcessEventRequest:
+            type: object
+            properties:
+                eventType:
+                    type: string
+                eventSource:
+                    type: string
+                eventData:
+                    type: object
+                    additionalProperties:
+                        type: string
+                correlationId:
+                    type: string
+                eventTimestamp:
+                    type: string
+                    format: date-time
+        api.notification.v1.ProcessEventResponse:
+            type: object
+            properties:
+                notificationsTriggered:
+                    type: integer
+                    format: int32
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.ProcessWebhookRequest:
+            type: object
+            properties:
+                provider:
+                    type: string
+                webhookId:
+                    type: string
+                signature:
+                    type: string
+                payload:
+                    type: string
+                    format: bytes
+                headers:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.notification.v1.ProcessWebhookResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                processed:
+                    type: boolean
+        api.notification.v1.ScheduleNotificationRequest:
+            type: object
+            properties:
+                recipientType:
+                    type: integer
+                    format: enum
+                recipientId:
+                    type: string
+                recipientEmail:
+                    type: string
+                recipientPhone:
+                    type: string
+                recipientDeviceToken:
+                    type: string
+                channel:
+                    type: integer
+                    format: enum
+                type:
+                    type: string
+                subject:
+                    type: string
+                content:
+                    type: string
+                htmlContent:
+                    type: string
+                templateId:
+                    type: string
+                templateData:
+                    type: object
+                    additionalProperties:
+                        type: string
+                priority:
+                    type: integer
+                    format: enum
+                scheduledAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                sourceService:
+                    type: string
+                sourceEvent:
+                    type: string
+                correlationId:
+                    type: string
+        api.notification.v1.ScheduleNotificationResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                notificationId:
+                    type: string
+                message:
+                    type: string
+        api.notification.v1.SendBulkNotificationsRequest:
+            type: object
+            properties:
+                notifications:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.notification.v1.SendNotificationRequest'
+                asyncProcessing:
+                    type: boolean
+        api.notification.v1.SendBulkNotificationsResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                total:
+                    type: integer
+                    format: int32
+                successCount:
+                    type: integer
+                    format: int32
+                failureCount:
+                    type: integer
+                    format: int32
+                results:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.notification.v1.BulkNotificationResult'
+        api.notification.v1.SendNotificationRequest:
+            type: object
+            properties:
+                recipientType:
+                    type: integer
+                    format: enum
+                recipientId:
+                    type: string
+                recipientEmail:
+                    type: string
+                recipientPhone:
+                    type: string
+                recipientDeviceToken:
+                    type: string
+                channel:
+                    type: integer
+                    format: enum
+                type:
+                    type: string
+                subject:
+                    type: string
+                content:
+                    type: string
+                htmlContent:
+                    type: string
+                templateId:
+                    type: string
+                templateData:
+                    type: object
+                    additionalProperties:
+                        type: string
+                priority:
+                    type: integer
+                    format: enum
+                scheduledAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                sourceService:
+                    type: string
+                sourceEvent:
+                    type: string
+                correlationId:
+                    type: string
+            description: Request/Response messages
+        api.notification.v1.SendNotificationResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                notificationId:
+                    type: string
+                message:
+                    type: string
+        api.notification.v1.ServiceMetrics:
+            type: object
+            properties:
+                totalNotifications:
+                    type: string
+                totalTemplates:
+                    type: string
+                totalSubscriptions:
+                    type: string
+                totalPreferences:
+                    type: string
+                lastUpdated:
+                    type: string
+                    format: date-time
+        api.notification.v1.ServiceStatus:
+            type: object
+            properties:
+                name:
+                    type: string
+                status:
+                    type: string
+                message:
+                    type: string
+        api.notification.v1.SubscribeRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                userType:
+                    type: integer
+                    format: enum
+                notificationTypes:
+                    type: array
+                    items:
+                        type: string
+                channels:
+                    type: array
+                    items:
+                        type: integer
+                        format: enum
+        api.notification.v1.SubscribeResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.Subscription:
+            type: object
+            properties:
+                id:
+                    type: string
+                subscriptionId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                eventType:
+                    type: string
+                eventSource:
+                    type: string
+                eventFilters:
+                    type: object
+                    additionalProperties:
+                        type: string
+                templateId:
+                    type: string
+                channel:
+                    type: integer
+                    format: enum
+                priority:
+                    type: integer
+                    format: enum
+                recipientType:
+                    type: integer
+                    format: enum
+                recipientQuery:
+                    type: object
+                    additionalProperties:
+                        type: string
+                staticRecipients:
+                    type: array
+                    items:
+                        type: string
+                enabled:
+                    type: boolean
+                batchEnabled:
+                    type: boolean
+                batchSize:
+                    type: integer
+                    format: int32
+                batchDelayMinutes:
+                    type: integer
+                    format: int32
+                rateLimitPerMinute:
+                    type: integer
+                    format: int32
+                rateLimitPerHour:
+                    type: integer
+                    format: int32
+                rateLimitPerDay:
+                    type: integer
+                    format: int32
+                scheduleEnabled:
+                    type: boolean
+                scheduleCron:
+                    type: string
+                scheduleTimezone:
+                    type: string
+                conditions:
+                    type: object
+                    additionalProperties:
+                        type: string
+                totalSent:
+                    type: integer
+                    format: int32
+                totalDelivered:
+                    type: integer
+                    format: int32
+                totalFailed:
+                    type: integer
+                    format: int32
+                lastTriggeredAt:
+                    type: string
+                    format: date-time
+                status:
+                    type: integer
+                    format: enum
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                createdBy:
+                    type: string
+                updatedBy:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Subscription message
+        api.notification.v1.Template:
+            type: object
+            properties:
+                id:
+                    type: string
+                templateId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                category:
+                    type: string
+                type:
+                    type: string
+                channel:
+                    type: integer
+                    format: enum
+                subject:
+                    type: string
+                content:
+                    type: string
+                htmlContent:
+                    type: string
+                variables:
+                    type: object
+                    additionalProperties:
+                        type: string
+                requiredVariables:
+                    type: array
+                    items:
+                        type: string
+                language:
+                    type: string
+                version:
+                    type: integer
+                    format: int32
+                parentTemplateId:
+                    type: string
+                isActive:
+                    type: boolean
+                testGroup:
+                    type: string
+                testPercentage:
+                    type: integer
+                    format: int32
+                usageCount:
+                    type: integer
+                    format: int32
+                successRate:
+                    type: number
+                    format: double
+                status:
+                    type: integer
+                    format: enum
+                approvedBy:
+                    type: string
+                approvedAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                createdBy:
+                    type: string
+                updatedBy:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Template message
+        api.notification.v1.TestTemplateRequest:
+            type: object
+            properties:
+                templateId:
+                    type: string
+                data:
+                    type: object
+                    additionalProperties:
+                        type: string
+                language:
+                    type: string
+        api.notification.v1.TestTemplateResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                subject:
+                    type: string
+                content:
+                    type: string
+                htmlContent:
+                    type: string
+                message:
+                    type: string
+        api.notification.v1.Translation:
+            type: object
+            properties:
+                language:
+                    type: string
+                content:
+                    type: string
+                variables:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Translation represents a single language translation
+        api.notification.v1.TranslationInput:
+            type: object
+            properties:
+                content:
+                    type: string
+                variables:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: TranslationInput - Input for a translation
+        api.notification.v1.UnsubscribeRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                userType:
+                    type: integer
+                    format: enum
+                notificationTypes:
+                    type: array
+                    items:
+                        type: string
+                channels:
+                    type: array
+                    items:
+                        type: integer
+                        format: enum
+                unsubscribeToken:
+                    type: string
+                reason:
+                    type: string
+        api.notification.v1.UnsubscribeResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.UpdateNotificationStatusRequest:
+            type: object
+            properties:
+                notificationId:
+                    type: string
+                status:
+                    type: integer
+                    format: enum
+                reason:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.notification.v1.UpdateNotificationStatusResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.UpdateSubscriptionRequest:
+            type: object
+            properties:
+                subscriptionId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                eventFilters:
+                    type: object
+                    additionalProperties:
+                        type: string
+                enabled:
+                    type: boolean
+                batchEnabled:
+                    type: boolean
+                batchSize:
+                    type: integer
+                    format: int32
+                batchDelayMinutes:
+                    type: integer
+                    format: int32
+                updatedBy:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.notification.v1.UpdateSubscriptionResponse:
+            type: object
+            properties:
+                subscription:
+                    $ref: '#/components/schemas/api.notification.v1.Subscription'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.UpdateTemplateRequest:
+            type: object
+            properties:
+                templateId:
+                    type: string
+                name:
+                    type: string
+                description:
+                    type: string
+                subject:
+                    type: string
+                content:
+                    type: string
+                htmlContent:
+                    type: string
+                variables:
+                    type: object
+                    additionalProperties:
+                        type: string
+                requiredVariables:
+                    type: array
+                    items:
+                        type: string
+                isActive:
+                    type: boolean
+                updatedBy:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.notification.v1.UpdateTemplateResponse:
+            type: object
+            properties:
+                template:
+                    $ref: '#/components/schemas/api.notification.v1.Template'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.UpdateUserPreferencesRequest:
+            type: object
+            properties:
+                userId:
+                    type: string
+                userType:
+                    type: integer
+                    format: enum
+                emailEnabled:
+                    type: boolean
+                smsEnabled:
+                    type: boolean
+                pushEnabled:
+                    type: boolean
+                inAppEnabled:
+                    type: boolean
+                marketingEnabled:
+                    type: boolean
+                transactionalEnabled:
+                    type: boolean
+                promotionalEnabled:
+                    type: boolean
+                securityEnabled:
+                    type: boolean
+                systemEnabled:
+                    type: boolean
+                orderUpdates:
+                    type: boolean
+                paymentUpdates:
+                    type: boolean
+                shippingUpdates:
+                    type: boolean
+                inventoryAlerts:
+                    type: boolean
+                priceAlerts:
+                    type: boolean
+                preferredLanguage:
+                    type: string
+                timezone:
+                    type: string
+                quietHoursStart:
+                    type: string
+                quietHoursEnd:
+                    type: string
+                email:
+                    type: string
+                phone:
+                    type: string
+                deviceTokens:
+                    type: array
+                    items:
+                        type: string
+                digestFrequency:
+                    type: string
+                maxNotificationsPerDay:
+                    type: integer
+                    format: int32
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.notification.v1.UpdateUserPreferencesResponse:
+            type: object
+            properties:
+                preferences:
+                    $ref: '#/components/schemas/api.notification.v1.UserPreferences'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.notification.v1.UpsertMessageRequest:
+            type: object
+            properties:
+                key:
+                    type: string
+                category:
+                    type: string
+                description:
+                    type: string
+                translations:
+                    type: object
+                    additionalProperties:
+                        $ref: '#/components/schemas/api.notification.v1.TranslationInput'
+                variables:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: UpsertMessageRequest - Create or update a message
+        api.notification.v1.UpsertMessageResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+                messageData:
+                    $ref: '#/components/schemas/api.notification.v1.Message'
+            description: UpsertMessageResponse - Response after upserting message
+        api.notification.v1.UserPreferences:
+            type: object
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+                userType:
+                    type: integer
+                    format: enum
+                emailEnabled:
+                    type: boolean
+                smsEnabled:
+                    type: boolean
+                pushEnabled:
+                    type: boolean
+                inAppEnabled:
+                    type: boolean
+                webhookEnabled:
+                    type: boolean
+                marketingEnabled:
+                    type: boolean
+                transactionalEnabled:
+                    type: boolean
+                promotionalEnabled:
+                    type: boolean
+                securityEnabled:
+                    type: boolean
+                systemEnabled:
+                    type: boolean
+                orderUpdates:
+                    type: boolean
+                paymentUpdates:
+                    type: boolean
+                shippingUpdates:
+                    type: boolean
+                inventoryAlerts:
+                    type: boolean
+                priceAlerts:
+                    type: boolean
+                newsletter:
+                    type: boolean
+                preferredLanguage:
+                    type: string
+                timezone:
+                    type: string
+                quietHoursStart:
+                    type: string
+                quietHoursEnd:
+                    type: string
+                email:
+                    type: string
+                phone:
+                    type: string
+                deviceTokens:
+                    type: array
+                    items:
+                        type: string
+                webhookUrl:
+                    type: string
+                digestFrequency:
+                    type: string
+                maxNotificationsPerDay:
+                    type: integer
+                    format: int32
+                globalUnsubscribe:
+                    type: boolean
+                unsubscribeToken:
+                    type: string
+                unsubscribedAt:
+                    type: string
+                    format: date-time
+                unsubscribeReason:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: User preferences message
+tags:
+    - name: DeliveryService
+      description: Delivery service - handles delivery statistics and webhooks
+    - name: MessageService
+      description: Message service - handles i18n message operations
+    - name: NotificationService
+      description: Notification service - handles notification operations
+    - name: NotificationServiceAggregator
+      description: |-
+        Main Notification Service - Aggregates all sub-services
+         This service acts as a unified gateway for all notification operations
+    - name: PreferenceService
+      description: Preference service - handles user notification preferences
+    - name: SubscriptionService
+      description: Subscription service - handles event subscriptions
+    - name: TemplateService
+      description: Template service - handles notification template operations

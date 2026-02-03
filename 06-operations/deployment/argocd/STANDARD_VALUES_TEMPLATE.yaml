@@ -1,0 +1,234 @@
+# Standard values.yaml Template for Backend Microservices
+# Version: 1.1 (Standardized "Warehouse Pattern")
+# Date: 2025-12-28
+#
+# This is the standardized values.yaml structure for all backend microservices.
+# All fields are strictly aligned with the standardization guide.
+# Copy this template and simply replace <YOUR_SERVICE_NAME> and db/ports where indicated.
+
+# ============================================================================
+# DEPLOYMENT CONFIGURATION
+# ============================================================================
+
+replicaCount: 1
+
+image:
+  repository: registry-api.tanhdev.com/<YOUR_SERVICE_NAME>
+  pullPolicy: IfNotPresent
+  # tag: from env-specific tag.yaml
+
+imagePullSecrets:
+  - name: registry-api-tanhdev
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# ============================================================================
+# POD ANNOTATIONS & SECURITY
+# ============================================================================
+
+podAnnotations:
+  dapr.io/enabled: "true"
+  dapr.io/app-id: "<YOUR_SERVICE_NAME>" # e.g., user, order, payment
+  dapr.io/app-port: "8000"              # Standard HTTP port
+  dapr.io/app-protocol: "http"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+
+securityContext: {}
+
+# ============================================================================
+# SERVICE & PORTS (STRICT STANDARD)
+# ============================================================================
+
+service:
+  type: ClusterIP
+  httpPort: 80         # K8s Service Port (HTTP)
+  grpcPort: 81         # K8s Service Port (gRPC)
+  targetHttpPort: 8000 # Container Port (HTTP) - FIXED
+  targetGrpcPort: 9000 # Container Port (gRPC) - FIXED
+
+services:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: grpc
+    port: 81
+    targetPort: 9000
+    protocol: TCP
+
+# ============================================================================
+# RESOURCES & SCALING
+# ============================================================================
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ============================================================================
+# HEALTH PROBES (STANDARD TIMINGS)
+# ============================================================================
+
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8000
+    scheme: HTTP
+  initialDelaySeconds: 90
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8000
+    scheme: HTTP
+  initialDelaySeconds: 60
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+revisionHistoryLimit: 1
+
+# ============================================================================
+# APPLICATION CONFIGURATION (Maps to config.yaml)
+# ============================================================================
+
+config:
+  server:
+    http:
+      addr: ":8000"      # Standardized
+      timeout: 1s
+    grpc:
+      addr: ":9000"      # Standardized
+      timeout: 1s
+  
+  data:
+    database:
+      driver: postgres
+      max_open_conns: 100
+      max_idle_conns: 10
+      conn_max_lifetime: 3600s
+      conn_max_idle_time: 600s
+      query_timeout: 5s
+    
+    redis:
+      addr: "redis.infrastructure.svc.cluster.local:6379"
+      password: ""
+      db: 0  # ⚠️ CHANGE THIS - See DB Matrix below
+      read_timeout: 0.2s
+      write_timeout: 0.2s
+    
+    eventbus:
+      default_pubsub: "pubsub-redis"
+      # topic config specific to service
+  
+  registry:
+    consul:
+      address: "consul.infrastructure.svc.cluster.local:8500"
+      scheme: "http"
+      datacenter: "dc1"
+      health_check: true
+      health_check_interval: 10s
+      health_check_timeout: 3s
+      deregister_critical_service_after: true
+      deregister_critical_service_after_duration: 30s
+
+  # <YOUR_SERVICE_NAME>:
+     # Service specific config here
+
+# ============================================================================
+# WORKER CONFIGURATION (MANDATORY BLOCK)
+# ============================================================================
+
+worker:
+  enabled: false        # Set to true if worker exists
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 300m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  podAnnotations:
+    dapr.io/enabled: "true"
+    dapr.io/app-id: "<YOUR_SERVICE_NAME>-worker"
+    dapr.io/app-port: "5005"
+    dapr.io/app-protocol: "grpc"
+
+# ============================================================================
+# SECRETS (External/Sealed Secrets)
+# ============================================================================
+
+secrets:
+  databaseUrl: "postgresql://user:pass@postgresql.infrastructure.svc.cluster.local:5432/dbname?sslmode=disable"
+  databaseUser: "user"
+  databasePassword: "pass"
+  redisPassword: ""
+  encryptionKey: ""
+
+# ============================================================================
+# OPTIONAL COMPONENTS (Standardized defaults)
+# ============================================================================
+
+serviceMonitor:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+networkPolicy:
+  enabled: false
+
+# ============================================================================
+# MIGRATION JOB (MANDATORY BLOCK)
+# ============================================================================
+
+migration:
+  enabled: true
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# ============================================================================
+# DATABASE & ENV VARS
+# ============================================================================
+
+database:
+  host: postgresql.infrastructure.svc.cluster.local
+  port: "5432"
+  name: <YOUR_DB_NAME>
+
+env:
+  redisAddr: "redis.infrastructure.svc.cluster.local:6379"
+  consulAddress: "consul.infrastructure.svc.cluster.local:8500"

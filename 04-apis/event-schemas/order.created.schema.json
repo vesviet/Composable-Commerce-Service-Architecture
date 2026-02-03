@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://api.company.com/schemas/events/order.created/v1.0.0",
+  "title": "Order Created Event",
+  "description": "Event published when a new order is created in the system",
+  "type": "object",
+  "required": ["eventType", "orderId", "customerId", "status", "totalAmount", "timestamp"],
+  "properties": {
+    "eventType": {
+      "type": "string",
+      "const": "order.created",
+      "description": "Event type identifier"
+    },
+    "orderId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique order identifier"
+    },
+    "customerId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Customer who placed the order"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"],
+      "description": "Initial order status"
+    },
+    "totalAmount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total order amount in base currency"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "default": "USD",
+      "description": "ISO 4217 currency code"
+    },
+    "items": {
+      "type": "array",
+      "description": "Order items",
+      "items": {
+        "type": "object",
+        "required": ["productId", "sku", "quantity", "price"],
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when order was created"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "additionalProperties": true
+    }
+  }
+}
+

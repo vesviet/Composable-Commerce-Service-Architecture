@@ -1,0 +1,1281 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /api/v1/cart:
+        get:
+            tags:
+                - CartService
+            description: Get cart contents
+            operationId: CartService_GetCart
+            parameters:
+                - name: sessionId
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+                - name: guestToken
+                  in: query
+                  schema:
+                    type: string
+                - name: includePricing
+                  in: query
+                  schema:
+                    type: boolean
+                - name: includeStockStatus
+                  in: query
+                  schema:
+                    type: boolean
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.GetCartResponse'
+        delete:
+            tags:
+                - CartService
+            description: Clear entire cart
+            operationId: CartService_ClearCart
+            parameters:
+                - name: sessionId
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+                - name: guestToken
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.ClearCartResponse'
+    /api/v1/cart/checkout:
+        post:
+            tags:
+                - CartService
+            description: Convert cart to order (checkout)
+            operationId: CartService_CheckoutCart
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.CheckoutCartRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.CheckoutCartResponse'
+    /api/v1/cart/checkout/confirm:
+        post:
+            tags:
+                - CartService
+            description: Confirm checkout (submit for payment)
+            operationId: CartService_ConfirmCheckout
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.ConfirmCheckoutRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.ConfirmCheckoutResponse'
+    /api/v1/cart/checkout/start:
+        post:
+            tags:
+                - CartService
+            description: Start checkout process (creates draft order and checkout session)
+            operationId: CartService_StartCheckout
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.StartCheckoutRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.StartCheckoutResponse'
+    /api/v1/cart/checkout/state:
+        get:
+            tags:
+                - CartService
+            description: Get checkout state (resume checkout)
+            operationId: CartService_GetCheckoutState
+            parameters:
+                - name: sessionId
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.GetCheckoutStateResponse'
+        put:
+            tags:
+                - CartService
+            description: Update checkout state (save progress)
+            operationId: CartService_UpdateCheckoutState
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.UpdateCheckoutStateRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.UpdateCheckoutStateResponse'
+    /api/v1/cart/items:
+        post:
+            tags:
+                - CartService
+            description: Add item to cart
+            operationId: CartService_AddToCart
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.AddToCartRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.AddToCartResponse'
+    /api/v1/cart/items/{itemId}:
+        put:
+            tags:
+                - CartService
+            description: Update cart item
+            operationId: CartService_UpdateCartItem
+            parameters:
+                - name: itemId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.UpdateCartItemRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.UpdateCartItemResponse'
+        delete:
+            tags:
+                - CartService
+            description: Remove item from cart
+            operationId: CartService_RemoveCartItem
+            parameters:
+                - name: itemId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: sessionId
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.RemoveCartItemResponse'
+    /api/v1/cart/merge:
+        post:
+            tags:
+                - CartService
+            description: Merge guest cart with user cart (after login)
+            operationId: CartService_MergeCart
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.MergeCartRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.MergeCartResponse'
+    /api/v1/cart/summary:
+        get:
+            tags:
+                - CartService
+            description: Get cart summary (for header display)
+            operationId: CartService_GetCartSummary
+            parameters:
+                - name: sessionId
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+                - name: guestToken
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.GetCartSummaryResponse'
+    /api/v1/customers/{customerId}/orders:
+        get:
+            tags:
+                - OrderService
+            description: Get user orders
+            operationId: OrderService_GetUserOrders
+            parameters:
+                - name: customerId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.GetUserOrdersResponse'
+    /api/v1/orders:
+        get:
+            tags:
+                - OrderService
+            description: List orders with pagination
+            operationId: OrderService_ListOrders
+            parameters:
+                - name: pagination.page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pagination.pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: status
+                  in: query
+                  schema:
+                    type: string
+                - name: customerId
+                  in: query
+                  schema:
+                    type: string
+                - name: startDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+                - name: endDate
+                  in: query
+                  schema:
+                    type: string
+                    format: date-time
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.ListOrdersResponse'
+        post:
+            tags:
+                - OrderService
+            description: Create a new order
+            operationId: OrderService_CreateOrder
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.CreateOrderRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.CreateOrderResponse'
+    /api/v1/orders/{id}:
+        get:
+            tags:
+                - OrderService
+            description: Get order by ID
+            operationId: OrderService_GetOrder
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.GetOrderResponse'
+    /api/v1/orders/{id}/cancel:
+        post:
+            tags:
+                - OrderService
+            description: Cancel order
+            operationId: OrderService_CancelOrder
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.CancelOrderRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.CancelOrderResponse'
+    /api/v1/orders/{id}/process:
+        post:
+            tags:
+                - OrderService
+            description: Process order (internal use)
+            operationId: OrderService_ProcessOrder
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.ProcessOrderRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.ProcessOrderResponse'
+    /api/v1/orders/{id}/status:
+        put:
+            tags:
+                - OrderService
+            description: Update order status
+            operationId: OrderService_UpdateOrderStatus
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.UpdateOrderStatusRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.UpdateOrderStatusResponse'
+    /api/v1/orders/{orderId}/payments:
+        post:
+            tags:
+                - OrderService
+            description: Add payment to order
+            operationId: OrderService_AddPayment
+            parameters:
+                - name: orderId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.order.v1.AddPaymentRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.AddPaymentResponse'
+    /api/v1/orders/{orderId}/status-history:
+        get:
+            tags:
+                - OrderService
+            description: Get order status history
+            operationId: OrderService_GetOrderStatusHistory
+            parameters:
+                - name: orderId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.order.v1.GetOrderStatusHistoryResponse'
+components:
+    schemas:
+        api.common.v1.Address:
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: Identifier
+                type:
+                    type: integer
+                    description: Address type
+                    format: enum
+                firstName:
+                    type: string
+                    description: Personal information
+                lastName:
+                    type: string
+                company:
+                    type: string
+                addressLine1:
+                    type: string
+                    description: Address lines
+                addressLine2:
+                    type: string
+                city:
+                    type: string
+                    description: Location
+                stateProvince:
+                    type: string
+                postalCode:
+                    type: string
+                countryCode:
+                    type: string
+                phone:
+                    type: string
+                    description: Contact
+                email:
+                    type: string
+                isDefault:
+                    type: boolean
+                    description: Status flags (optional, service-specific)
+                isVerified:
+                    type: boolean
+                createdAt:
+                    type: string
+                    description: Timestamps
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: Metadata for service-specific data
+            description: |-
+                Address message - shared across all services
+                 Used by Customer Service, Order Service, and other services that need address data
+        api.order.v1.AddPaymentRequest:
+            type: object
+            properties:
+                orderId:
+                    type: string
+                paymentId:
+                    type: string
+                paymentMethod:
+                    type: string
+                paymentProvider:
+                    type: string
+                amount:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                transactionId:
+                    type: string
+                gatewayResponse:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.order.v1.AddPaymentResponse:
+            type: object
+            properties:
+                payment:
+                    $ref: '#/components/schemas/api.order.v1.OrderPayment'
+        api.order.v1.AddToCartRequest:
+            type: object
+            properties:
+                productSku:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                warehouseId:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                includeCartData:
+                    type: boolean
+            description: Request/Response messages
+        api.order.v1.AddToCartResponse:
+            type: object
+            properties:
+                item:
+                    $ref: '#/components/schemas/api.order.v1.CartItem'
+                cart:
+                    $ref: '#/components/schemas/api.order.v1.Cart'
+                success:
+                    type: boolean
+                message:
+                    type: string
+                totalItems:
+                    type: integer
+                    format: int32
+                cartTotal:
+                    type: number
+                    format: double
+        api.order.v1.CancelOrderRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                reason:
+                    type: string
+                notes:
+                    type: string
+                cancelledBy:
+                    type: string
+        api.order.v1.CancelOrderResponse:
+            type: object
+            properties:
+                order:
+                    $ref: '#/components/schemas/api.order.v1.Order'
+        api.order.v1.Cart:
+            type: object
+            properties:
+                sessionId:
+                    type: string
+                customerId:
+                    type: string
+                guestToken:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.order.v1.CartItem'
+                totals:
+                    $ref: '#/components/schemas/api.order.v1.CartTotals'
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Cart message
+        api.order.v1.CartItem:
+            type: object
+            properties:
+                id:
+                    type: string
+                sessionId:
+                    type: string
+                productId:
+                    type: string
+                productSku:
+                    type: string
+                productName:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                unitPrice:
+                    type: number
+                    format: double
+                totalPrice:
+                    type: number
+                    format: double
+                discountAmount:
+                    type: number
+                    format: double
+                taxAmount:
+                    type: number
+                    format: double
+                warehouseId:
+                    type: string
+                inStock:
+                    type: boolean
+                addedAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Cart item message
+        api.order.v1.CartTotals:
+            type: object
+            properties:
+                subtotal:
+                    type: number
+                    format: double
+                discountTotal:
+                    type: number
+                    format: double
+                taxEstimate:
+                    type: number
+                    format: double
+                shippingEstimate:
+                    type: number
+                    format: double
+                totalEstimate:
+                    type: number
+                    format: double
+                itemCount:
+                    type: integer
+                    format: int32
+                uniqueItems:
+                    type: integer
+                    format: int32
+                currency:
+                    type: string
+            description: Cart totals message
+        api.order.v1.CheckoutCartRequest:
+            type: object
+            properties:
+                sessionId:
+                    type: string
+                customerId:
+                    type: string
+                shippingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                billingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                customerShippingAddressId:
+                    type: string
+                customerBillingAddressId:
+                    type: string
+                paymentMethod:
+                    type: string
+                notes:
+                    type: string
+                promotionCodes:
+                    type: array
+                    items:
+                        type: string
+                loyaltyPointsToUse:
+                    type: integer
+                    format: int32
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.order.v1.CheckoutCartResponse:
+            type: object
+            properties:
+                order:
+                    $ref: '#/components/schemas/api.order.v1.Order'
+                success:
+                    type: boolean
+                message:
+                    type: string
+                validationErrors:
+                    type: array
+                    items:
+                        type: string
+        api.order.v1.CheckoutSession:
+            type: object
+            properties:
+                id:
+                    type: string
+                sessionId:
+                    type: string
+                orderId:
+                    type: string
+                customerId:
+                    type: string
+                currentStep:
+                    type: integer
+                    format: int32
+                shippingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                billingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                paymentMethod:
+                    type: string
+                shippingMethodId:
+                    type: string
+                promotionCodes:
+                    type: array
+                    items:
+                        type: string
+                loyaltyPointsToUse:
+                    type: integer
+                    format: int32
+                notes:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+            description: Checkout session message
+        api.order.v1.ClearCartResponse:
+            type: object
+            properties:
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.order.v1.ConfirmCheckoutRequest:
+            type: object
+            properties:
+                sessionId:
+                    type: string
+                customerId:
+                    type: string
+        api.order.v1.ConfirmCheckoutResponse:
+            type: object
+            properties:
+                order:
+                    $ref: '#/components/schemas/api.order.v1.Order'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.order.v1.CreateOrderItemRequest:
+            type: object
+            properties:
+                productId:
+                    type: string
+                productSku:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                warehouseId:
+                    type: string
+        api.order.v1.CreateOrderRequest:
+            type: object
+            properties:
+                customerId:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.order.v1.CreateOrderItemRequest'
+                shippingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                billingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                customerShippingAddressId:
+                    type: string
+                customerBillingAddressId:
+                    type: string
+                paymentMethod:
+                    type: string
+                notes:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Request/Response messages
+        api.order.v1.CreateOrderResponse:
+            type: object
+            properties:
+                order:
+                    $ref: '#/components/schemas/api.order.v1.Order'
+        api.order.v1.GetCartResponse:
+            type: object
+            properties:
+                cart:
+                    $ref: '#/components/schemas/api.order.v1.Cart'
+                found:
+                    type: boolean
+        api.order.v1.GetCartSummaryResponse:
+            type: object
+            properties:
+                itemCount:
+                    type: integer
+                    format: int32
+                totalEstimate:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                hasItems:
+                    type: boolean
+        api.order.v1.GetCheckoutStateResponse:
+            type: object
+            properties:
+                session:
+                    $ref: '#/components/schemas/api.order.v1.CheckoutSession'
+                draftOrder:
+                    $ref: '#/components/schemas/api.order.v1.Order'
+                found:
+                    type: boolean
+        api.order.v1.GetOrderResponse:
+            type: object
+            properties:
+                order:
+                    $ref: '#/components/schemas/api.order.v1.Order'
+        api.order.v1.GetOrderStatusHistoryResponse:
+            type: object
+            properties:
+                history:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.order.v1.OrderStatusHistory'
+        api.order.v1.GetUserOrdersResponse:
+            type: object
+            properties:
+                orders:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.order.v1.Order'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.order.v1.ListOrdersResponse:
+            type: object
+            properties:
+                orders:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.order.v1.Order'
+                total:
+                    type: integer
+                    format: int32
+                page:
+                    type: integer
+                    format: int32
+                pageSize:
+                    type: integer
+                    format: int32
+        api.order.v1.MergeCartRequest:
+            type: object
+            properties:
+                guestSessionId:
+                    type: string
+                guestToken:
+                    type: string
+                customerId:
+                    type: string
+                userSessionId:
+                    type: string
+                strategy:
+                    type: integer
+                    format: enum
+        api.order.v1.MergeCartResponse:
+            type: object
+            properties:
+                mergedCart:
+                    $ref: '#/components/schemas/api.order.v1.Cart'
+                success:
+                    type: boolean
+                message:
+                    type: string
+                itemsMerged:
+                    type: integer
+                    format: int32
+                itemsReplaced:
+                    type: integer
+                    format: int32
+        api.order.v1.Order:
+            type: object
+            properties:
+                id:
+                    type: string
+                orderNumber:
+                    type: string
+                customerId:
+                    type: string
+                status:
+                    type: string
+                totalAmount:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                shippingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                billingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                customerShippingAddressId:
+                    type: string
+                customerBillingAddressId:
+                    type: string
+                paymentMethod:
+                    type: string
+                paymentStatus:
+                    type: string
+                notes:
+                    type: string
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.order.v1.OrderItem'
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                expiresAt:
+                    type: string
+                    format: date-time
+                cancelledAt:
+                    type: string
+                    format: date-time
+                completedAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Order message
+        api.order.v1.OrderItem:
+            type: object
+            properties:
+                id:
+                    type: string
+                orderId:
+                    type: string
+                productId:
+                    type: string
+                productSku:
+                    type: string
+                productName:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                unitPrice:
+                    type: number
+                    format: double
+                totalPrice:
+                    type: number
+                    format: double
+                discountAmount:
+                    type: number
+                    format: double
+                taxAmount:
+                    type: number
+                    format: double
+                warehouseId:
+                    type: string
+                reservationId:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Order item message
+        api.order.v1.OrderPayment:
+            type: object
+            properties:
+                id:
+                    type: string
+                orderId:
+                    type: string
+                paymentId:
+                    type: string
+                paymentMethod:
+                    type: string
+                paymentProvider:
+                    type: string
+                amount:
+                    type: number
+                    format: double
+                currency:
+                    type: string
+                status:
+                    type: string
+                transactionId:
+                    type: string
+                processedAt:
+                    type: string
+                    format: date-time
+                failedAt:
+                    type: string
+                    format: date-time
+                failureReason:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                gatewayResponse:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Order payment message
+        api.order.v1.OrderStatusHistory:
+            type: object
+            properties:
+                id:
+                    type: string
+                orderId:
+                    type: string
+                fromStatus:
+                    type: string
+                toStatus:
+                    type: string
+                reason:
+                    type: string
+                notes:
+                    type: string
+                changedBy:
+                    type: string
+                changedAt:
+                    type: string
+                    format: date-time
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+            description: Order status history message
+        api.order.v1.ProcessOrderRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+        api.order.v1.ProcessOrderResponse:
+            type: object
+            properties:
+                order:
+                    $ref: '#/components/schemas/api.order.v1.Order'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.order.v1.RemoveCartItemResponse:
+            type: object
+            properties:
+                cart:
+                    $ref: '#/components/schemas/api.order.v1.Cart'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.order.v1.StartCheckoutRequest:
+            type: object
+            properties:
+                sessionId:
+                    type: string
+                customerId:
+                    type: string
+            description: Request/Response messages for checkout state management
+        api.order.v1.StartCheckoutResponse:
+            type: object
+            properties:
+                session:
+                    $ref: '#/components/schemas/api.order.v1.CheckoutSession'
+                draftOrder:
+                    $ref: '#/components/schemas/api.order.v1.Order'
+        api.order.v1.UpdateCartItemRequest:
+            type: object
+            properties:
+                itemId:
+                    type: string
+                quantity:
+                    type: integer
+                    format: int32
+                warehouseId:
+                    type: string
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+        api.order.v1.UpdateCartItemResponse:
+            type: object
+            properties:
+                item:
+                    $ref: '#/components/schemas/api.order.v1.CartItem'
+                cart:
+                    $ref: '#/components/schemas/api.order.v1.Cart'
+                success:
+                    type: boolean
+                message:
+                    type: string
+        api.order.v1.UpdateCheckoutStateRequest:
+            type: object
+            properties:
+                sessionId:
+                    type: string
+                currentStep:
+                    type: integer
+                    format: int32
+                shippingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                billingAddress:
+                    $ref: '#/components/schemas/api.common.v1.Address'
+                customerShippingAddressId:
+                    type: string
+                customerBillingAddressId:
+                    type: string
+                paymentMethod:
+                    type: string
+                shippingMethodId:
+                    type: string
+                promotionCodes:
+                    type: array
+                    items:
+                        type: string
+                loyaltyPointsToUse:
+                    type: integer
+                    format: int32
+                notes:
+                    type: string
+        api.order.v1.UpdateCheckoutStateResponse:
+            type: object
+            properties:
+                session:
+                    $ref: '#/components/schemas/api.order.v1.CheckoutSession'
+                success:
+                    type: boolean
+        api.order.v1.UpdateOrderStatusRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                status:
+                    type: string
+                reason:
+                    type: string
+                notes:
+                    type: string
+                changedBy:
+                    type: string
+        api.order.v1.UpdateOrderStatusResponse:
+            type: object
+            properties:
+                order:
+                    $ref: '#/components/schemas/api.order.v1.Order'
+tags:
+    - name: CartService
+      description: Cart service definition
+    - name: OrderService
+      description: Order service definition
