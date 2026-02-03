@@ -90,8 +90,7 @@ kubectl get events --sort-by=.metadata.creationTimestamp
 - **Documentation**: [Installation Guide](./INSTALLATION.md)
 - **Issues**: GitLab Issues with `kubernetes` label
 - **Help**: #ops-infrastructure channel
-
----
+```
 
 ## 📖 References
 

@@ -58,6 +58,12 @@ This section contains essential migration guides for the microservices platform.
 - **[Consolidation Implementation](./CONSOLIDATION_IMPLEMENTATION_GUIDE.md)** - System consolidation guide
 - **[Migration Summary](./MIGRATION_SUMMARY.md)** - Migration overview and status
 
+### **Magento Migration**
+- **[Magento Migration Overview](./magento-migration/)** - Complete Magento to microservices migration
+- **[Phase 1: Read-Only](./magento-migration/phase-1-read-only.md)** - Read-only migration phase
+- **[Phase 2: Read-Write](./magento-migration/phase-2-read-write.md)** - Gradual cutover phase
+- **[Phase 3: Full Cutover](./magento-migration/phase-3-full-cutover.md)** - Complete migration and decommissioning
+
 ### **Planning & Status**
 - **[Project Status](./project-status.md)** - Current migration project status
 - **[Roadmap](./roadmap.md)** - Future migration plans

@@ -20,7 +20,7 @@ golangci-lint run
 commit và push
 
 Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name payment
-review code, code quality, argocd config, business logic
+review code, code quality, gitops config, business logic
 
 # Review single workflow
 Follow docs/07-development/standards/workflow-review-release-prompt.md and run the process for workflow **complete-order-flow** in category **sequence-diagrams**.
