@@ -776,23 +776,21 @@ curl http://localhost:8000/health
 
 ## 📚 **Documentation & Resources**
 
-### **Architecture Documentation**
-- [System Architecture Overview](SYSTEM_ARCHITECTURE_OVERVIEW.md)
-- [Service Implementation Guide](CODEBASE_INDEX.md)
-- [API Documentation](openapi/)
-- [Event Reference](EVENTS_REFERENCE.md)
+### **🏗️ Architecture Documentation**
+- [System Architecture](01-architecture/README.md) - Complete system design and patterns
+- [Business Domains](02-business-domains/README.md) - Domain-driven design documentation
+- [Service Documentation](03-services/README.md) - Individual service implementation details
+- [API Specifications](04-apis/README.md) - OpenAPI specs and event schemas
 
-### **Development Guides**
-- [gRPC & Versioning Rules](GRPC_PROTO_AND_VERSIONING_RULES.md)
-- [Platform Engineering](platform-engineering/)
-- [Workflow Documentation](workflow/)
-- [SRE Runbooks](sre-runbooks/)
+### **👨‍💻 Development Guides**
+- [Development Standards](07-development/README.md) - Coding standards and workflows
+- [Architecture Decisions](08-architecture-decisions/README.md) - ADRs and design decisions
+- [Operations Guide](06-operations/README.md) - Deployment and operational procedures
 
-### **Business Processes**
-- [Order Flow](workflow/order-flow.md)
-- [Checkout Process](workflow/checkout_flow.md)
-- [Payment Processing](workflow/payment-flow.md)
-- [Fulfillment Workflow](workflow/order_fulfillment_flow.md)
+### **🔄 Business Processes**
+- [Order Management](05-workflows/README.md) - Complete order-to-delivery workflows
+- [Payment Processing](05-workflows/README.md) - Payment and checkout flows
+- [Fulfillment Workflows](05-workflows/README.md) - Shipping and logistics processes
 
 ---
 
@@ -872,7 +870,7 @@ Following practices from:
 ### **Project Information**
 - **Started**: 2025
 - **Current Status**: 90% Complete, Production-Ready
-- **Team Size**: 2-3 developers
+- **Team Size**: 3-5 developers
 - **Technology Stack**: Go, React, PostgreSQL, Kubernetes
 - **Architecture**: Microservices with Event-Driven Communication
 
@@ -924,6 +922,6 @@ This e-commerce microservices platform represents **world-class software enginee
 
 ---
 
-*Last Updated: January 26, 2026*  
+*Last Updated: February 3, 2026*  
 *Project Status: 90% Complete, Production-Ready*  
 *Next Milestone: 100% Completion by Q1 2026*

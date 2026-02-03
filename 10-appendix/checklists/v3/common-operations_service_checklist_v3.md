@@ -65,15 +65,15 @@ The common-operations service provides task orchestration, bulk operations, file
 
 ## 3. Dependencies (Go Modules)
 
-- **Current:** common v1.9.0, customer v1.0.1, notification v1.0.0, order v1.0.2, user v1.0.1, warehouse v1.0.5; **no replace** in go.mod.
-- **Action:** Run `go get gitlab.com/ta-microservices/common@latest` (and other deps as needed), then `go mod tidy`. Do not add replace for gitlab.com/ta-microservices.
+- **Current:** common v1.9.5, customer v1.1.1, notification v1.1.3, order v1.1.0, user v1.0.5, warehouse v1.1.3; **no replace** in go.mod.
+- **Action:** ✅ COMPLETED: Updated all ta-microservices dependencies to @latest versions, ran `go mod tidy` and `go mod vendor`.
 
 ---
 
 ## 4. Lint & Build
 
-- **Lint:** `golangci-lint run` in common-operations/ — not run this pass (parallel golangci-lint was running); run locally when clear.
-- **Build:** `make api`, `go build ./...`, `make wire` — **PASSED** (after `go mod vendor` post dependency update).
+- **Lint:** `golangci-lint run` in common-operations/ — ✅ PASSED: Zero warnings after vendor sync.
+- **Build:** `make api`, `go build ./...`, `make wire` — ✅ PASSED: Clean build, protobuf regenerated, Wire DI updated.
 - **Target:** Zero golangci-lint warnings, clean build.
 
 ---
@@ -87,12 +87,12 @@ The common-operations service provides task orchestration, bulk operations, file
 
 ## 6. Commit & Release
 
-- **Commit:** Conventional commits: `feat(common-operations): …`, `fix(common-operations): …`, `docs(common-operations): …`.
+- **Commit:** ✅ COMPLETED: Conventional commit `feat(common-operations): Update CI/CD pipeline and dependencies` (commit 6e51f30).
 - **Release:** If releasing, create semver tag (e.g. `v1.0.x`) and push. If not release, push branch only.
 
 ---
 
 ## Summary
 
-- **Process:** Index → review (3 standards) → checklist v3 for common-operations (test-case skipped) → dependencies (no replace; go get @latest, go mod tidy) → lint/build → docs (03-services + README) → P1/P2 fixes (constants + sync publish) → checklist synced.
-- **Blockers:** None. All P1/P2 issues fixed. Optional: run golangci-lint locally when clear.
+- **Process:** ✅ COMPLETED: Index → review (3 standards) → checklist v3 for common-operations (test-case skipped) → dependencies (no replace; go get @latest, go mod tidy, go mod vendor) → lint/build (golangci-lint ✅, make api ✅, go build ✅, make wire ✅) → docs (03-services + README already current) → P1/P2 fixes (previously completed) → checklist synced → commit ✅ → push ✅.
+- **Blockers:** None. All P1/P2 issues previously fixed. CI/CD pipeline updated to match catalog structure.
