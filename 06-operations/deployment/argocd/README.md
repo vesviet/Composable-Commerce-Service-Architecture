@@ -1,91 +1,101 @@
-# GitOps with ArgoCD Documentation
+# GitOps with ArgoCD
 
+**Purpose**: ArgoCD-specific deployment procedures and configuration  
 **Last Updated**: 2026-02-03  
-**Status**: ✅ **ACTIVE** - GitOps deployment for 19 microservices  
-**Technology**: ArgoCD + Kubernetes + Helm  
+**Status**: ✅ Active - GitOps deployment for 19 microservices
 
 ---
 
-## 📚 Main Documentation
+## 📋 Overview
 
-### **[� GitOps Overview](../gitops/GITOPS_OVERVIEW.md)** ⭐ **START HERE**
-Complete GitOps strategy and implementation guide
+This section contains ArgoCD-specific procedures for deploying and managing applications using GitOps. ArgoCD serves as our GitOps engine, continuously synchronizing Kubernetes resources with Git repositories.
 
-### **[📖 ArgoCD Guide](./ARGOCD_GUIDE.md)** ⭐ **DETAILED GUIDE**
-Comprehensive guide covering:
-- Service catalog and current status
-- Step-by-step deployment guide
-- Standardization rules and best practices
-- Configuration reference
-- Troubleshooting guide
+### 🎯 What You'll Find Here
+- **[ArgoCD Guide](./ARGOCD_GUIDE.md)** - Comprehensive ArgoCD setup and usage
+- **[Deployment Procedures](./DEPLOYMENT.md)** - Service deployment procedures
+- **[Templates](./)** - Deployment templates and examples
 
 ---
 
-## 📊 Quick Stats
+## 🚀 Quick Start
+
+### **Deploy New Service**
+```bash
+# 1. Create application manifest
+kubectl apply -f apps/new-service/application.yaml
+
+# 2. Monitor deployment
+argocd app get new-service
+
+# 3. Sync if needed
+argocd app sync new-service
+```
+
+### **Update Service**
+```bash
+# 1. Update configuration
+vim apps/new-service/values.yaml
+
+# 2. Commit changes
+git add apps/new-service/values.yaml
+git commit -m "Update new-service configuration"
+
+# 3. Push to Git
+git push origin main
+
+# 4. ArgoCD will auto-sync
+argocd app get new-service
+```
+
+---
+
+## 📊 Current Status
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| **Total Services** | 19 | 17 Go + 2 Node.js |
-| **Helm Charts** | 19/19 | ✅ 100% Complete |
-| **Deployed (dev)** | 14/19 | 🚀 74% |
-| **Ready to Deploy** | 5/19 | ⏳ 26% |
+| **Total Services** | 19 | ✅ Active |
+| **Deployed (dev)** | 14 | ✅ 74% |
+| **Ready to Deploy** | 5 | ⏳ 26% |
+| **Helm Charts** | 19 | ✅ 100% |
 
 ---
 
-## 📚 Reference Documentation
+## � Common Commands
 
-### GitOps Strategy
-- **[GitOps Overview](../gitops/GITOPS_OVERVIEW.md)** - Complete GitOps strategy
-- **[Multi-Cluster GitOps](../gitops/MULTI_CLUSTER_GITOPS.md)** - Multi-environment deployment
-- **[Progressive Delivery](../gitops/PROGRESSIVE_DELIVERY.md)** - Advanced deployment patterns
+### **Application Management**
+```bash
+# List all applications
+argocd app list
 
-### Deployment
-- **[Deployment Guide](./DEPLOYMENT.md)** - Detailed deployment instructions
-- **[Deployment Checklist](./DEPLOYMENT_CHECKLIST.md)** - Standardization checklist
-- **[Deployment Order](./DEPLOYMENT_ORDER.md)** - Dependency-based deployment order
-- **[Standardization Guide](./DEPLOYMENT_STANDARDIZATION_GUIDE.md)** - Warehouse pattern guide
+# Get application details
+argocd app get <app-name>
 
-### Configuration
-- **[Configuration Audit](./ARGOCD_CONFIGURATION_AUDIT.md)** - System-wide configuration review
-- **[Port Reference](./system-ports.md)** - Port and Redis DB allocation
-- **[VIGO Comparison](./ARGOCD_VIGO_COMPARISON.md)** - Best practices comparison
+# Sync application
+argocd app sync <app-name>
 
-### Templates
-- **[Standard Deployment Template](./STANDARD_DEPLOYMENT_TEMPLATE.yaml)** - Deployment template
-- **[Standard Values Template](./STANDARD_VALUES_TEMPLATE.yaml)** - Values.yaml template
+# Rollback application
+argocd app rollback <app-name> <revision-id>
 
----
+# Delete application
+argocd app delete <app-name>
+```
 
-## 🚀 Quick Links
+### **Troubleshooting**
+```bash
+# Check application events
+argocd app events <app-name>
 
-- **GitOps Overview**: See [GitOps Overview](../gitops/GITOPS_OVERVIEW.md)
-- **Deploy a Service**: See [ARGOCD_GUIDE.md](./ARGOCD_GUIDE.md#deployment-guide)
-- **Troubleshooting**: See [ARGOCD_GUIDE.md](./ARGOCD_GUIDE.md#troubleshooting)
-- **Configuration Reference**: See [ARGOCD_GUIDE.md](./ARGOCD_GUIDE.md#configuration-reference)
+# Check application logs
+argocd app logs <app-name>
 
----
-
-## 🎯 GitOps Implementation Status
-
-### ✅ Completed
-- [x] ArgoCD installation and configuration
-- [x] Git repository structure
-- [x] Helm chart standardization
-- [x] ApplicationSet patterns
-- [x] Multi-environment support
-- [x] CI/CD integration
-
-### 🔄 In Progress
-- [ ] Progressive delivery implementation
-- [ ] Advanced monitoring setup
-- [ ] Security hardening
-
-### ⏳ Planned
-- [ ] Multi-cluster GitOps
-- [ ] Automated testing integration
-- [ ] Disaster recovery procedures
+# Force refresh application
+argocd app get <app-name> --refresh
+```
 
 ---
 
-For complete GitOps information, see **[GitOps Overview](../gitops/GITOPS_OVERVIEW.md)**.
+## � Support
 
+- **Documentation**: See [ArgoCD Guide](./ARGOCD_GUIDE.md)
+- **Issues**: GitLab Issues with `argocd` label
+- **Help**: #ops-gitops channel

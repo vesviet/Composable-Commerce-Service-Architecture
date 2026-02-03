@@ -1,53 +1,109 @@
-# Deployment Documentation
+# Deployment Guides
 
-**Mục đích**: Tài liệu hướng dẫn deployment và configuration cho microservices  
-**Cập nhật**: December 27, 2025
-
----
-
-## 📚 Tổng quan
-
-Thư mục này chứa tất cả tài liệu liên quan đến deployment và configuration của hệ thống microservices, bao gồm:
-
-- **Configuration Standards**: Chuẩn cấu hình cho tất cả services
-- **Best Practices**: Các best practices cho deployment
-- **Dependencies**: Hướng dẫn cấu hình dependencies chung
-- **Troubleshooting**: Hướng dẫn xử lý sự cố
+**Purpose**: Step-by-step deployment procedures and best practices  
+**Last Updated**: 2026-02-03  
+**Status**: ✅ Active - Essential deployment procedures
 
 ---
 
-## 📖 Danh sách tài liệu
+## � Overview
 
-### 1. [Service Configuration Guide](./service-configuration-guide.md)
-**Mục đích**: Hướng dẫn cấu hình chuẩn cho các microservices
+This section contains essential deployment guides and best practices for the microservices platform.
 
-**Nội dung chính**:
-- Cấu trúc thư mục chuẩn
-- Image và service configuration
-- Pod security và Dapr annotations
-- Health checks và resource management
-- Environment-specific overrides
-- Migration jobs và worker configuration
+### 🎯 What You'll Find Here
+- **[Quick Action Guide](./QUICK_ACTION_GUIDE.md)** - Fast deployment procedures
+- **[Service Configuration](./service-configuration-guide.md)** - Service setup and configuration
 
-**Khi nào sử dụng**: 
-- Khi tạo service mới
-- Khi review configuration của service hiện tại
-- Khi cần standardize configuration
+---
 
-### 2. [Common Service Dependencies](./common-service-dependencies.md)
-**Mục đích**: Hướng dẫn cấu hình dependencies chung
+## � Quick Start
 
-**Nội dung chính**:
-- Database configuration (PostgreSQL)
-- Redis configuration và DB assignments
-- Service discovery (Consul)
-- Observability (Jaeger, Prometheus)
-- Event bus (Dapr)
-- External service communication
+### **Deploy New Service**
+```bash
+# 1. Create service configuration
+cp templates/service-config.yaml apps/new-service/
 
-**Khi nào sử dụng**:
-- Khi service cần kết nối với database
-- Khi service cần sử dụng Redis cache
+# 2. Configure values
+vim apps/new-service/values.yaml
+
+# 3. Deploy to cluster
+kubectl apply -f apps/new-service/
+
+# 4. Monitor deployment
+kubectl get pods -l app=new-service -n production
+```
+
+### **Update Existing Service**
+```bash
+# 1. Update configuration
+vim apps/service-name/values.yaml
+
+# 2. Commit changes
+git add apps/service-name/values.yaml
+git commit -m "Update service configuration"
+
+# 3. Push to Git
+git push origin main
+
+# 4. ArgoCD will auto-sync
+argocd app get service-name
+```
+
+---
+
+## 📚 Available Guides
+
+### **Essential Guides**
+- **[Quick Action Guide](./QUICK_ACTION_GUIDE.md)** - Fast deployment commands
+- **[Service Configuration](./service-configuration-guide.md)** - Service setup procedures
+
+---
+
+## 🔧 Common Commands
+
+### **Application Management**
+```bash
+# List all applications
+kubectl get applications -n argocd
+
+# Deploy application
+kubectl apply -f apps/service-name/
+
+# Update application
+kubectl patch deployment service-name -p '{"spec":{"template":{"spec":{"containers":[{"name":"service-name","image":"new-image:tag"}]}}}}'
+
+# Scale application
+kubectl scale deployment service-name --replicas=3
+
+# Delete application
+kubectl delete deployment service-name
+```
+
+### **Troubleshooting**
+```bash
+# Check pod status
+kubectl get pods -l app=service-name
+
+# Check events
+kubectl get events --sort-by='.lastTimestamp'
+
+# Check logs
+kubectl logs -f deployment/service-name
+```
+
+---
+
+## 📞 Support
+
+- **Documentation**: See individual guide files
+- **Issues**: GitLab Issues with `deployment` label
+- **Help**: #ops-deployments channel
+
+---
+
+**Last Updated**: February 3, 2026  
+**Review Cycle**: Monthly deployment review  
+**Maintained By**: DevOps & Platform Engineering Teams
 - Khi service cần communicate với services khác
 - Khi troubleshoot connection issues
 
