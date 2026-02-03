@@ -1,29 +1,22 @@
-# 👨‍💻 Development Guidelines
+# 👨‍💻 Development Documentation
 
 **Purpose**: Development standards, workflows, and best practices  
-**Audience**: Developers, tech leads, architects  
-**Navigation**: [← Operations](../06-operations/README.md) | [← Back to Main](../README.md) | [Architecture Decisions →](../08-architecture-decisions/README.md)
+**Last Updated**: 2026-02-03  
+**Status**: ✅ Active - Comprehensive development framework
 
 ---
 
-## 📋 Quick Navigation
+## 📋 Overview
 
-### **Development Standards**
-- **[Coding Standards](standards/coding-standards.md)** - Single reference for developers & AI agents when coding
-- **[Service Review & Release Prompt](standards/service-review-release-prompt.md)** - Single prompt/process for reviewing and releasing any service
-- **[Code Review Guide](standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md)** - Code review standards and checklist
-- **[Common Package Usage](standards/common-package-usage.md)** - Shared library guidelines
-- **[Platform Engineering](standards/platform-engineering/README.md)** - Platform-level development standards
+This section contains comprehensive documentation for developers working on the microservices platform. It covers coding standards, development workflows, testing practices, and platform engineering standards.
 
-### **Getting Started**
-- **[Local Development Setup](getting-started/)** - Environment setup and tooling
-- **[Development Workflow](workflows/)** - Git workflow and development process
-- **[Testing Standards](standards/)** - Testing guidelines and best practices
+### 🎯 What You'll Find Here
 
-### **Tools & Utilities**
-- **[Development Tools](tools/)** - IDE setup, debugging tools, utilities
-- **[Code Generation](tools/)** - Protobuf, OpenAPI, and code generation
-- **[Testing Tools](tools/)** - Testing frameworks and utilities
+- **📝 Development Standards** - Coding standards and best practices
+- **🚀 Getting Started** - Environment setup and onboarding
+- **🔧 Development Tools** - IDE setup and development utilities
+- **🧪 Testing Standards** - Testing frameworks and procedures
+- **🏗️ Platform Engineering** - Platform-level development standards
 
 ---
 
@@ -34,12 +27,50 @@
 - **Domain-Driven Design**: Business logic drives technical implementation
 - **Test-Driven Development**: Tests as first-class citizens
 - **Code Review Culture**: Collaborative code improvement
+- **Security by Design**: Security considerations in every feature
 
 ### **Technical Standards**
 - **Go Best Practices**: Effective Go patterns and idioms
 - **API-First Design**: Contract-first development with OpenAPI
 - **Event-Driven Architecture**: Async communication patterns
-- **Security by Design**: Security considerations in every feature
+- **Microservices Patterns**: Service design and inter-service communication
+- **Security by Default**: Security considerations in every feature
+
+---
+
+## 📚 Quick Navigation
+
+### **📝 Development Standards**
+- **[Coding Standards](./standards/coding-standards.md)** - Go coding standards and best practices
+- **[Code Review Guide](./standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md)** - Code review procedures
+- **[Service Review Process](./standards/service-review-release-prompt.md)** - Service review and release process
+- **[Platform Engineering](./standards/platform-engineering/)** - Platform development standards
+
+### **🚀 Getting Started**
+- **[Local Development Setup](./getting-started/)** - Environment setup and tooling
+- **[Development Workflow](./workflows/)** - Git workflow and development process
+- **[Testing Standards](./standards/)** - Testing guidelines and frameworks
+
+### **🔧 Development Tools**
+- **[Development Tools](./tools/)** - IDE setup, debugging tools, utilities
+- **[Code Generation](./tools/)** - Protobuf, OpenAPI, and code generation
+- **[Testing Tools](./tools/)** - Testing frameworks and utilities
+
+---
+
+## 🚀 Quick Start
+
+### **For New Developers**
+1. **[Local Setup](./getting-started/)** - Set up development environment
+2. **[Coding Standards](./standards/coding-standards.md)** - Learn coding standards
+3. **[Code Review Guide](./standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md)** - Understand review process
+4. **[Development Workflow](./workflows/)** - Learn development workflow
+
+### **For Service Development**
+1. **[Service Standards](./standards/service-integration-standards.md)** - Service integration patterns
+2. **[Testing Standards](./standards/)** - Testing procedures
+3. **[Platform Engineering](./standards/platform-engineering/)** - Platform standards
+4. **[Code Review Process](./standards/service-review-release-prompt.md)** - Review and release process
 
 ---
 
@@ -48,40 +79,66 @@
 ### **Code Quality**
 - **Test Coverage**: 80%+ for business logic
 - **Code Review**: 100% of changes reviewed
-- **Static Analysis**: Zero critical issues in production code
-- **Documentation**: All public APIs documented
+- **Static Analysis**: Zero critical issues
+- **Security Scans**: Zero high-severity vulnerabilities
 
 ### **Development Velocity**
-- **Lead Time**: < 2 days from feature start to production
-- **Deployment Frequency**: Multiple deployments per day
-- **Change Failure Rate**: < 5% of changes require rollback
-- **Recovery Time**: < 1 hour for development issues
+- **Lead Time**: < 2 days from feature start to deployment
+- **Deployment Frequency**: Daily deployments to development
+- **Build Time**: < 10 minutes for full build
+- **Test Execution**: < 5 minutes for test suite
+
+### **Team Productivity**
+- **Code Review Time**: < 24 hours average
+- **Bug Fix Time**: < 4 hours average
+- **Documentation**: All code documented
+- **Knowledge Sharing**: Regular tech talks and documentation
 
 ---
 
-## 🔗 Related Documentation
+## � Common Development Tasks
 
-### **Architecture & Design**
-- **[System Architecture](../01-architecture/README.md)** - High-level system design
-- **[Business Domains](../02-business-domains/README.md)** - Domain-driven design
-- **[Services](../03-services/README.md)** - Service implementation details
+### **Create New Service**
+```bash
+# 1. Create service directory
+mkdir -p services/new-service
 
-### **Operations & Quality**
-- **[Operations](../06-operations/README.md)** - Deployment and operational procedures
-- **[Templates](../10-appendix/templates/)** - Development templates and scaffolding
-- **[Checklists](../10-appendix/checklists/)** - Quality assurance checklists
+# 2. Add basic structure
+cd services/new-service
+mkdir -p cmd/server api configs
 
----
+# 3. Initialize Go module
+go mod init github.com/company/new-service
 
-## 📖 Development Workflow
+# 4. Add basic files
+touch cmd/server/main.go
+touch api/v1/service.proto
+touch configs/config.yaml
 
-### **Feature Development Process**
-1. **Planning**: Review requirements and design
-2. **Implementation**: Follow coding standards and patterns
-3. **Testing**: Write comprehensive tests
-4. **Review**: Code review and feedback
-5. **Deployment**: Automated deployment pipeline
-6. **Monitoring**: Post-deployment monitoring and validation
+# 5. Follow coding standards
+# See coding-standards.md
+```
+
+### **Add API Endpoint**
+```go
+// 1. Define in protobuf
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
+
+// 2. Implement in service
+func (s *server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
+    // Implementation
+}
+```
+
+### **Add Tests**
+```go
+func TestCreateUser(t *testing.T) {
+    // Test implementation
+}
+```
 
 ### **Code Review Process**
 1. **Self Review**: Developer reviews own changes
@@ -92,25 +149,32 @@
 
 ---
 
-## 🛠️ Development Tools
+## � Support & Resources
 
-### **Required Tools**
-- **Go 1.21+**: Primary development language
-- **Docker**: Containerization and local development
-- **Git**: Version control and collaboration
-- **IDE**: VS Code or GoLand with Go extensions
+### **Documentation**
+- **[Architecture](../01-architecture/README.md)** - System architecture
+- **[Services](../03-services/README.md)** - Individual service documentation
+- **[Operations](../06-operations/README.md)** - Deployment and operations
 
-### **Recommended Tools**
-- **golangci-lint**: Static analysis and linting
-- **gofmt/goimports**: Code formatting
-- **protoc**: Protocol buffer compilation
-- **hey/wrk**: Load testing tools
+### **Communication**
+- **Development**: #development
+- **Code Reviews**: #code-reviews
+- **Architecture**: #platform-architecture
+- **Security**: #security-incidents
 
-### **Platform Tools**
-- **Dapr**: Service mesh and event-driven communication
-- **ArgoCD**: GitOps deployment
-- **Kubernetes**: Container orchestration
-- **Prometheus/Grafana**: Monitoring and observability
+---
+
+## 🔗 Related Documentation
+
+### **Development & Architecture**
+- **[Architecture](../01-architecture/README.md)** - System architecture and design
+- **[Services](../03-services/README.md)** - Individual service documentation
+- **[Architecture Decisions](../08-architecture-decisions/README.md)** - Design decisions
+
+### **Quality & Operations**
+- **[Operations](../06-operations/README.md)** - Deployment and operations
+- **[Testing](./standards/)** - Testing frameworks and utilities
+- **[Platform Engineering](./standards/platform-engineering/)** - Platform operations
 
 ---
 
