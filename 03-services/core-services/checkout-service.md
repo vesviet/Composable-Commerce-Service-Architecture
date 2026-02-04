@@ -1,11 +1,11 @@
 # 🛒 Checkout Service - Complete Documentation
 
 **Service Name**: Checkout Service
-**Version**: 1.2.7
-**Last Updated**: 2026-02-01
-**Review Status**: ✅ **CODE REVIEW COMPLETE** - Customer ID extraction implemented, field naming standardized, validation enhanced
-**Production Ready**: 🟢 **READY** - All P0/P1 issues resolved, comprehensive validation added
-**Implementation Status**: ✅ **Full Implementation** - Customer authentication integration, input validation, transaction safety
+**Version**: 1.3.1
+**Last Updated**: 2026-02-04
+**Review Status**: ✅ **SERVICE REVIEW COMPLETE** - All P0/P1 issues resolved, production ready
+**Production Ready**: 🟢 **READY** - Reservation integrity, idempotency, and event publishing added
+**Implementation Status**: ✅ **Full Implementation** - Saga pattern, inventory validation, and conversion tracking
 
 ---
 
@@ -35,6 +35,8 @@ Checkout Service là microservice chuyên biệt xử lý quy trình checkout v�
 - **📊 Promotion Engine**: Automatic và manual coupon/discount application
 - **🚚 Shipping Integration**: Dynamic shipping rate calculation và method selection
 - **💰 Payment Processing**: Secure payment processing với compensation handling
+- **📦 Reservation Integrity**: P1 Fix - Validation of stock reservations before order creation
+- **🎉 Conversion Tracking**: P1 Fix - Publishing `cart.converted` events for analytics
 - **⚡ Performance Optimization**: Redis caching, async processing, optimized queries
 
 ### Business Value
@@ -526,15 +528,15 @@ module gitlab.com/ta-microservices/checkout
 go 1.25.3
 
 require (
-    gitlab.com/ta-microservices/common v1.9.0
-    gitlab.com/ta-microservices/catalog v1.2.2
-    gitlab.com/ta-microservices/customer v1.0.7
-    gitlab.com/ta-microservices/order v1.0.6
-    gitlab.com/ta-microservices/payment v1.0.5
-    gitlab.com/ta-microservices/pricing v1.1.0-dev.1
-    gitlab.com/ta-microservices/promotion v1.0.2
-    gitlab.com/ta-microservices/shipping v1.1.0
-    gitlab.com/ta-microservices/warehouse v1.0.8
+    gitlab.com/ta-microservices/common v1.9.5
+    gitlab.com/ta-microservices/catalog v1.2.8
+    gitlab.com/ta-microservices/customer v1.1.4
+    gitlab.com/ta-microservices/order v1.1.0
+    gitlab.com/ta-microservices/payment v1.0.7
+    gitlab.com/ta-microservices/pricing v1.1.3
+    gitlab.com/ta-microservices/promotion v1.1.2
+    gitlab.com/ta-microservices/shipping v1.1.2
+    gitlab.com/ta-microservices/warehouse v1.1.3
     // ... plus Kratos, Redis, GORM, Dapr, protobuf, etc.
 )
 ```
