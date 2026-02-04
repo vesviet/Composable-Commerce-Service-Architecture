@@ -1,9 +1,9 @@
 # 🔍 Search Service Documentation
 
 **Service Name**: Search Service  
-**Version**: v4.0  
+**Version**: v1.0.12  
 **Repository**: `gitlab.com/ta-microservices/search`  
-**Status**: ✅ Active (Updated February 2, 2026)
+**Status**: 🔄 In Review (Dependencies Updated)
 
 ---
 

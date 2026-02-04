@@ -15,12 +15,16 @@ và index codebase warehouse service:
 
 golangci-lint, make api, go build, wire, commit, new tag vs push
 
+golangci-lint, make api, go build, wire, commit vs push
+
 golangci-lint run
 
 commit và push
 
+git pull
 Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name payment
 review code, code quality, gitops config, business logic
+check đã dùng templates/update-gitops-image-tag.yaml
 
 # Review single workflow
 Follow docs/07-development/standards/workflow-review-release-prompt.md and run the process for workflow **complete-order-flow** in category **sequence-diagrams**.
@@ -33,4 +37,6 @@ Follow docs/07-development/standards/workflow-review-sequence-guide.md and revie
 
 review code, code quality, argocd config, business logic
 
-review code, code quality, gitops config, business logic
+index codebase, review code, code quality, gitops config, business logic
+
+index codebase, review code, code quality

@@ -1,21 +1,37 @@
 # Customer Service - Code Review Checklist v3
 
 **Service**: Customer Service
-**Version**: v1.1.2
-**Last Updated**: 2026-02-01
-**Status**: ✅ COMPLETED
+**Version**: v1.1.4
+**Last Updated**: 2026-02-04
+**Review Date**: 2026-02-04
+**Reviewer**: AI Code Review Agent (service-review-release-prompt)
+**Status**: 🔄 IN REVIEW
 
 ---
 
 ## 🔴 CRITICAL PRIORITY (P0 - Blocking Production)
 
-### [P0-1] Unchecked Errors (Errcheck)
-**Status**: ✅ COMPLETED
-**Release**: v1.0.4
+### [P0-1] Dependency Management
+**Status**: ⏳ IN PROGRESS
+**Description**: Update gitlab.com/ta-microservices dependencies to latest versions
+- Current: common v1.8.8, auth v1.0.4, notification v1.1.0, order v1.0.4, payment v1.0.0
+- Action: Run `go get gitlab.com/ta-microservices/common@latest` etc.
 
-### [P0-2] Empty Else Branch
-**Status**: ✅ COMPLETED
-**Release**: v1.0.4
+### [P0-2] Consul Configuration
+**Status**: ✅ VERIFIED
+**Description**: Consul address reads from environment variable
+- Location: `internal/server/consul.go`
+- Implementation: Checks `CONSUL_ADDR` env var with fallback to config file
+- Priority: Environment variable > config file > default (localhost:8500)
+- Logging: Properly logs when using environment variable
+
+### [P0-3] Lint Compliance
+**Status**: ⏳ PENDING
+**Description**: Ensure zero golangci-lint warnings
+
+### [P0-4] API Generation
+**Status**: ⏳ PENDING
+**Description**: Regenerate protobuf files with latest dependencies
 
 ## 🟡 HIGH PRIORITY (P1 - Should Fix Soon)
 

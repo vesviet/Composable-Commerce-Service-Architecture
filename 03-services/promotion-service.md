@@ -1,9 +1,9 @@
 # 🎁 Promotion Service Documentation
 
 **Service Name**: Promotion Service  
-**Version**: v1.0.4  
+**Version**: v1.1.2  
 **Repository**: `gitlab.com/ta-microservices/promotion`  
-**Status**: ✅ Active (Updated February 2, 2026)
+**Status**: 🔄 In Review (Updated February 4, 2026)
 
 ---
 

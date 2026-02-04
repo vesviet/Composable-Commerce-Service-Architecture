@@ -1,11 +1,11 @@
 # Shipping Service Code Review Checklist v3
 
 **Service**: shipping
-**Version**: v1.1.1
-**Review Date**: 2026-02-01
-**Last Updated**: 2026-02-01
-**Reviewer**: AI Code Review Agent
-**Status**: Review Complete – Checklist & Fixes Applied
+**Version**: v1.1.2
+**Review Date**: 2026-02-04
+**Last Updated**: 2026-02-04
+**Reviewer**: AI Code Review Agent (service-review-release-prompt)
+**Status**: 🔄 IN REVIEW
 
 ---
 
@@ -13,10 +13,11 @@
 
 The shipping service implements multi-carrier integration (GHN, Grab), shipment management, shipping methods, rate calculation, and event-driven flows following Clean Architecture with biz/data/service/client/events layers. Constants are centralized in `internal/constants` (event topics, cache keys, table names, error codes; `pkg/constants` removed). The codebase was reviewed against Coding Standards, Team Lead Code Review Guide, and Development Review Checklist. **No replace directives** in go.mod. Health endpoints `/health`, `/health/live`, `/health/ready` are present. Cache key constants applied in data/postgres/shipment.go. Test-case tasks skipped per review requirements.
 
-**Overall Assessment:** 🟢 READY
+**Overall Assessment:** � REVIEW IN PROGRESS
 - **Strengths:** Clean Architecture, biz/data/service separation, transactional outbox, Wire DI, Redis cache, JWT auth, health probes, migrations (Goose), event publishing
-- **Resolved:** data/postgres/shipment.go uses constants for cache keys (P2); constants consolidated in internal/constants (P2); internal/repository/shipment documented as legacy (P2); package GoDoc added for constants, biz/shipment, service (P2)
-- **Remaining:** None. Test-case tasks skipped per requirements.
+- **P1**: Dependency updates needed
+- **P2**: None identified
+- **Priority**: High - Update dependencies and verify build
 
 ---
 
