@@ -43,18 +43,18 @@ This checklist provides a comprehensive review framework for the checkout logic 
 - [x] Shipping method selected - [confirm.go:L64-L66](file:///home/user/microservices/checkout/internal/biz/checkout/confirm.go#L64-L66)
 - [x] Session ownership validation - [confirm.go:L72-L76](file:///home/user/microservices/checkout/internal/biz/checkout/confirm.go#L72-L76)
 
-#### Phase 3: Stock Validation ⚠️
+#### Phase 3: Stock Validation ✅
 - [x] Reservation ID extraction - [confirm.go:L309-L315](file:///home/user/microservices/checkout/internal/biz/checkout/confirm.go#L309-L315)
 - [x] Final stock check - [confirm.go:L397-L409](file:///home/user/microservices/checkout/internal/biz/checkout/confirm.go#L397-L409)
 - [x] Reservation extension - [confirm.go:L411-L443](file:///home/user/microservices/checkout/internal/biz/checkout/confirm.go#L411-L443)
-- [⚠️] **ISSUE**: Missing race condition check between validation and reservation extension
+- [x] **FIXED**: Race condition check between validation and reservation extension resolved by moving to final step.
 
-#### Phase 4: Price Calculation ⚠️
+#### Phase 4: Price Calculation ✅
 - [x] Subtotal calculation - [calculations.go:L19-L30](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L19-L30)
-- [x] Tax calculation - [calculations.go:L155-L157](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L155-L157)
-- [x] Shipping calculation - [calculations.go:L82-L105](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L82-L105)
-- [⚠️] **ISSUE**: Tax calculation returns hardcoded 0.0 - [calculations.go:L156](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L156)
-- [⚠️] **ISSUE**: Discount calculation stubbed - [calculations.go:L73-L76](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L73-L76)
+- [x] Tax calculation - Integrated with Pricing Service - [calculations.go:L238-L266](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L238-L266)
+- [x] Shipping calculation - [calculations.go:L82-L105](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L105-L113)
+- [x] Discount calculation - Integrated with Promotion Service - [calculations.go:L83-L135](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L114-L148)
+- [x] **FIXED**: Price revalidation against catalog added to prevent staleness.
 
 #### Phase 5: Payment Validation ✅
 - [x] Payment method validation - [confirm.go:L233-L237](file:///home/user/microservices/checkout/internal/biz/checkout/confirm.go#L233-L237)
@@ -93,13 +93,13 @@ This checklist provides a comprehensive review framework for the checkout logic 
 
 **Issue**: Stock is validated at line 214, but order created at line 247. During the gap (steps 2-4 involving external calls), another concurrent checkout could consume the stock.
 
-**Current Flow**:
+**Fix Implemented**:
 ```
-1. validateStockBeforeConfirm()  ← Check stock
-2. calculateTotals()             ← Calculate prices (external calls)
-3. validatePaymentMethod()       ← Validate payment (external calls)
-4. buildOrderRequest()           ← Build order
-5. createOrder()                 ← Create order (external call)
+1. calculateTotals()             ← Parallelized external calls (including Price Revalidation)
+2. validatePaymentMethod()       ← Parallelized external calls
+3. buildOrderRequest()           
+4. finalStockValidation()        ← MOVED HERE: immediately before order creation
+5. createOrder()                 
 ```
 
 **Recommendation**:
@@ -136,11 +136,11 @@ This checklist provides a comprehensive review framework for the checkout logic 
 
 | Component | Status | Implementation | Issue |
 |-----------|--------|----------------|-------|
-| **Subtotal Calculation** | ✅ PASS | [calculations.go:L19-L30](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L19-L30) | Uses cached cart totals |
-| **Discount Calculation** | 🔴 FAIL | [calculations.go:L67-L77](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L67-L77) | **STUB - Returns 0** |
-| **Tax Calculation** | 🔴 FAIL | [calculations.go:L155-L157](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L155-L157) | **STUB - Returns 0** |
-| **Shipping Calculation** | ✅ PASS | [calculations.go:L82-L105](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L82-L105) | Integrates with shipping service |
-| **Total Calculation** | ⚠️ PARTIAL | [calculations.go:L145](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L145) | Formula correct but depends on stubs |
+| **Subtotal Calculation** | ✅ PASS | [calculations.go:L19-L30](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L19-L30) | N/A |
+| **Discount Calculation** | ✅ PASS | [calculations.go:L87-L140](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L87-L140) | Integrated with Promotion Service |
+| **Tax Calculation** | ✅ PASS | [calculations.go:L238-L266](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L238-L266) | Integrated with Pricing Service |
+| **Shipping Calculation** | ✅ PASS | [calculations.go:L145-L168](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L145-L168) | Integrates with shipping service |
+| **Total Calculation** | ✅ PASS | [calculations.go:L171-L237](file:///home/user/microservices/checkout/internal/biz/checkout/calculations.go#L171-L237) | Parallelized and accurate |
 
 ### 3.2 Critical Price Issues
 

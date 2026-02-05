@@ -131,10 +131,7 @@ err := uc.tx.InTx(ctx, func(txCtx context.Context) error {
 
 #### **⚠️ Potential Issues**
 
-- [ ] **P2 - Reservation extension batch failures**  
-  **Location**: Checkout service calls `ExtendReservation` individually  
-  **Issue**: If 5 items reserved, extending 4 succeeds but 1 fails → inconsistent state  
-  **Recommendation**: Implement threshold-based failure handling (e.g., must extend ≥80%)
+- [x] **FIXED**: Reservation extension batch failures resolved in checkout service. Implemented fail-fast logic to ensure consistent stock state. 
   
 - [ ] **P3 - No reservation priority system**  
   **Issue**: First-come-first-served, no VIP customer prioritization  
@@ -726,12 +723,11 @@ CREATE INDEX idx_inventory_warehouse_product ON inventory(warehouse_id, product_
 - **Fix**: Verify QC failure path calls `IncrementAvailable` directly
 - **Investigation Needed**: Trace QC failure compensation logic
 
-#### **P1-2: Reservation Extension Batch Failure Handling**
+#### **P1-2: Reservation Extension Batch Failure Handling (FIXED)**
 
-- **Issue**: Partial extension failures not handled
-- **Impact**: Some items might expire prematurely
-- **File**: Checkout service reservation extension
-- **Fix**: Implement threshold-based failure tolerance (≥80% must succeed)
+- **Issue**: Partial extension failures now handled via fail-fast logic in checkout service.
+- **Impact**: Guarantees consistent stock state during payment period.
+- **Fix**: Implemented returning error on first failure in `extendReservationsForPayment`.
 
 ---
 
