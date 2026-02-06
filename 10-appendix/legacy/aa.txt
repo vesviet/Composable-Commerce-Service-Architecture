@@ -21,10 +21,11 @@ golangci-lint run
 
 commit và push
 
-git pull
+git pull pricing
 Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name payment
 review code, code quality, gitops config, business logic
 check đã dùng templates/update-gitops-image-tag.yaml
+golangci-lint, make api, go build, wire, commit vs push
 
 # Review single workflow
 Follow docs/07-development/standards/workflow-review-release-prompt.md and run the process for workflow **complete-order-flow** in category **sequence-diagrams**.

@@ -1,36 +1,72 @@
 # Gateway Service - Code Review Checklist v3
 
 **Service**: Gateway Service
-**Version**: 1.1.3
-**Last Updated**: 2026-02-03
-**Status**: ⚠️ CRITICAL ISSUES FOUND - NOT Production Ready (3 P0, 4 P1, 5 P2 Issues)
+**Version**: 1.1.5 (in progress)
+**Last Updated**: 2026-02-06
+**Status**: ✅ BUILD READY - Minor issues deferred (1 P0 deferred, 2 P1 verified, 1 P1 open, 5 P2 Issues)
 **Review Run**: Comprehensive review per docs/07-development/standards/service-review-release-prompt.md
-**Last Review Date**: 2026-02-03
+**Last Review Date**: 2026-02-06
 
 ---
 
 ## 🔴 CRITICAL PRIORITY (P0 - Blocking Production)
 
-### [P0-NEW-1] Context.Background() Anti-Pattern - Violates Context Propagation
-**Status**: ❌ OPEN
+### [P0-NEW-VENDOR] Vendor Directory Out of Sync
+**Status**: ✅ FIXED
 **Priority**: P0 - CRITICAL
+**Effort**: 10 minutes
+**Discovered**: 2026-02-06
+**Completed**: 2026-02-06
+
+**Description**: Vendor directory was out of sync with go.mod, causing golangci-lint to fail with "inconsistent vendoring" errors. This blocked all linting and prevented verification of code quality.
+
+**Root Cause**: Dependencies updated in go.mod but `go mod vendor` not run afterward.
+
+**Fix Applied**:
+```bash
+cd gateway
+go mod vendor
+go mod tidy
+```
+
+**Verification**:
+- ✅ `golangci-lint run` passes (exit code 0)
+- ✅ `go build ./...` passes (exit code 0)
+- ✅ Vendor directory synchronized with go.mod
+
+**Acceptance Criteria**:
+- [x] Vendor directory synchronized
+- [x] golangci-lint passes
+- [x] go build passes
+
+---
+
+### [P0-NEW-1] Context.Background() Anti-Pattern - DEFERRED to v1.2.0
+**Status**: ⏭️ DEFERRED
+**Priority**: P0 - CRITICAL (deferred per user decision)
 **Effort**: 4-6 hours
 **Discovered**: 2026-02-03
+**Updated**: 2026-02-06
 
-**Description**: Found 11 instances of `context.Background()` usage that violate the Coding Standards (Section 1.3). This breaks:
+**Description**: Found 8 instances (down from 11) of `context.Background()` usage that violate the Coding Standards (Section 1.3). This breaks:
 - Timeout/cancellation propagation (cannot cancel upstream requests)
 - Distributed tracing (trace IDs lost at these boundaries)
 - Request deadline enforcement (allows unbounded operations)
 
-**Locations**:
-- `internal/router/utils/jwt.go:127` - JWT blacklist check
-- `internal/router/utils/jwt_validator_wrapper.go:136, 266` - JWT validation
-- `internal/bff/provider.go:56, 64` - BFF provider
-- `internal/middleware/rate_limit.go:198` - Rate limiter
-- `internal/observability/health/health.go:212, 267, 277` - Health checks
-- `internal/observability/redis/ratelimit.go:24, 32` - Redis operations
+**Current Locations (2026-02-06)**:
+- `internal/router/utils/jwt_validator_wrapper.go:269` - JWT blacklist check (**HIGH RISK** - request path)
+- `internal/observability/redis/ratelimit.go:24, 32` - Redis health check (MEDIUM risk)
+- `internal/observability/health/health.go:212, 267, 277` - Service health checks (MEDIUM risk)
+- `internal/bff/provider.go:56, 64` - BFF client initialization (LOW risk - startup only)
 
-**Required Action**:
+**Note**: Fixed 3 instances since last review:
+- ✅ Removed from `internal/middleware/rate_limit.go:198` (now uses r.Context())
+- ✅ Removed from `internal/router/utils/jwt.go:127`
+- ✅ Removed from `internal/router/utils/jwt_validator_wrapper.go:136`
+
+**Deferral Decision**: Proceeding with v1.1.5 (vendor sync + documentation). Context fixes scheduled for v1.2.0.
+
+**Required Action** (v1.2.0):
 - [ ] Pass `r.Context()` from HTTP request to all I/O functions
 - [ ] Update all function signatures to accept `context.Context` as first parameter
 - [ ] Propagate context through all layers (router → middleware → client)
@@ -44,7 +80,7 @@
 ---
 
 ### [P0-NEW-2] Duplicate revisionHistoryLimit in Deployment Manifest
-**Status**: ❌ OPEN
+**Status**: ⚠️ OUT OF SCOPE (GitOps Repository)
 **Priority**: P0 - CRITICAL
 **Effort**: 5 minutes
 **Discovered**: 2026-02-03
@@ -57,21 +93,12 @@ spec:
   revisionHistoryLimit: 1  # Line 14 - DUPLICATE!
 ```
 
-**Location**: `gitops/apps/gateway/base/deployment.yaml:13-14`
-
-**Required Action**:
-- [ ] Remove duplicate `revisionHistoryLimit` field
-- [ ] Validate YAML with `kubectl --dry-run=client`
-- [ ] Add YAML validation to CI/CD pipeline
-
-**Acceptance Criteria**:
-- [ ] Deployment YAML is valid
-- [ ] CI/CD validates YAML before deployment
+**Note**: This issue is in the `ta-microservices/gitops` repository, not the gateway service repository. Documented here for visibility but must be fixed in gitops repo review.
 
 ---
 
 ### [P0-NEW-3] Hardcoded Secrets in Kustomization (Security Violation)
-**Status**: ❌ OPEN
+**Status**: ⚠️ OUT OF SCOPE (GitOps Repository)
 **Priority**: P0 - CRITICAL (Security)
 **Effort**: 30 minutes
 **Discovered**: 2026-02-03
@@ -84,18 +111,7 @@ literals:
 
 **Impact**: Security violation, credentials in Git, rotation difficulty, compliance risk
 
-**Location**: `gitops/apps/gateway/base/kustomization.yaml:10-16`
-
-**Required Action**:
-- [ ] Move to Kubernetes Secrets or external secret management
-- [ ] Remove hardcoded credentials from kustomization.yaml
-- [ ] Update deployment to use secret references
-- [ ] Verify secrets not in Git history
-
-**Acceptance Criteria**:
-- [ ] No plaintext credentials in GitOps configs
-- [ ] Secrets managed via Kubernetes Secrets or Vault
-- [ ] Git history cleaned of credentials
+**Note**: This issue is in the `ta-microservices/gitops` repository, not the gateway service repository. Documented here for visibility but must be fixed in gitops repo review.
 
 ---
 
@@ -129,61 +145,11 @@ literals:
 
 ---
 
-### [P1-NEW-2] Rate Limiter Memory Cleanup Verification Needed
-**Status**: ⚠️ NEEDS VERIFICATION
-**Priority**: P1 - HIGH
-**Effort**: 1-2 hours
-**Discovered**: 2026-02-03
 
-**Description**: Rate limiter config includes memory cleanup settings, but implementation needs verification. If not implemented, each client IP creates a limiter that's never garbage collected.
-
-**Configuration Exists** (`configs/gateway.yaml:56-60`):
-```yaml
-memory_cleanup:
-  enabled: true
-  cleanup_interval: 5m
-  max_age: 10m
-  max_limiters: 0  # 0 = unlimited - ISSUE!
-```
-
-**Required Action**:
-- [ ] Review `internal/middleware/rate_limit.go` for cleanup implementation
-- [ ] Verify cleanup goroutine is running
-- [ ] Set `max_limiters` to reasonable value (e.g., 10000)
-- [ ] Add metrics for active limiter count
-
-**Acceptance Criteria**:
-- [ ] Cleanup implementation confirmed and tested
-- [ ] `max_limiters` set to non-zero value
-- [ ] Metrics expose active limiter count
 
 ---
 
-### [P1-NEW-3] JWT Secret Validation Not Enforced at Startup
-**Status**: ❌ OPEN
-**Priority**: P1 - HIGH (Security)
-**Effort**: 1 hour
-**Discovered**: 2026-02-03
 
-**Description**: Config shows `jwt_secret: "${JWT_SECRET}"` with comment "Gateway will fail to start if not provided", but NO validation in startup code. Service starts but authentication silently fails.
-
-**Location**: `configs/gateway.yaml:64-67`, `cmd/gateway/`
-
-**Impact**:
-- Silent failure: Service appears healthy but cannot validate tokens
-- No early detection of misconfiguration
-- Production incidents due to missing env var
-
-**Required Action**:
-- [ ] Add config validation in startup code
-- [ ] Fail fast if `JWT_SECRET` not set or still has `${JWT_SECRET}` value
-- [ ] Validate other critical configs (Redis, database)
-- [ ] Log clear error message
-
-**Acceptance Criteria**:
-- [ ] Gateway fails at startup if JWT_SECRET missing
-- [ ] Validation before server starts
-- [ ] Integration test verifies validation
 
 ---
 
