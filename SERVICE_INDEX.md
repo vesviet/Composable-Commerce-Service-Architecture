@@ -420,10 +420,10 @@ Supporting services for operations and management.
 | Promotion | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Checkout | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Order | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Payment | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Payment | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ✅ |
 | Warehouse | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Fulfillment | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Shipping | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Fulfillment | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Shipping | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
 | Return | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Gateway | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Search | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
