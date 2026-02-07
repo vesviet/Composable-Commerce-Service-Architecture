@@ -410,29 +410,36 @@ Supporting services for operations and management.
 
 ## Service Dependencies Matrix
 
-| Service | PostgreSQL | Redis | Elasticsearch | Dapr | Consul |
-|---------|-----------|-------|---------------|------|--------|
-| Auth | ✅ | ✅ | ❌ | ❌ | ✅ |
-| User | ✅ | ✅ | ❌ | ❌ | ✅ |
-| Customer | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Catalog | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Pricing | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Promotion | ✅ | ✅ | ❌ | ❌ | ✅ |
-| Checkout | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Order | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Payment | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Warehouse | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Fulfillment | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Shipping | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Return | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Gateway | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Search | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Analytics | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Review | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Common Ops | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Notification | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Location | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Loyalty | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Service | PostgreSQL | Redis | Elasticsearch | Dapr | Consul | MinIO | External APIs |
+|---------|-----------|-------|---------------|------|--------|-------|---------------|
+| Auth | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| User | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Customer | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Catalog | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Pricing | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Promotion | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Checkout | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Order | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Payment | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Warehouse | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Fulfillment | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Shipping | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Return | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Gateway | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Search | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Analytics | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Review | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Common Ops | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
+| Notification | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Location | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Loyalty | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Admin | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Frontend | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+### Dependencies Notes:
+- **External APIs**: SendGrid/SES, Twilio (Notification Service)
+- **Service-to-Service**: Fulfillment depends on Warehouse & Catalog services
+- **Frontend Services**: Admin & Frontend only depend on Gateway Service
 
 ---
 
@@ -444,19 +451,24 @@ Supporting services for operations and management.
 |---------|------|------|
 | Auth | 8000 | 9000 |
 | User | 8001 | 9001 |
-| Catalog | 8001 | 9001 |
 | Pricing | 8002 | 9002 |
 | Customer | 8003 | 9003 |
-| Payment | 8004 | 9004 |
-| Fulfillment | 8005 | 9005 |
-| Return | 8006 | 9006 |
-| Warehouse | 8008 | 9008 |
+| Order | 8004 | 9004 |
+| Payment | 8005 | 9005 |
+| Warehouse | 8006 | 9006 |
+| Location | 8007 | 9007 |
+| Fulfillment | 8008 | 9008 |
 | Notification | 8009 | 9009 |
-| Search | 8010 | 9010 |
-| Loyalty | 8013 | 9013 |
+| Checkout | 8010 | 9010 |
+| Promotion | 8011 | 9011 |
+| Shipping | 8012 | 9012 |
+| Return | 8013 | 9013 |
+| Loyalty | 8014 | 9014 |
+| Catalog | 8015 | 9015 |
 | Review | 8016 | 9016 |
-| Analytics | 8017 | 9017 |
-| Location | 8017 | 9017 |
+| Search | 8017 | 9017 |
+| Analytics | 8018 | 9018 |
+| Common Ops | 8019 | 9019 |
 | Gateway | 80 | - |
 | Admin | 3001 | - |
 | Frontend | 3000 | - |
