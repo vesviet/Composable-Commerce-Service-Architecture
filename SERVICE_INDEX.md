@@ -429,9 +429,9 @@ Supporting services for operations and management.
 | Search | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Analytics | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Review | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Common Ops | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
-| Notification | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| Location | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Common Ops | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| Notification | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
+| Location | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Loyalty | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Admin | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Frontend | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
