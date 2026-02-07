@@ -425,7 +425,7 @@ Supporting services for operations and management.
 | Fulfillment | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Shipping | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
 | Return | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Gateway | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Gateway | ❌ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Search | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Analytics | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Review | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
