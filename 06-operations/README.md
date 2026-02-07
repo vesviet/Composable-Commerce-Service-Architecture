@@ -9,10 +9,13 @@
 ## 📋 Quick Navigation
 
 ### **🚀 Deployment & Infrastructure**
-- **[GitOps Overview](deployment/gitops/)** - Complete GitOps strategy and implementation
-- **[ArgoCD](deployment/argocd/)** - GitOps deployment with ArgoCD
-- **[Kubernetes](deployment/kubernetes/)** - K8s setup and configuration
+- **[Deployment Overview](deployment/)** - Complete deployment strategy and procedures
+- **[GitOps Strategy](deployment/gitops/)** - Kustomize-based GitOps with ArgoCD
+- **[ArgoCD Operations](deployment/argocd/)** - ArgoCD deployment procedures
+- **[Kubernetes Management](deployment/kubernetes/)** - K8s setup and configuration
 - **[Deployment Guides](deployment/guides/)** - Step-by-step deployment procedures
+
+**Note**: We migrated from ApplicationSet-based to Kustomize-based GitOps in February 2026. See [GitOps Migration Guide](../01-architecture/gitops-migration.md) for details.
 
 ### **📊 Monitoring & Observability**
 - **[Monitoring Overview](monitoring/)** - Complete observability strategy
@@ -44,8 +47,8 @@
 ## 🎯 Operations Philosophy
 
 ### **🚀 Operational Excellence**
-- **Infrastructure as Code**: All infrastructure defined in code
-- **GitOps Deployment**: Declarative deployments with ArgoCD
+- **Infrastructure as Code**: All infrastructure defined in code (Kustomize manifests)
+- **GitOps Deployment**: Declarative deployments with ArgoCD and Kustomize
 - **Observability First**: Comprehensive monitoring and alerting
 - **Security by Default**: Enterprise-grade security practices
 - **Automation**: Automated operational procedures and recovery
@@ -59,7 +62,7 @@
 
 ### **📊 Platform Engineering**
 - **Developer Experience**: Self-service platform capabilities
-- **Standardization**: Consistent patterns and procedures
+- **Standardization**: Consistent patterns and procedures (Kustomize-based)
 - **Performance Optimization**: Continuous performance monitoring
 - **Cost Efficiency**: Resource optimization and cost management
 
@@ -172,6 +175,7 @@
 
 ---
 
-**Last Updated**: February 3, 2026  
+**Last Updated**: February 7, 2026  
 **Review Cycle**: Monthly operations review  
-**Maintained By**: DevOps, SRE & Platform Engineering Teams
+**Maintained By**: DevOps, SRE & Platform Engineering Teams  
+**GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)

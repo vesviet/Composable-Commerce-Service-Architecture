@@ -1,49 +1,63 @@
 # 🚀 Deployment Documentation
 
 **Purpose**: Complete deployment strategy and procedures for the microservices platform  
-**Last Updated**: 2026-02-03  
-**Status**: ✅ Active - GitOps deployment with ArgoCD
+**Last Updated**: 2026-02-07  
+**Status**: ✅ Active - Kustomize-based GitOps deployment with ArgoCD  
+**GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
 
 ---
 
 ## 📋 Overview
 
-This section contains comprehensive documentation for deploying and managing the microservices platform. We use GitOps with ArgoCD as our primary deployment strategy, ensuring reliable, automated, and auditable deployments.
+This section contains comprehensive documentation for deploying and managing the microservices platform. We use **Kustomize-based GitOps with ArgoCD** as our primary deployment strategy, ensuring reliable, automated, and auditable deployments.
 
 ### 🎯 What You'll Find Here
 
-- **[GitOps Overview](./gitops/)** - Complete GitOps strategy and implementation
+- **[GitOps Overview](./gitops/)** - Complete Kustomize-based GitOps strategy
 - **[ArgoCD Procedures](./argocd/)** - ArgoCD-specific deployment procedures
 - **[Kubernetes Operations](./kubernetes/)** - K8s cluster management and operations
 - **[Deployment Guides](./guides/)** - Step-by-step deployment procedures
+
+### ⚠️ Migration Notice
+
+**February 2026**: We migrated from ApplicationSet-based to Kustomize-based GitOps for better environment management and consistency. See [GitOps Migration Guide](../../01-architecture/gitops-migration.md) for complete details.
 
 ---
 
 ## 🚀 Deployment Strategy
 
-### **GitOps-First Approach**
+### **Kustomize-based GitOps Approach**
 
 ```mermaid
 graph LR
     A[Git Repository] --> B[ArgoCD]
-    B --> C[Kubernetes Cluster]
-    C --> D[Applications Deployed]
+    B --> C[Kustomize Build]
+    C --> D[Kubernetes Cluster]
+    D --> E[Applications Deployed]
     
-    E[Developer Push] --> A
-    F[Automated Testing] --> A
-    G[Security Scans] --> A
+    F[Developer Push] --> A
+    G[Automated Testing] --> A
+    H[Security Scans] --> A
     
-    A --> H[CI/CD Pipeline]
-    H --> I[Docker Registry]
-    I --> C
+    A --> I[CI/CD Pipeline]
+    I --> J[Docker Registry]
+    J --> D
 ```
 
 ### **Key Principles**
-- **Declarative Configuration**: All infrastructure defined in code
+- **Declarative Configuration**: All infrastructure defined in Kustomize manifests
 - **Version Control**: Git as single source of truth
 - **Automated Deployment**: Zero-touch deployment pipeline
-- **Rollback Capability**: Instant rollback to previous versions
-- **Environment Parity**: Consistent environments across stages
+- **Rollback Capability**: Instant rollback via Git revert
+- **Environment Parity**: Consistent environments with overlays
+
+### **Technology Stack**
+- **GitOps Engine**: ArgoCD 2.8+
+- **Configuration Management**: Kustomize (native K8s)
+- **Container Orchestration**: Kubernetes 1.29+
+- **CI/CD**: GitLab CI/CD
+- **Monitoring**: Prometheus + Grafana
+- **Logging**: Loki + Promtail
 
 ---
 
@@ -60,7 +74,7 @@ graph LR
 ### **Deployment Pipeline**
 
 ```yaml
-# GitOps Pipeline
+# Kustomize-based GitOps Pipeline
 stages:
   - name: "Code Commit"
     trigger: "Git Push"
@@ -79,14 +93,53 @@ stages:
       
   - name: "GitOps Update"
     actions:
-      - "Update Image Tag"
-      - "Commit to Git"
+      - "Update Image Tag in Kustomize"
+      - "Commit to GitOps Repo"
       
   - name: "ArgoCD Deploy"
     actions:
       - "Detect Changes"
+      - "Kustomize Build"
       - "Deploy to K8s"
       - "Health Check"
+```
+
+### **Repository Structure**
+
+```yaml
+# GitOps Repository (Kustomize-based)
+gitops/
+├── bootstrap/                 # Root applications
+│   └── root-app-dev.yaml
+├── environments/              # Environment-specific configs
+│   ├── dev/
+│   │   ├── apps/             # Dev applications
+│   │   ├── projects/         # ArgoCD projects
+│   │   └── resources/        # Dev-specific resources
+│   └── production/
+│       ├── apps/             # Production applications
+│       ├── projects/         # ArgoCD projects
+│       └── resources/        # Prod-specific resources
+├── apps/                     # Application configurations (24 services)
+│   ├── {service}/
+│   │   ├── base/             # Base manifests
+│   │   │   ├── deployment.yaml
+│   │   │   ├── service.yaml
+│   │   │   └── kustomization.yaml
+│   │   └── overlays/         # Environment overlays
+│   │       ├── dev/
+│   │       └── production/
+├── infrastructure/            # Infrastructure components
+│   ├── databases/
+│   ├── monitoring/
+│   └── security/
+├── components/               # Reusable components
+│   ├── common-infrastructure-envvars/
+│   ├── imagepullsecret/
+│   └── infrastructure-egress/
+└── clusters/                 # Cluster-specific configs
+    ├── dev/
+    └── production/
 ```
 
 ---
@@ -105,24 +158,68 @@ argocd CLI
 
 ### **2. Setup GitOps Repository**
 ```bash
-# Clone GitOps repository
-git clone https://gitlab.company.com/gitops/apps.git
-cd apps
+# Clone GitOps repository (Kustomize-based)
+git clone https://gitlab.com/ta-microservices/gitops.git
+cd gitops
 
 # Configure ArgoCD
-kubectl apply -f argocd/install.yaml
+kubectl apply -f bootstrap/root-app-dev.yaml
 ```
 
 ### **3. Deploy First Application**
 ```bash
-# Add application configuration
-mkdir -p apps/order-service
-cp templates/application.yaml apps/order-service/
+# Application structure (Kustomize)
+mkdir -p apps/order-service/base
+mkdir -p apps/order-service/overlays/dev
 
-# Apply to cluster
-kubectl apply -f apps/order-service/
+# Create base manifests
+cat > apps/order-service/base/deployment.yaml <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+      - name: order-service
+        image: order-service:latest
+        ports:
+        - containerPort: 8000
+EOF
 
-# Check status
+# Create kustomization
+cat > apps/order-service/base/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+EOF
+
+# Create dev overlay
+cat > apps/order-service/overlays/dev/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+  - ../../base
+patchesStrategicMerge:
+  - patch-deployment.yaml
+EOF
+
+# Commit and push
+git add apps/order-service/
+git commit -m "Add order-service"
+git push origin main
+
+# ArgoCD will auto-sync
 argocd app get order-service
 ```
 
@@ -131,16 +228,18 @@ argocd app get order-service
 ## 📚 Documentation Structure
 
 ### **🚀 GitOps Strategy**
-- **[GitOps Overview](./gitops/)** - Complete GitOps strategy
-- **Multi-Environment Setup** - Dev/Staging/Production
+- **[GitOps Overview](./gitops/)** - Complete Kustomize-based GitOps strategy
+- **Multi-Environment Setup** - Dev/Staging/Production with overlays
 - **Progressive Delivery** - Canary and blue-green deployments
-- **Best Practices** - GitOps patterns and procedures
+- **Best Practices** - Kustomize patterns and procedures
+- **Migration Guide** - ApplicationSet to Kustomize migration
 
 ### **🔧 ArgoCD Operations**
 - **[ArgoCD Guide](./argocd/ARGOCD_GUIDE.md)** - Comprehensive ArgoCD guide
 - **Application Management** - Service deployment procedures
 - **Configuration** - ArgoCD setup and configuration
 - **Troubleshooting** - Common ArgoCD issues
+- **Sync Waves** - Ordered deployment strategies
 
 ### **☸️ Kubernetes Operations**
 - **[Kubernetes Setup](./kubernetes/INSTALLATION.md)** - Cluster setup
@@ -345,6 +444,7 @@ kubectl describe nodes
 
 ---
 
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-02-07  
 **Review Cycle**: Monthly deployment review  
-**Maintained By**: DevOps & Platform Engineering Teams
+**Maintained By**: DevOps & Platform Engineering Teams  
+**GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)

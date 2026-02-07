@@ -512,20 +512,87 @@ argocd:
   control_plane:
     replicas: 3
     
+  repository:
+    url: https://gitlab.com/ta-microservices/gitops.git
+    type: git
+    
   applications:
     - name: core-business-services
-      path: applications/main
+      path: environments/dev/apps
+      destination:
+        namespace: core-business-dev
+      sync_policy:
+        automated:
+          prune: true
+          self_heal: true
+          
+    - name: platform-services
+      path: environments/dev/apps
+      destination:
+        namespace: platform-dev
       sync_policy:
         automated:
           prune: true
           self_heal: true
           
     - name: infrastructure
-      path: applications/infrastructure
+      path: infrastructure
+      destination:
+        namespace: infrastructure
       sync_policy:
         automated:
           prune: true
           self_heal: true
+          
+  sync_waves:
+    - wave: 0  # Infrastructure (databases, redis, dapr)
+    - wave: 1  # Core services (auth, user, gateway)
+    - wave: 2  # Business services (catalog, pricing, order)
+    - wave: 3  # Supporting services (notification, search)
+    - wave: 4  # Frontend services (admin, frontend)
+```
+
+### **Kustomize Configuration**
+
+```yaml
+# Kustomize Base Configuration
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+  - secret.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
+  - servicemonitor.yaml
+
+commonLabels:
+  app.kubernetes.io/name: service-name
+  app.kubernetes.io/part-of: microservices-platform
+  app.kubernetes.io/managed-by: argocd
+
+# Environment-specific overlay
+# overlays/dev/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../base
+
+patchesStrategicMerge:
+  - patch-deployment.yaml
+  - patch-configmap.yaml
+
+replicas:
+  - name: service-name
+    count: 1
+
+images:
+  - name: service-name
+    newTag: dev-latest
 ```
 
 ### **Build Infrastructure**
@@ -769,26 +836,38 @@ resource "aws_eks_cluster" "main" {
 }
 ```
 
-### **Helm Chart Management**
+### **Kustomize Management**
 
 ```yaml
-# Helm Chart Dependencies
-dependencies:
-  - name: postgresql
-    version: "12.12.10"
-    repository: "https://charts.bitnami.com/bitnami"
+# Kustomize Components
+components:
+  common-infrastructure-envvars:
+    purpose: Shared environment variables
+    usage: Common infrastructure configuration
     
-  - name: redis
-    version: "18.1.5"
-    repository: "https://charts.bitnami.com/bitnami"
+  imagepullsecret:
+    purpose: Container registry authentication
+    usage: Pull images from private registry
     
-  - name: prometheus
-    version: "25.8.0"
-    repository: "https://prometheus-community.github.io/helm-charts"
+  infrastructure-egress:
+    purpose: Egress network policies
+    usage: Control outbound traffic
+
+# Application Structure
+apps/{service}/:
+  base/:
+    - deployment.yaml
+    - service.yaml
+    - configmap.yaml
+    - kustomization.yaml
     
-  - name: grafana
-    version: "7.0.17"
-    repository: "https://grafana.github.io/helm-charts"
+  overlays/:
+    dev/:
+      - kustomization.yaml
+      - patch-deployment.yaml
+    production/:
+      - kustomization.yaml
+      - patch-deployment.yaml
 ```
 
 ---
@@ -847,6 +926,7 @@ dependencies:
 
 ---
 
-**Last Updated**: February 1, 2026  
+**Last Updated**: February 7, 2026  
 **Review Cycle**: Quarterly  
-**Maintained By**: Infrastructure Team
+**Maintained By**: Infrastructure Team  
+**GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)

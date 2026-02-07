@@ -18,8 +18,9 @@ This section contains the foundational architectural documentation for our micro
 
 ### **📚 Infrastructure & Deployment**
 
-- **[infrastructure-architecture.md](infrastructure-architecture.md)** - Infrastructure components and platform services
-- **[deployment-architecture.md](deployment-architecture.md)** - Deployment patterns and operational architecture
+- **[infrastructure-architecture.md](infrastructure-architecture.md)** - Infrastructure components and platform services (Kubernetes, Dapr, databases)
+- **[deployment-architecture.md](deployment-architecture.md)** - Deployment patterns with GitOps and Kustomize
+- **[gitops-migration.md](gitops-migration.md)** - GitOps migration guide from argocd/ to gitops/ repository
 - **[integration-architecture.md](integration-architecture.md)** - Service integration patterns and data flow
 - **[observability-architecture.md](observability-architecture.md)** - Monitoring, logging, and tracing architecture
 
@@ -45,6 +46,7 @@ This section contains the foundational architectural documentation for our micro
 - **Microservices Patterns**: Service mesh, circuit breakers, bulkheads
 - **Event Sourcing**: Immutable event logs for audit and replay
 - **CQRS**: Command Query Responsibility Segregation where appropriate
+- **GitOps**: Declarative infrastructure and application deployment with Kustomize
 
 ---
 
@@ -94,19 +96,22 @@ For new team members, we recommend reading in this order:
 ## 📊 **System Metrics**
 
 ### **Scale**
-- **Services**: 22+ microservices in production
+- **Services**: 24 deployable microservices + 5 infrastructure services
 - **Events**: 50+ event types across domains
 - **APIs**: 200+ endpoints with OpenAPI specs
 - **Databases**: 15+ domain-specific databases
+- **GitOps**: Kustomize-based deployment with ArgoCD
 
 ### **Performance Targets**
 - **API Response Time**: P95 < 200ms
 - **Event Processing**: < 5s end-to-end latency
 - **System Availability**: 99.9% uptime SLA
 - **Data Consistency**: Eventually consistent with strong consistency where needed
+- **Deployment Time**: 35-45 minutes (full platform)
 
 ---
 
-**Last Updated**: January 26, 2026  
+**Last Updated**: February 7, 2026  
 **Review Cycle**: Monthly architecture review  
-**Maintained By**: Architecture Team
+**Maintained By**: Architecture Team  
+**GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)

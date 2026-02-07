@@ -1,22 +1,33 @@
 # 🚀 GitOps Documentation
 
-**Purpose**: Complete GitOps strategy and implementation guides  
-**Last Updated**: 2026-02-03  
-**Status**: ✅ Active - Production-ready GitOps implementation
+**Purpose**: Complete Kustomize-based GitOps strategy and implementation guides  
+**Last Updated**: 2026-02-07  
+**Status**: ✅ Active - Production-ready Kustomize-based GitOps  
+**Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
 
 ---
 
 ## 📋 Overview
 
-This section contains comprehensive documentation for our GitOps implementation using ArgoCD. GitOps is our core deployment strategy that provides automated, reliable, and auditable deployments for all microservices.
+This section contains comprehensive documentation for our **Kustomize-based GitOps implementation** using ArgoCD. GitOps is our core deployment strategy that provides automated, reliable, and auditable deployments for all 24 microservices.
 
 ### 🎯 What You'll Find Here
 
-- **[GitOps Overview](./GITOPS_OVERVIEW.md)** - Complete GitOps strategy and principles
-- **[Multi-Cluster GitOps](./MULTI_CLUSTER_GITOPS.md)** - Multi-environment deployment patterns
-- **[Progressive Delivery](./PROGRESSIVE_DELIVERY.md)** - Advanced deployment strategies
-- **[GitOps Security](./GITOPS_SECURITY.md)** - Security best practices
+- **[GitOps Overview](./GITOPS_OVERVIEW.md)** - Complete Kustomize-based GitOps strategy
+- **[Repository Structure](./REPOSITORY_STRUCTURE.md)** - GitOps repository organization
+- **[Deployment Patterns](./DEPLOYMENT_PATTERNS.md)** - Kustomize deployment strategies
+- **[Best Practices](./BEST_PRACTICES.md)** - Kustomize and GitOps best practices
 - **[Troubleshooting](./TROUBLESHOOTING.md)** - Common issues and solutions
+
+### ⚠️ Migration Notice
+
+**February 2026**: We migrated from ApplicationSet-based to Kustomize-based GitOps for:
+- ✅ Better environment management with overlays
+- ✅ Improved consistency and standardization
+- ✅ Enhanced scalability and maintainability
+- ✅ Simplified configuration management
+
+See [GitOps Migration Guide](../../../01-architecture/gitops-migration.md) for complete details.
 
 ---
 
@@ -28,21 +39,55 @@ This section contains comprehensive documentation for our GitOps implementation 
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Git Repository │    │     ArgoCD      │    │  Kubernetes     │
 │                 │    │                 │    │    Cluster      │
-│ • Helm Charts   │───▶│ • GitOps Engine │───▶│ • Applications  │
-│ • K8s Manifests │    │ • Sync Engine   │    │ • Infrastructure│
-│ • Config Files  │    │ • Health Checks │    │ • Services      │
-│ • Environment   │    │ • Rollback      │    │ • Monitoring    │
+│ • Kustomize     │───▶│ • GitOps Engine │───▶│ • Applications  │
+│ • Base Manifests│    │ • Sync Engine   │    │ • Infrastructure│
+│ • Overlays      │    │ • Health Checks │    │ • Services      │
+│ • Components    │    │ • Rollback      │    │ • Monitoring    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ### Implementation Stack
 
-- **GitOps Engine**: ArgoCD
-- **Container Orchestration**: Kubernetes
-- **Package Management**: Helm Charts
+- **GitOps Engine**: ArgoCD 2.8+
+- **Configuration Management**: Kustomize (native K8s)
+- **Container Orchestration**: Kubernetes 1.29+
 - **CI/CD**: GitLab CI/CD
 - **Monitoring**: Prometheus + Grafana
-- **Logging**: ELK Stack
+- **Logging**: Loki + Promtail
+
+### Repository Structure
+
+```
+gitops/
+├── bootstrap/                 # Root applications
+│   └── root-app-dev.yaml
+├── environments/              # Environment-specific configurations
+│   ├── dev/
+│   │   ├── apps/             # Dev applications
+│   │   ├── projects/         # ArgoCD projects
+│   │   └── resources/        # Dev-specific resources
+│   └── production/
+│       ├── apps/             # Production applications
+│       ├── projects/         # ArgoCD projects
+│       └── resources/        # Prod-specific resources
+├── apps/                     # Application configurations (24 services)
+│   ├── {service}/
+│   │   ├── base/             # Base manifests
+│   │   └── overlays/         # Environment overlays
+│   │       ├── dev/
+│   │       └── production/
+├── infrastructure/            # Infrastructure components
+│   ├── databases/
+│   ├── monitoring/
+│   └── security/
+├── components/               # Reusable components
+│   ├── common-infrastructure-envvars/
+│   ├── imagepullsecret/
+│   └── infrastructure-egress/
+└── clusters/                 # Cluster-specific configs
+    ├── dev/
+    └── production/
+```
 
 ---
 
@@ -50,17 +95,20 @@ This section contains comprehensive documentation for our GitOps implementation 
 
 ### 🚀 Getting Started
 - **[GitOps Overview](./GITOPS_OVERVIEW.md)** - Start here for complete understanding
-- **[Quick Start Guide](./QUICK_START.md)** - Get GitOps running in 15 minutes
+- **[Quick Start Guide](./QUICK_START.md)** - Get Kustomize-based GitOps running
 - **[Installation Guide](./INSTALLATION.md)** - Detailed setup instructions
+- **[Migration Guide](../../../01-architecture/gitops-migration.md)** - ApplicationSet to Kustomize
 
 ### 🏗️ Architecture & Design
 - **[Architecture Overview](./GITOPS_OVERVIEW.md#architecture)** - System design
-- **[Repository Structure](./REPOSITORY_STRUCTURE.md)** - Git organization
-- **[Deployment Patterns](./DEPLOYMENT_PATTERNS.md)** - Common deployment strategies
+- **[Repository Structure](./REPOSITORY_STRUCTURE.md)** - Kustomize organization
+- **[Deployment Patterns](./DEPLOYMENT_PATTERNS.md)** - Kustomize deployment strategies
+- **[Sync Waves](./SYNC_WAVES.md)** - Ordered deployment with dependencies
 
 ### 🔧 Implementation
-- **[Multi-Cluster GitOps](./MULTI_CLUSTER_GITOPS.md)** - Multi-environment setup
-- **[Progressive Delivery](./PROGRESSIVE_DELIVERY.md)** - Advanced deployments
+- **[Kustomize Guide](./KUSTOMIZE_GUIDE.md)** - Complete Kustomize usage
+- **[Base + Overlays](./BASE_OVERLAYS.md)** - Environment management
+- **[Components](./COMPONENTS.md)** - Reusable configuration
 - **[Configuration Management](./CONFIGURATION.md)** - Config and secrets
 - **[Monitoring & Observability](./MONITORING.md)** - Track deployments
 
@@ -103,11 +151,14 @@ This section contains comprehensive documentation for our GitOps implementation 
 
 ### ✅ Implemented Features
 - [x] ArgoCD GitOps engine
-- [x] Helm chart standardization
-- [x] Multi-environment support
-- [x] Automated deployments
+- [x] Kustomize-based configuration management
+- [x] Base + Overlays pattern for environments
+- [x] Reusable components
+- [x] Multi-environment support (dev/production)
+- [x] Automated deployments with sync waves
 - [x] Health checks and monitoring
-- [x] Rollback capabilities
+- [x] Rollback capabilities via Git revert
+- [x] 24 microservices deployed
 
 ### 🔄 In Progress
 - [ ] Progressive delivery patterns
@@ -144,21 +195,65 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 
 ### 3. Configure GitOps Repository
 ```bash
-# Clone GitOps repository
-git clone https://gitlab.example.com/gitops/apps.git
-cd apps
+# Clone Kustomize-based GitOps repository
+git clone https://gitlab.com/ta-microservices/gitops.git
+cd gitops
 
 # Add your application
-mkdir -p apps/my-service
-cp templates/application.yaml apps/my-service/
+mkdir -p apps/my-service/base
+mkdir -p apps/my-service/overlays/dev
+
+# Create base manifests
+cat > apps/my-service/base/deployment.yaml <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-service
+  template:
+    metadata:
+      labels:
+        app: my-service
+    spec:
+      containers:
+      - name: my-service
+        image: my-service:latest
+        ports:
+        - containerPort: 8000
+EOF
+
+# Create kustomization
+cat > apps/my-service/base/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+EOF
 ```
 
 ### 4. Deploy First Application
 ```bash
-# Apply application manifest
-kubectl apply -f apps/my-service/application.yaml
+# Create dev overlay
+cat > apps/my-service/overlays/dev/kustomization.yaml <<EOF
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+  - ../../base
+patchesStrategicMerge:
+  - patch-deployment.yaml
+EOF
 
-# Check status
+# Commit and push
+git add apps/my-service/
+git commit -m "Add my-service"
+git push origin main
+
+# ArgoCD will auto-sync
 argocd app get my-service
 ```
 
@@ -207,6 +302,7 @@ argocd app get my-service
 
 ---
 
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-02-07  
 **Review Cycle**: Monthly  
-**Maintained By**: Platform Engineering Team
+**Maintained By**: Platform Engineering Team  
+**GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)

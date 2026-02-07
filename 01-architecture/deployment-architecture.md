@@ -75,43 +75,253 @@ namespaces:
 
 ---
 
+## 🔄 GitOps Deployment Model
+
+### **GitOps Principles**
+
+```yaml
+# GitOps Core Principles
+gitops:
+  declarative:
+    description: Entire system state declared in Git
+    benefits:
+      - Version controlled
+      - Auditable
+      - Reproducible
+      
+  versioned:
+    description: All changes tracked in Git history
+    benefits:
+      - Complete audit trail
+      - Easy rollback
+      - Change tracking
+      
+  automated:
+    description: ArgoCD automatically syncs Git to cluster
+    benefits:
+      - Reduced human error
+      - Faster deployments
+      - Consistent state
+      
+  continuously_reconciled:
+    description: ArgoCD ensures cluster matches Git
+    benefits:
+      - Self-healing
+      - Drift detection
+      - Automatic correction
+```
+
+### **Repository Structure**
+
+```yaml
+# GitOps Repository Organization
+gitops/
+├── bootstrap/                 # Root applications
+│   └── root-app-dev.yaml     # Dev environment root app
+│   
+├── environments/              # Environment configurations
+│   ├── dev/
+│   │   ├── apps/             # Dev applications
+│   │   ├── projects/         # ArgoCD projects
+│   │   └── resources/        # Dev-specific resources
+│   └── production/
+│       ├── apps/             # Production applications
+│       ├── projects/         # ArgoCD projects
+│       └── resources/        # Prod-specific resources
+│       
+├── apps/                     # Application manifests
+│   ├── {service}/
+│   │   ├── base/             # Base configuration
+│   │   └── overlays/         # Environment overlays
+│   │       ├── dev/
+│   │       └── production/
+│   
+├── infrastructure/            # Infrastructure components
+│   ├── databases/
+│   ├── monitoring/
+│   └── security/
+│   
+├── components/               # Reusable components
+│   ├── common-infrastructure-envvars/
+│   ├── imagepullsecret/
+│   └── infrastructure-egress/
+│   
+└── clusters/                 # Cluster-specific configs
+    ├── dev/
+    └── production/
+```
+
+### **Deployment Workflow**
+
+```mermaid
+graph LR
+    A[Developer] -->|Push Code| B[GitLab CI]
+    B -->|Build Image| C[Container Registry]
+    B -->|Update Tag| D[GitOps Repo]
+    D -->|Detect Change| E[ArgoCD]
+    E -->|Sync| F[Kubernetes]
+    F -->|Deploy| G[Running Service]
+    E -->|Monitor| F
+```
+
+### **Sync Waves Strategy**
+
+```yaml
+# ArgoCD Sync Waves
+sync_waves:
+  wave_0:
+    name: Infrastructure Foundation
+    services:
+      - PostgreSQL
+      - Redis
+      - Dapr
+    duration: ~5 minutes
+    
+  wave_1:
+    name: Core Services
+    services:
+      - Auth Service
+      - User Service
+      - Gateway Service
+    duration: ~5 minutes
+    dependencies: [wave_0]
+    
+  wave_2:
+    name: Business Services
+    services:
+      - Catalog Service
+      - Pricing Service
+      - Order Service
+      - Checkout Service
+    duration: ~10 minutes
+    dependencies: [wave_1]
+    
+  wave_3:
+    name: Supporting Services
+    services:
+      - Notification Service
+      - Search Service
+      - Analytics Service
+    duration: ~10 minutes
+    dependencies: [wave_2]
+    
+  wave_4:
+    name: Frontend Services
+    services:
+      - Admin Service
+      - Frontend Service
+    duration: ~5 minutes
+    dependencies: [wave_3]
+```
+
+### **Environment Management**
+
+```yaml
+# Environment Configuration
+environments:
+  dev:
+    cluster: k3d-local
+    namespace_pattern: "{service}-dev"
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    auto_sync: true
+    prune: true
+    self_heal: true
+    
+  staging:
+    cluster: eks-staging
+    namespace_pattern: "{service}-staging"
+    replicas: 2
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    auto_sync: true
+    prune: true
+    self_heal: true
+    
+  production:
+    cluster: eks-production
+    namespace_pattern: "{service}-prod"
+    replicas: 3
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+    auto_sync: false  # Manual approval required
+    prune: false
+    self_heal: true
+```
+
+---
+
 ## 🔄 Deployment Patterns
 
 ### **GitOps with ArgoCD**
 
 ```yaml
-# ArgoCD Application Structure
-applications/
-├── main/                    # Main applications
-│   ├── checkout/          # Checkout service
-│   │   ├── checkout-appset.yaml
-│   │   ├── values-base.yaml
-│   │   ├── dev/
-│   │   │   ├── values.yaml
-│   │   │   └── tag.yaml
-│   │   └── staging/
-│   │       ├── values.yaml
-│   │       └── tag.yaml
-│   ├── order/             # Order service
-│   └── ...
-├── thirdparties/          # Third-party applications
-│   ├── redis/
-│   ├── postgresql/
-│   └── dapr/
-└── infrastructure/        # Infrastructure components
-    ├── monitoring/
-    ├── logging/
-    └── networking/
+# GitOps Repository Structure (Kustomize-based)
+gitops/
+├── bootstrap/                 # Root Applications (Dev/Prod)
+│   └── root-app-dev.yaml
+├── environments/              # Environment-specific configurations
+│   ├── dev/
+│   │   ├── apps/             # Dev environment applications
+│   │   ├── projects/         # ArgoCD projects
+│   │   └── resources/        # Environment-specific resources
+│   └── production/
+│       ├── apps/             # Production environment applications
+│       ├── projects/         # ArgoCD projects
+│       └── resources/        # Environment-specific resources
+├── apps/                     # Application configurations (24 services)
+│   ├── auth/
+│   │   ├── base/             # Base manifests
+│   │   ├── overlays/
+│   │   │   ├── dev/          # Dev environment overlays
+│   │   │   └── production/   # Production environment overlays
+│   │   └── kustomization.yaml
+│   ├── user/
+│   ├── gateway/
+│   ├── catalog/
+│   ├── checkout/
+│   ├── order/
+│   └── ...                   # 24 deployable services
+├── infrastructure/            # Infrastructure components
+│   ├── databases/            # PostgreSQL, Redis configurations
+│   ├── monitoring/           # Prometheus, Grafana, AlertManager
+│   ├── security/             # Network policies, RBAC
+│   └── storage/              # Storage classes and PVCs
+├── clusters/                  # Cluster-specific configurations
+│   ├── dev/                  # Dev cluster (k3d)
+│   └── production/           # Production cluster
+├── components/               # Reusable components
+│   ├── common-infrastructure-envvars/
+│   ├── imagepullsecret/
+│   └── infrastructure-egress/
+├── scripts/                  # Utility scripts
+└── docs/                     # GitOps documentation
 ```
 
-### **Helm Chart Structure**
+**Note**: The legacy `argocd/` directory (ApplicationSet-based) has been deprecated and migrated to the new `gitops/` repository (Kustomize-based) for better environment management and consistency.
+
+### **Kustomize Application Structure**
 
 ```yaml
-# Standard Helm Chart Structure
-service/
-├── Chart.yaml
-├── values-base.yaml
-├── templates/
+# Standard Kustomize Application Structure
+apps/{service}/
+├── base/                      # Base manifests
 │   ├── deployment.yaml
 │   ├── service.yaml
 │   ├── configmap.yaml
@@ -119,14 +329,20 @@ service/
 │   ├── hpa.yaml
 │   ├── pdb.yaml
 │   ├── networkpolicy.yaml
-│   └── servicemonitor.yaml
-└── environments/
-    ├── dev/
-    │   ├── values.yaml
-    │   └── tag.yaml
-    └── staging/
-        ├── values.yaml
-        └── tag.yaml
+│   ├── servicemonitor.yaml
+│   └── kustomization.yaml
+├── overlays/                  # Environment-specific overlays
+│   ├── dev/
+│   │   ├── kustomization.yaml
+│   │   ├── patch-deployment.yaml
+│   │   ├── patch-configmap.yaml
+│   │   └── patch-resources.yaml
+│   └── production/
+│       ├── kustomization.yaml
+│       ├── patch-deployment.yaml
+│       ├── patch-configmap.yaml
+│       └── patch-resources.yaml
+└── kustomization.yaml         # Root kustomization
 ```
 
 ---
@@ -641,6 +857,7 @@ pipeline:
 
 ---
 
-**Last Updated**: February 1, 2026  
+**Last Updated**: February 7, 2026  
 **Review Cycle**: Quarterly  
-**Maintained By**: Platform Engineering Team
+**Maintained By**: Platform Engineering Team  
+**GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
