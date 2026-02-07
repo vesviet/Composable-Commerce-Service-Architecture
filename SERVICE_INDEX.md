@@ -414,30 +414,30 @@ Supporting services for operations and management.
 |---------|-----------|-------|---------------|------|--------|-------|---------------|
 | Auth | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | User | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Customer | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Catalog | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Pricing | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Customer | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Catalog | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Pricing | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Promotion | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Checkout | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Order | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Payment | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Warehouse | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Checkout | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Order | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Payment | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Warehouse | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Fulfillment | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Shipping | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Return | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Shipping | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
+| Return | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Gateway | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Search | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Analytics | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Review | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Search | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Analytics | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| Review | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Common Ops | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
 | Notification | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
 | Location | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Loyalty | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Loyalty | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
 | Admin | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Frontend | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ### Dependencies Notes:
-- **External APIs**: SendGrid/SES, Twilio (Notification Service)
+- **External APIs**: SendGrid/SES, Twilio (Notification Service) | Stripe, PayPal, VNPay, MoMo (Payment Service) | GHN, Grab (Shipping Service)
 - **Service-to-Service**: Fulfillment depends on Warehouse & Catalog services
 - **Frontend Services**: Admin & Frontend only depend on Gateway Service
 
