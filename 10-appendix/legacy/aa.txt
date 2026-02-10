@@ -21,10 +21,10 @@ golangci-lint run
 
 commit và push
 
-git pull pricing
-Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name payment
+git pull analytics
+Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name analytics
 review code, code quality, gitops config, business logic
-check đã dùng templates/update-gitops-image-tag.yaml
+check đã dùng templates/update-gitops-image-tag.yaml (follow order/.gitlab-ci.yml)
 golangci-lint, make api, go build, wire, commit vs push
 
 # Review single workflow
@@ -41,3 +41,11 @@ review code, code quality, argocd config, business logic
 index codebase, review code, code quality, gitops config, business logic
 
 index codebase, review code, code quality
+
+Email: customer1@example.com → customer10000@example.com
+Password: password123
+
+return
+review
+loyalty-rewards
+analytics

@@ -23,6 +23,16 @@ Our operational flow documentation covers the critical backend processes that en
 
 ## 📚 **Operational Flow Documents**
 
+### **[Customer Service Workflow](customer-service-workflow.md)**
+**Complete customer service operations and support workflows**
+
+- **Scope**: Customer inquiries, complaints, and support requests across all channels
+- **Services**: 6 services involved (Gateway, Customer Service, Order, Payment, Return, Analytics)
+- **Duration**: <2 minutes first response, <24 hours resolution
+- **Key Features**: Multi-channel support, automated triage, AI-powered chatbot, escalation procedures
+
+**Business Impact**: Customer satisfaction, operational efficiency, cost optimization, brand reputation
+
 ### **[Order Fulfillment](order-fulfillment.md)**
 **Complete order processing and fulfillment workflow**
 

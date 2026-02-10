@@ -16,12 +16,9 @@ Each process document follows a standardized format:
 
 ### Order Management Domain
 - [Order Placement Process](./order-placement-process.md) - Complete order creation and confirmation flow
-- [Order Cancellation Process](./order-cancellation-process.md) - Order cancellation and refund flow
-- [Order Status Tracking Process](./order-status-tracking-process.md) - Real-time order status updates
 
 ### Payment Domain
 - [Payment Processing Process](./payment-processing-process.md) - Payment authorization and capture
-- [Refund Processing Process](./refund-processing-process.md) - Refund initiation and completion
 
 ### Fulfillment Domain
 - [Fulfillment Process](./fulfillment-process.md) - Order fulfillment and shipping preparation
@@ -29,20 +26,47 @@ Each process document follows a standardized format:
 
 ### Shopping Experience Domain
 - [Cart Management Process](./cart-management-process.md) - Shopping cart operations
-- [Product Search Process](./product-search-process.md) - Product discovery and search
-- [Checkout Process](./checkout-process.md) - Complete checkout flow
-
-### Customer Domain
-- [Customer Registration Process](./customer-registration-process.md) - New customer onboarding
-- [Customer Profile Update Process](./customer-profile-update-process.md) - Profile management
 
 ### Shipping Domain
 - [Shipping Process](./shipping-process.md) - Shipment creation and tracking
-- [Delivery Confirmation Process](./delivery-confirmation-process.md) - Delivery completion
 
-### Returns Domain
-- [Return Request Process](./return-request-process.md) - Return initiation and processing
-- [Return Refund Process](./return-refund-process.md) - Return refund flow
+### Promotion Domain
+- [Promotion Process](./promotion-process.md) - Promotion and discount management
+
+## 📝 Process Documentation Template
+
+Each process document includes:
+
+1. **Process Overview**
+   - Domain name (DDD)
+   - Business context
+   - Success criteria
+
+2. **Services Involved**
+   - List of participating services
+   - Service responsibilities
+   - Service endpoints
+
+3. **Event Flow**
+   - Event sequence
+   - Event types and topics
+   - Event payloads (with JSON Schema links)
+   - Event timing and dependencies
+
+4. **Flow Charts**
+   - Sequence diagram (service interactions)
+   - Flowchart (business logic flow)
+   - State machine (if applicable)
+
+5. **Error Handling**
+   - Failure scenarios
+   - Compensation actions
+   - Retry strategies
+
+6. **Related Documentation**
+   - API specifications
+   - Event contracts
+   - Service documentation
 
 ## 📝 Process Documentation Template
 
