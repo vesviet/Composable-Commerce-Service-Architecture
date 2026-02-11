@@ -21,8 +21,8 @@ golangci-lint run
 
 commit và push
 
-git pull analytics
-Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name analytics
+git pull payment
+Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name payment
 review code, code quality, gitops config, business logic
 check đã dùng templates/update-gitops-image-tag.yaml (follow order/.gitlab-ci.yml)
 golangci-lint, make api, go build, wire, commit vs push
@@ -49,3 +49,10 @@ return
 review
 loyalty-rewards
 analytics
+
+Dựa trên kiến trúc đã phân tích, hãy review logic nghiệp vụ cho
+
+Kiểm tra sự nhất quán dữ liệu giữa các service
+Có trường hợp nào dữ liệu bị lệch (mismatched) không?
+Cơ chế Retry hoặc Rollback (Saga pattern/Outbox) đã được triển khai đúng chưa?
+Liệt kê các điểm rủi ro về logic (Edge cases) mà code hiện tại chưa xử lý.
