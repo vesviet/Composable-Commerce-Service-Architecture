@@ -21,8 +21,9 @@ golangci-lint run
 
 commit và push
 
-git pull payment
-Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name payment
+git pull analytics service
+Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name analytics
+-go get new tag from gitlab.com/ta-microservices, not use replace, use import 
 review code, code quality, gitops config, business logic
 check đã dùng templates/update-gitops-image-tag.yaml (follow order/.gitlab-ci.yml)
 golangci-lint, make api, go build, wire, commit vs push
