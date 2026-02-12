@@ -1,9 +1,9 @@
 # 📧 Notification Service - Multi-Channel Messaging
 
 **Service Name**: Notification Service  
-**Version**: v1.1.3  
-**Last Updated**: 2026-02-10  
-**Production Ready**: 100% (Dependencies updated, build and lint passing)
+**Version**: v1.1.4  
+**Last Updated**: 2026-02-11  
+**Production Ready**: 100% (Error mapping implemented, all quality gates passing)
 
 ---
 
@@ -544,6 +544,21 @@ delivery:
 - Test coverage skipped per review requirements ⚠️
 
 ### 🔄 Recent Updates
+
+**2026-02-11**:
+- **🎯 P1 Issue Resolved**: Implemented error mapping in service layer
+- Added `internal/service/errors.go` with business error → gRPC code mapping
+- Updated all service methods (notification, template, preference, subscription)
+- Error codes: NotFound, InvalidArgument, FailedPrecondition, AlreadyExists, ResourceExhausted
+- Build and tests passing ✅
+- Commit: `d43ed86`
+
+**2026-02-11**:
+- Service review per `service-review-release-prompt.md`
+- Common package v1.9.6 → v1.9.7; go mod tidy; vendor synced
+- golangci-lint: zero warnings
+- Checklist v3 updated with findings (1 P1, 4 P2 issues)
+- Commit: `d0ddf95`
 
 **2026-01-31**:
 - Service review per docs/07-development/standards/service-review-release-prompt.md
