@@ -163,35 +163,41 @@ go test ./...
 
 ### 6. Deployment readiness (GitOps alignment)
 
-Before release, verify config alignment between code and GitOps:
+Before release, verify config alignment between code and GitOps.
+
+> [!IMPORTANT]
+> **Port allocation MUST follow [PORT_ALLOCATION_STANDARD.md](../../../gitops/docs/PORT_ALLOCATION_STANDARD.md).** Look up the correct HTTP/gRPC ports for `{serviceName}` in the Port Allocation Table and verify all references match.
 
 ```bash
+# 0. Look up correct ports from standard
+grep '{serviceName}' /home/user/microservices/gitops/docs/PORT_ALLOCATION_STANDARD.md
+
 # 1. Check env vars used in code
 grep -rn 'os.Getenv\|viper.Get\|envconfig' {serviceName}/internal/ --include='*.go'
 
 # 2. Compare with gitops configmap
 cat gitops/apps/{serviceName}/base/configmap.yaml
 
-# 3. Verify ports match
-grep -n 'containerPort\|port:' gitops/apps/{serviceName}/base/*.yaml
-grep -n 'Port\|port' {serviceName}/configs/*.yaml
+# 3. Verify ports match (MUST align with PORT_ALLOCATION_STANDARD.md)
+grep 'addr:' {serviceName}/configs/config.yaml
+grep 'containerPort:' gitops/apps/{serviceName}/base/deployment.yaml
+grep 'targetPort:' gitops/apps/{serviceName}/base/service.yaml
+grep 'dapr.io/app-port:' gitops/apps/{serviceName}/base/deployment.yaml
+grep -A2 'livenessProbe:\|readinessProbe:' gitops/apps/{serviceName}/base/deployment.yaml | grep port
 
 # 4. Check resource limits are set
 grep -A5 'resources:' gitops/apps/{serviceName}/base/deployment.yaml
 
-# 5. Verify health probes
-grep -A5 'livenessProbe\|readinessProbe' gitops/apps/{serviceName}/base/deployment.yaml
-
-# 6. Check HPA exists
+# 5. Check HPA exists
 ls gitops/apps/{serviceName}/base/hpa.yaml 2>/dev/null || echo "⚠️ No HPA configured"
 ```
 
 Checklist:
+- [ ] **Ports match PORT_ALLOCATION_STANDARD.md**: `config.yaml` addr ↔ `deployment.yaml` containerPort ↔ `service.yaml` targetPort ↔ `dapr.io/app-port` ↔ health probe ports
 - [ ] New env vars in code → ConfigMap/Secret updated in `gitops/`
-- [ ] Port consistency: code ↔ deployment.yaml ↔ service.yaml
 - [ ] Resource limits set (not unbounded)
-- [ ] Health probes configured (liveness + readiness)
-- [ ] Dapr annotations correct (if using events)
+- [ ] Health probes configured (liveness + readiness) on correct port
+- [ ] Dapr annotations correct (`app-id`, `app-port`, `app-protocol`)
 - [ ] NetworkPolicy allows required egress/ingress
 - [ ] Migration strategy safe for zero-downtime deploy
 
