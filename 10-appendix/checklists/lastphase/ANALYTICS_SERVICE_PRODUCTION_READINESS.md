@@ -308,9 +308,9 @@ Two-phase deep-dive audit of the Analytics Service:
 
 - [x] PrometheusRule deployed (Fix 20 ✅)
 - [x] HPA configured (Fix 17 ✅)
-- [ ] PG connection monitoring dashboard (`pg_stat_activity`)
+- [x] PG connection monitoring dashboard (`pg_stat_activity`) - `analytics/grafana_dashboards/pg_monitoring.json`
 - [ ] DLQ depth Grafana panel for each `dlq.analytics.*` topic
-- [ ] Runbook covering: DLQ overflow, event loss, OOMKill, PG slow queries
+- [x] Runbook covering: DLQ overflow, event loss, OOMKill, PG slow queries - `docs/11-day2-ops/production_runbook.md`
 
 ### Month 1 (Should-Have)
 
