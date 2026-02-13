@@ -71,8 +71,8 @@ The Loyalty Rewards Service manages customer loyalty programs for the microservi
 | `DATABASE_URL` | Yes | - | PostgreSQL connection string |
 | `REDIS_URL` | Yes | - | Redis connection string |
 | `DAPR_PUBSUB_NAME` | Yes | - | Dapr pub/sub component name |
-| `SERVICE_PORT` | No | `9000` | gRPC service port |
-| `HTTP_PORT` | No | `8000` | HTTP service port |
+| `SERVICE_PORT` | No | `9014` | gRPC service port |
+| `HTTP_PORT` | No | `8014` | HTTP service port |
 | `LOG_LEVEL` | No | `info` | Logging level |
 
 ### Config Files
@@ -83,8 +83,8 @@ The Loyalty Rewards Service manages customer loyalty programs for the microservi
 
 ### Docker
 - **Image**: `registry/ta-microservices/loyalty-rewards`
-- **Ports**: 9000 (gRPC), 8000 (HTTP)
-- **Health check**: `grpc_health_probe -addr=:9000`
+- **Ports**: 9014 (gRPC), 8014 (HTTP)
+- **Health check**: `grpc_health_probe -addr=:9014`
 
 ### Kubernetes
 - **Namespace**: `ta-microservices`
@@ -133,7 +133,7 @@ The Loyalty Rewards Service manages customer loyalty programs for the microservi
 ### Debug Commands
 ```bash
 # Check service health
-grpc_health_probe -addr=localhost:9000
+grpc_health_probe -addr=localhost:9014
 
 # View recent transactions
 kubectl logs -f deployment/loyalty-rewards

@@ -2,7 +2,7 @@
 
 **Service Name**: Checkout Service
 **Version**: v1.1.0
-**Last Updated**: 2026-02-10
+**Last Updated**: 2026-02-13
 **Review Status**: ✅ **SERVICE REVIEW COMPLETE** - All issues resolved, production ready
 **Production Ready**: 🟢 **READY** - All dependencies updated, build and lint passing
 **Implementation Status**: ✅ **Full Implementation** - Clean Architecture, comprehensive checkout workflow
@@ -60,6 +60,12 @@ Checkout Service là microservice chuyên biệt xử lý quy trình checkout v�
 - 🔴 **HIGH Priority**: 7/8 completed (88%) - 1 pending due to external dependency
 - 🟡 **MEDIUM Priority**: 4/4 completed (100%)
 - 🟢 **LOW Priority**: 16/16 completed (100%)
+
+### 🔧 Recent Fixes (Feb 13, 2026)
+- **Validation**: Fixed `ineffassign` in cart totals calculation (Shipping Discount application).
+- **Testing**: Fixed `TestCalculateCartTotals_Success` to correctly mock `PricingService` and populate `UnitPrice`.
+- **Configuration**: Updated default ports to `8010`/`9010` to match GitOps standard.
+- **Dependency Injection**: Resolves Wire issues with `IdempotencyService` and `CartCacheHelper`.
 
 ### 🔴 HIGH PRIORITY - Client Integrations (7/8 completed)
 

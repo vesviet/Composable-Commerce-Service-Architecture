@@ -94,8 +94,8 @@ catalog/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8001` - REST endpoints cho frontend/client apps
-- **gRPC API**: `:9001` - Internal service communication
+- **HTTP API**: `:8015` - REST endpoints cho frontend/client apps
+- **gRPC API**: `:9015` - Internal service communication
 - **Health Check**: `/api/v1/catalog/health`
 
 ### Service Dependencies
@@ -714,8 +714,8 @@ CATALOG_REDIS_ADDR=redis:6379
 CATALOG_REDIS_DB=0
 
 # Service Ports
-CATALOG_HTTP_PORT=8001
-CATALOG_GRPC_PORT=9001
+CATALOG_HTTP_PORT=8015
+CATALOG_GRPC_PORT=9015
 
 # Search Integration
 CATALOG_SEARCH_SERVICE_ADDR=search-service:9004
