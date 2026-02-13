@@ -34,6 +34,18 @@ Paths and commands below use `serviceName`; replace it with the real service nam
 > [!IMPORTANT]
 > Many services use a **dual-binary architecture**: `cmd/<serviceName>/` (main API server) + `cmd/worker/` (event consumers, cron, outbox). Always review **both** entry points.
 
+### 0. Sync latest code
+
+> [!CAUTION]
+> **Always pull latest before reviewing.** Missing recent commits leads to reviewing stale code and duplicating already-fixed work.
+
+```bash
+# Pull latest for the service AND related repos
+cd /home/user/microservices/{serviceName} && git pull origin main
+cd /home/user/microservices/common && git pull origin main
+cd /home/user/microservices/gitops && git pull origin main
+```
+
 ### 1. Index & review codebase
 
 - Index and understand the **`serviceName`** service:
