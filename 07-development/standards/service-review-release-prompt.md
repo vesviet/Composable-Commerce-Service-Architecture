@@ -39,10 +39,10 @@ Paths and commands below use `serviceName`; replace it with the real service nam
 
 ### 2. Checklist & todo for `serviceName`
 
-- Open or create the checklist: **`docs/10-appendix/checklists/v3/{serviceName}_service_checklist_v3.md`**.
+- Open or create the checklist: **`docs/10-appendix/service_review/{serviceName}_review.md`**.
 - Align items with TEAM_LEAD_CODE_REVIEW_GUIDE and development-review-checklist (P0/P1/P2).
 - Mark completed items; add items for remaining work. **Skip adding or requiring test-case tasks** (per user request).
-- Save/update the file under `docs/10-appendix/checklists/v3/`.
+- Save/update the file under `docs/10-appendix/service_review/`.
 
 ### 3. Dependencies (Go modules)
 
@@ -334,4 +334,4 @@ Ensure both documents include:
 ## Summary
 
 - **Prompt**: “Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name **`<serviceName>`**.”
-- **Process**: Index → review (3 standards) → checklist v3 for `serviceName` (skip test-case) → **convert replace to import @latest** → go get @latest (no replace) → golangci-lint → make api / go build / wire → update docs (03-services + README) → commit → tag (if release) → push.
+- **Process**: Index → review (3 standards) → checklist for `serviceName` (skip test-case) → **convert replace to import @latest** → go get @latest (no replace) → golangci-lint → make api / go build / wire → update docs (03-services + README) → commit → tag (if release) → push.
