@@ -432,116 +432,735 @@ CREATE INDEX idx_loyalty_redemptions_reward ON loyalty_redemptions(reward_id);
 CREATE INDEX idx_referral_programs_referrer ON referral_programs(referrer_id);
 CREATE INDEX idx_referral_programs_referee_email ON referral_programs(referee_email);
 CREATE UNIQUE INDEX idx_referral_programs_referee ON referral_programs(referee_id) WHERE referee_id IS NOT NULL;
-```
 
 ---
 
-## 🧠 Business Logic
+## 🧠 Business Logic - Comprehensive E-Commerce Loyalty Program
 
-### Points Calculation Engine
+### Core Principles
+1. **Automatic Point Earning**: Event-driven points awarded for customer actions
+2. **Tier-Based Rewards**: Progressive benefits through tier system
+3. **Fraud Prevention**: Rate limiting, duplicate detection, validation
+4. **Customer Engagement**: Multiple earning channels (purchase, review, referral, social, birthday)
+5. **Transparent**: Clear earning/redemption rules, point expiration
 
-```go
-func (uc *TransactionUsecase) CalculateEarnedPoints(ctx context.Context, order *Order) (int, error) {
-    basePoints := int(order.TotalAmount * uc.config.PointsPerDollar)
+---
 
-    // Apply tier multiplier
-    tier, err := uc.tierRepo.GetCustomerTier(ctx, order.CustomerID)
-    if err != nil {
-        return 0, err
-    }
-    pointsWithMultiplier := int(float64(basePoints) * tier.Multiplier)
+## 1. Points Earning Rules
 
-    // Apply active campaigns
-    campaignBonus := uc.calculateCampaignBonus(ctx, order.CustomerID, order.TotalAmount)
+### 1.1 Order-Based Earning (Primary Channel)
 
-    totalPoints := pointsWithMultiplier + campaignBonus
+**Trigger Event**: `order.completed` or `order.paid` from Order Service
 
-    // Check daily/weekly/monthly limits
-    if err := uc.checkEarningLimits(ctx, order.CustomerID, totalPoints); err != nil {
-        return 0, err
-    }
+**Calculation Formula**:
+```
+Base Points = Order Subtotal × Points Per Dollar
+Tier Multiplier = Customer's Current Tier Multiplier (1.0 - 2.0x)
+Campaign Bonus = Active Campaign Bonus (if applicable)
 
-    return totalPoints, nil
-}
+Total Earned = (Base Points × Tier Multiplier) + Campaign Bonus
 ```
 
-### Tier Progression Logic
+**Rules**:
+- ✅ **Only completed/paid orders** earn points
+- ✅ **Subtotal only** (excluding tax, shipping, discounts already applied)
+- ✅ **Tier multiplier** applied BEFORE campaign bonus
+- ❌ **Cancelled orders**: Points reversed automatically
+- ❌ **Returned orders**: Points deducted proportionally
+- ❌ **Fraudulent orders**: Flagged and points withheld
+
+**Configuration**:
+```yaml
+points:
+  per_dollar: 1.0           # 1 point per $1 spent
+  min_order_amount: 10.00   # Minimum order to earn points
+  max_points_per_order: 5000  # Anti-abuse limit
+```
+
+**Example**:
+```
+Order Subtotal: $150.00
+Customer Tier: Gold (1.5x multiplier)
+Campaign: Double Points Weekend (+50 bonus)
+
+Base Points: 150 × 1.0 = 150
+With Tier: 150 × 1.5 = 225
+Campaign Bonus: +50
+Total Earned: 275 points
+```
+
+### 1.2 Customer Registration (Welcome Bonus)
+
+**Trigger Event**: `customer.created` from Customer Service
+
+**Rules**:
+- ✅ **One-time** bonus on first registration
+- ✅ **Immediate** credit (no waiting period)
+- ❌ **Duplicate accounts**: Detect by email/phone, prevent fraud
+
+**Configuration**:
+```yaml
+campaigns:
+  welcome_bonus: 100  # Points awarded on registration
+```
+
+### 1.3 Product Review Earning
+
+**Trigger Event**: `review.approved` from Review Service (future)
+
+**Rules**:
+- ✅ **Review submitted**: 50 points (pending approval)
+- ✅ **Review approved**: Bonus 25 points (total 75)
+- ✅ **Photo/video review**: Additional 50 points
+- ❌ **Max 5 reviews per month** to prevent spam
+- ❌ **Review rejected**: No points awarded
+
+**Configuration**:
+```yaml
+campaigns:
+  review_bonus: 50            # Points for approved review
+  review_with_media_bonus: 50 # Additional for photo/video
+  max_reviews_per_month: 5
+```
+
+### 1.4 Referral Program
+
+**Trigger Events**: 
+- `referral.created`: Referrer shares referral code
+- `customer.registered_via_referral`: Referee signs up
+- `order.completed`: Referee's first order
+
+**Referrer Rewards**:
+- Referee signs up: 100 points (pending)
+- Referee completes first order: 400 points (total 500)
+
+**Referee Rewards**:
+- Signs up via referral: 200 points immediately
+- First order: 10% discount code
+
+**Rules**:
+- ✅ **Max 10 successful referrals per month** per customer
+- ❌ **Self-referral detected**: Both accounts flagged
+- ❌ **Referee minimum first order**: $50 to trigger referrer bonus
+
+**Configuration**:
+```yaml
+referral:
+  referrer_bonus: 500  # Total for successful referral
+  referee_bonus: 200   # Welcome bonus for referee
+  max_referrals_per_month: 10
+  referee_min_order_amount: 50.00
+```
+
+### 1.5 Birthday Bonus
+
+**Trigger**: Cron job checks birthdays daily OR `customer.birthday` event
+
+**Rules**:
+- ✅ **Annual bonus** on customer's birthday
+- ✅ **Valid for 30 days** from birthday
+- ✅ **Auto-awarded** at midnight UTC on birthday
+
+**Configuration**:
+```yaml
+campaigns:
+  birthday_bonus: 250  # Points awarded on birthday
+  birthday_validity_days: 30
+```
+
+### 1.6 Social Sharing (Future Enhancement)
+
+**Trigger Events**: `social.product_shared`, `social.order_shared`
+
+**Rules**:
+- Product shared: 10 points per share (max 3/day)
+- Order shared: 25 points (max 1/day)
+
+---
+
+## 2. Points Redemption Rules
+
+### 2.1 Redemption Validation
 
 ```go
-func (uc *TierUsecase) EvaluateTierUpgrade(ctx context.Context, customerID uuid.UUID) error {
-    // Get current tier and points
-    account, err := uc.accountRepo.GetByCustomerID(ctx, customerID)
-    if err != nil {
-        return err
+func (uc *RedemptionUsecase) ValidateRedemption(ctx context.Context, req *RedeemPointsRequest) error {
+    // 1. Check minimum points threshold
+    if req.Points < uc.config.MinRedemptionPoints {
+        return ErrBelowMinimumRedemption
     }
 
-    currentTier, err := uc.tierRepo.GetByID(ctx, account.TierID)
-    if err != nil {
-        return err
+    // 2. Check maximum points per redemption
+    if req.Points > uc.config.MaxRedemptionPoints {
+        return ErrExceedsMaximumRedemption
     }
 
-    // Find next eligible tier
-    nextTier, err := uc.tierRepo.GetNextTier(ctx, account.CurrentPoints)
-    if err != nil {
-        return err
+    // 3. Check account has sufficient balance
+    account, _ := uc.accountRepo.GetByCustomerID(ctx, req.CustomerID)
+    if account.CurrentPoints < req.Points {
+        return ErrInsufficientPoints
     }
 
-    if nextTier.ID != currentTier.ID {
-        // Upgrade tier
-        if err := uc.upgradeCustomerTier(ctx, customerID, nextTier.ID); err != nil {
-            return err
-        }
+    // 4. Check points not reserved for pending redemptions
+    reserved := uc.getReservedPoints(ctx, req.CustomerID)
+    available := account.CurrentPoints - reserved
+    if available < req.Points {
+        return ErrPointsReserved
+    }
 
-        // Publish tier upgrade event
-        uc.events.PublishTierUpgraded(ctx, customerID, currentTier.ID, nextTier.ID)
+    // 5. Check account status
+    if account.Status != "active" {
+        return ErrAccountNotActive
     }
 
     return nil
 }
 ```
 
-### Referral Program Logic
+### 2.2 Redemption Types
 
+#### Discount Voucher
+```
+Redemption: 500 points → $5 discount code
+Ratio: 100 points = $1
+Valid: 90 days from redemption
+Usage: Single use, any order over $25
+```
+
+#### Free Shipping
+```
+Redemption: 200 points → Free standard shipping
+Valid: 60 days
+Usage: Single use
+```
+
+#### Product Rewards
+```
+Redemption: Variable points based on product value
+Example: 2000 points → Premium water bottle
+Delivery: Same as regular order
+```
+
+#### Cashback
+```
+Redemption: 1000 points → $10 wallet credit
+Ratio: 100 points = $1
+Valid: 180 days
+Usage: Multiple uses until depleted
+```
+
+### 2.3 Redemption Configuration
+
+```yaml
+redemption:
+  min_points: 100           # Minimum points to redeem
+  max_points: 10000         # Maximum points per transaction
+  points_to_dollar_ratio: 100  # 100 points = $1
+  
+  voucher:
+    validity_days: 90
+    min_order_amount: 25.00
+  
+  free_shipping:
+    cost_in_points: 200
+    validity_days: 60
+    shipping_methods: ["standard"]
+  
+  cashback:
+    min_redemption: 1000
+    max_redemption: 10000
+    validity_days: 180
+```
+
+---
+
+## 3. Tier System
+
+### 3.1 Tier Levels
+
+| Tier | Min Points | Multiplier | Benefits |
+|------|------------|------------|----------|
+| **Bronze** | 0 | 1.0x | Standard support, standard shipping rates |
+| **Silver** | 1,000 | 1.2x | Priority support, free standard shipping on orders $50+ |
+| **Gold** | 5,000 | 1.5x | VIP support, free standard shipping (all orders), exclusive offers, early access to sales |
+| **Platinum** | 10,000 | 2.0x | Dedicated support, free express shipping, exclusive rewards, birthday gift, priority returns |
+
+### 3.2 Tier Progression Logic
+
+**Upgrade Triggers**:
+- ✅ **Automatic** after points transaction (earn/redeem)
+- ✅ **Evaluated immediately** (no delay)
+- ✅ **Based on total_earned_points** (not current_points to prevent gaming via redemption)
+
+**Implementation**:
 ```go
-func (uc *ReferralUsecase) CompleteReferral(ctx context.Context, referralID uuid.UUID) error {
-    return uc.transaction(ctx, func(ctx context.Context) error {
-        // Get referral
-        referral, err := uc.referralRepo.GetByID(ctx, referralID)
-        if err != nil {
-            return err
-        }
-
-        if referral.Status != "pending" {
-            return errors.New("referral already processed")
-        }
-
-        // Mark as completed
-        referral.Status = "completed"
-        referral.CompletedAt = time.Now()
-
-        if err := uc.referralRepo.Update(ctx, referral); err != nil {
-            return err
-        }
-
-        // Award bonus points to referrer
-        if err := uc.awardReferralBonus(ctx, referral.ReferrerID, referral.BonusPoints); err != nil {
-            return err
-        }
-
-        // Award bonus points to referee (if applicable)
-        if referral.RefereeID != nil && referral.RefereeBonusPoints > 0 {
-            if err := uc.awardReferralBonus(ctx, *referral.RefereeID, referral.RefereeBonusPoints); err != nil {
-                return err
-            }
-        }
-
-        // Publish referral completed event
-        uc.events.PublishReferralCompleted(ctx, referral.ID)
-
-        return nil
-    })
+func (uc *TierUsecase) EvaluateTierUpgrade(ctx context.Context, customerID string) error {
+    account, _ := uc.accountRepo.GetByCustomerID(ctx, customerID)
+    
+    // Check eligibility based on TOTAL earned (lifetime), not current balance
+    nextTier, err := uc.tierRepo.GetEligibleTier(ctx, account.TotalEarnedPoints)
+    if err != nil {
+        return err
+    }
+    
+    // Only upgrade, never downgrade (even if points redeemed)
+    if nextTier.MinPoints > account.CurrentTier.MinPoints {
+        // Upgrade tier
+        account.TierID = nextTier.ID
+        uc.accountRepo.Update(ctx, account)
+        
+        // Publish tier upgrade event → Notification service
+        uc.eventPublisher.Publish(ctx, &events.TierUpgraded{
+            CustomerID: customerID,
+            OldTier: account.CurrentTier.Name,
+            NewTier: nextTier.Name,
+            TotalEarnedPoints: account.TotalEarnedPoints,
+        })
+        
+        // Send congrats email/push notification
+        uc.notificationClient.SendTierUpgradeNotification(ctx, customerID, nextTier)
+    }
+    
+    return nil
 }
 ```
+
+**Rules**:
+- ✅ **Tier Retention**: Once upgraded, tier is retained (no downgrade)
+- ✅ **Based on lifetime points**: total_earned_points, NOT current_points
+- ✅ **Immediate**: Upgrade happens in same transaction as points earning
+- ✅ **Notification**: Customer notified immediately of upgrade
+
+---
+
+## 4. Campaign Management
+
+### 4.1 Campaign Types
+
+#### Welcome Bonus Campaign
+```yaml
+type: welcome_bonus
+trigger: customer.created
+bonus: 100 points (fixed)
+duration: permanent (always active)
+```
+
+#### Birthday Campaign
+```yaml
+type: birthday_bonus
+trigger: cron (daily check) OR customer.birthday event
+bonus: 250 points (fixed)
+validity: 30 days from birthday
+duration: recurring (annual)
+```
+
+#### Double Points Weekend
+```yaml
+type: multiplier_campaign
+trigger: time-based (Friday 00:00 - Sunday 23:59)
+bonus: 2x points on all orders
+min_order_amount: $50
+duration: temporary (weekend only)
+```
+
+#### Flash Sale Bonus
+```yaml
+type: bonus_points
+trigger: specific product category purchase  
+bonus: +200 points (fixed)
+conditions:
+  - category: "Electronics"
+  - min_amount: $200
+duration: campaign.starts_at → campaign.ends_at
+```
+
+#### Referral Campaign
+```yaml
+type: referral_bonus
+trigger: referral.completed
+bonus: 
+  referrer: 500 points
+  referee: 200 points
+conditions:
+  - referee_min_first_order: $50
+  - max_referrals_per_month: 10
+duration: permanent
+```
+
+### 4.2 Campaign Application Logic
+
+```go
+func (uc *TransactionUsecase) ApplyCampaignBonus(ctx context.Context, req *EarnPointsRequest) int32 {
+    // Get all active campaigns
+    campaigns, _ := uc.campaignRepo.GetActiveCampaigns(ctx, time.Now())
+    
+    var totalBonus int32 = 0
+    
+    for _, campaign := range campaigns {
+        // Check campaign eligibility
+        if !uc.checkCampaignEligibility(ctx, campaign, req) {
+            continue
+        }
+        
+        switch campaign.Type {
+        case "multiplier":
+            // Apply multiplier to base points
+            multiplier := campaign.BonusConfig["multiplier"].(float64)
+            totalBonus += int32(float64(req.BasePoints) * (multiplier - 1.0))
+            
+        case "fixed_bonus":
+            // Add fixed bonus
+            totalBonus += campaign.BonusConfig["bonus_points"].(int32)
+            
+        case "tiered_bonus":
+            // Bonus based on order amount tiers
+            totalBonus += uc.calculateTieredBonus(ctx, campaign, req)
+        }
+    }
+    
+    return totalBonus
+}
+```
+
+---
+
+## 5. Fraud Prevention & Rate Limiting
+
+### 5.1 Anti-Abuse Rules
+
+**Daily Limits**:
+```yaml
+limits:
+  max_points_per_day: 10000      # Per customer
+  max_transactions_per_day: 50   # Prevent spam
+```
+
+**Weekly/Monthly Limits**:
+```yaml
+limits:
+  max_points_per_week: 50000
+  max_points_per_month: 150000
+```
+
+**Specific Activity Limits**:
+```yaml
+referral:
+  max_per_month: 10              # Prevent referral farming
+review:
+  max_per_month: 5               # Prevent review spam
+social_sharing:
+  max_shares_per_day: 3          # Prevent social spam
+```
+
+### 5.2 Fraud Detection
+
+**Duplicate Detection**:
+```go
+func (uc *TransactionUsecase) CheckDuplicateTransaction(ctx context.Context, req *EarnPointsRequest) error {
+    // Idempotency check using source + source_id
+    exists, _ := uc.repo.TransactionExists(ctx, req.Source, req.SourceID)
+    if exists {
+        return ErrDuplicateTransaction
+    }
+    return nil
+}
+```
+
+**Suspicious Pattern Detection**:
+- Multiple accounts from same IP/device
+- Rapid succession of referrals
+- Unusual earning patterns (too many points too fast)
+- Self-referral attempts (same email/phone)
+
+**Actions on Fraud**:
+1. ⚠️ **Warning**: Flag account for manual review
+2. 🚫 **Suspend**: Temporarily disable earning for 7-30 days
+3. ❌ **Ban**: Permanent account/points freeze
+
+---
+
+## 6. Points Expiration
+
+### 6.1 Expiration Rules
+
+**Configuration**:
+```yaml
+points:
+  expiry_months: 12              # Points expire 12 months after earning
+  expiration_grace_period_days: 7  # 7-day warning before expiration
+  min_points_to_expire: 10       # Don't expire if < 10 points
+```
+
+**Expiration Logic**:
+- ✅ **FIFO (First In, First Out)**: Oldest points expire first
+- ✅ **Granular**: Track expiration per transaction, not account-level
+- ✅ **Notifications**: 7 days, 3 days, 1 day before expiration
+- ✅ **Cron Job**: Daily job at 00:00 UTC processes expirations
+
+**Implementation**:
+```go
+func (j *PointsExpirationJob) ExpirePoints(ctx context.Context) error {
+    // Find transactions with expired points
+    expiredTxs, _ := j.transactionRepo.FindExpired(ctx, time.Now())
+    
+    for _, tx := range expiredTxs {
+        // Create expiration transaction
+        expirationTx := &model.LoyaltyTransaction{
+            CustomerID: tx.CustomerID,
+            TransactionType: "expire",
+            Points: -tx.Points,  // Deduct points
+            Source: "expiration",
+            SourceID: tx.ID,
+            Description: fmt.Sprintf("Points expired from transaction %s", tx.ID),
+        }
+        
+        // Deduct from account
+        account, _ := j.accountRepo.GetByCustomerID(ctx, tx.CustomerID)
+        account.CurrentPoints -= tx.Points
+        j.accountRepo.Update(ctx, account)
+        
+        // Record expiration transaction
+        j.transactionRepo.Create(ctx, expirationTx)
+        
+        // Publish expiration event → Notification service
+        j.eventPublisher.Publish(ctx, &events.PointsExpired{
+            CustomerID: tx.CustomerID,
+            Points: tx.Points,
+            ExpiredAt: time.Now(),
+        })
+    }
+    
+    return nil
+}
+```
+
+### 6.2 Expiration Notifications
+
+**Notification Schedule**:
+```go
+Notification Triggers:
+- 7 days before: "⚠️ You have 500 points expiring on Jan 15"
+- 3 days before: "⏰ Reminder: 500 points expire in 3 days"
+- 1 day before: "🔔 Last chance! 500 points expire tomorrow"
+- On expiration: "😔 500 points expired. Earn more by shopping!"
+```
+
+---
+
+## 7. Event-Driven Architecture
+
+### 7.1 Events Consumed (by Worker)
+
+Worker subscribes to these events via Dapr PubSub:
+
+#### From Customer Service
+```yaml
+topic: customer.created
+payload:
+  customer_id: string
+  email: string
+  created_at: timestamp
+
+action:
+  - Create loyalty account
+  - Award welcome bonus (100 points)
+  - Source: "welcome_bonus"
+```
+
+```yaml
+topic: customer.birthday
+payload:
+  customer_id: string
+  birthday: date
+
+action:
+  - Award birthday bonus (250 points)
+  - Source: "birthday_bonus"
+  - Valid for 30 days
+```
+
+#### From Order Service
+```yaml
+topic: order.completed
+payload:
+  order_id: string
+  customer_id: string
+  subtotal: decimal
+  status: string
+  completed_at: timestamp
+
+action:
+  - Calculate points (subtotal × 1.0 × tier_multiplier + campaigns)
+  - Award points
+  - Source: "order"
+  - SourceID: order_id
+  - Check tier upgrade
+```
+
+```yaml
+topic: order.cancelled
+payload:
+  order_id: string
+  customer_id: string
+
+action:
+  - Find transaction by source="order", source_id=order_id
+  - Reverse points (create "deduct" transaction)
+  - Recheck tier (should not downgrade, but update balance)
+```
+
+```yaml
+topic: order.returned
+payload:
+  order_id: string
+  customer_id: string
+  return_amount: decimal  # Partial return possible
+
+action:
+  - Calculate points to deduct (return_amount × points_ratio)
+  - Create "return_deduction" transaction
+  - Update balance
+```
+
+#### From Review Service (Future)
+```yaml
+topic: review.approved
+payload:
+  review_id: string
+  customer_id: string
+  product_id: string
+  has_media: boolean
+
+action:
+  - Award base review bonus (50 points)
+  - If has_media: +50 bonus points
+  - Source: "review"
+  - SourceID: review_id
+  - Check monthly limit (max 5 reviews)
+```
+
+### 7.2 Events Published (by Main Service + Worker)
+
+Loyalty service publishes events for other services:
+
+```yaml
+topic: loyalty.account.created
+payload:
+  customer_id: string
+  tier_id: string
+  created_at: timestamp
+consumers: [analytics, notification]
+```
+
+```yaml
+topic: loyalty.points.earned
+payload:
+  customer_id: string
+  points: int
+  source: string
+  balance_after: int
+consumers: [analytics, notification]
+```
+
+```yaml
+topic: loyalty.tier.upgraded
+payload:
+  customer_id: string
+  old_tier: string
+  new_tier: string
+  total_earned_points: int
+consumers: [customer, notification, analytics]
+```
+
+```yaml
+topic: loyalty.points.redeemed
+payload:
+  customer_id: string
+  points: int
+  reward_type: string
+  reward_id: string
+consumers: [order, promotion, analytics]
+action: "Apply discount/reward to order"
+```
+
+```yaml
+topic: loyalty.points.expired
+payload:
+  customer_id: string
+  points: int
+  expired_at: timestamp
+consumers: [notification, analytics]
+```
+
+### 7.3 Event Flow Examples
+
+#### Order Completion Flow
+```mermaid
+sequenceDiagram
+    participant Order as Order Service
+    participant Dapr as Dapr PubSub
+    participant LoyaltyWorker as Loyalty Worker
+    participant LoyaltyDB as Loyalty DB
+    participant Notification as Notification Service
+
+    Order->>Dapr: Publish order.completed
+    Dapr->>LoyaltyWorker: Deliver event
+    LoyaltyWorker->>LoyaltyWorker: Calculate points (subtotal × tier × campaigns)
+    LoyaltyWorker->>LoyaltyDB: Create transaction + update account
+    LoyaltyWorker->>LoyaltyWorker: Check tier upgrade eligibility
+    alt Tier Upgraded
+        LoyaltyWorker->>LoyaltyDB: Update account tier
+        LoyaltyWorker->>Dapr: Publish loyalty.tier.upgraded
+        Dapr->>Notification: Send tier upgrade email/push
+    end
+    LoyaltyWorker->>Dapr: Publish loyalty.points.earned
+    Dapr->>Notification: Send points earned notification
+```
+
+#### Referral Completion Flow
+```mermaid
+sequenceDiagram
+    participant Referee as Referee
+    participant Customer as Customer Service
+    participant Dapr as Dapr PubSub
+    participant LoyaltyWorker as Loyalty Worker
+    participant Order as Order Service
+
+    Referee->>Customer: Register via referral code
+    Customer->>Dapr: Publish customer.registered_via_referral
+    Dapr->>LoyaltyWorker: Deliver event
+    LoyaltyWorker->>LoyaltyWorker: Award referee 200 points
+    LoyaltyWorker->>LoyaltyWorker: Create pending referral record
+    
+    Referee->>Order: Complete first order ($50+)
+    Order->>Dapr: Publish order.completed (first_order=true)
+    Dapr->>LoyaltyWorker: Deliver event
+    LoyaltyWorker->>LoyaltyWorker: Check referral record
+    LoyaltyWorker->>LoyaltyWorker: Award referrer 500 points
+    LoyaltyWorker->>Dapr: Publish loyalty.referral.completed
+```
+
+---
+
+## 8. Implementation Checklist (Worker Events)
+
+### Phase 1: Core Event Consumers (PRIORITY)
+- [ ] `customer.created` → Welcome bonus
+- [ ] `order.completed` → Points earning
+- [ ] `order.cancelled` → Points reversal
+- [ ] Tier upgrade logic after earning
+- [ ] Event idempotency (prevent duplicates)
+
+### Phase 2: Advanced Events
+- [ ] `order.returned` → Partial points deduction
+- [ ] `customer.birthday` → Birthday bonus  
+- [ ] `referral.completed` → Referral bonuses
+
+### Phase 3: Future Events
+- [ ] `review.approved` → Review points
+- [ ] `social.shared` → Social points
+- [ ] Campaign-triggered bonuses
+
+---
 
 ---
 
