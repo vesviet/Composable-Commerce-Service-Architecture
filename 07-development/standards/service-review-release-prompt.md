@@ -1,7 +1,7 @@
 # Service Review & Release Prompt
 
-**Version**: 1.0  
-**Last Updated**: 2026-01-30  
+**Version**: 2.0  
+**Last Updated**: 2026-02-13  
 **Purpose**: Single prompt/process for reviewing and releasing any microservice
 
 ---
@@ -21,7 +21,7 @@ Replace `<serviceName>` with the actual service (e.g. `warehouse`, `pricing`, `c
 Before any code change, apply these docs in order:
 
 1. **[Coding Standards](./coding-standards.md)** — Go style, proto, layers, context, errors, constants.
-2. **[Team Lead Code Review Guide](./TEAM_LEAD_CODE_REVIEW_GUIDE.md)** — Architecture, API, biz logic, data, security, performance, observability, testing.
+2. **[Team Lead Code Review Guide](./TEAM_LEAD_CODE_REVIEW_GUIDE.md)** — Architecture, API, biz logic, data, security, performance, observability.
 3. **[Development Review Checklist](./development-review-checklist.md)** — Pre-review, issue levels, Go/security/testing/DevOps criteria.
 
 ---
@@ -31,307 +31,341 @@ Before any code change, apply these docs in order:
 Use this process for the service identified by **`serviceName`** (e.g. warehouse → `warehouse`, pricing → `pricing`).  
 Paths and commands below use `serviceName`; replace it with the real service name.
 
+> [!IMPORTANT]
+> Many services use a **dual-binary architecture**: `cmd/<serviceName>/` (main API server) + `cmd/worker/` (event consumers, cron, outbox). Always review **both** entry points.
+
 ### 1. Index & review codebase
 
-- Index and understand the **`serviceName`** service: directory `{serviceName}/`, layout (biz/data/service/client/events), proto under `api/`, `internal/constants`, `go.mod`.
+- Index and understand the **`serviceName`** service:
+  - Directory `{serviceName}/` layout: `cmd/` (main + worker entry points), `internal/biz/`, `internal/data/`, `internal/service/`, `internal/client/`, `internal/events/`, `internal/worker/`, `internal/constants/`
+  - Proto under `api/{serviceName}/v1/`
+  - Migrations: `migrations/`
+  - Config: `configs/`, `go.mod`
 - Review code against the three standards above (architecture, layers, context, errors, validation, security, no N+1, transactions, observability).
 - List any **P0 / P1 / P2** issues (use severity from TEAM_LEAD_CODE_REVIEW_GUIDE).
 
-### 2. Checklist & todo for `serviceName`
+| Severity | Definition | Examples |
+|----------|-----------|----------|
+| **P0 (Blocking)** | Security, data inconsistency, breaking backward compat | No auth, raw SQL concat, biz calls DB directly, proto field removed without `reserved`, breaking event schema |
+| **P1 (High)** | Performance, missing observability, config mismatch | N+1 queries, no circuit breaker, env var not in configmap |
+| **P2 (Normal)** | Documentation, code style, naming | Missing comments, TODO without ticket |
 
-- Open or create the checklist: **`docs/10-appendix/service_review/{serviceName}_review.md`**.
+### 2. Cross-service impact analysis
+
+> [!WARNING]
+> **This step is mandatory.** Skipping it risks deploying breaking changes that crash other services at runtime.
+
+#### 2.1 Proto/API backward compatibility
+
+```bash
+# Who depends on this service's proto?
+grep -r 'gitlab.com/ta-microservices/{serviceName}' --include='go.mod' /home/user/microservices/*/go.mod
+```
+
+- Proto field numbers preserved (use `reserved` for deleted fields)
+- New fields are optional (adding required fields = MAJOR break)
+- RPC signatures stable (no rename/remove without versioning `v1` → `v2`)
+- All client services still compile after changes
+
+#### 2.2 Event schema compatibility
+
+```bash
+# Who consumes this service's events?
+grep -r 'Topic.*{serviceName}' /home/user/microservices/*/internal/ --include='*.go' -l
+```
+
+- Event struct changes are additive-only (removing/renaming fields = breaking)
+- Consumers handle old + new format gracefully
+- Topic names immutable (never rename existing topics)
+
+#### 2.3 Go module dependency graph
+- No circular imports between services
+- Minimal import surface (don't import entire service module for one type)
+
+### 3. Checklist & todo for `serviceName`
+
+- Track review findings and TODOs in the service doc: **`docs/03-services/<group>/{serviceName}-service.md`**
 - Align items with TEAM_LEAD_CODE_REVIEW_GUIDE and development-review-checklist (P0/P1/P2).
 - Mark completed items; add items for remaining work. **Skip adding or requiring test-case tasks** (per user request).
-- Save/update the file under `docs/10-appendix/service_review/`.
 
-### 3. Dependencies (Go modules)
+### 4. Dependencies (Go modules)
 
-#### 3.1 Convert replace to import (if needed)
-- **Check for `replace` directives**: Search for any `replace gitlab.com/ta-microservices/...` lines in go.mod.
-- **Remove replace directives**: Delete all `replace gitlab.com/ta-microservices/... => ../...` lines.
-- **Get latest versions**: For each removed replace, run `go get gitlab.com/ta-microservices/<service>@latest` to get the newest version.
+> [!CAUTION]
+> **NO `replace` directives for `gitlab.com/ta-microservices` are allowed.** This works locally but breaks CI/CD.
 
-#### 3.2 Update dependencies
-- Update dependencies from **gitlab.com/ta-microservices**: use **`go get`** with the latest tag, e.g.  
-  `go get gitlab.com/ta-microservices/common@latest`
-- **Do not use `replace`** in go.mod for gitlab.com/ta-microservices; use normal **import** and version via `go get`.
-- Run **`go mod tidy`** in the service directory.
+#### 4.1 Check if `common` changed
 
-#### 3.3 Example conversion
 ```bash
-# Before: go.mod contains
-# replace gitlab.com/ta-microservices/common => ../common
+# If common has uncommitted changes, it MUST be committed + tagged FIRST
+cd /home/user/microservices/common && git status
+```
 
-# After: Remove replace line and run
+**If `common` changed → commit, tag, and push `common` BEFORE touching the service:**
+
+```bash
+cd /home/user/microservices/common
+golangci-lint run && go build ./... && go test ./...
+git add -A && git commit -m "<type>(common): <description>"
+git tag --sort=-creatordate | head -5   # check current latest tag
+git tag -a v1.x.y -m "v1.x.y: <summary>"
+git push origin main && git push origin v1.x.y
+```
+
+> [!IMPORTANT]
+> **Common must be tagged before any service commit.** Services import `common` via `go get @<tag>`. If the service is committed before common is tagged, `go.mod` references a non-existent version.
+
+#### 4.2 Convert replace to import (if needed)
+
+```bash
+# Check for forbidden replace directives
+grep 'replace gitlab.com/ta-microservices' {serviceName}/go.mod
+
+# If found: remove replace lines, then get latest versions:
+cd /home/user/microservices/{serviceName}
 go get gitlab.com/ta-microservices/common@latest
-go get gitlab.com/ta-microservices/catalog@latest
+go get gitlab.com/ta-microservices/<other-dep>@latest
 go mod tidy
 ```
 
-### 4. Lint & build
+#### 4.3 Update dependencies
 
-- In **`{serviceName}/`**: run **`golangci-lint run`** and fix reported issues.
-- Run **`make api`** (if proto changed), then **`go build ./...`**, then **`make wire`** (if DI changed).
-- Target: zero golangci-lint warnings and a clean build.
+```bash
+cd /home/user/microservices/{serviceName}
+go get gitlab.com/ta-microservices/common@latest    # or @v1.x.y if just tagged
+go mod tidy
+```
 
-### 5. Docs
+### 5. Lint & build
 
-#### 5.1 Service Documentation Structure
+```bash
+cd /home/user/microservices/{serviceName}
 
-Update or create service docs under **`docs/03-services`** with the following structure:
+# 1. Generate proto (if .proto files changed)
+make api
 
-**Main service doc**: **`docs/03-services/<group>/{serviceName}-service.md`**
+# 2. Regenerate Wire (if DI providers changed) — BOTH binaries
+cd cmd/{serviceName} && wire
+cd ../worker && wire      # if worker binary exists
 
-Where `<group>` is one of:
-- **core-services**: Essential business services (order, catalog, customer, payment, etc.)
-- **operational-services**: Supporting services (notification, analytics, etc.)  
-- **platform-services**: Infrastructure services (gateway, auth, common-operations, etc.)
+# 3. Lint (target: zero warnings)
+cd /home/user/microservices/{serviceName}
+golangci-lint run
 
-#### 5.2 Service Doc Template
+# 4. Build
+go build ./...
 
-Use this template for **`docs/03-services/<group>/{serviceName}-service.md`**:
+# 5. Run tests
+go test ./...
+```
+
+> [!NOTE]
+> **Never manually edit `wire_gen.go` or `*.pb.go`** — these files are auto-generated. Always use `wire` and `make api` to regenerate.
+
+### 6. Deployment readiness (GitOps alignment)
+
+Before release, verify config alignment between code and GitOps:
+
+```bash
+# 1. Check env vars used in code
+grep -rn 'os.Getenv\|viper.Get\|envconfig' {serviceName}/internal/ --include='*.go'
+
+# 2. Compare with gitops configmap
+cat gitops/apps/{serviceName}/base/configmap.yaml
+
+# 3. Verify ports match
+grep -n 'containerPort\|port:' gitops/apps/{serviceName}/base/*.yaml
+grep -n 'Port\|port' {serviceName}/configs/*.yaml
+
+# 4. Check resource limits are set
+grep -A5 'resources:' gitops/apps/{serviceName}/base/deployment.yaml
+
+# 5. Verify health probes
+grep -A5 'livenessProbe\|readinessProbe' gitops/apps/{serviceName}/base/deployment.yaml
+
+# 6. Check HPA exists
+ls gitops/apps/{serviceName}/base/hpa.yaml 2>/dev/null || echo "⚠️ No HPA configured"
+```
+
+Checklist:
+- [ ] New env vars in code → ConfigMap/Secret updated in `gitops/`
+- [ ] Port consistency: code ↔ deployment.yaml ↔ service.yaml
+- [ ] Resource limits set (not unbounded)
+- [ ] Health probes configured (liveness + readiness)
+- [ ] Dapr annotations correct (if using events)
+- [ ] NetworkPolicy allows required egress/ingress
+- [ ] Migration strategy safe for zero-downtime deploy
+
+### 7. Docs
+
+#### 7.1 Service documentation
+
+Update or create service docs under **`docs/03-services/<group>/`**:
+
+| Group | Services |
+|-------|----------|
+| `core-services` | order, catalog, customer, payment, auth, user |
+| `operational-services` | notification, analytics, search, review, warehouse, fulfillment, shipping, pricing, promotion, loyalty-rewards, location |
+| `platform-services` | gateway, common-operations |
+
+Use the template at **[docs/templates/service-doc-template.md](../../templates/service-doc-template.md)**.
+
+#### 7.2 README.md
+
+Update **`{serviceName}/README.md`** using the template at **[docs/templates/readme-template.md](../../templates/readme-template.md)**.
+
+#### 7.3 CHANGELOG.md
+
+Update **`{serviceName}/CHANGELOG.md`** (create if not exists):
 
 ```markdown
-# {ServiceName} Service
+## [Unreleased]
+### Added
+- <describe new features>
 
-**Version**: 1.0  
-**Last Updated**: YYYY-MM-DD  
-**Service Type**: [Core/Operational/Platform]  
-**Status**: [Active/Development/Deprecated]
+### Changed
+- <describe changes>
 
-## Overview
+### Fixed
+- <describe bug fixes>
+```
 
-Brief description of what this service does and its role in the system.
+#### 7.4 Documentation checklist
 
-## Architecture
+- [ ] Current and accurate information
+- [ ] Working commands (tested)
+- [ ] Correct ports and endpoints
+- [ ] Up-to-date dependencies
+- [ ] Valid configuration examples
+- [ ] Troubleshooting section with real issues
+- [ ] Links to related documentation
 
-### Responsibilities
-- Primary responsibility 1
-- Primary responsibility 2
-- Primary responsibility 3
+### 8. Commit & release
 
-### Dependencies
-- **Upstream services**: Services this service calls
-- **Downstream services**: Services that call this service
-- **External dependencies**: Databases, message queues, etc.
+> [!IMPORTANT]
+> **CI/CD builds Docker images and updates GitOps tags automatically.** Never build Docker images locally. Never manually update `newTag` in gitops kustomization.
 
-## API Contract
+#### 8.1 Commit order (when multiple components changed)
 
-### gRPC Services
-- **Service**: `api.{servicename}.v1.{ServiceName}Service`
-- **Proto location**: `{serviceName}/api/{servicename}/v1/`
-- **Key methods**:
-  - `Method1(Request) → Response` - Description
-  - `Method2(Request) → Response` - Description
+```
+┌─────────────────────────────────────────────────────┐
+│                 COMMIT ORDER MATTERS                 │
+│                                                      │
+│  1. common/  → commit + tag (v1.x.y) + push         │
+│       ↓                                              │
+│  2. service/ → go get common@v1.x.y + commit + push  │
+│       ↓                                              │
+│  3. CI/CD builds image + updates gitops tag auto     │
+│                                                      │
+│  ⚠️ common MUST be committed and tagged FIRST        │
+└─────────────────────────────────────────────────────┘
+```
 
-### HTTP Endpoints (if any)
-- `GET /api/v1/{resource}` - Description
-- `POST /api/v1/{resource}` - Description
+#### 8.2 Commit
 
-## Data Model
-
-### Database Tables
-- **Table 1**: Purpose and key fields
-- **Table 2**: Purpose and key fields
-
-### Key Entities
-- **Entity1**: Description and relationships
-- **Entity2**: Description and relationships
-
-## Configuration
-
-### Environment Variables
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `VAR_NAME` | Yes | - | Purpose |
-| `VAR_NAME2` | No | `default` | Purpose |
-
-### Config Files
-- **Location**: `{serviceName}/configs/`
-- **Key settings**: Brief description
-
-## Deployment
-
-### Docker
-- **Image**: `registry/ta-microservices/{servicename}`
-- **Ports**: List exposed ports
-- **Health check**: Endpoint and expected response
-
-### Kubernetes
-- **Namespace**: `ta-microservices`
-- **Resources**: CPU/Memory requirements
-- **Scaling**: Min/max replicas
-
-## Monitoring & Observability
-
-### Metrics
-- Key business metrics exposed
-- Performance metrics
-- Health indicators
-
-### Logging
-- Log levels and key log messages
-- Structured logging format
-
-### Tracing
-- Key spans and trace points
-
-## Development
-
-### Local Setup
-1. Prerequisites
-2. Configuration steps
-3. Running the service
-
-### Testing
-- Unit test coverage
-- Integration test approach
-- Key test scenarios
-
-## Troubleshooting
-
-### Common Issues
-- **Issue 1**: Symptoms and resolution
-- **Issue 2**: Symptoms and resolution
-
-### Debug Commands
 ```bash
-# Useful commands for debugging
-kubectl logs -f deployment/{servicename}
+cd /home/user/microservices/{serviceName}
+git add -A
+git commit -m "<type>({serviceName}): <description>"
 ```
 
-## Changelog
+**Conventional commit types:**
 
-Link to CHANGELOG.md or recent changes summary.
+| Type | When | Example |
+|------|------|---------|
+| `feat` | New feature | `feat(order): add order history API` |
+| `fix` | Bug fix | `fix(payment): fix race condition in capture` |
+| `refactor` | Code refactor | `refactor(catalog): extract pricing logic` |
+| `docs` | Documentation | `docs(order): update API documentation` |
+| `chore` | Maintenance | `chore(order): update dependencies` |
+| `perf` | Performance | `perf(search): optimize query performance` |
 
-## References
+#### 8.3 Push & release
 
-- [API Documentation](../04-apis/{servicename}-api.md)
-- [Related Services](./related-service.md)
+```bash
+# Push to remote (CI will build Docker image automatically)
+git push origin main
+
+# If this is a RELEASE (semver):
+git tag -a v1.0.7 -m "v1.0.7: description
+
+Added:
+- New feature X
+
+Fixed:
+- Bug Y"
+git push origin v1.0.7
 ```
 
-#### 5.3 README.md Structure
+**If NOT a release**: push branch only: `git push origin <branch>`.
 
-Update **`{serviceName}/README.md`** with this structure:
+**Verify deployment** (after CI builds and ArgoCD syncs, ~2-5 min):
+
+```bash
+# Check if CI updated gitops tag
+cd /home/user/microservices/gitops && git pull origin main
+# Verify newTag matches latest commit hash
+
+# Check pod status
+ssh tuananh@dev.tanhdev.com -p 8785 "kubectl get pods -n {serviceName}-dev -w"
+```
+
+---
+
+## Review output format
+
+Use this format to report review findings:
 
 ```markdown
-# {ServiceName} Service
+## 🔍 Service Review: {serviceName}
 
-Brief service description.
+**Date**: YYYY-MM-DD
+**Status**: ✅ Ready / ⚠️ Needs Work / ❌ Not Ready
 
-## Quick Start
+### 📊 Issue Summary
 
-### Prerequisites
-- Go 1.25+
-- Docker & Docker Compose
-- PostgreSQL (or required database)
+| Severity | Count | Status |
+|----------|-------|--------|
+| P0 (Blocking) | X | Fixed / Remaining |
+| P1 (High) | X | Fixed / Remaining |
+| P2 (Normal) | X | Fixed / Remaining |
 
-### Local Development
-```bash
-# Clone and setup
-git clone <repo>
-cd {serviceName}
-cp .env.example .env
+### 🔴 P0 Issues (Blocking)
+1. **[CATEGORY]** file:line — Description
 
-# Install dependencies
-go mod download
+### 🟡 P1 Issues (High)
+1. **[CATEGORY]** file:line — Description
 
-# Run database migrations
-make migrate-up
+### 🔵 P2 Issues (Normal)
+1. **[CATEGORY]** file:line — Description
 
-# Start service
-make run
+### ✅ Completed Actions
+1. Fixed: description
+
+### 🌐 Cross-Service Impact
+- Services that import this proto: [list]
+- Services that consume events: [list]
+- Backward compatibility: ✅ Preserved / ❌ Breaking
+
+### 🚀 Deployment Readiness
+- Config/GitOps aligned: ✅ / ❌
+- Health probes: ✅ / ❌
+- Resource limits: ✅ / ❌
+- Migration safety: ✅ / ❌
+
+### Build Status
+- `golangci-lint`: ✅ 0 warnings / ❌ X warnings
+- `go build ./...`: ✅ / ❌
+- `wire`: ✅ Generated / ❌ Needs regen
+
+### Documentation
+- Service doc: ✅ / ❌
+- README.md: ✅ / ❌
+- CHANGELOG.md: ✅ / ❌
 ```
-
-### Docker Development
-```bash
-# Build and run with docker-compose
-docker-compose up --build
-```
-
-## Configuration
-
-### Environment Variables
-Key environment variables (link to full list in service docs).
-
-### Database Setup
-Database connection and migration instructions.
-
-## API
-
-### gRPC
-- **Port**: 9000 (or service-specific port)
-- **Proto**: `api/{servicename}/v1/`
-- **Health check**: `grpc_health_probe -addr=:9000`
-
-### HTTP (if applicable)
-- **Port**: 8000 (or service-specific port)
-- **Health check**: `GET /health`
-
-## Testing
-
-```bash
-# Run unit tests
-make test
-
-# Run integration tests
-make test-integration
-
-# Generate coverage report
-make coverage
-```
-
-## Build & Deploy
-
-```bash
-# Build binary
-make build
-
-# Build Docker image
-make docker-build
-
-# Deploy to staging
-make deploy-staging
-```
-
-## Troubleshooting
-
-### Common Issues
-- Connection issues
-- Configuration problems
-- Performance issues
-
-### Debug Commands
-Useful commands for local debugging.
-
-## Documentation
-
-- [Service Documentation](../docs/03-services/<group>/{servicename}-service.md)
-- [API Reference](../docs/04-apis/{servicename}-api.md)
-```
-
-#### 5.4 Documentation Checklist
-
-Ensure both documents include:
-- [ ] **Current and accurate** information
-- [ ] **Working commands** (test all bash commands)
-- [ ] **Correct ports and endpoints**
-- [ ] **Up-to-date dependencies**
-- [ ] **Valid configuration examples**
-- [ ] **Troubleshooting section** with real issues
-- [ ] **Links to related documentation**
-
-### 6. Commit & release
-
-- Commit with conventional commits: `feat({serviceName}): …`, `fix({serviceName}): …`, `docs({serviceName}): …`.
-- If this is a **release**: create a new Git tag (semver, e.g. `v1.0.7`) and push:
-  - `git tag -a v1.0.7 -m "v1.0.7: description"`
-  - `git push origin main && git push origin v1.0.7`
-- If **not** a release: push branch only: `git push origin <branch>`.
 
 ---
 
 ## Summary
 
-- **Prompt**: “Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name **`<serviceName>`**.”
-- **Process**: Index → review (3 standards) → checklist for `serviceName` (skip test-case) → **convert replace to import @latest** → go get @latest (no replace) → golangci-lint → make api / go build / wire → update docs (03-services + README) → commit → tag (if release) → push.
+- **Prompt**: "Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name **`<serviceName>`**."
+- **Process**: Index (both main + worker) → review (3 standards) → cross-service impact → checklist → **common first (if changed, tag + push)** → convert replace → go get @latest → `make api` / `wire` (both binaries) / `golangci-lint` / `go build` / `go test` → deployment readiness (GitOps alignment) → update docs (service doc + README + CHANGELOG) → commit (conventional) → push → CI/CD builds + deploys.
