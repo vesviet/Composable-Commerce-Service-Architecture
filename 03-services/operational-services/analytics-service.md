@@ -129,8 +129,8 @@ All subscriptions use `pubsub-redis` with `maxRetryCount: 3`.
 ### Environment Variables
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `GRPC_PORT` | Yes | 9017 | gRPC server port (⚠️ was documented as 9018, actual default is 9017) |
-| `HTTP_PORT` | Yes | 8017 | HTTP gateway port (⚠️ was documented as 8018, actual default is 8017) |
+| `GRPC_PORT` | Yes | 9019 | gRPC server port |
+| `HTTP_PORT` | Yes | 8019 | HTTP gateway port |
 | `DB_HOST` | Yes | localhost | PostgreSQL host |
 | `DB_PORT` | Yes | 5432 | PostgreSQL port |
 | `REDIS_HOST` | Yes | localhost | Redis host |
@@ -144,7 +144,7 @@ All subscriptions use `pubsub-redis` with `maxRetryCount: 3`.
 
 ### Docker
 - **Image**: `registry-api.tanhdev.com/analytics`
-- **Ports**: 8017 (HTTP), 9017 (gRPC)
+- **Ports**: 8019 (HTTP), 9019 (gRPC)
 - **Health check**: `GET /health`
 
 ### Kubernetes
@@ -549,10 +549,12 @@ Doc (v3.0) claimed: `CPU: 500m-2, Memory: 1Gi-4Gi, Max 10 replicas`. **Actual** 
 
 | Source | HTTP Port | gRPC Port |
 |--------|-----------|----------|
-| `config.go:84,87` defaults | 8017 | 9017 |
-| `k8s/deployment.yaml:30-33` | 8017 | 9017 |
-| `kustomization.yaml:47,50` | 8017 | 9017 |
-| Doc v3.0 (now corrected) | ~~8018~~ | ~~9018~~ |
+| `config.go:84,87` defaults | 8019 | 9019 |
+| `k8s/deployment.yaml:30-33` | 8019 | 9019 |
+| `kustomization.yaml:47,50` | 8019 | 9019 |
+| Doc (Standard) | 8019 | 9019 |
+
+✅ **Fixed (Fix 21)**: Code updated to use standard ports 8019/9019.
 
 #### SG-22: PG connection pool NOT configurable
 
@@ -612,6 +614,16 @@ If an incident causes 4 hours of event loss, there is **no recovery mechanism** 
 
 ---
 
+#### SG-26: Non-standard Kratos layout
+
+The service used `internal/domain`, `internal/usecase`, and `internal/repository` which deviated from the team's Kratos standard (`internal/biz`, `internal/data`).
+
+✅ **Fixed (Fix 22)**: Refactored entire codebase to use standard Kratos layout.
+- `domain` + `usecase` → `internal/biz`
+- `repository` → `internal/data`
+
+---
+
 ## Fix Sufficiency Review
 
 > [!NOTE]
@@ -644,6 +656,13 @@ If an incident causes 4 hours of event loss, there is **no recovery mechanism** 
 | Fix 18 | **Configurable PG Pool** ✅ | P1 | SG-22 |
 | Fix 19 | **Data Retention Policy** ✅ — Monthly partitioning + retention service | P1 | SG-24 |
 | Fix 20 | **PrometheusRule Alerts** — DLQ depth, processing lag, connection exhaustion, memory | P0 | SG-25 |
+| Fix 21 | **Port Standardization** ✅ — Updated default ports to 8019/9019 | P1 | SG-21 |
+| Fix 22 | **Architecture Refactor** ✅ — Migrated to Kratos `biz`/`data` layout | P2 | SG-26 |
+
+#### Accepted Risks (Do Not Fix)
+
+- **Raw SQL Usage**: `internal/data` uses `database/sql` directly for complex OLAP queries. Accepted for performance reasons vs GORM overhead.
+
 
 ---
 
@@ -651,7 +670,7 @@ If an incident causes 4 hours of event loss, there is **no recovery mechanism** 
 
 | Gate | Requirement | Status |
 |------|-------------|--------|
-| → **Stabilizing** | Fix 1 (PII) + Fix 2 (DLQ) + Fix 3 (CloudEvent) + Fix 11 (CB) + Fix 17 (K8s) + Fix 20 (Alerts) | ✅ Met |
+| → **Stabilizing** | Fix 1 (PII) + Fix 2 (DLQ) + Fix 3 (CloudEvent) + Fix 11 (CB) + Fix 17 (K8s) + Fix 20 (Alerts) + Fix 21 (Ports) + Fix 22 (Arch) | ✅ Met |
 | → **Staging-Ready** | + Fix 4 (Batch) + Fix 7 (trace_id) + Fix 13 (Sequencing) + Fix 14 (Reconciliation) + Fix 16 (De-hardcode) + Fix 18 (Pool) + Fix 19 (Retention) | ✅ Met |
 | → **Production-Ready** | + Fix 5 (Enhanced EP) + Fix 6 (OLAP) + Fix 8 (Funnel) + Fix 9 (Schema) + Fix 10 (Validation) + Fix 12 (Dedup) + Fix 15 (Scheduler) + Load Tests | 🟡 Partial (Fix 6 + Load Tests remaining) |
 

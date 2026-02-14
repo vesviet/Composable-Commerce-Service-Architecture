@@ -1,18 +1,5 @@
 # ROLE: SENIOR FULLSTACK ENGINEER
 
-follow docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md,
-docs/07-development/standards/development-review-checklist.md,
-docs/07-development/standards/coding-standards.md
-và index codebase warehouse service:
--review code
--check list todo on warehouse service
--go get new tag from gitlab.com/ta-microservices, not use replace, use import 
--golangci-lint run
--update checklist vào docs/10-appendix/checklists/v3/ , skip testcase
--update readme và docs on docs/03-services
--make api, go build, wire, commit, new tag(nếu cần) vs push
-
-
 golangci-lint, make api, go build, wire, commit, new tag vs push
 
 golangci-lint, make api, go build, wire, commit vs push
@@ -22,7 +9,9 @@ golangci-lint run
 commit và push
 
 git pull analytics service
+
 Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name analytics
+
 -go get new tag from gitlab.com/ta-microservices, not use replace, use import 
 review code, code quality, gitops config, business logic
 golangci-lint, make api, go build, wire, commit vs push
