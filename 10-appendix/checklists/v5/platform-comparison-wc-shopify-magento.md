@@ -1,5 +1,5 @@
 # So sánh Platform E-commerce: Custom Microservices vs WooCommerce vs Shopify vs Magento
-> **Date**: 2026-02-14 | **Version**: v1.0
+> **Date**: 2026-02-14 | **Version**: v1.1 (updated post-session commit)
 
 ---
 
@@ -7,7 +7,7 @@
 
 | Tiêu chí | 🟠 Custom Microservices (Hệ thống hiện tại) | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento (Adobe Commerce) |
 |----------|------|------|------|------|
-| **Kiến trúc** | Microservices (19 Go services) | Monolith (WordPress plugin) | SaaS / Monolith hosted | Monolith (PHP, modular) |
+| **Kiến trúc** | Microservices (21 Go services) | Monolith (WordPress plugin) | SaaS / Monolith hosted | Monolith (PHP, modular) |
 | **Ngôn ngữ** | Go, React, Next.js | PHP (WordPress) | Ruby on Rails (closed) | PHP (Magento Framework) |
 | **Database** | PostgreSQL per service | MySQL (shared) | MySQL (managed, closed) | MySQL (shared) |
 | **Hosting** | Self-hosted K8s (K3d/ArgoCD) | Self-hosted / Any hosting | Shopify Cloud (managed) | Self-hosted / Adobe Cloud |
@@ -52,7 +52,7 @@ graph TB
 | **Database isolation** | ✅ DB riêng per service | ❌ Shared DB, 60+ tables | ❌ Không access DB | ❌ Shared DB, 300+ tables |
 | **Deploy độc lập** | ✅ Deploy 1 service không ảnh hưởng service khác | ❌ Deploy = update toàn bộ WP | ✅ Shopify deploy (bạn không cần lo) | ❌ Deploy = downtime toàn bộ |
 | **Fault isolation** | ✅ Payment crash ≠ Catalog down | ❌ Plugin crash = site down | ✅ Shopify lo | ❌ Module crash = site down |
-| **Complexity** | 🔴 Rất cao (19 services, event flows) | 🟢 Thấp | 🟢 Thấp nhất | 🟡 Trung bình-Cao |
+| **Complexity** | 🔴 Rất cao (21 services + event flows + K8s = cần team lớn) | 🟢 Thấp | 🟢 Thấp nhất | 🟡 Trung bình-Cao |
 
 ---
 
@@ -76,7 +76,7 @@ graph TB
 | **Payment gateways** | Stripe, VNPay, MoMo + COD | 100+ plugins (Stripe, PayPal, etc.) | Shopify Payments + 100+ providers | PayPal, Stripe, Braintree, etc. |
 | **VN-specific gateways** | ✅ VNPay, MoMo native | ⚠️ Via 3rd-party plugin | ⚠️ Limited VN support | ⚠️ Via extension |
 | **Gateway failover** | ✅ Automatic failover between gateways | ❌ | ❌ | ❌ |
-| **Fraud detection** | ✅ Built-in FraudDetector | ❌ Plugin-based | ✅ Shopify Protect | ⚠️ Signifyd/etc integration |
+| **Fraud detection** | ✅ GeoIP + VPN/proxy detection + ML model | ❌ Plugin-based | ✅ Shopify Protect | ⚠️ Signifyd/etc integration |
 | **Circuit breaker** | ✅ Per-gateway circuit breakers | ❌ | ✅ Internal | ❌ |
 | **Rate limiting** | ✅ Per-gateway rate limits | ❌ | ✅ Internal | ❌ |
 | **Reconciliation** | ✅ Automated reconciliation job | ❌ Manual | ✅ Shopify Balance | ⚠️ Manual/3rd party |
@@ -110,7 +110,7 @@ graph TB
 | Khía cạnh | 🟠 Custom | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
 |-----------|-----------|----------------|------------|------------|
 | **Event system** | Dapr PubSub (Redis Streams) — async, decoupled | WordPress Hooks (sync, in-process) | Webhooks (HTTP callback) | Magento Events/Observers (sync, in-process) |
-| **Transactional outbox** | ✅ 6 services (order, payment, warehouse, fulfillment, shipping, pricing) | ❌ | ❌ | ❌ |
+| **Transactional outbox** | ✅ 8 services (order, payment, warehouse, fulfillment, shipping, pricing, loyalty, return) | ❌ | ❌ | ❌ |
 | **Event idempotency** | ✅ DB-level per consumer | ❌ | ❌ (webhook retry is "at least once") | ❌ |
 | **Saga pattern** | ✅ Multi-phase payment saga with DLQ + compensation | ❌ | ❌ (internal, closed) | ❌ |
 | **Dead Letter Queue** | ✅ Failed events tracked + alert | ❌ | ❌ | ❌ |
@@ -141,10 +141,9 @@ graph TB
 
 | Điểm yếu | Chi tiết | WC/Shopify/Magento có? |
 |-----------|----------|----------------------|
-| 🔴 **Return service là STUB** | Refund, restock chỉ là log → return nil | ✅ Tất cả đều có refund flow hoàn chỉnh |
 | 🔴 **Không có plugin ecosystem** | Mọi tính năng phải tự code | ✅ WC: 59,000+ plugins, Shopify: 8,000+ apps |
 | 🔴 **Không có CMS/Content** | Không có blog, landing pages | ✅ WC = WordPress CMS, Shopify có Online Store |
-| 🔴 **Complexity quá cao** | 19 services + event flows + K8s = cần team lớn | ✅ 1 người có thể chạy WC/Shopify |
+| 🔴 **Complexity quá cao** | 21 services + event flows + K8s = cần team lớn | ✅ 1 người có thể chạy WC/Shopify |
 | 🟡 **Không có POS** | Không hỗ trợ bán tại cửa hàng | ✅ Shopify POS, Magento POS extensions |
 | 🟡 **Email marketing** | Chỉ có notification service cơ bản | ✅ Mailchimp/Klaviyo integrated |
 | 🟡 **SEO tools** | Không có built-in SEO | ✅ WC: Yoast SEO, Shopify: built-in |
@@ -200,4 +199,4 @@ graph TB
 4. 🔌 Cần hệ sinh thái plugin — mọi thứ phải tự build
 5. 💰 Budget thấp — infra K8s + team Go devs ≠ rẻ
 
-> **Bottom line**: Hệ thống hiện tại đang build những thứ mà **Magento Enterprise mất $200k+/năm license** để có — payment saga, multi-warehouse WMS, event-driven architecture. Tradeoff là phải có team mạnh để maintain và vẫn còn gaps (return service, promotion reversal, search DLQ) cần hoàn thiện.
+> **Bottom line**: Hệ thống hiện tại đang build những thứ mà **Magento Enterprise mất $200k+/năm license** để có — payment saga, multi-warehouse WMS, event-driven architecture, transactional outbox, fraud detection. Tradeoff là phải có team mạnh để maintain. Core flows (checkout → order → payment → fulfillment → shipping → return) đã hoàn thiện.

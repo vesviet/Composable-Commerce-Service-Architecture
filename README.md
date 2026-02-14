@@ -33,6 +33,25 @@
 
 ---
 
+## 🤔 Why Build This?
+
+Off-the-shelf platforms (Shopify, WooCommerce, Magento) get you started fast — but hit walls at scale:
+
+| Challenge | Off-the-Shelf | This Platform |
+|-----------|--------------|---------------|
+| **Vietnam payment gateways** (VNPay, MoMo) | Third-party plugins, unreliable | Native integration, circuit breaker, failover |
+| **Multi-warehouse + WMS** | Basic or enterprise-only ($125K+/yr Magento) | Built-in: bin location, batch picking, stock reservation |
+| **Peak traffic** (e.g., flash sale) | Scale entire monolith 10× | Scale only Order + Payment 10×, rest unchanged |
+| **Transaction fees** | Shopify: 0.5–2% per transaction | $0 — no platform fees |
+| **Data ownership** | Shopify holds your data | Self-hosted, full control |
+| **Event reliability** | Webhooks can miss, hooks are synchronous | Transactional outbox + async PubSub + DLQ |
+
+> **Bottom line**: This platform delivers what **Magento Enterprise charges $200K+/year** for — payment saga, event-driven architecture, multi-warehouse WMS, fraud detection — with **zero license fees** and **full source ownership**.
+
+📄 [Full comparison: TA Microservices vs Shopify vs WooCommerce vs Magento](10-appendix/checklists/v5/platform-comparison-wc-shopify-magento.md)
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid
