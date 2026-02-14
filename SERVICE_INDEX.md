@@ -1,501 +1,151 @@
-# Service Index - Microservices Platform
+# 📦 Service Index
 
-**Last Updated**: 2026-02-07  
-**Total Services**: 23
-
-## Service Categories
-
-### Core Business Services (13)
-Services that handle core business operations and transactions.
-
-### Platform Services (5)
-Infrastructure and platform-level services.
-
-### Operational Services (5)
-Supporting services for operations and management.
+> **Last Updated**: 2026-02-14 | **Total**: 21 Go services + 2 frontends  
+> **Stack**: Go 1.25 · Kratos v2 · PostgreSQL · Redis · Dapr · Kubernetes
 
 ---
 
-## Core Business Services
+## Service Catalog
 
-### 1. Auth Service
-- **Version**: v1.1.1
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8000, gRPC 9000
-- **Description**: Authentication, authorization, JWT token management, OAuth2, MFA
-- **Key Features**:
-  - JWT Authentication (RS256)
-  - OAuth2 Social Login (Google, Facebook, GitHub)
-  - Multi-Factor Authentication (TOTP)
-  - Password Management
-  - Session Management
-  - Rate Limiting & Security
-- **Dependencies**: PostgreSQL, Redis
-- **Documentation**: [auth/README.md](auth/README.md)
+| # | Service | Domain | HTTP | gRPC | Maturity | Outbox | Idempotency | DLQ |
+|---|---------|--------|------|------|----------|--------|-------------|-----|
+| 1 | **Auth** | Identity & Access | 8000 | 9000 | 🟢 Production | — | — | — |
+| 2 | **User** | Identity & Access | 8001 | 9001 | 🟢 Production | — | — | — |
+| 3 | **Customer** | CRM & Analytics | 8003 | 9003 | 🟡 Near-prod | ❌ | ❌ | ❌ |
+| 4 | **Catalog** | Product & Content | 8015 | 9015 | 🟡 Near-prod | ✅ | ❌ | ❌ |
+| 5 | **Pricing** | Product & Content | 8002 | 9002 | 🟡 Near-prod | ✅ | ❌ | ❌ |
+| 6 | **Promotion** | Product & Content | 8011 | 9011 | 🟡 Partial | ✅ | ❌ | ❌ |
+| 7 | **Checkout** | Commerce Flow | 8010 | 9010 | 🟢 Production | — | ✅ | ✅ |
+| 8 | **Order** | Commerce Flow | 8004 | 9004 | 🟢 Production | ✅ | ✅ | ✅ |
+| 9 | **Payment** | Commerce Flow | 8005 | 9005 | 🟢 Production | ✅ | ✅ | ✅ |
+| 10 | **Warehouse** | Logistics | 8008 | 9008 | 🟢 Production | ✅ | ✅ | ✅ |
+| 11 | **Fulfillment** | Logistics | 8006 | 9006 | 🟡 Partial | ✅ | ✅ | ❌ |
+| 12 | **Shipping** | Logistics | 8012 | 9012 | 🟡 Near-prod | ✅ | ✅ | ❌ |
+| 13 | **Return** | Post-Purchase | 8013 | 9013 | 🟡 Near-prod | ✅ | ❌ | ❌ |
+| 14 | **Loyalty** | Post-Purchase | 8014 | 9014 | 🟡 Near-prod | ✅ | ✅ | ❌ |
+| 15 | **Gateway** | Platform | 80 | — | 🟢 Production | — | — | — |
+| 16 | **Search** | Platform | 8017 | 9017 | 🟢 Near-prod | — | ✅ | ✅ |
+| 17 | **Analytics** | Platform | 8018 | 9018 | 🟠 Partial | — | — | — |
+| 18 | **Review** | Platform | 8016 | 9016 | 🟠 Partial | — | — | — |
+| 19 | **Common Ops** | Platform | 8019 | 9019 | 🟢 Production | ✅ | — | — |
+| 20 | **Notification** | Operations | 8009 | 9009 | 🟡 Functional | ❌ | ❌ | ❌ |
+| 21 | **Location** | Operations | 8007 | 9007 | 🟡 Near-prod | ✅ | — | — |
+| — | **Frontend** | UI (Next.js) | 3000 | — | ✅ | — | — | — |
+| — | **Admin** | UI (React) | 3001 | — | ✅ | — | — | — |
 
-### 2. User Service
-- **Version**: v1.0.6
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8001, gRPC 9001
-- **Description**: User profiles, roles, permissions, service access control
-- **Key Features**:
-  - User Profile Management
-  - Role & Permission Management (RBAC)
-  - Service Access Control
-  - User Preferences
-  - Authentication Integration
-- **Dependencies**: PostgreSQL, Redis, Consul
-- **Documentation**: [user/README.md](user/README.md)
-
-### 3. Customer Service
-- **Version**: v1.1.4
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8003, gRPC 9003
-- **Description**: Customer profiles, addresses, segments, preferences
-- **Key Features**:
-  - Profile Management
-  - Address Book
-  - Customer Segmentation
-  - GDPR-compliant Preferences
-  - Event-Driven Architecture
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [customer/README.md](customer/README.md)
-
-### 4. Catalog Service
-- **Version**: v1.2.8
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8001, gRPC 9001
-- **Description**: Product catalog with EAV attributes, categories, brands, CMS
-- **Key Features**:
-  - Product Management (CRUD, bulk operations)
-  - EAV Attribute System (Tier 1 Hot + Tier 2 EAV)
-  - Category & Brand Management
-  - CMS Pages
-  - Product Visibility Rules
-  - Event Publishing
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [catalog/README.md](catalog/README.md)
-
-### 5. Pricing Service
-- **Version**: v1.1.4
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8002, gRPC 9002
-- **Description**: Dynamic pricing, discount rules, tax calculation
-- **Key Features**:
-  - Dynamic Pricing
-  - SKU & Warehouse Pricing
-  - Discount Management
-  - Tax Calculation
-  - Price Rules Engine
-  - Bulk Pricing
-  - Multi-Currency Support
-  - Price History
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [pricing/README.md](pricing/README.md)
-
-### 6. Promotion Service
-- **Version**: v1.1.2
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8000, gRPC 9000
-- **Description**: Promotional campaigns, discount rules, coupon system
-- **Key Features**:
-  - Campaign Management
-  - Cart Rules & Catalog Rules
-  - Coupon Management
-  - BOGO Promotions
-  - Tiered Discounts
-  - Usage Tracking
-  - Analytics
-- **Dependencies**: PostgreSQL, Redis, Consul
-- **Documentation**: [promotion/README.md](promotion/README.md)
-
-### 7. Checkout Service
-- **Version**: v1.3.1
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8000, gRPC 9000
-- **Description**: Cart management and checkout orchestration
-- **Key Features**:
-  - Cart Management (session-based, multi-warehouse)
-  - Checkout Orchestration
-  - Order Preview
-  - Promotion Engine
-  - Shipping Integration
-  - Payment Method Validation
-  - Automatic Customer Authentication
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [checkout/README.md](checkout/README.md)
-
-### 8. Order Service
-- **Version**: v1.2.0
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8001, gRPC 9001
-- **Description**: Order lifecycle management from creation to fulfillment
-- **Key Features**:
-  - Order Lifecycle Management
-  - Status Management (8 states)
-  - Order Editing (limited)
-  - Cancellation & Refunds
-  - Event-Driven Architecture
-  - Multi-Service Integration (11+ clients)
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [order/README.md](order/README.md)
-
-### 9. Payment Service
-- **Version**: v1.1.0
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8004, gRPC 9004
-- **Description**: Payment processing, payment methods, refunds
-- **Key Features**:
-  - Payment Processing (Credit/Debit, E-wallet, Bank Transfer, COD)
-  - Payment Gateways (Stripe, PayPal, VNPay, MoMo)
-  - Payment Methods Management
-  - Refunds (Full/Partial)
-  - PCI DSS Compliance
-  - Fraud Detection
-  - Reconciliation
-- **Dependencies**: PostgreSQL, Redis
-- **Documentation**: [payment/README.md](payment/README.md)
-
-### 10. Warehouse Service
-- **Version**: v1.1.3
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8008, gRPC 9008
-- **Description**: Warehouse, inventory tracking, stock movements, reservations
-- **Key Features**:
-  - Multi-Warehouse Management
-  - Real-Time Inventory Tracking
-  - Stock Movement Tracking
-  - Reservation System
-  - Throughput Capacity Management
-  - Time Slot Management
-  - Low Stock Alerts
-  - Event-Driven Updates
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [warehouse/README.md](warehouse/README.md)
-
-### 11. Fulfillment Service
-- **Version**: v1.1.0
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8005, gRPC 9005
-- **Description**: Order fulfillment, picking, packing, shipping workflow
-- **Key Features**:
-  - Order Fulfillment Management
-  - Picking & Packing Workflow
-  - Shipping Coordination
-  - Fulfillment Status Tracking
-- **Dependencies**: PostgreSQL, Warehouse Service, Catalog Service
-- **Documentation**: [fulfillment/README.md](fulfillment/README.md)
-
-### 12. Shipping Service
-- **Version**: v1.1.2
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8000, gRPC 9000
-- **Description**: Shipping methods, rates, labels, shipment tracking
-- **Key Features**:
-  - Multi-Carrier Integration (GHN, Grab, VNPay, MoMo)
-  - Shipping Rates (dynamic calculation with caching)
-  - JWT Authentication
-  - Redis Caching
-  - Real-time Tracking
-  - Webhook-based Updates
-- **Dependencies**: PostgreSQL, Redis
-- **Documentation**: [shipping/README.md](shipping/README.md)
-
-### 13. Return Service
-- **Version**: v1.0.1
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8006, gRPC 9006
-- **Description**: Product returns, exchanges, refunds
-- **Key Features**:
-  - Return Request Management
-  - Exchange Processing
-  - Refund Processing
-  - Restock Coordination
-  - Return Analytics
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [return/README.md](return/README.md)
+**Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · ❌ Missing · — Not applicable
 
 ---
 
-## Platform Services
+## Service Details by Domain
 
-### 14. Gateway Service
-- **Version**: Latest
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 80
-- **Description**: API Gateway for centralized routing, authentication, security
-- **Key Features**:
-  - Request Routing
-  - Authentication & Authorization
-  - Rate Limiting
-  - CORS Handling
-  - Circuit Breaker
-  - BFF (Backend for Frontend)
-- **Dependencies**: Redis, JWT
-- **Documentation**: [gateway/README.md](gateway/README.md)
+### 🛒 Commerce Flow
+| Service | Purpose | Key Dependencies |
+|---------|---------|-----------------|
+| **Checkout** | Cart management, price revalidation, checkout orchestration | Order, Payment, Pricing, Promotion, Shipping |
+| **Order** | Order lifecycle (8 states), cancellation, capture retry, cleanup jobs | Payment, Warehouse, Fulfillment, Shipping, Customer |
+| **Payment** | Payment processing (Stripe, PayPal, VNPay, MoMo), fraud detection (GeoIP + VPN), refunds | External payment gateways, ip-api.com |
 
-### 15. Search Service
-- **Version**: v1.0.12
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8010, gRPC 9010
-- **Description**: Full-text search, autocomplete, analytics, recommendations
-- **Key Features**:
-  - Product Search (full-text, faceted, filters)
-  - CMS Content Search
-  - Autocomplete & Suggestions
-  - Search Analytics
-  - Event-Driven Indexing
-  - Product Visibility Filtering
-  - Alert System (Email & PagerDuty)
-  - DLQ Management
-- **Dependencies**: Elasticsearch, PostgreSQL, Redis, Dapr
-- **Documentation**: [search/README.md](search/README.md)
+### 📦 Product & Content
+| Service | Purpose | Key Dependencies |
+|---------|---------|-----------------|
+| **Catalog** | Product CRUD, EAV attributes, categories, brands, CMS pages | Elasticsearch (via Search) |
+| **Pricing** | Dynamic pricing, tax calculation, multi-currency, price rules | Catalog |
+| **Promotion** | Campaigns, coupons, BOGO, tiered discounts, order cancellation reversal | Order (event consumer) |
 
-### 16. Analytics Service
-- **Version**: v1.0.0
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8017, gRPC 9017
-- **Description**: Analytics and business intelligence
-- **Key Features**:
-  - Dashboard Overview
-  - Revenue Analytics
-  - Order Analytics
-  - Product Performance
-  - Customer Analytics
-  - Inventory Analytics
-  - Real-time Metrics
-  - Event-Driven Architecture
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [analytics/README.md](analytics/README.md)
+### 🚚 Logistics
+| Service | Purpose | Key Dependencies |
+|---------|---------|-----------------|
+| **Warehouse** | Multi-warehouse inventory, reservations, stock movements, idempotent consumers | Order, Fulfillment (events) |
+| **Fulfillment** | Picking → packing → shipping workflow | Warehouse, Catalog, Shipping |
+| **Shipping** | Multi-carrier integration (GHN, Grab), webhook processing, JWT auth | External carrier APIs |
 
-### 17. Review Service
-- **Version**: v1.1.1
-- **Status**: ✅ Production Ready (95%)
-- **Ports**: HTTP 8016, gRPC 9016
-- **Description**: Product reviews, ratings, content moderation
-- **Key Features**:
-  - Review Management (CRUD)
-  - Rating System (1-5 stars)
-  - Content Moderation (auto + manual)
-  - Helpful Votes
-  - Review Analytics
-  - Abuse Detection
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [review/README.md](review/README.md)
+### 🔄 Post-Purchase
+| Service | Purpose | Key Dependencies |
+|---------|---------|-----------------|
+| **Return** | Returns, exchanges, refund processing, restock coordination, outbox | Payment, Warehouse, Order, Shipping |
+| **Loyalty** | Points, tiers, rewards, referrals, transactional outbox | Order, Customer |
 
-### 18. Common Operations Service
-- **Version**: Latest
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8000, gRPC 9000
-- **Description**: Task orchestration, file operations, MinIO integration
-- **Key Features**:
-  - Task Orchestration
-  - File Upload/Download
-  - MinIO Integration
-  - Async Job Processing
-- **Dependencies**: PostgreSQL, Redis, MinIO
-- **Documentation**: [common-operations/README.md](common-operations/README.md)
+### 🔐 Identity & Access
+| Service | Purpose | Key Dependencies |
+|---------|---------|-----------------|
+| **Auth** | JWT (RS256), OAuth2 (Google/Facebook/GitHub), MFA (TOTP) | PostgreSQL, Redis |
+| **User** | User profiles, RBAC, service access control | Auth |
+| **Customer** | Customer profiles, addresses, segmentation, audit logging, LTV analytics | Order (events), Auth |
+
+### ⚙️ Platform & Operations
+| Service | Purpose | Key Dependencies |
+|---------|---------|-----------------|
+| **Gateway** | API routing, auth, rate limiting, circuit breaker, BFF | All services |
+| **Search** | Full-text search, autocomplete, event-driven indexing, alerts | Elasticsearch, Catalog (events) |
+| **Analytics** | Revenue, order, customer, fulfillment, shipping metrics (real event-based) | All services (events) |
+| **Review** | Product reviews, ratings, content moderation | Catalog, Customer |
+| **Common Ops** | Task orchestration, file operations, MinIO integration | MinIO |
+| **Notification** | Email (SendGrid/SES), SMS (Twilio), push, in-app notifications | All services (events) |
+| **Location** | Hierarchical location tree (Country → Ward), address validation | — |
 
 ---
 
-## Operational Services
+## Infrastructure Dependencies
 
-### 19. Notification Service
-- **Version**: v1.1.3
-- **Status**: ✅ Production Ready (90%)
-- **Ports**: HTTP 8009, gRPC 9009
-- **Description**: Multi-channel notifications (email, SMS, push, in-app)
-- **Key Features**:
-  - Email Notifications
-  - SMS Notifications
-  - Push Notifications
-  - In-App Notifications
-  - Template Management
-  - User Preferences
-  - Delivery Tracking
-- **Dependencies**: PostgreSQL, Redis, SendGrid/SES, Twilio
-- **Documentation**: [notification/README.md](notification/README.md)
-
-### 20. Location Service
-- **Version**: v1.0.0
-- **Status**: ✅ Production Ready (90%)
-- **Ports**: HTTP 8017, gRPC 9017
-- **Description**: Location tree management (Country → State → City → District → Ward)
-- **Key Features**:
-  - Hierarchical Location Management
-  - Location Search & Filtering
-  - Tree Traversal
-  - Address Validation
-  - Redis Caching
-  - Outbox Pattern
-- **Dependencies**: PostgreSQL, Redis
-- **Documentation**: [location/README.md](location/README.md)
-
-### 21. Loyalty Rewards Service
-- **Version**: Latest
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 8013, gRPC 9013
-- **Description**: Customer loyalty programs, points system, rewards
-- **Key Features**:
-  - Points System
-  - Tier Management
-  - Rewards Catalog
-  - Activity Tracking
-  - Referral Program
-  - Bonus Campaigns
-  - Expiration Management
-  - Analytics
-- **Dependencies**: PostgreSQL, Redis, Dapr
-- **Documentation**: [loyalty-rewards/README.md](loyalty-rewards/README.md)
-
-### 22. Admin Service
-- **Version**: v1.0.0
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 3001
-- **Description**: Admin panel frontend (React + Vite + Ant Design)
-- **Key Features**:
-  - Dashboard
-  - Product Management
-  - Order Management
-  - Customer Management
-  - User Management
-  - Inventory Management
-  - Reports
-  - Settings
-- **Dependencies**: Gateway Service (API proxy)
-- **Documentation**: [admin/README.md](admin/README.md)
-
-### 23. Frontend Service
-- **Version**: Latest
-- **Status**: ✅ Production Ready
-- **Ports**: HTTP 3000
-- **Description**: Customer-facing frontend (Next.js)
-- **Key Features**:
-  - Product Catalog
-  - Shopping Cart
-  - Checkout Flow
-  - User Account
-  - Order Tracking
-  - Search
-  - Reviews
-- **Dependencies**: Gateway Service (API proxy)
-- **Documentation**: [frontend/README.md](frontend/README.md)
+| Service | PostgreSQL | Redis | Elasticsearch | Dapr PubSub | External APIs |
+|---------|-----------|-------|---------------|-------------|---------------|
+| Auth | ✅ | ✅ | — | — | — |
+| User | ✅ | ✅ | — | — | — |
+| Customer | ✅ | ✅ | — | ✅ | — |
+| Catalog | ✅ | ✅ | ✅ | ✅ | — |
+| Pricing | ✅ | ✅ | — | ✅ | — |
+| Promotion | ✅ | ✅ | — | ✅ | — |
+| Checkout | ✅ | ✅ | — | ✅ | — |
+| Order | ✅ | ✅ | — | ✅ | — |
+| Payment | ✅ | ✅ | — | — | Stripe, PayPal, VNPay, MoMo, ip-api |
+| Warehouse | ✅ | ✅ | — | ✅ | — |
+| Fulfillment | ✅ | ✅ | — | ✅ | — |
+| Shipping | ✅ | ✅ | — | ✅ | GHN, Grab |
+| Return | ✅ | ✅ | — | ✅ | — |
+| Loyalty | ✅ | ✅ | — | ✅ | — |
+| Gateway | — | ✅ | — | — | — |
+| Search | ✅ | ✅ | ✅ | ✅ | — |
+| Analytics | ✅ | ✅ | — | ✅ | — |
+| Notification | ✅ | ✅ | — | ✅ | SendGrid, Twilio |
+| Frontend | — | — | — | — | Gateway |
+| Admin | — | — | — | — | Gateway |
 
 ---
 
-## Service Statistics
+## Common Library (`common` v1.10.0)
 
-### By Status
-- ✅ Production Ready: 23/23 (100%)
-- 🟡 In Development: 0/23 (0%)
-- 🔴 Not Started: 0/23 (0%)
+Shared packages used across services:
 
-### By Category
-- Core Business Services: 13
-- Platform Services: 5
-- Operational Services: 5
-
-### Technology Stack
-- **Language**: Go 1.21-1.25
-- **Framework**: Kratos v2.7-v2.9
-- **Database**: PostgreSQL 15+
-- **Cache**: Redis 7+
-- **Search**: Elasticsearch 8.11+
-- **Message Broker**: Dapr PubSub (Redis)
-- **Service Discovery**: Consul
-- **API**: gRPC + HTTP (gRPC-Gateway)
-- **Observability**: Prometheus, OpenTelemetry, Jaeger
-
----
-
-## Service Dependencies Matrix
-
-| Service | PostgreSQL | Redis | Elasticsearch | Dapr | Consul | MinIO | External APIs |
-|---------|-----------|-------|---------------|------|--------|-------|---------------|
-| Auth | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| User | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Customer | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Catalog | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Pricing | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Promotion | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Checkout | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Order | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Payment | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ✅ |
-| Warehouse | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Fulfillment | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Shipping | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| Return | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Gateway | ❌ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Search | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Analytics | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Review | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Common Ops | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ |
-| Notification | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| Location | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Loyalty | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
-| Admin | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Frontend | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-
-### Dependencies Notes:
-- **External APIs**: SendGrid/SES, Twilio (Notification Service) | Stripe, PayPal, VNPay, MoMo (Payment Service) | GHN, Grab (Shipping Service)
-- **Service-to-Service**: Fulfillment depends on Warehouse & Catalog services
-- **Frontend Services**: Admin & Frontend only depend on Gateway Service
+| Package | Purpose | Adopted by |
+|---------|---------|-----------|
+| `common/outbox` | `Event`, `GormRepository`, `Worker` for transactional outbox | Available (services use local impls, adoption planned) |
+| `common/idempotency` | `GormIdempotencyHelper` for event deduplication | Available (services use local impls, adoption planned) |
+| `common/observability` | Health checks, Prometheus, OpenTelemetry | All services |
+| `common/server` | Kratos server factory (HTTP + gRPC) | All services |
+| `common/conf` | Config loading (YAML + env vars) | All services |
 
 ---
 
 ## Quick Reference
 
-### Service Ports
-
-| Service | HTTP | gRPC |
-|---------|------|------|
-| Auth | 8000 | 9000 |
-| User | 8001 | 9001 |
-| Pricing | 8002 | 9002 |
-| Customer | 8003 | 9003 |
-| Order | 8004 | 9004 |
-| Payment | 8005 | 9005 |
-| Warehouse | 8006 | 9006 |
-| Location | 8007 | 9007 |
-| Fulfillment | 8008 | 9008 |
-| Notification | 8009 | 9009 |
-| Checkout | 8010 | 9010 |
-| Promotion | 8011 | 9011 |
-| Shipping | 8012 | 9012 |
-| Return | 8013 | 9013 |
-| Loyalty | 8014 | 9014 |
-| Catalog | 8015 | 9015 |
-| Review | 8016 | 9016 |
-| Search | 8017 | 9017 |
-| Analytics | 8018 | 9018 |
-| Common Ops | 8019 | 9019 |
-| Gateway | 80 | - |
-| Admin | 3001 | - |
-| Frontend | 3000 | - |
-
-### Common Commands
-
 ```bash
-# Build service
-make build
+# Build any service
+cd <service> && make build
 
-# Run service
-make run
+# Run with hot reload
+cd <service> && make run
 
 # Run tests
-make test
+cd <service> && make test
 
 # Generate proto code
-make api
+cd <service> && make api
 
-# Run migrations
-make migrate-up
-
-# Check health
-curl http://localhost:{PORT}/health
+# Health check
+curl http://localhost:<HTTP_PORT>/health
 ```
 
 ---
 
-**Generated**: 2026-02-07  
-**Maintainer**: Platform Team
+*Maintainer: Platform Team · Source: [master-checklist.md](10-appendix/checklists/v5/master-checklist.md)*
