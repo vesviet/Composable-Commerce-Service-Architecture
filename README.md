@@ -48,57 +48,62 @@ Off-the-shelf platforms (Shopify, WooCommerce, Magento) get you started fast —
 
 > **Bottom line**: This platform delivers what **Magento Enterprise charges $200K+/year** for — payment saga, event-driven architecture, multi-warehouse WMS, fraud detection — with **zero license fees** and **full source ownership**.
 
-📄 [Full comparison: TA Microservices vs Shopify vs WooCommerce vs Magento](10-appendix/checklists/v5/platform-comparison-wc-shopify-magento.md)
+📄 [Full comparison: TA Microservices vs Shopify vs WooCommerce vs Magento](01-architecture/platform-comparison-wc-shopify-magento.md)
 
 ---
 
 ## 🏗️ Architecture
 
 ```mermaid
-graph TB
-    subgraph "Clients"
-        FE["🖥️ Customer Website<br/>(Next.js)"]
-        ADMIN["📊 Admin Dashboard<br/>(React)"]
+graph TD
+    subgraph "🌐 Clients"
+        FE["Customer Website (Next.js)"]
+        ADMIN["Admin Dashboard (React)"]
     end
 
-    GW["🚪 API Gateway<br/>Auth · Rate Limit · Routing"]
-
-    subgraph "Commerce Flow"
-        CK["🛒 Checkout"]
-        ORD["📋 Order"]
-        PAY["💳 Payment"]
+    subgraph "🚪 API Gateway"
+        GW["Gateway — Auth · Rate Limit · Routing"]
     end
 
-    subgraph "Product & Pricing"
-        CAT["📦 Catalog"]
-        PRC["💰 Pricing"]
-        PROMO["🎫 Promotion"]
-        SEARCH["🔍 Search"]
+    subgraph "🔐 Identity"
+        AUTH["Auth"]
+        CUST["Customer"]
     end
 
-    subgraph "Logistics"
-        WH["🏭 Warehouse"]
-        FF["📬 Fulfillment"]
-        SH["🚚 Shipping"]
+    subgraph "📦 Product"
+        CAT["Catalog"]
+        PRC["Pricing"]
+        PROMO["Promotion"]
+        SEARCH["Search (ES)"]
     end
 
-    subgraph "Customer & Engagement"
-        CUST["👤 Customer"]
-        AUTH["🔐 Auth"]
-        LR["🎁 Loyalty"]
-        RET["↩️ Return"]
-        REV["⭐ Review"]
-        NOTIF["📧 Notification"]
+    subgraph "🛒 Commerce"
+        CK["Checkout"]
+        ORD["Order"]
+        PAY["Payment"]
     end
 
-    subgraph "Data & Analytics"
-        AN["📈 Analytics"]
+    subgraph "🚚 Logistics"
+        WH["Warehouse"]
+        FF["Fulfillment"]
+        SH["Shipping"]
+    end
+
+    subgraph "🎁 Post-Purchase"
+        RET["Return"]
+        LR["Loyalty"]
+        REV["Review"]
+    end
+
+    subgraph "📡 Platform"
+        AN["Analytics"]
+        NOTIF["Notification"]
     end
 
     FE & ADMIN --> GW
-    GW --> CK & ORD & PAY & CAT & SEARCH & CUST & AUTH
+    GW --> AUTH & CUST & CAT & SEARCH & CK & ORD
 
-    CK -->|"CreateOrder gRPC"| ORD
+    CK -->|"CreateOrder"| ORD
     CK -->|"Authorize"| PAY
     ORD -->|"order.confirmed"| WH
     ORD -->|"order.paid"| FF
@@ -107,7 +112,6 @@ graph TB
     ORD -->|"order.cancelled"| LR & PROMO
     RET -->|"refund gRPC"| PAY
     RET -->|"restock gRPC"| WH
-
     CAT -->|"product events"| SEARCH & AN
     ORD -->|"order events"| AN & CUST & NOTIF
 ```
