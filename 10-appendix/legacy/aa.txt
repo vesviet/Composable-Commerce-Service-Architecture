@@ -41,9 +41,11 @@ review
 loyalty-rewards
 analytics
 
-Dựa trên kiến trúc đã phân tích, hãy review logic nghiệp vụ cho
-
+Dựa trên kiến trúc project, hãy review logic nghiệp vụ của system ecommerce
 Kiểm tra sự nhất quán dữ liệu giữa các service
 Có trường hợp nào dữ liệu bị lệch (mismatched) không?
 Cơ chế Retry hoặc Rollback (Saga pattern/Outbox) đã được triển khai đúng chưa?
 Liệt kê các điểm rủi ro về logic (Edge cases) mà code hiện tại chưa xử lý.
+tạo thêm checklist ở docs\10-appendix\checklists\v5
+
+process all issue help me

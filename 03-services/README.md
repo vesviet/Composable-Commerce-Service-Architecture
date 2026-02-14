@@ -48,28 +48,26 @@ This directory contains comprehensive documentation for all microservices in the
 | **Payment Service** | v1.1.0 | ✅ Complete | 100% | 2026-02-06 | `core-services/payment-service.md` |
 | **Warehouse Service** | v1.1.3 | ✅ Complete | 100% | 2026-02-06 | `core-services/warehouse-service.md` |
 | **Fulfillment Service** | v1.1.0 | ✅ Complete | 100% | 2026-02-06 | `core-services/fulfillment-service.md` |
-| **Shipping Service** | v1.1.2 | ✅ Complete | 100% | 2026-02-06 | `operational-services/shipping-service.md` |
+| **Shipping Service** | v1.1.2 | ✅ Complete | 100% | 2026-02-06 | `core-services/shipping-service.md` |
 | **Return Service** | v1.0.1 | ✅ Complete | 100% | 2026-02-01 | `core-services/return-service.md` |
+| **Loyalty Service** | v1.0.1 | ✅ Complete | 100% | 2026-02-10 | `core-services/loyalty-rewards-service.md` |
 
-### ✅ Platform Services (5 services)
+### 🛠️ Platform Services (10 services)
 
 | Service | Version | Status | Production Ready | Last Updated | Documentation |
 |---------|---------|--------|------------------|--------------|---------------|
-| **Gateway Service** | Latest | ✅ Complete | 100% | 2026-02-01 | `platform-services/gateway-service.md` |
+| **Gateway Service** | v1.1.6 | ✅ Complete | 95% | 2026-02-12 | `platform-services/gateway-service.md` |
+| **Auth Service** | v1.1.1 | ✅ Complete | 75% | 2026-02-04 | `core-services/auth-service.md` |
+| **Notification Service** | v1.1.4 | ✅ Complete | 100% | 2026-02-11 | `platform-services/notification-service.md` |
+| **Location Service** | v1.0.0 | ✅ Complete | 90% | 2026-01-29 | `platform-services/location-service.md` |
+| **Review Service** | v1.1.0 | ✅ Complete | 95% | 2026-02-01 | `platform-services/review-service.md` |
 | **Search Service** | v1.0.12 | ✅ Complete | 100% | 2026-02-06 | `platform-services/search-service.md` |
-| **Analytics Service** | v1.0.0 | ✅ Complete | 100% | 2026-01-29 | `platform-services/analytics-service.md` |
-| **Review Service** | v1.1.1 | ✅ Complete | 95% | 2026-02-01 | `platform-services/review-service.md` |
-| **Common Operations** | Latest | ✅ Complete | 100% | 2026-01-29 | `platform-services/common-operations-service.md` |
+| **Analytics Service** | v1.2.3 | ✅ Complete | 100% | 2026-02-12 | `platform-services/analytics-service.md` |
+| **Common Ops** | v1.0.0 | ✅ Complete | 100% | 2026-01-31 | `platform-services/common-operations-service.md` |
+| **Admin Service** | v1.0.0 | ✅ Complete | 100% | 2026-02-10 | `platform-services/admin-service.md` |
+| **Frontend Service** | v1.0.1 | ✅ Complete | 100% | 2026-02-10 | `platform-services/frontend-service.md` |
 
-### ✅ Operational Services (5 services)
 
-| Service | Version | Status | Production Ready | Last Updated | Documentation |
-|---------|---------|--------|------------------|--------------|---------------|
-| **Notification Service** | v1.1.3 | ✅ Complete | 90% | 2026-02-01 | `operational-services/notification-service.md` |
-| **Location Service** | v1.0.0 | ✅ Complete | 90% | 2026-01-29 | `operational-services/location-service.md` |
-| **Loyalty Rewards** | Latest | ✅ Complete | 100% | 2026-01-29 | `operational-services/loyalty-rewards-service.md` |
-| **Admin Service** | v1.0.0 | ✅ Complete | 100% | 2026-01-29 | `platform-services/frontend-services.md` |
-| **Frontend Service** | Latest | ✅ Complete | 100% | 2026-01-29 | `platform-services/frontend-services.md` |
 
 ### 📋 Completed Documentation
 
@@ -89,20 +87,18 @@ All 23 services now have comprehensive documentation:
 - **Fulfillment Service** - Order fulfillment, picking, packing
 - **Shipping Service** - Carrier integrations, rates, tracking
 - **Return Service** - Returns, exchanges, refunds
+- **Loyalty Service** - Rewards programs, points, tiers
 
-#### Platform Services (5 services):
+#### Platform Services (10 services):
 - **Gateway Service** - API gateway, routing, authentication
 - **Search Service** - Full-text search, Elasticsearch, analytics
 - **Analytics Service** - Business intelligence, dashboards, metrics
 - **Review Service** - Product reviews, ratings, moderation
 - **Common Operations** - Task orchestration, file operations, MinIO
-
-#### Operational Services (5 services):
-- **Notification Service** - Email, SMS, push, in-app notifications
-- **Location Service** - Geographic hierarchy, address validation
-- **Loyalty Rewards** - Points system, tiers, rewards catalog
-- **Admin Service** - Admin panel frontend (React + Ant Design)
-- **Frontend Service** - Customer frontend (Next.js)
+- **Notification Service** - Email, SMS, push notifications (SendGrid/Twilio)
+- **Location Service** - Geocoding, address validation, zones
+- **Admin Service** - Internal dashboard for operations
+- **Frontend Service** - Customer facing storefront
 
 ### 📋 Documentation Standards
 
