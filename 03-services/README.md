@@ -1,11 +1,11 @@
 # 📚 Microservices Documentation Index
 
 **Platform**: E-Commerce Microservices Platform  
-**Version**: 2.0.0  
-**Last Updated**: February 7, 2026  
-**Total Services**: 23 microservices  
-**Documentation Coverage**: 23/23 services documented (100%)  
-**Production Ready**: 23/23 services (100%)  
+**Version**: 2.1.0  
+**Last Updated**: February 15, 2026  
+**Total Services**: 21 Go services + 2 frontends  
+**Documentation Coverage**: 23/23 services documented  
+**Maturity**: See [SERVICE_INDEX.md](../SERVICE_INDEX.md) for per-service status  
 **Navigation**: [← Business Domains](../02-business-domains/README.md) | [← Back to Main](../README.md) | [APIs →](../04-apis/README.md)
 
 **Quick Index**: [SERVICE_INDEX.md](../SERVICE_INDEX.md) - Complete service catalog with versions, ports, and features  
@@ -33,7 +33,7 @@ This directory contains comprehensive documentation for all microservices in the
 
 ## 📊 Service Documentation Status
 
-### ✅ Core Business Services (13 services)
+### ✅ Core Business Services (14 services)
 
 | Service | Version | Status | Production Ready | Last Updated | Documentation |
 |---------|---------|--------|------------------|--------------|---------------|
@@ -52,12 +52,11 @@ This directory contains comprehensive documentation for all microservices in the
 | **Return Service** | v1.0.1 | ✅ Complete | 100% | 2026-02-01 | `core-services/return-service.md` |
 | **Loyalty Service** | v1.0.1 | ✅ Complete | 100% | 2026-02-10 | `core-services/loyalty-rewards-service.md` |
 
-### 🛠️ Platform Services (10 services)
+### 🛠️ Platform Services (9 services)
 
 | Service | Version | Status | Production Ready | Last Updated | Documentation |
 |---------|---------|--------|------------------|--------------|---------------|
 | **Gateway Service** | v1.1.6 | ✅ Complete | 95% | 2026-02-12 | `platform-services/gateway-service.md` |
-| **Auth Service** | v1.1.1 | ✅ Complete | 75% | 2026-02-04 | `core-services/auth-service.md` |
 | **Notification Service** | v1.1.4 | ✅ Complete | 100% | 2026-02-11 | `platform-services/notification-service.md` |
 | **Location Service** | v1.0.0 | ✅ Complete | 90% | 2026-01-29 | `platform-services/location-service.md` |
 | **Review Service** | v1.1.0 | ✅ Complete | 95% | 2026-02-01 | `platform-services/review-service.md` |
@@ -163,123 +162,26 @@ graph LR
 
 ## 🔍 Service Details
 
-### 👥 **Customer Service** (`customer-service.md`)
-**Purpose**: Customer profile, address, preference management  
-**Critical Issues**: 3 (Transactional outbox, 2FA placeholder, address delete bug)  
-**Production Ready**: 85%
-
-**Key Features**:
-- Customer lifecycle management (CRUD)
-- Multiple address management per customer
-- Customer segmentation (auto-assignment)
-- Two-factor authentication (placeholder)
-- GDPR compliance features
-
-**APIs**: 15+ endpoints for customer operations  
-**Database**: 7 tables, 16 migrations  
-**Business Logic**: 3 domain areas (customer, address, segment)
-
-### 🛒 **Order/Cart Service** (`order-service.md`)
-**Purpose**: Shopping cart and order management  
-**Critical Issues**: 0 (All cart issues resolved)  
-**Production Ready**: 90%
-
-**Key Features**:
-- Multi-warehouse cart support
-- Real-time pricing integration
-- Stock validation and reservation
-- Session-based guest carts
-- Order lifecycle management
-
-**APIs**: 25+ cart endpoints, 20+ order endpoints  
-**Database**: 8 core tables, complex relationships  
-**Business Logic**: Cart domain (add/update/remove/validate), Order domain (create/cancel/refund)
-
-### 👤 **User Service** (`user-service.md`)
-**Purpose**: Admin user management and RBAC  
-**Critical Issues**: 5 (Audit logging, access control, rate limiting)  
-**Production Ready**: 60%
-
-**Key Features**:
-- Hierarchical role-based access control
-- Service-level permissions
-- User lifecycle management
-- Password policy enforcement
-- Audit trail (insufficient)
-
-**APIs**: 12+ user management endpoints  
-**Database**: 5 core tables with complex relationships  
-**Business Logic**: User domain, RBAC domain, audit domain
-
-### 🔐 **Auth Service** (`auth-service.md`)
-**Purpose**: Authentication and session management  
-**Critical Issues**: 3 (Session management review needed)  
-**Production Ready**: 75%
-
-**Key Features**:
-- JWT token management (generate/validate/refresh)
-- Multi-device session tracking
-- Rate limiting protection
-- Audit logging for auth events
-- Token revocation system
-
-**APIs**: 12+ authentication endpoints  
-**Database**: 3 core tables (sessions, tokens, revocations)  
-**Business Logic**: Login domain, token domain, session domain
+> **Note**: For detailed per-service information, see individual service docs in `core-services/` and `platform-services/` subdirectories.  
+> For maturity, ports, outbox/idempotency/DLQ status, see [SERVICE_INDEX.md](../SERVICE_INDEX.md).
 
 ---
 
-## 🚨 Critical Issues Summary
+## 📊 Platform Health
 
-### P0 - Production Blockers (8 issues total)
-| Service | Issue | Severity | Impact |
-|---------|-------|----------|--------|
-| Customer | Transactional outbox missing | P0 | Data consistency |
-| Customer | 2FA verification placeholder | P0 | Security bypass |
-| User | Audit logging insufficient | P0 | Compliance violation |
-| User | ValidateAccess middleware missing | P0 | RBAC bypass |
-| User | Rate limiting missing | P0 | Brute force vulnerability |
-| User | Soft delete not implemented | P1 | Data exposure |
-| Auth | Session management review | P1 | Security concerns |
-| Auth | Audit logging local only | P1 | Investigation difficulty |
+> **Detailed tracking**: See [Master Checklist v5](../10-appendix/checklists/v5/master-checklist.md) for current implementation status per phase.
 
-### Issue Distribution
-- **Customer Service**: 3 issues (2 P0, 1 P1)
-- **User Service**: 5 issues (3 P0, 2 P1)
-- **Auth Service**: 3 issues (3 P1)
-- **Order/Cart Service**: 0 critical issues ✅
+### Service Maturity (from SERVICE_INDEX)
+- 🟢 **Production**: Order, Payment, Warehouse, Checkout, Auth, Catalog
+- 🟡 **Near-prod**: Pricing, Loyalty, Shipping, Search, Customer, Notification, Return
+- 🟠 **Partial**: Fulfillment, Promotion, Analytics, Review
 
-### Remediation Priority
-1. **Immediate (Week 1-2)**: Fix 5 P0 issues
-2. **Short-term (Week 3-4)**: Address 7 P1 issues
-3. **Medium-term (Month 2)**: Handle remaining P2 issues
-
----
-
-## 📊 Platform Health Metrics
-
-### Overall Production Readiness
-- **Average Score**: 77.5% across all documented services
-- **Security Score**: 65% (major gaps in audit logging, access control)
-- **Data Integrity**: 75% (transactional outbox issues in Customer Service)
-- **Performance**: 85% (good caching, some optimization needed)
-- **Documentation Coverage**: 100% (16/16 services documented)
-
-### Service Maturity Levels
-```text
-Production Ready (85-100%): 8 services ✅
-Nearly Production (70-84%): 4 services ✅
-Needs Work (50-69%): 1 service ⚠️
-Major Refactor Required (<50%): 1 service 🚨
-Frontend Services (70-75%): 2 services 🔄
-All Services: 16/16 documented ✅
-```
-
-### Code Quality Metrics
-- **Architecture Compliance**: 85% (Good Clean Architecture adoption)
-- **Testing Coverage**: 55% (Needs significant improvement)
-- **Documentation**: 25% (Major gap - only 4/16 services fully documented)
-- **Security Implementation**: 65% (Critical security gaps present)
+### Key Metrics
+- **Documentation Coverage**: 23/23 services documented ✅
+- **Architecture Compliance**: Clean Architecture + DI (Wire) across all services ✅
+- **Event Infrastructure**: Outbox pattern in 10+ services, idempotency in 8+ services ✅
+- **Testing Coverage**: Needs improvement (target 80%+)
+- **Remaining work**: See Phase 3-6 in Master Checklist v5
 
 ---
 
@@ -342,23 +244,22 @@ All Services: 16/16 documented ✅
 ## 📚 Additional Resources
 
 ### Related Documentation
-- **Platform Overview**: `../../../SYSTEM_ARCHITECTURE_OVERVIEW.md`
-- **API Guidelines**: `../../../docs/API_ROUTING_GUIDELINES.md`
-- **Deployment**: `../../../docs/deployment/`
-- **Checklists**: `../../../docs/workflow/checklists/`
-- **Code Review**: `../../../docs/TEAM_LEAD_CODE_REVIEW_GUIDE.md`
+- **Platform Overview**: [System Overview](../01-architecture/system-overview.md)
+- **API Standards**: [API Standards](../04-apis/api-standards.md)
+- **Deployment**: [Deployment Guide](../06-operations/deployment/)
+- **Master Checklist**: [v5 Master Checklist](../10-appendix/checklists/v5/master-checklist.md)
+- **Architecture Decisions**: [ADRs](../08-architecture-decisions/)
 
 ### SRE Runbooks
-- **Gateway**: `../../../docs/sre-runbooks/gateway-runbook.md`
-- **Catalog**: `../../../docs/sre-runbooks/catalog-service-runbook.md`
-- **Payment**: `../../../docs/sre-runbooks/payment-service-runbook.md`
-- **Fulfillment**: `../../../docs/sre-runbooks/fulfillment-service-runbook.md`
+- **Gateway**: [gateway-runbook.md](../06-operations/runbooks/sre-runbooks/gateway-runbook.md)
+- **Catalog**: [catalog-service-runbook.md](../06-operations/runbooks/sre-runbooks/catalog-service-runbook.md)
+- **Payment**: [payment-service-runbook.md](../06-operations/runbooks/sre-runbooks/payment-service-runbook.md)
+- **Fulfillment**: [fulfillment-service-runbook.md](../06-operations/runbooks/sre-runbooks/fulfillment-service-runbook.md)
 
 ### Tools & Scripts
-- **Local Development**: `../../../k8s-local/`
-- **CI/CD**: `../../../gitlab-ci-templates/`
-- **Database**: `../../../scripts/create-all-databases.sh`
-- **Testing**: `../../../test-*` scripts
+- **Development Guide**: [Getting Started](../07-development/getting-started/)
+- **Port Standard**: [PORT_ALLOCATION_STANDARD.md](../../gitops/docs/PORT_ALLOCATION_STANDARD.md)
+- **Service Index**: [SERVICE_INDEX.md](../SERVICE_INDEX.md)
 
 ---
 
@@ -405,11 +306,11 @@ All Services: 16/16 documented ✅
 
 ---
 
-**Documentation Version**: 2.0.0  
-**Last Updated**: 2026-02-07  
-**Coverage**: 23/23 services (100%) - All services documented  
-**Production Ready**: 23/23 services (100%)  
-**Next Update**: 2026-03-07 (monthly review)  
-**Review Status**: ✅ Current with comprehensive code review findings
+**Documentation Version**: 2.1.0  
+**Last Updated**: 2026-02-15  
+**Coverage**: 23/23 services documented  
+**Maturity**: See [SERVICE_INDEX.md](../SERVICE_INDEX.md) for per-service status  
+**Next Update**: 2026-03-15 (monthly review)  
+**Review Status**: ✅ Audited and cleaned up (Feb 15, 2026)
 
 **Quick Reference**: See [SERVICE_INDEX.md](../SERVICE_INDEX.md) for complete service catalog

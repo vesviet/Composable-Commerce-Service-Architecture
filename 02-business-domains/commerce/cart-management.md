@@ -371,11 +371,11 @@ Based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
 ### **Technical Implementation**
 - **[Checkout Service Documentation](../../03-services/core-services/checkout-service.md)** - Complete service documentation
 - **[Order Service Documentation](../../03-services/core-services/order-service.md)** - Order integration documentation
-- **[Checkout Service Runbook](../../06-operations/runbooks/checkout-service-runbook.md)** - Operational procedures
+- **[Checkout Service Runbook](../../06-operations/runbooks/sre-runbooks/gateway-runbook.md)** - Operational procedures (Note: Checkout-specific runbook TBD)
 
 ### **Quality Assurance**
-- **[Cart Flow Issues Checklist](../../10-appendix/checklists/cart_flow_issues.md)** - Known issues and remediation
-- **[Production Readiness Issues](../../10-appendix/checklists/production-readiness-issues.md)** - System-wide quality checklist
+- **[Cart Flow Issues Checklist](../../10-appendix/checklists/active/cart_flow_issues.md)** - Known issues and remediation
+- **[Production Readiness Issues](../../10-appendix/checklists/active/production-readiness-issues.md)** - System-wide quality checklist
 
 ### **Architecture & Patterns**
 - **[Event-Driven Architecture](../../01-architecture/event-driven-architecture.md)** - Event publishing patterns

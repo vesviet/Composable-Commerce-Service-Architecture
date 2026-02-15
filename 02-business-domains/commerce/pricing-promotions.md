@@ -236,7 +236,7 @@ sequenceDiagram
 ---
 
 ## 8) Links
-- Issues checklist: [docs/10-appendix/checklists/pricing-promotion-flow-issues.md](../../10-appendix/checklists/pricing-promotion-flow-issues.md)
+- Issues checklist: [docs/10-appendix/checklists/active/pricing-promotion-flow-issues.md](../../10-appendix/checklists/active/pricing-promotion-flow-issues.md)
 - Pricing-only flow: [pricing-management.md](pricing-management.md)
 - Promotion-only flow: [promotion-management.md](promotion-management.md)
 - Tax flow: [tax-calculation.md](tax-calculation.md)

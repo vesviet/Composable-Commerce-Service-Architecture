@@ -1930,9 +1930,9 @@ Response 200:
 
 ## 🔗 Related Documentation
 
-- [Code Review: Warehouse Service](checklists/production-readiness-issues.md#warehouse-service)
-- [Code Review: Order Service](checklists/production-readiness-issues.md#order-service)
-- [Code Review: Catalog Service](checklists/production-readiness-issues.md#catalog-service)
+- [Code Review: Warehouse Service](../../10-appendix/checklists/active/production-readiness-issues.md#warehouse-service)
+- [Code Review: Order Service](../../10-appendix/checklists/active/production-readiness-issues.md#order-service)
+- [Code Review: Catalog Service](../../10-appendix/checklists/active/production-readiness-issues.md#catalog-service)
 - [Database Schema: Inventory Tables](../database/warehouse-schema.md)
 - [Event Specifications: Stock Events](../events/warehouse-events.md)
 

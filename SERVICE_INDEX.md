@@ -18,8 +18,8 @@
 | 7 | **Checkout** | Commerce Flow | 8010 | 9010 | 🟢 Production | — | ✅ | ✅ |
 | 8 | **Order** | Commerce Flow | 8004 | 9004 | 🟢 Production | ✅ | ✅ | ✅ |
 | 9 | **Payment** | Commerce Flow | 8005 | 9005 | 🟢 Production | ✅ | ✅ | ✅ |
-| 10 | **Warehouse** | Logistics | 8008 | 9008 | 🟢 Production | ✅ | ✅ | ✅ |
-| 11 | **Fulfillment** | Logistics | 8006 | 9006 | 🟡 Partial | ✅ | ✅ | ❌ |
+| 10 | **Warehouse** | Inventory | 8006 | 9006 | 🟢 Production | ✅ | ✅ | ✅ |
+| 11 | **Fulfillment** | Order Fulfillment | 8008 | 9008 | 🟡 Partial | ✅ | ✅ | ❌ |
 | 12 | **Shipping** | Logistics | 8012 | 9012 | 🟡 Near-prod | ✅ | ✅ | ❌ |
 | 13 | **Return** | Post-Purchase | 8013 | 9013 | 🟡 Near-prod | ✅ | ❌ | ❌ |
 | 14 | **Loyalty** | Post-Purchase | 8014 | 9014 | 🟡 Near-prod | ✅ | ✅ | ❌ |
