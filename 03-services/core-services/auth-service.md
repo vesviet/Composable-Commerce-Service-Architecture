@@ -1,10 +1,15 @@
 # 🔐 Auth Service - Complete Documentation
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-17  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 8000/9000
+
 **Service Name**: Auth Service  
 **Version**: 1.1.1  
-**Last Updated**: 2026-02-04  
-**Review Status**: 🔄 In Review (Dependencies Updated)  
-**Production Ready**: 75%  
+**Last Updated**: 2026-02-17  
+**Review Status**: ✅ Reviewed (Feb 2026 — 0 P0, 3 P1 fixed, 5 P2 tracked)  
+**Production Ready**: 85%  
 
 ---
 
@@ -78,8 +83,8 @@ auth/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8002` - REST endpoints cho authentication
-- **gRPC API**: `:9002` - Internal service communication
+- **HTTP API**: `:8000` - REST endpoints cho authentication
+- **gRPC API**: `:9000` - Internal service communication
 - **Health Check**: `/api/v1/auth/health`
 
 ### Service Dependencies
@@ -598,7 +603,9 @@ module gitlab.com/ta-microservices/auth
 go 1.24
 
 require (
-    gitlab.com/ta-microservices/common v1.0.14
+    gitlab.com/ta-microservices/common v1.9.5
+    gitlab.com/ta-microservices/customer v1.1.4
+    gitlab.com/ta-microservices/user v1.0.5
     github.com/go-kratos/kratos/v2 v2.9.1
     github.com/golang-jwt/jwt/v5 v5.2.1
     github.com/redis/go-redis/v9 v9.5.1
@@ -838,7 +845,7 @@ make api
 make run
 
 # Test authentication
-curl -X POST http://localhost:8002/api/v1/auth/login \
+curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin@example.com","password":"Admin123!","user_type":"admin"}'
 ```
@@ -890,7 +897,7 @@ make test-tokens
 # Load testing
 hey -n 1000 -c 10 -m POST \
   -H "Content-Type: application/json" \
-  http://localhost:8002/api/v1/auth/tokens/validate \
+  http://localhost:8000/api/v1/auth/tokens/validate \
   -d '{"token":"valid-jwt-token"}'
 
 # Rate limiting test
@@ -1001,7 +1008,7 @@ Content-Security-Policy: default-src 'self'
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-22  
-**Code Review Status**: ✅ Reviewed (Rate limiting implemented, session mgmt needs review)  
-**Production Readiness**: 75% (Security foundation solid, minor enhancements needed)
+**Version**: 1.1.1  
+**Last Updated**: 2026-02-17  
+**Code Review Status**: ✅ Reviewed (Feb 2026 — P1 fixes applied, tests passing)  
+**Production Readiness**: 85% (Session limits implemented, key rotation supported)
