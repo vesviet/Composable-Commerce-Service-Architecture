@@ -1,116 +1,84 @@
-# {ServiceName} Service
+# Service Documentation Template
 
-**Version**: 1.0  
-**Last Updated**: YYYY-MM-DD  
-**Service Type**: [Core/Operational/Platform]  
-**Status**: [Active/Development/Deprecated]
+> Use this template when creating or standardizing service documentation.
+> Copy this file and replace all `{{placeholders}}` with actual values.
+
+---
+
+```markdown
+# {{emoji}} {{Service Name}} Service
+
+> **Owner**: Platform Team
+> **Last Updated**: {{YYYY-MM-DD}}
+> **Architecture**: [Clean Architecture](../../01-architecture/clean-architecture.md) · [Service Map](../../SERVICE_INDEX.md)
+
+| | |
+|---|---|
+| **Version** | {{version}} |
+| **HTTP Port** | {{http_port}} |
+| **gRPC Port** | {{grpc_port}} |
+| **Status** | ✅ Production Ready / 🔄 In Review / ⚠️ Pending |
+| **Common Lib** | v{{common_version}} |
+
+---
 
 ## Overview
 
-Brief description of what this service does and its role in the system.
+{{One paragraph describing what business problem this service solves.}}
 
 ## Architecture
 
 ### Responsibilities
-- Primary responsibility 1
-- Primary responsibility 2
-- Primary responsibility 3
+- {{responsibility 1}}
+- {{responsibility 2}}
 
 ### Dependencies
-- **Upstream services**: Services this service calls
-- **Downstream services**: Services that call this service
-- **External dependencies**: Databases, message queues, etc.
+| Direction | Service | Protocol | Purpose |
+|-----------|---------|----------|---------|
+| Upstream | {{service}} | gRPC | {{purpose}} |
+| Downstream | {{service}} | Dapr PubSub | {{purpose}} |
+| External | PostgreSQL | TCP | Primary data store |
 
 ## API Contract
 
-### gRPC Services
-- **Service**: `api.{servicename}.v1.{ServiceName}Service`
-- **Proto location**: `{serviceName}/api/{servicename}/v1/`
-- **Key methods**:
-  - `Method1(Request) → Response` - Description
-  - `Method2(Request) → Response` - Description
+### gRPC Service
+- **Proto**: `{{service}}/api/{{service}}/v1/`
+- **Key Methods**:
+  - `MethodName(Request) → Response` — {{description}}
 
-### HTTP Endpoints (if any)
-- `GET /api/v1/{resource}` - Description
-- `POST /api/v1/{resource}` - Description
+### HTTP Endpoints
+- `POST /api/v1/{{service}}/{{resource}}` — {{description}}
 
 ## Data Model
 
 ### Database Tables
-- **Table 1**: Purpose and key fields
-- **Table 2**: Purpose and key fields
-
-### Key Entities
-- **Entity1**: Description and relationships
-- **Entity2**: Description and relationships
+| Table | Purpose |
+|-------|---------|
+| {{table_name}} | {{purpose}} |
 
 ## Configuration
 
-### Environment Variables
+### Key Environment Variables
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `VAR_NAME` | Yes | - | Purpose |
-| `VAR_NAME2` | No | `default` | Purpose |
+| `DATABASE_URL` | Yes | - | PostgreSQL connection |
 
-### Config Files
-- **Location**: `{serviceName}/configs/`
-- **Key settings**: Brief description
+## Monitoring
 
-## Deployment
-
-### Docker
-- **Image**: `registry/ta-microservices/{servicename}`
-- **Ports**: List exposed ports
-- **Health check**: Endpoint and expected response
-
-### Kubernetes
-- **Namespace**: `ta-microservices`
-- **Resources**: CPU/Memory requirements
-- **Scaling**: Min/max replicas
-
-## Monitoring & Observability
-
-### Metrics
-- Key business metrics exposed
-- Performance metrics
-- Health indicators
-
-### Logging
-- Log levels and key log messages
-- Structured logging format
-
-### Tracing
-- Key spans and trace points
+### Key Metrics
+- {{metric 1}}
+- {{metric 2}}
 
 ## Development
 
-### Local Setup
-1. Prerequisites
-2. Configuration steps
-3. Running the service
-
-### Testing
-- Unit test coverage
-- Integration test approach
-- Key test scenarios
-
-## Troubleshooting
-
-### Common Issues
-- **Issue 1**: Symptoms and resolution
-- **Issue 2**: Symptoms and resolution
-
-### Debug Commands
+### Quick Start
 ```bash
-# Useful commands for debugging
-kubectl logs -f deployment/{servicename}
+cd {{service}}
+make build && make run
+make test
 ```
 
-## Changelog
-
-Link to CHANGELOG.md or recent changes summary.
-
 ## References
-
-- [API Documentation](../04-apis/{servicename}-api.md)
-- [Related Services](./related-service.md)
+- [Service Index](../../SERVICE_INDEX.md)
+- [API Documentation](../../04-apis/)
+```

@@ -1,5 +1,10 @@
 # ⭐ Review Service - Product Reviews & Moderation
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 8016/9016
+
 **Service Name**: Review Service
 **Version**: 1.1.0
 **Last Updated**: 2026-02-01

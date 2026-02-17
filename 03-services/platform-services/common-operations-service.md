@@ -1,5 +1,10 @@
 # ⚙️ Common Operations Service - Complete Documentation
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 8019/9019
+
 **Service Name**: Common Operations Service
 **Version**: 1.0
 **Last Updated**: 2026-01-31

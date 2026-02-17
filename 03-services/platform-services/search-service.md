@@ -1,5 +1,10 @@
 # 🔍 Search Service - AI-Powered Product Discovery
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 8017/9017
+
 **Service Name**: Search Service
 **Version**: 1.0.12
 **Last Updated**: 2026-02-06

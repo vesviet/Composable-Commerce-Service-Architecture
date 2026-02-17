@@ -1,5 +1,10 @@
 # Admin Service
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 3001
+
 **Version**: 1.0.0  
 **Last Updated**: 2026-02-10  
 **Service Type**: Platform  

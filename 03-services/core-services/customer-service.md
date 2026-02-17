@@ -1,5 +1,10 @@
 # 🧑‍🤝‍🧑 Customer Service - Complete Documentation
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 8003/9003
+
 **Service Name**: Customer Service  
 **Version**: 1.1.3  
 **Last Updated**: 2026-02-06  

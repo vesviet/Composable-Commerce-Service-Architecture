@@ -1,5 +1,10 @@
 # 🌐 Gateway Service - Complete Documentation
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 80
+
 **Service Name**: Gateway Service
 **Version**: 1.1.6
 **Last Updated**: 2026-02-12

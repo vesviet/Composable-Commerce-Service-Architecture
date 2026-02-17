@@ -1,5 +1,10 @@
 # 📦 Fulfillment Service - Complete Documentation
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 8008/9008
+
 **Service Name**: Fulfillment Service
 **Version**: 1.1.0
 **Last Updated**: 2026-02-10

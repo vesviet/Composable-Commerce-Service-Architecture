@@ -1,5 +1,10 @@
 # 💻 Frontend Service - Complete Documentation
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 3000
+
 **Service Name**: Frontend Service
 **Version**: 1.0.1
 **Last Updated**: 2026-02-10

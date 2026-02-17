@@ -1,5 +1,10 @@
 # 📦 Shipping Service - Carrier Integrations & Logistics
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 8012/9012
+
 **Service Name**: Shipping Service
 **Version**: 1.1.2
 **Last Updated**: 2026-02-06

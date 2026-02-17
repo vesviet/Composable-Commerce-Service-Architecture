@@ -49,3 +49,5 @@ Liệt kê các điểm rủi ro về logic (Edge cases) mà code hiện tại c
 tạo thêm checklist ở docs\10-appendix\checklists\v5
 
 process all issue help me
+
+Shopify, Shopee, and Lazada patterns.

@@ -1,5 +1,10 @@
 # 📧 Notification Service - Multi-Channel Messaging
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 8009/9009
+
 **Service Name**: Notification Service  
 **Version**: v1.1.4  
 **Last Updated**: 2026-02-11  

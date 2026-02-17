@@ -1,5 +1,10 @@
 # 👥 User Service - Complete Documentation
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-02-15  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: 8001/9001
+
 **Service Name**: User Service  
 **Version**: 1.0.5  
 **Last Updated**: 2026-02-06  
