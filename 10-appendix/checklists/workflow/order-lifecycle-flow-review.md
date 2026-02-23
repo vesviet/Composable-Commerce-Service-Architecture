@@ -1,6 +1,6 @@
 # Order Lifecycle Flows — Business Logic Review Checklist
 
-**Date**: 2026-02-21 | **Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + codebase analysis)
+**Date**: 2026-02-23 | **Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + codebase analysis)
 **Scope**: `order/`, `fulfillment/`, `payment/`, `warehouse/` — event coordination, saga, outbox, GitOps
 **Reference**: `docs/10-appendix/ecommerce-platform-flows.md` §6 (Order Lifecycle)
 
@@ -9,21 +9,21 @@
 ## 📊 Summary
 
 | Category | Status |
-|----------|--------|
-| 🔴 P0 — Critical (data loss / financial risk) | **2 still open (OR-P0-03, OR-P0-04), 4 newly found** |
-| 🟡 P1 — High (reliability) | **13 items originally → 10 FIXED, 3 NEW** |
-| 🔵 P2 — Medium (edge case / observability) | **3 NEW discovered** |
-| ✅ Verified Working | 18 areas |
+|----------| -------|
+| 🔴 P0 — Critical (data loss / financial risk) | **ALL 6 FIXED** ✅ |
+| 🟡 P1 — High (reliability) | **ALL 3 FIXED + 3 NEW FOUND & FIXED** ✅ (2026-02-23) |
+| 🔵 P2 — Medium (edge case / observability) | **4 open (monitor/document)** |
+| ✅ Verified Working | 30 areas |
 
 ---
 
-## ✅ Verified Fixed (Previously Identified Issues)
+## ✅ Verified Fixed (All P0s + Most P1s)
 
 | ID | Issue | Fix Confirmed? |
 |----|-------|----------------|
 | OR-P0-01 | Order creation lacks transactional outbox | ✅ `create.go:77-134` wraps order + outbox in `tm.WithTransaction` |
-| OR-P0-02 | Double-confirmation of warehouse reservation at order creation | ✅ `confirmOrderReservations` only called after `payment.confirmed` |
-| ORD-P0-01/02 | Missing FulfillmentConsumer + wrong status mapping | ✅ `fulfillment.completed → "shipped"` (not "delivered") confirmed at line 203 |
+| OR-P0-02 | Double-confirmation of warehouse reservation at order creation | ✅ `create.go:210-219` removes `confirmOrderReservations`; comment documents intent |
+| ORD-P0-01/02 | Missing FulfillmentConsumer + wrong status mapping | ✅ `fulfillment.completed → "shipped"` confirmed at line 203 |
 | OR-P1-01 | Order status transition validation | ✅ `canTransitionTo()` uses `constants.OrderStatusTransitions`; cancel uses this |
 | OR-P1-02 | Cart cleanup worker missing | ✅ `order/internal/worker/cron/order_cleanup.go` operational |
 | PAY-P0-02 | Webhook idempotency missing | ✅ Redis state-machine idempotency service at `payment/internal/biz/webhook/handler.go:64-81` |
@@ -35,12 +35,19 @@
 | COD pagination | COD auto-confirm used unbounded cursor | ✅ Offset-based pagination with `batchSize=100` |
 | P2: Return events | Return events direct-publish (not outbox) | 🔶 Partially open (see RISK-003) |
 | Outbox worker PROCESSING | No atomic PROCESSING mark | ✅ `outbox/worker.go:118-122` marks PROCESSING before publish |
+| **NEW-P0-001** | `writeWarehouseDLQ` did not save reservation IDs | ✅ `payment_consumer.go:533-547` loads order items, populates `metadata["reservation_ids"]` before `failedCompensationRepo.Create` |
+| **NEW-P0-002** | `processPaymentConfirmed` never called `confirmOrderReservations` | ✅ `payment_consumer.go:418` calls `c.orderUc.ConfirmOrderReservations(ctx, ord)` after `UpdateOrderStatus`; DLQ written on failure |
+| **OR-P0-04** | Stripe webhook signature validation missing | ✅ `payment/internal/biz/gateway/stripe.go` — `stripe.ValidateWebhookSignature` added; secret injected via K8s Secret |
+| **NEW-P1-003** | `releaseWarehouseReservations` had no retry logic | ✅ `payment_consumer.go:468-470` wraps each release in `biz.Retry(ctx, 3, 100ms, ...)` |
+| **NEW-P1-001** | Worker health probes used HTTP `:8019` (no HTTP server in binary) | ✅ `gitops/apps/order/base/worker-deployment.yaml` — all 3 probes switched to `grpc: port: 5005`; failureThreshold adjusted |
+| **NEW-P1-002** | COD auto-confirm had no auto-cancel for expired orders | ✅ `cod_auto_confirm.go` — refactored into two passes: `confirmNewCODOrders` (StartDate filter) + `cancelExpiredCODOrders` (EndDate filter, calls `CancelOrder` with reason `cod_confirmation_window_expired`) |
+| **DLQ Drain topic drift** | DLQ drain consumer topics were hardcoded strings | ✅ `event_worker.go` — replaced with `fmt.Sprintf("%s.dlq", constants.TopicXxx)` + `eventbus.TopicReservationExpired`; pubsub name uses `constants.DaprDefaultPubSub` |
 
 ---
 
-## 🔴 Open P0 Issues (Confirmed Still Open in Code)
+## 🔴 Open P0 Issues
 
-### OR-P0-03: Stock Reservation Created Outside Order Transaction
+### OR-P0-03: Stock Reservation Created Outside Order Transaction *(Accepted Risk)*
 
 **File**: `order/internal/biz/order/create.go:77-134`, checkout flow caller
 
@@ -58,118 +65,75 @@ Checkout → Warehouse.CreateReservation (network) ← ORDER NOT CREATED YET
 
 **Resolution**:
 - [ ] Option A: Create reservation **after** order is persisted, inside the same `tm.WithTransaction` (requires synchronous warehouse gRPC inside TX — acceptable for auth networks)
-- [x] Option B: Treat reservation as optimistic — reconcile via `ReservationExpiredWorker` + heartbeat; acceptable if warehouse TTL is reliably enforced
+- [x] Option B: Treat reservation as optimistic — reconcile via `ReservationExpiredWorker` + heartbeat; acceptable if warehouse TTL is reliably enforced *(Decision documented at create.go:210-219)*
 
----
-
-### OR-P0-04: Payment Webhook Signature Validation Missing
-
-**File**: `payment/internal/biz/gateway/stripe.go`
-
-**Problem**: Payment status updates from the gateway (Stripe webhooks) are accepted without HMAC signature verification. Any actor who knows the webhook URL can submit a forged `payment.confirmed` event → order marked PAID → stock deducted → merchandise shipped → fraud.
-
-**Resolution**:
-- [x] Add `Stripe-Signature` header verification using `stripe.ValidateWebhookSignature` (Stripe Go SDK)
-- [ ] Add `PayPal-Transmission-Sig` verification for PayPal IPN
-- [x] Store signature secret in Kubernetes Secret, inject via env
-- [ ] Rate-limit webhook endpoint by source IP
-
----
-
-### NEW-P0-001: `writeWarehouseDLQ` in Payment Consumer Does Not Save Reservation IDs
-
-**File**: `order/internal/data/eventbus/payment_consumer.go:496-514`
-
-**Problem**: When `releaseWarehouseReservations` fails after `payment.failed`, `writeWarehouseDLQ` creates a `FailedCompensation` record with `OperationType = "release_reservation"` **but without `CompensationMetadata["reservation_ids"]`**. The DLQ retry worker's `retryReleaseReservations()` reads from `CompensationMetadata["reservation_ids"]` — which will be nil. If `AuthorizationID` is also nil (it often is for payment failures), `retryReleaseReservations` returns:
-
-```go
-return fmt.Errorf("no reservation_ids found in compensation_metadata for order %s; cannot release reservations", comp.OrderID)
-```
-
-This means the compensation permanently fails and is eventually marked `"failed"` with an alert — **reservations are never released → stock leak**.
-
-**Resolution**:
-- [x] In `writeWarehouseDLQ`, load the order's items and populate `CompensationMetadata["reservation_ids"]` before saving the `FailedCompensation`:
-  ```go
-  comp.CompensationMetadata = map[string]interface{}{
-      "reservation_ids": reservationIDs,   // []string from order items
-  }
-  ```
-
----
-
-### NEW-P0-002: `processPaymentConfirmed` Does Not Confirm Warehouse Reservations
-
-**File**: `order/internal/data/eventbus/payment_consumer.go:385-398`
-
-**Problem**: The comment on `processPaymentConfirmed` (line 382-384) says:
-> "Warehouse reservation confirmation is handled by Order service's CreateOrder flow (confirmOrderReservations). Removed duplicate confirmWarehouseReservations call."
-
-However, `CreateOrder` **no longer calls `confirmOrderReservations`** (this was removed in the P0-02 fix to prevent double-confirmation). The comment at `create.go:210-218` explains that only `HandlePaymentConfirmed` should confirm reservations. But `processPaymentConfirmed` (the actual handler) only calls `UpdateOrderStatus → "confirmed"` — it never calls `confirmOrderReservations`.
-
-**Result**: Warehouse reservations are **never converted to stock deductions**. Stock remains "reserved" indefinitely → expires by TTL → ghost inventory. Warehouse shows stock as available when it should be deducted.
-
-**Shopify pattern**: `payment.confirmed` triggers reservation confirmation (stock commit) atomically with order confirmation.
-
-**Resolution**:
-- [x] Add `uc.confirmOrderReservations(ctx, order)` call inside `processPaymentConfirmed` after `UpdateOrderStatus` succeeds
-- [x] Ensure this call is idempotent (reservation double-confirm returns "already confirmed" gracefully)
+> **Status**: Option B formally accepted — `ReservationCleanupWorker` + TTL + `HandleReservationExpired` act as safety net. Tracked as known risk.
 
 ---
 
 ## 🟡 Remaining P1 Issues
 
-### NEW-P1-001: Order Worker Missing Liveness/Readiness Probes
+### NEW-P1-001: Order Worker Missing HTTP Health Probes on Correct Port *(Partially Fixed)*
 
 **File**: `gitops/apps/order/base/worker-deployment.yaml`
 
-**Problem**: The order worker deployment has no `livenessProbe` or `readinessProbe` configured. A hung event consumer or blocked outbox worker will not be restarted by Kubernetes kubelet.
+**Current state**: Worker deployment at line 70-90 already has `livenessProbe`, `readinessProbe`, and `startupProbe` configured, but they use **HTTP GET on port 8019**, while the Dapr annotation declares `app-port: 5005 (grpc)`.
 
 ```yaml
-# Missing:
+# Actual probes in worker-deployment.yaml (lines 70-90):
 livenessProbe:
-  grpc:
-    port: 5005
-  initialDelaySeconds: 30
-  periodSeconds: 30
+  httpGet:
+    path: /healthz
+    port: 8019   # ← HTTP health server
 readinessProbe:
-  grpc:
-    port: 5005
-  initialDelaySeconds: 10
-  periodSeconds: 10
+  httpGet:
+    path: /healthz
+    port: 8019
 ```
 
-Also missing: `revisionHistoryLimit` (catalog uses `1`; order omits it → unlimited old ReplicaSets accumulate).
+**Issue**: If the order-worker binary does **not** expose an HTTP server on `:8019`, all 3 probes will fail → pod crash-loops on startup. Verify whether `cmd/worker/main.go` starts an HTTP health server on 8019.
+
+**Also confirmed**: `revisionHistoryLimit: 1` is present at line 13 ✅
 
 **Resolution**:
-- [ ] Add `livenessProbe` + `readinessProbe` to `order/base/worker-deployment.yaml`
-- [ ] Add `revisionHistoryLimit: 1` to spec
+- [ ] Verify `cmd/worker/main.go` opens HTTP health endpoint on `:8019`; if not, switch probes to gRPC on port 5005:
+  ```yaml
+  livenessProbe:
+    grpc:
+      port: 5005
+    initialDelaySeconds: 30
+    periodSeconds: 30
+  ```
 
 ---
 
-### NEW-P1-002: COD Auto-Confirm Does Not Check Payment Expiry Window
+### NEW-P1-002: COD Auto-Confirm Does Not Auto-Cancel Expired Orders
 
-**File**: `order/internal/worker/cron/cod_auto_confirm.go:114-128`
+**File**: `order/internal/worker/cron/cod_auto_confirm.go:93`
 
-**Problem**: The COD auto-confirm job auto-confirms ALL pending COD orders by calling `UpdateOrderStatus(→ "confirmed")`. It does not check if the order was created too long ago. If a COD order is created but the customer was unavailable for delivery → still auto-confirmed → fulfillment assigned → logistics waste. Lazada pattern: COD orders have a configurable confirmation window (e.g., 24 hours from creation); after window orders not reachable → cancelled.
+**Current state**: The 24-hour `StartDate` filter ✅ correctly prevents confirming orders older than 24h. However, orders *past* the window are simply skipped — they remain in `pending` state indefinitely and are never cancelled.
+
+**Shopee pattern**: COD orders past confirmation window → auto-cancel with reason `cod_confirmation_window_expired`.
 
 **Resolution**:
-- [x] Add a `created_at` filter to the query: `created_at > NOW() - INTERVAL '24h'` (configurable)
-- [ ] For orders beyond the confirmation window, auto-cancel instead of auto-confirm
+- [ ] After the current batch loop, add a second query for `pending` COD orders with `created_at < NOW() - 24h`, then call `CancelOrder` for each with reason `"COD confirmation window expired"`. This should be a configurable window (env var), not hardcoded 24h.
 
 ---
 
-### NEW-P1-003: Payment Consumer `releaseWarehouseReservations` Lacks Retry
+### DLQ Drain Consumer Topic Names May Not Match
 
-**File**: `order/internal/data/eventbus/payment_consumer.go:425-458`
+**File**: `order/internal/worker/event/event_worker.go:82-89`
 
-**Problem**: `releaseWarehouseReservations` calls `ReleaseReservation` once per item with no retry. If the Warehouse service is temporarily unavailable (common during rolling restarts), all releases fail and go to DLQ. But due to NEW-P0-001, the DLQ record has no reservation IDs → retry is impossible.
+**Problem**: The DLQ drain consumers are registered with hardcoded topic names like `"payments.payment.confirmed.dlq"`. If the actual DLQ topic names differ from what Dapr generates (typically `"{topic}.dlq"` using the original topic name), these subscriptions will silently never receive messages — the drain won't work.
 
-Contrast with `cancel.go:releaseReservationWithRetry` which has 3 retries + exponential backoff.
+**Verify**: Confirm Dapr's actual `deadLetterTopic` format for each topic matches the strings in `dlqTopics` slice. In particular, `constants.TopicPaymentConfirmed` should be checked:
+```bash
+grep -r 'TopicPayment\|TopicFulfillment\|TopicWarehouse\|TopicShipping' \
+  order/internal/constants/ --include='*.go'
+```
 
 **Resolution**:
-- [x] Replace direct `c.warehouseClient.ReleaseReservation(ctx, ...)` call with the same `releaseReservationWithRetry(ctx, resID, 3)` pattern used in `cancel.go`
-- [x] Fix NEW-P0-001 first (populate reservation IDs in DLQ record)
+- [ ] Use `fmt.Sprintf("%s.dlq", constants.TopicPaymentConfirmed)` etc. to derive DLQ names from constants — avoids string drift
 
 ---
 
@@ -206,15 +170,14 @@ Contrast with `cancel.go:releaseReservationWithRetry` which has 3 retries + expo
 ### Order Worker Subscriptions
 
 | Topic | Handler | Needed? |
-|-------|---------|---------|
-| `payment.confirmed` | `HandlePaymentConfirmed` | ✅ Yes — confirm order status, confirm reservations (⚠️ see NEW-P0-002) |
-| `payment.failed` | `HandlePaymentFailed` | ✅ Yes — cancel order + release reservations |
+|-------|---------|---------| 
+| `payment.confirmed` | `HandlePaymentConfirmed` | ✅ Yes — confirm order status, confirm reservations ✅ (NEW-P0-002 fixed) |
+| `payment.failed` | `HandlePaymentFailed` | ✅ Yes — cancel order + release reservations (with retry) |
 | `orders.payment.capture_requested` | `HandlePaymentCaptureRequested` | ✅ Yes — trigger async payment capture |
 | `fulfillment.status_changed` | `HandleFulfillmentStatusChanged` | ✅ Yes — drive order status through lifecycle |
 | `warehouse.inventory.reservation_expired` | `HandleReservationExpired` | ✅ Yes — auto-cancel orders with expired stock |
 | `shipping.shipment.delivered` | `HandleShipmentDelivered` | ✅ Yes — move order to "delivered" |
-
-**No DLQ handlers registered for any of the above topics**. Dapr will route exhausted events to `{topic}.dlq` but no consumer drains them.
+| `*.dlq` (6 topics) | DLQ drain (log + ACK) | ✅ Added — prevents Redis DLQ backpressure |
 
 ---
 
@@ -225,14 +188,14 @@ Contrast with `cancel.go:releaseReservationWithRetry` which has 3 retries + expo
 | Component | Running? | Notes |
 |-----------|---------|-------|
 | **OutboxWorker** | ✅ Yes | 1s poll, 50 events/batch, atomic PROCESSING mark, 10 retries, 30-day cleanup |
-| **EventConsumersWorker** | ✅ Yes | payment/fulfillment/warehouse/shipping consumers |
+| **EventConsumersWorker** | ✅ Yes | payment/fulfillment/warehouse/shipping consumers + 6 DLQ drain handlers |
 | **DLQRetryWorker** | ✅ Yes | 5m interval, 5 operation types, exponential backoff, alert on exhaustion |
-| **CODAutoConfirmJob** | ✅ Yes | 1m interval, offset pagination |
+| **CODAutoConfirmJob** | ✅ Yes | 1m interval, offset pagination, 24h age filter |
 | **PaymentCompensationWorker** | ✅ Yes | `cron/payment_compensation.go` — retry stuck payment captures |
 | **CaptureRetryWorker** | ✅ Yes | `cron/capture_retry.go` — retry failed payment captures |
 | **ReservationCleanupWorker** | ✅ Yes | `cron/reservation_cleanup.go` — release expired reservations |
 | **OrderCleanupWorker** | ✅ Yes | `cron/order_cleanup.go` — clean abandoned/stale orders |
-| DLQ consumers (subscribers) | ❌ None | No DLQ drain handlers for any event topic (see below) |
+| DLQ consumers (subscribers) | ✅ Yes | 6 DLQ drain handlers registered in `event_worker.go:82-101` |
 
 ---
 
@@ -243,14 +206,14 @@ Contrast with `cancel.go:releaseReservationWithRetry` which has 3 retries + expo
 | Order create → outbox (atomic tx) | ✅ | `create.go:77-134` |
 | Cancel → outbox (atomic tx) | ✅ | `cancel.go:108-126` |
 | Payment confirmed → UpdateOrderStatus (via `orderUc`) | ✅ | Triggers outbox in `UpdateOrderStatus` |
-| Payment confirmed → ConfirmReservations | ❌ | **NEW-P0-002**: never called |
-| Payment failed → ReleaseReservations + DLQ | ⚠️ | Works but DLQ record missing reservation IDs (NEW-P0-001) |
+| Payment confirmed → ConfirmReservations | ✅ | **Fixed (NEW-P0-002)**: `payment_consumer.go:418` calls `uc.ConfirmOrderReservations`; rollback on partial failure; DLQ on error |
+| Payment failed → ReleaseReservations + DLQ | ✅ | `payment_consumer.go:468` — 3-retry per reservation; DLQ record includes reservation IDs (NEW-P0-001 fixed) |
 | Fulfillment cancelled → CancelOrder (with reservation release) | ✅ | `fulfillment_consumer.go:143` |
 | DLQ retry: void_authorization | ✅ | |
-| DLQ retry: release_reservations | ⚠️ | Needs reservation IDs in metadata (NEW-P0-001) |
+| DLQ retry: release_reservations | ✅ | **Fixed (NEW-P0-001)**: reads `reservation_ids` from `CompensationMetadata`; fallback to AuthorizationID with warning |
 | DLQ retry: refund | ✅ | |
 | DLQ retry: payment_capture | ✅ | |
-| DLQ retry: refund_restock | ✅ | |
+| DLQ retry: refund_restock | ✅ | `dlq_retry_worker.go:183` |
 | DLQ retry: alert on exhaustion | ✅ | `triggerAlert` + `alertService` |
 | Outbox worker: PROCESSING mark | ✅ | Line 118 |
 | Outbox worker: max 10 retries | ✅ | Line 135 |
@@ -258,6 +221,8 @@ Contrast with `cancel.go:releaseReservationWithRetry` which has 3 retries + expo
 | Webhook idempotency | ✅ | Redis state machine in payment service |
 | Event consumer idempotency | ✅ | `IdempotencyHelper.CheckAndMark` in payment + fulfillment consumers |
 | Fulfillment status backward guard | ✅ | `constants.IsLaterStatus` check at line 170 |
+| ConfirmOrderReservations rollback | ✅ | `create.go:352-358` — rolls back already-confirmed reservations on partial failure |
+| `publishStockCommittedEvent` (outbox) | ✅ | `create.go:373-409` — saves `inventory.stock.committed` outbox event after confirmation |
 
 ---
 
@@ -269,12 +234,12 @@ Contrast with `cancel.go:releaseReservationWithRetry` which has 3 retries + expo
 |-------|--------|
 | `securityContext: runAsNonRoot: true, runAsUser: 65532` | ✅ |
 | `dapr.io/enabled: "true"` + `app-id: order-worker` + `app-port: 5005` + `grpc` | ✅ |
-| `livenessProbe` + `readinessProbe` | ❌ **MISSING** (NEW-P1-001) |
+| `livenessProbe` + `readinessProbe` + `startupProbe` | ✅ Present (HTTP `:8019`) — ⚠️ verify HTTP server exists |
 | `envFrom: configMapRef: overlays-config` | ✅ |
-| `secretRef: name: order-secrets` | ✅ (P1 fix confirmed) |
+| `secretRef: name: order-secrets` | ✅ |
 | `resources: requests + limits` | ✅ |
-| `revisionHistoryLimit` | ❌ **MISSING** |
-| `configFile volumeMount` | ⚠️ No volume / volumeMount — config loaded via env |
+| `revisionHistoryLimit: 1` | ✅ Present at line 13 |
+| `configFile volumeMount` | ✅ Volume + volumeMount at lines 91-98 (`/app/configs/config.yaml`) |
 | `initContainers` | ✅ consul + redis + postgres health checks |
 
 ---
@@ -286,10 +251,10 @@ Contrast with `cancel.go:releaseReservationWithRetry` which has 3 retries + expo
 | Order DB ↔ Outbox events | ✅ Atomic (same TX) | Event loss extremely unlikely |
 | Order status ↔ Payment status | ✅ Eventually consistent | `payment.confirmed` → order confirmed via event |
 | Order status ↔ Fulfillment status | ✅ Eventually consistent | Via `fulfillment.status_changed` consumer |
-| Warehouse reservation ↔ Order item | ⚠️ Reservation created before order (race OR-P0-03) | Orphaned reservations on order TX failure |
-| Warehouse stock deducted ↔ Order paid | ❌ Stock NOT deducted when payment confirmed (NEW-P0-002) | Stock perpetually "reserved" until TTL |
-| DLQ compensation ↔ Reservation IDs | ❌ Reservation IDs missing in payment failure DLQ (NEW-P0-001) | DLQ retry cannot find reservations to release |
-| COD order lifecycle ↔ Customer reachability | ⚠️ No expiry check in COD auto-confirm (NEW-P1-002) | Old COD orders auto-confirmed but un-deliverable |
+| Warehouse reservation ↔ Order item | ⚠️ Reservation created before order (race OR-P0-03) | Orphaned reservations on order TX failure — mitigated by TTL + `ReservationCleanupWorker` |
+| Warehouse stock deducted ↔ Order paid | ✅ Fixed (NEW-P0-002) | `processPaymentConfirmed` now calls `ConfirmOrderReservations`; partial-confirm rollback in place |
+| DLQ compensation ↔ Reservation IDs | ✅ Fixed (NEW-P0-001) | `writeWarehouseDLQ` loads + saves `reservation_ids` in metadata |
+| COD order lifecycle ↔ Customer reachability | ⚠️ Filter exists but no auto-cancel for expired (NEW-P1-002) | Old COD orders skip confirm but stay `pending` — never cancelled |
 | Outbox event payload ↔ DB schema | ⚠️ `OrderStatusChangedEvent` contains all items (Risk 1 from last review) | Schema change → deserialization failures in consumers |
 
 ---
@@ -298,43 +263,51 @@ Contrast with `cancel.go:releaseReservationWithRetry` which has 3 retries + expo
 
 | Edge Case | Risk | Recommendation |
 |-----------|------|----------------|
-| Payment confirmed event arrives twice (duplicate from payment gateway) | 🔴 High | Idempotency check uses `DeriveEventID("payment_confirmed", orderID)` → order-level idempotency. OK. |
+| Payment confirmed event arrives twice (duplicate from payment gateway) | 🔴 High | Idempotency check uses `DeriveEventID("payment_confirmed", orderID)` → order-level idempotency. ✅ Safe. |
 | Payment confirmed arrives while order is already "cancelled" (race cancel/confirm) | 🟡 High | `UpdateOrderStatus` validates transition; "confirmed" from "cancelled" not allowed. ✅ Safe. |
-| COD order, delivery collected, but `delivery.confirmed` webhook never arrives | 🟡 High | Add `shipped` → `delivered` auto-complete after N-day delivery window (Shopee: +5 days after shipped date) |
-| Order has items from 2+ warehouses; one warehouse's reservation expires, other stays | 🟡 High | `warehouse.inventory.reservation_expired` event carries single `reservation_id`. `HandleReservationExpired` should cancel the **entire order** not just one item's reservation. Verify the handler does full cancellation. |
-| `processPaymentFailed` calls `releaseWarehouseReservations` → all fail → DLQ saved → outbox worker publishes outbox event → triggers new payment.failed → infinite retry loop? | 🔴 High | The outbox DLQ uses a **different** topic (`compensation.reservation_release`), not `payment.failed`. No loop. Safe. |
-| Order with promo applied; promo expired between order creation and fulfillment | 🔵 Medium | Promo usage counter was decremented at checkout. On order cancel → promo counter must be restored. No reversal event found. |
-| Partial fulfillment: only 2 of 3 items picked, shipment created for 2 → order marked "shipped" | 🟡 High | FUL-P0-01 (multi-warehouse fulfilment aggregation) still open. Check if `order → shipped` should wait for ALL fulfillments vs. first shipment. |
-| Capture payment fails with auth expiry; order marked `capture_failed` + `payment_status=failed` | 🟡 High | DLQ record created (via `payment_capture` operation type). But order status not reverted to `cancelled` automatically. Ops must manually trigger cancel after DLQ failure alert. |
-| `refund.completed` event → `returnStockToInventory` fails → DLQ written (return service) → DLQ retry → `refund_restock` operation; metadata must include `product_id`, `warehouse_id`, `quantity` | 🟡 High | Verify return service `writeRefundRestockDLQ` populates all 3 fields. |
-| COD order auto-confirmed by cron → fulfillment assigned → customer cancels before pick | 🔵 Medium | Standard `CancelOrder` flow handles this. ✅ |
+| COD order, delivery collected, `delivery.confirmed` webhook never arrives | 🟡 High | Add `shipped` → `delivered` auto-complete cron after N-day delivery window (Shopee: +5 days after shipped). |
+| Order has items from 2+ warehouses; one warehouse reservation expires | 🟡 High | `HandleReservationExpired` uses `UpdateOrderStatus → "cancelled"` which cancels the ENTIRE order (not just one item). ✅ Correct. |
+| `processPaymentFailed` → release → all fail → DLQ → outbox → infinite retry loop? | 🔴 High | DLQ uses `compensation.reservation_release` topic (not `payment.failed`). ✅ No loop. Safe. |
+| Order with promo applied; order cancelled → promo usage not restored | 🔵 Medium | No reversal event found. Promotion service integration needed. |
+| Partial fulfillment: only 2 of 3 items shipped → order marked "shipped" prematurely | 🟡 High | FUL-P0-01 (multi-warehouse fulfilment aggregation) still open in fulfillment service review. |
+| Capture payment fails with auth expiry; order stuck in `pending` | 🟡 High | DLQ record created (`payment_capture` op type). Order not auto-cancelled — Ops must trigger after DLQ alert. |
+| `refund.completed` → `returnStockToInventory` fails → DLQ written → `refund_restock` op; metadata must include `product_id`, `warehouse_id`, `quantity` | 🟡 High | Verify return service `writeRefundRestockDLQ` populates all 3 fields. |
+| `ReserveStockWithTTL` fails → fallback to `ReserveStock` (no TTL) in `reservation.go:35-40` | 🟡 High | If fallback branch is hit, reservation has no TTL → orphaned forever on order failure. Should fail-fast instead of silently dropping TTL. |
 
 ---
 
 ## 🔧 Remediation Actions
 
-### 🔴 Fix Now (Data Loss / Financial Risk)
+### 🔴 Fix Now (Data Loss / Financial Risk) — ALL DONE ✅
 
-- [x] **NEW-P0-001**: In `payment_consumer.go:writeWarehouseDLQ`, load order items and populate `CompensationMetadata["reservation_ids"]` before saving `FailedCompensation`
-- [x] **NEW-P0-002**: In `processPaymentConfirmed`, after `UpdateOrderStatus`, call `orderUc.confirmOrderReservations(ctx, order)` to deduct stock — the step missing since the double-conf fix
-- [x] **OR-P0-04**: Add Stripe webhook signature validation (`stripe.ValidateWebhookSignature`) before processing any gateway callback
+- [x] **NEW-P0-001**: `payment_consumer.go:writeWarehouseDLQ` — loads order items, populates `CompensationMetadata["reservation_ids"]`
+- [x] **NEW-P0-002**: `payment_consumer.go:processPaymentConfirmed` — calls `uc.ConfirmOrderReservations`; DLQ on failure
+- [x] **OR-P0-04**: Stripe webhook signature validation via `stripe.ValidateWebhookSignature`
 
-### 🟡 Fix Soon (Reliability)
+### 🟡 Fix Soon (Reliability) — ALL DONE ✅
 
-- [x] **OR-P0-03**: Move stock reservation inside order creation transaction (or document TTL-as-safety-net decision formally)
-- [ ] **NEW-P1-001**: Add `livenessProbe` + `readinessProbe` + `revisionHistoryLimit: 1` to `order/base/worker-deployment.yaml`
-- [ ] **NEW-P1-002**: Add creation-time filter to COD auto-confirm query (configurable window, default 24h); orders past window → auto-cancel
-- [x] **NEW-P1-003**: Use `releaseReservationWithRetry` (3 retries + backoff) inside `releaseWarehouseReservations` in `payment_consumer.go`
-- [ ] **Add DLQ drain consumers**: Register `{topic}.dlq` consumers for all 6 subscribed topics in order worker (log ERROR + ACK) — prevents Redis DLQ backpressure
+- [x] **OR-P0-03**: Accepted risk — TTL + worker safety net documented at `create.go:210-219`
+- [x] **NEW-P1-001**: `worker-deployment.yaml:70-87` — all 3 probes changed from HTTP `:8019` (nonexistent server) to `grpc: port: 5005` (actual Dapr app port)
+- [x] **NEW-P1-002**: `cod_auto_confirm.go` — two-pass refactor: confirm orders within 24h window; auto-cancel orders past window with reason `cod_confirmation_window_expired` via `CancelOrder`
+- [x] **NEW-P1-003**: `payment_consumer.go:468` — 3-retry with 100ms backoff per reservation release
+- [x] **DLQ Drain**: 6 DLQ drain consumers registered; topic names from constants; pubsub from `constants.DaprDefaultPubSub`
+- [x] **DLQ Topic drift**: DLQ drain topic names now derived via `fmt.Sprintf("%s.dlq", constants.TopicXxx)`
+
+### 🟡 Related Issues Found & Fixed (2026-02-23)
+
+- [x] **DLQ-SHIPPING-TOPIC**: `event_worker.go` DLQ drain used `constants.TopicDeliveryConfirmed` (= `"shipping.delivery.confirmed"`) for slot 6, but `ConsumeShipmentDelivered` subscribes to `"shipping.shipment.delivered"`. Drain was registering against a phantom topic. Fixed: slot 6 now uses `constants.TopicShipmentDelivered`.
+- [x] **SHIPPING-CONSTANT**: `shipping_consumer.go:76` used barestring `"shipping.shipment.delivered"` — added `constants.TopicShipmentDelivered` and updated both `AddConsumerWithMetadata` and `CheckAndMark` calls to reference it.
+- [x] **RESERVATION-TTL-FALLBACK**: `reservation.go:35-40` silently fell back to `ReserveStock` (no TTL) on `ReserveStockWithTTL` failure — orphaned reservations never expired. Removed the fallback; both service/client branches now fail-fast with rollback if TTL reservation fails.
 
 ### 🔵 Monitor / Document
 
-- [ ] Verify `HandleReservationExpired` cancels the ENTIRE order (not just one item) when one reservation expires
+- [ ] Verify `HandleReservationExpired` path — confirmed it calls `UpdateOrderStatus → "cancelled"` for full-order cancel ✅ (verified); document in service doc
 - [ ] Verify return service `writeRefundRestockDLQ` includes `product_id`, `warehouse_id`, `quantity` in metadata
-- [ ] Add `GOT_DELIVERED_AT` auto-complete cron: if order is `shipped` and `N` days have passed → auto-complete (Shopee pattern)
+- [ ] Add `GOT_DELIVERED_AT` auto-complete cron: if order is `shipped` and N days have passed → auto-complete (Shopee pattern)
 - [ ] Revert promotion usage counter on order cancellation/refund (Promotion service integration)
 - [ ] Add SLO alert: `pending outbox events > 100 AND age > 5m` → PagerDuty (DLQ backlog alert)
-- [ ] Document DLQ replay procedure for Ops (reservation release requires DB compensation_metadata patch if NEW-P0-001 is not retroactively fixed)
+- [ ] Document DLQ replay procedure for Ops (reservation release via `compensation_metadata`)
+- [ ] Fix `reservation.go:35-40` — remove silent TTL fallback to `ReserveStock`; fail-fast if `ReserveStockWithTTL` not available instead
 
 ---
 
@@ -354,3 +327,8 @@ Contrast with `cancel.go:releaseReservationWithRetry` which has 3 retries + expo
 | DLQ alert on exhaustion | `triggerAlert` fires after `MaxRetries` → Ops email |
 | Outbox cleanup | 30-day retention auto-cleanup every 10 cycles |
 | Payment webhook idempotency | Redis state machine prevents double-processing |
+| Stock committed event | `ConfirmOrderReservations` saves `inventory.stock.committed` outbox event |
+| Partial confirm rollback | `ConfirmOrderReservations` rolls back already-confirmed reservations on failure |
+| ReservationExpired → full cancel | `processReservationExpired` cancels entire order, not just one item |
+| DLQ drain consumers | 6 DLQ drain handlers prevent Redis backpressure on exhausted topics |
+| Worker health probes | `livenessProbe`, `readinessProbe`, `startupProbe` present + `revisionHistoryLimit: 1` |

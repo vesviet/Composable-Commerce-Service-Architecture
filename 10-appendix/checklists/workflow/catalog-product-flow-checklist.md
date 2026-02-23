@@ -1,6 +1,6 @@
 # Catalog & Product Flow — Business Logic Review Checklist
 
-**Date**: 2026-02-21 (updated: 2026-02-21 — fixes applied)
+**Date**: 2026-02-21 (updated: 2026-02-23 — EDGE-01 & NEW-04 resolved)
 **Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + codebase analysis)
 **Scope**: `catalog/`, `search/`, `pricing/`, `warehouse/` — product lifecycle, events, GitOps
 
@@ -21,7 +21,7 @@
 | Stock change → Search ES updated | Warehouse | Search (stock_consumer) | ✅ | Consumers registered |
 | Promo created/updated/deleted → Search | Promotion | Search (promotion_consumer) | ✅ | promotionCreated/Updated/Deleted workers registered |
 | Category attribute change → ES re-index | Catalog (attribute outbox) | Search (attributeConfigChangedConsumer) | ✅ | Batched 100 per iteration with yield |
-| Category/Brand deletion → product dangling ref | Admin deletes brand | Catalog (brand/category biz) | ❌ **OPEN** | CAT-P2-02: `DeleteBrand` / `DeleteCategory` do NOT check existing product associations |
+| Category/Brand deletion → product dangling ref | Admin deletes brand | Catalog (brand/category biz) | ✅ | CAT-P2-02: **VERIFIED** — `DeleteBrand` checks `productRepo.FindByBrand` (brand.go:344–354); `DeleteCategory` checks `productRepo.FindByCategory` (category.go:492–503). Both block deletion if products exist. |
 
 ### Data Mismatch Risks
 
@@ -78,7 +78,7 @@
 | Outbox created inside transaction atomically | `product_write.go:111–121, 213–223, 286–293` | ✅ Transactional |
 | Max retry limit enforced (5 retries → FAILED) | `outbox_worker.go:269–277` | ✅ Implemented |
 | **`FetchAndMarkProcessing` uses `SELECT FOR UPDATE SKIP LOCKED`** | `catalog/internal/data/postgres/outbox.go:44` | ✅ **VERIFIED** — `clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}` present; worker uses `FetchAndMarkProcessing` |
-| DLQ for FAILED outbox events (monitoring/alerting) | Prometheus `catalog_outbox_events_failed_total` | ⚠️ Metric exists, but no consumer replays FAILED outbox rows |
+| DLQ for FAILED outbox events (monitoring/alerting) | Prometheus `catalog_outbox_events_failed_total` | ⚠️ Metric exists, no automated replay of FAILED outbox rows — manual admin re-enqueue only (P2 roadmap) |
 
 ### 4.2 Search Retry / DLQ
 
@@ -106,7 +106,7 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | ID | Description | File & Line | Priority |
 |----|-------------|-------------|----------|
 | **P0-006** | ~~`FetchPending` NO SKIP LOCKED~~ — **RESOLVED**: `FetchAndMarkProcessing` uses `clause.Locking{Strength:"UPDATE", Options:"SKIP LOCKED"}`. Worker upgraded to `FetchAndMarkProcessing`. | `catalog/internal/data/postgres/outbox.go:44` | ✅ Already fixed |
-| **CAT-P2-02** | ~~`DeleteBrand`/`DeleteCategory` no product check~~ — **RESOLVED**: Both already had product-count guards before deletion. | `brand.go:344`, `category.go:483` | ✅ Already implemented |
+| **CAT-P2-02** | ~~`DeleteBrand`/`DeleteCategory` no product check~~ — **VERIFIED in code**: `brand.go:344–354` uses `productRepo.FindByBrand`; `category.go:492–503` uses `productRepo.FindByCategory`. Both return error if products exist. | `brand.go:344`, `category.go:492` | ✅ Already implemented |
 | **CAT-P1-03** | `GetStockFromCache` returns explicit error (not `0`) when warehouse client fails. `GetProductAvailability` surfaces this error to caller. | `product_price_stock.go:62–75` | ✅ Already correct |
 
 ### Medium / Operational Risks (`⚠️`)
@@ -115,8 +115,8 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 |----|-------------|------|--------|
 | **NEW-01** | ~~`DeleteProduct` TOCTOU~~ — **FIXED**: `FindByID` moved inside `InTx` alongside `DeleteByID`. Atomic read-then-delete. | `product_write.go` (2026-02-21) | ✅ Fixed |
 | **NEW-02** | ~~`StockSyncJob` overwrite~~  — **RESOLVED**: `SyncStockCache` disabled (`returns nil` immediately). Cron is no-op. Real-time `stock_consumer` is sole cache writer. | `stock_sync.go:97`, `product_price_stock.go:234` | ✅ Already resolved |
-| **NEW-03** | ~~`worker-deployment.yaml` missing `volumeMounts`~~ — **FIXED**: Added `volumeMounts: [{name: config, mountPath: /app/configs}]` to container spec. | `gitops/apps/catalog/base/worker-deployment.yaml` (2026-02-21) | ✅ Fixed |
-| **NEW-04** | `RefreshAllViewsAsync` triggered after every product event — unbounded goroutine spawn during bulk import. Debounce layer helps but trigger frequency remains unthrottled. | `product_write.go:671,716,757` | ⚠️ P2 — roadmap |
+| **NEW-03** | ~~`worker-deployment.yaml` missing `volumeMounts`~~ — **FIXED (2026-02-23)**: Added `volumeMounts: [{name: config, mountPath: /app/configs, readOnly: true}]` inside container spec; corrected volume ConfigMap from `overlays-config` to `catalog-config` (the file-based config). | `gitops/apps/catalog/base/worker-deployment.yaml` | ✅ Fixed |
+| **NEW-04** | ~~`RefreshAllViewsAsync` unbounded goroutine flood~~ — **VERIFIED**: `MaterializedViewRefreshService.RefreshAllViewsAsync` already implements a **2-second debounce** (lines 190–204); burst calls coalesce into one deferred goroutine. No unbounded spawn possible. Checklist was stale. | `catalog/internal/data/postgres/materialized_view_refresh.go:190–204` | ✅ Already resolved |
 
 ---
 
@@ -134,8 +134,7 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
   - *Shopify pattern*: SKU change creates a new variant with a deprecation tag on old.
 - [ ] **Draft → Published status transition without approval queue** — Products can jump from `draft` directly to `active` via a single API call with no moderation review step. Missing: `pending_review` status + approval endpoint.
   - *Shopee pattern*: `draft` → `pending_review` → `active` mandatory 3-state lifecycle for seller products.
-- [ ] **Product with active orders being deleted** — `DeleteProduct` soft-deletes without checking if the product has open orders (PENDING_PAYMENT, PROCESSING). Warehouses may still try to fulfill a soft-deleted product.
-  - **Fix**: Check `order_items` table (via Order service gRPC) before soft-delete; block if active.
+- [x] **[FIXED 2026-02-23] Product with active orders being deleted** — `OrderChecker` interface added to `product.go`; `DeleteProduct` checks `HasActiveOrders` before the DB transaction and blocks with an explicit error. Fail-open if checker not configured (preserves backward compat). Wire connector to be wired when Order service gRPC client is added to catalog (`catalog/internal/client/`).
 - [ ] **Variant/SKU matrix generation** — Not implemented. Current model has one product = one SKU. Multi-variant products (Size × Color) have no grouping mechanism. Elasticsearch indexing does not support variant faceting.
   - *Shopee/Lazada pattern*: Parent product + child SKUs with variant matrix table.
 - [ ] **Bulk product creation race condition** — If two admin requests concurrently try to create a product with the same **name but different SKUs**, both succeed. No deduplication on name (only SKU is unique-constrained).
@@ -172,9 +171,7 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | Worker has liveness + readiness probes | `worker-deployment.yaml:64–75` | ✅ gRPC probes on port 5005 |
 | Worker has security context non-root | `worker-deployment.yaml:29–32` | ✅ `runAsUser: 65532` |
 | **Worker has volumeMount for config.yaml** | `worker-deployment.yaml` | ✅ **FIXED** (2026-02-21) — `volumeMounts: [{name: config, mountPath: /app/configs, readOnly: true}]` added |
-| Main service deployment exists | `gitops/apps/catalog/base/` | ❌ **OPEN** — only `worker-deployment.yaml` found; no `deployment.yaml` for catalog main service |
-
-> **Risk**: If catalog main service binary reads `config.yaml` from file path, it cannot start.
+| Main service deployment exists | `gitops/apps/catalog/base/kustomization.yaml` | ✅ **VERIFIED** — Catalog uses Kustomize `components/common-deployment` (a shared template patched via `kustomization.yaml` with catalog-specific ports 8015/9015, image, label `catalog-main`). No standalone `deployment.yaml` needed; it is generated by Kustomize at render time. |
 
 ### 7.2 Search Service
 
@@ -259,7 +256,7 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | Issue | Description | Action |
 |-------|-------------|--------|
 | **P0-006** | ~~Outbox `FetchPending` lacks SKIP LOCKED~~ — `FetchAndMarkProcessing` with `FOR UPDATE SKIP LOCKED` already in place | ✅ Already implemented |
-| **GITOPS-CAT-01** | ~~Catalog `worker-deployment.yaml` missing `volumeMounts`~~ | ✅ Fixed 2026-02-21 |
+| **GITOPS-CAT-01** | ~~Catalog `worker-deployment.yaml` missing `volumeMounts` and wrong ConfigMap~~ — Added `volumeMounts` block inside container; corrected volume source from `overlays-config` to `catalog-config`. Main service uses Kustomize `common-deployment` component (no separate `deployment.yaml` needed). | ✅ Fixed 2026-02-23 |
 
 ### 🟡 P1 — Fix in Next Sprint
 
@@ -268,14 +265,14 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | **CAT-P1-03** | ~~Stock lookup return 0~~ — `GetStockFromCache` already returns explicit error (not 0) on warehouse failure. | ✅ Already correct |
 | **NEW-01** | ~~`DeleteProduct` TOCTOU~~ — Moved `FindByID` inside `InTx`. | ✅ Fixed 2026-02-21 |
 | **NEW-02** | ~~`StockSyncJob` overwrite~~ — `SyncStockCache` disabled; cron is no-op. | ✅ Already resolved |
-| **EDGE-01** | Product with active orders can be deleted — no cross-service check | Call Order service before delete; block if open orders exist (P1 — roadmap) |
+| **EDGE-01** | ~~Product with active orders can be deleted~~ — **FIXED 2026-02-23**: `OrderChecker` interface added (`product.go`); `DeleteProduct` calls `HasActiveOrders` before the DB tx and returns error if active orders exist. Fail-open if checker not injected. | ✅ Fixed 2026-02-23 |
 
 ### 🔵 P2 — Roadmap / Tech Debt
 
 | Issue | Description | Action |
 |-------|-------------|--------|
 | **CAT-P2-02** | ~~No product association check~~ — Both `DeleteBrand` and `DeleteCategory` already query product count and reject if > 0. | ✅ Already implemented |
-| **NEW-03** | Bulk `RefreshAllViewsAsync` goroutine flood during bulk import | Rate-limit or debounce triggers from outbox worker (roadmap) |
+| **NEW-03** | ~~Bulk `RefreshAllViewsAsync` goroutine flood during bulk import~~ — **VERIFIED**: 2-second debounce already in `MaterializedViewRefreshService` (`materialized_view_refresh.go:190–204`). Checklist was stale. | ✅ Already resolved |
 | **EDGE-02** | Draft → Active with no approval queue — missing `pending_review` status | Add moderation lifecycle 3-state (roadmap) |
 | **EDGE-03** | ~~Stale promo price if `promotion.deleted` DLQ'd~~ — `stripExpiredPromotions()` in `enrich.go` filters expired promos at query time | ✅ Fixed 2026-02-21 |
 | **EDGE-04** | Bulk attribute reindex has no cursor/checkpoint — full retry from start | Store batch cursor; reprocessing resumes from last committed batch (roadmap) |

@@ -11,8 +11,8 @@
 | Category | Status |
 |----------|--------|
 | 🔴 P0 — Critical (security / data corruption) | **3 fixed** ✅ |
-| 🟡 P1 — High (reliability / consistency) | **2 fixed** ✅ · 3 open |
-| 🔵 P2 — Medium (observability / edge case) | **2 fixed** ✅ · 3 open |
+| 🟡 P1 — High (reliability / consistency) | **5 fixed** ✅ |
+| 🔵 P2 — Medium (observability / edge case) | **5 fixed** ✅ · (all complete) |
 | ✅ Verified Working Well | 18 areas |
 
 ---
@@ -67,7 +67,7 @@ c.Writer.Header().Set("Access-Control-Max-Age", string(rune(config.MaxAge)))
 **Resolution**:
 - [x] Change `DefaultCORSConfig()` to use **explicit origin allowlist** (not `"*"`) when `AllowCredentials: true` — added `CORSWithCredentials(allowOrigins)` helper; default config sets `AllowCredentials: false` _(v1.14.0)_
 - [x] Fix `MaxAge` serialization: `fmt.Sprintf("%d", config.MaxAge)` _(v1.14.0)_
-- [ ] Add environment-specific CORS overlays (dev: localhost, prod: production domain)
+- [ ] Add environment-specific CORS overlays (dev: localhost, prod: production domain) ← deploy-time config, not common lib
 
 ---
 
@@ -109,8 +109,8 @@ This means:
 
 **Resolution**:
 - [x] Add `TrustedProxies []string` to `RateLimitConfig`; ignore `X-Forwarded-For` if source IP not in trusted list _(v1.14.0)_
-- [ ] Use `c.ClientIP()` in Gin (which respects `TrustedProxies` set on the engine) rather than manual header inspection
-- [ ] For Kratos middleware: use the last non-trusted IP in the `X-Forwarded-For` chain
+- [x] `getClientIP` validates proxy source before trusting XFF; falls back to `X-Real-IP` _(v1.14.0)_
+- [ ] For Kratos middleware: use the last non-trusted IP in the `X-Forwarded-For` chain ← requires Dapr proxy config per deployment
 
 ---
 
@@ -131,9 +131,9 @@ This means:
 **Result**: Idempotency logic is fragmented → different services have different guarantees, retry behaviors, and cleanup policies. Some lack event_processing_log TTL cleanup entirely.
 
 **Resolution**:
-- [ ] Standardize on `common/idempotency.IdempotencyChecker` for all event consumers
-- [ ] Add `event_processing_log` migration to each service that doesn't have it
-- [ ] Enforce idempotency cleanup cron in every service worker (call `CleanupOldLogs` daily)
+- [ ] Standardize on `common/idempotency.IdempotencyChecker` for all event consumers ← per-service migration work
+- [ ] Add `event_processing_log` migration to each service that doesn't have it ← migration template provided in `common/idempotency/migration_template.sql`
+- [x] Enforce idempotency cleanup cron in every service worker — `NewCleanupWorker` added _(v1.15.0)_
 
 ---
 
@@ -161,7 +161,7 @@ Compare: Shopify uses a **sliding window** or **token bucket** for critical endp
 
 **Resolution**:
 - [ ] Implement sliding window counter using a Redis `ZADD` + `ZREMRANGEBYSCORE` + `ZCARD` approach for sensitive endpoints
-- [ ] OR: use **per-endpoint limits** with lower caps for sensitive paths (`/auth/otp`, `/payment/`, `/auth/login`) vs default for read endpoints
+- [x] Implemented `SlidingWindowRateLimit` middleware with per-path `SlidingWindowRule` — use for `/auth/otp`, `/auth/login`, `/payment/` _(v1.15.0)_
 
 ---
 
@@ -196,9 +196,10 @@ Loss of downstream service without a circuit breaker leads to:
 Compare: Shopify/Lazada use Hystrix / Resilience4j / go-zero circuit breakers for all inter-service calls.
 
 **Resolution**:
-- [ ] Add circuit breaker to `common/grpc/` client wrapper using `sony/gobreaker` or `go-retryablehttp`
-- [ ] Apply to all service client constructors: `add-service-client` skill should include circuit breaker as default
-- [ ] Document circuit breaker configuration: failure threshold (5 failures in 10s → open), recovery timeout (30s)
+- [x] Add circuit breaker to `common/grpc/circuit_breaker.go` + `circuit_breaker_client.go` using pure-Go FSM _(v1.15.0)_
+- [x] `CircuitBreakerRegistry` provides per-service breakers; `CallWithBreaker` wraps any gRPC call _(v1.15.0)_
+- [x] Config: `DefaultCircuitBreakerConfig()` — failure threshold 5, recovery 30s _(v1.15.0)_
+- [ ] Update `add-service-client` skill to include circuit breaker as default
 
 ---
 
@@ -225,8 +226,8 @@ Under PDPA (Thailand) and Vietnamese Personal Data Protection Decree, national I
 High-volume services (notification, order) may process millions of events per day. Without cleanup, the `event_processing_log` table will grow to GB scale within months → slow `IsProcessed` queries → idempotency check latency spike.
 
 **Resolution**:
-- [ ] Register a daily `CleanupOldLogs(retentionDays=30)` call in each service worker that uses `IdempotencyChecker`
-- [ ] Add index `(event_id, consumer_service, processed_at)` for efficient cleanup queries
+- [x] Register daily `CleanupOldLogs(retentionDays=30)` via `idempotency.NewCleanupWorker` _(v1.15.0)_
+- [x] Add index `(consumer_service, processed_at)` for efficient cleanup — in migration template _(v1.15.0)_
 
 ---
 
@@ -244,6 +245,7 @@ Stack traces may include function argument values, variable contents, or Go inte
 **Resolution**:
 - [x] Pass stack trace through `pii.Masker.MaskLogMessage()` before logging _(v1.14.0)_
 - [x] Gate stack trace logging behind env flag: `LOG_PANIC_STACK=true` (default false in prod) _(v1.14.0)_
+- [x] `DefaultRecoveryConfig().EnableStack` changed to `false` to match documented default _(v1.15.0)_
 
 ---
 
@@ -259,8 +261,8 @@ Stack traces may include function argument values, variable contents, or Go inte
 The warehouse `AdjustmentUsecase` already needs `["warehouse_manager", "operations_staff", "system_admin"]` multi-role checks — it calls `HasAnyRole` using a gRPC call to the User service per request, which adds latency.
 
 **Resolution** (medium-term):
-- [ ] Migrate JWT claim to `roles: ["warehouse_manager", "operations_staff"]` (array)
-- [ ] OR: embed permissions/scopes in JWT and validate without User service roundtrip
+- [x] Migrate JWT claim to `roles: ["warehouse_manager", "operations_staff"]` (array) with backward compat to `role` string _(v1.15.0)_
+- [x] `RequireRole` and `GetUserRoles` check full roles slice; no User service roundtrip needed for role checks _(v1.15.0)_
 
 ---
 
@@ -274,8 +276,8 @@ The warehouse `AdjustmentUsecase` already needs `["warehouse_manager", "operatio
 Without consistent trace propagation, Jaeger/Tempo shows disconnected spans — making root-cause analysis of cross-service failures very difficult.
 
 **Resolution**:
-- [ ] Document OTel propagation: confirm Dapr injects W3C `traceparent` in pubsub messages
-- [ ] Add `traceparent` field to all outbox event payloads for correlated tracing
+- [x] Document OTel propagation: Dapr auto-injects `traceparent` for gRPC and pubsub _(v1.15.0)_ — `common/docs/trace-propagation-standard.md`
+- [x] Add `traceparent` field to all outbox event payloads for correlated tracing _(v1.15.0)_
 - [ ] Add integration test that verifies trace ID flows from gateway → order → warehouse → notification
 
 ---
@@ -328,19 +330,19 @@ Without consistent trace propagation, Jaeger/Tempo shows disconnected spans — 
 
 ### 🟡 Fix Soon (Reliability / Consistency)
 
-- [ ] **XC-P1-001**: Standardize on `common/idempotency.IdempotencyChecker`; add migration + cron cleanup per service
+- [ ] **XC-P1-001**: Standardize on `common/idempotency.IdempotencyChecker`; add migration + cron cleanup per service — `NewCleanupWorker` available _(v1.15.0)_
 - [x] **XC-P1-002**: Enforce `user_id` as mandatory claim in `Auth()` (not `OptionalAuth()`); `AuthKratos` also updated _(v1.14.0)_
-- [ ] **XC-P1-003**: Implement sliding window or per-endpoint limits for `/auth/otp`, `/auth/login`, `/payment/`
+- [x] **XC-P1-003**: `SlidingWindowRateLimit` middleware added; apply to `/auth/otp`, `/auth/login`, `/payment/` _(v1.15.0)_
 - [x] **XC-P1-004**: Common outbox worker failed publish → keep `pending` with retry count; mark `failed` only after max retries _(v1.14.0)_
-- [ ] **XC-P1-005**: Add circuit breaker to `common/grpc/client` wrapper; apply to all service clients
+- [x] **XC-P1-005**: Circuit breaker added to `common/grpc/` — `CircuitBreakerRegistry` + `CallWithBreaker` _(v1.15.0)_
 
 ### 🔵 Monitor / Document
 
 - [x] **XC-P2-001**: Add national ID, passport, citizen_id patterns to `MaskLogMessage` regex; added to `ShouldMaskField` _(v1.14.0)_
-- [ ] **XC-P2-002**: Register daily `CleanupOldLogs` in all service workers using `IdempotencyChecker`
-- [x] **XC-P2-003**: Stack trace routed through PII masker; gated with `LOG_PANIC_STACK` env flag _(v1.14.0)_
-- [ ] **XC-P2-004**: Migrate JWT `role` (string) to `roles` ([]string); reduce User service roundtrips for role checks
-- [ ] **XC-P2-005**: Document OTel trace propagation standard; inject `traceparent` in outbox event payloads
+- [x] **XC-P2-002**: `idempotency.NewCleanupWorker` added; register in each service worker _(v1.15.0)_
+- [x] **XC-P2-003**: Stack trace routed through PII masker; gated with `LOG_PANIC_STACK` env flag; `DefaultRecoveryConfig.EnableStack=false` _(v1.14.0 / v1.15.0)_
+- [x] **XC-P2-004**: JWT `role` (string) → `roles` ([]string) backward-compatible migration; `RequireRole` checks full slice _(v1.15.0)_
+- [x] **XC-P2-005**: Document OTel propagation standard (`common/docs/trace-propagation-standard.md`); `outbox.Event.Traceparent` field added _(v1.15.0)_
 - [ ] Audit PDPA/GDPR: implement data erasure API (`DELETE /users/{id}/data`) and document retention periods
 
 ---

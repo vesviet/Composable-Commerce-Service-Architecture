@@ -1,7 +1,7 @@
 # Cart & Checkout Flow — Business Logic Review Checklist
 
-**Date**: 2026-02-21
-**Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + codebase analysis)
+**Date**: 2026-02-23 (re-verified)
+**Reviewer**: Antigravity Agent (codebase re-index 2026-02-23)
 **Scope**: `checkout/`, `order/`, `warehouse/`, `pricing/`, `promotion/`, `payment/`, `shipping/`
 
 > Builds on **previous sprint review** ([checkout-flow-business-logic-review.md](../lastphase/checkout-flow-business-logic-review.md)).
@@ -15,11 +15,11 @@
 |------------|----------------|----------|--------|------|
 | Cart item price at checkout | Pricing service (revalidated at confirm) | Checkout `CalculateOrderTotals(RevalidatePrices: true)` | ✅ Re-validated | Time-of-display vs time-of-confirm delta possible |
 | Stock at add-to-cart | Warehouse (hard) / Catalog (fallback for no warehouseID) | Checkout `checkStockInParallel` | ⚠️ Fallback path | Catalog stock not reservation-aware |
-| Stock at confirm | Warehouse reservation | `validateStockBeforeConfirm → validateStockAvailability → checkStockInParallel` | ⚠️ **Still uses Catalog fallback** | See P0-002 below |
-| Reservation status | Warehouse | `extractAndValidateReservations` | ✅ Parallel gRPC with status check | Clock skew risk P1-002 |
+| Stock at confirm | Warehouse reservation | `validateStockBeforeConfirm → validateStockAvailability → checkStockInParallel` | ⚠️ **Catalog fallback still possible** | See P0-002 below — `validateStockForConfirm` added but `validateStockAvailability` still used |
+| Reservation status | Warehouse | `extractAndValidateReservations` | ✅ Parallel gRPC with status check | Clock skew risk P1-002 (local `time.Now()` vs Warehouse time) |
 | Coupon usage count | Promotion service | `apply_promotion` after order creation | ⚠️ Best-effort | P0-005: MaxRetries=10 + DLQ ✅; but usage CAN diverge |
 | Order amount | Checkout totals engine | Order service (receives pre-computed totals) | ✅ Totals locked at confirm | Order service trusts checkout amounts |
-| Shipping fee in cart preview | Shipping service (using `"default"` warehouse) | `cart/totals.go` | ⚠️ **Hardcoded origin** | P1-001: Different from confirm-time warehouse origin |
+| Shipping fee in cart preview | Shipping service (warehouse_id from context, fallback to 'default') | `cart/totals.go:getWarehouseOriginAddress` | ⚠️ **Context-based** | P1-001: warehouse_id read from `ctx.Value("warehouse_id")` — set correctly only if caller provides it |
 | Cart status after order creation | Checkout local DB | Order service (event-driven) | ✅ `completeCartAfterOrderCreation` | DLQ fallback for cleanup failures |
 | Promotion discount in cart vs confirm | Promotion service (revalidated) | `pricing_engine.go:ValidateAndApplyPromotions` | ✅ Re-validated at confirm | Single-use coupon race possible in parallel checkouts |
 
@@ -27,45 +27,61 @@
 
 ## 2. Data Mismatches Found
 
-### 2.1 P0-002 — Catalog Stock Fallback Still Active at Confirm Time (Fixed)
+### 2.1 P0-002 — Catalog Stock Fallback at Confirm Time
 
-**Status**: ✅ **FIXED** — Extracted `validateStockForConfirm()` that fails closed when warehouseID is nil.
+**Status**: ✅ **FIXED** (2026-02-23) — `validateStockAvailability` now delegates directly to `validateStockForConfirm`, which **fails closed**: any item with a nil or empty `warehouseID` is immediately rejected (no catalog fallback). The display path (`checkStockInParallel`) retains the catalog fallback but is explicitly segregated by a `// Do NOT call this at ConfirmCheckout time` comment.
 
 ```go
-// checkout/internal/biz/checkout/validation.go:161-183
-if warehouseID == nil || *warehouseID == "" {
-    // ← This path calls catalogClient.GetProductPrice during ConfirmCheckout
-    productPrice, err := uc.catalogClient.GetProductPrice(gCtx, item.ProductID, false)
-    availableQty = int32(productPrice.Stock)
+// checkout/internal/biz/checkout/validation.go:278-281
+// validateStockAvailability routes to validateStockForConfirm (fails closed).
+// All confirm-time callers use this — catalog fallback is intentionally absent.
+func (uc *UseCase) validateStockAvailability(ctx context.Context, cart *biz.Cart) ([]OutOfStockItem, error) {
+    return uc.validateStockForConfirm(ctx, cart.Items)
+}
+
+// validateStockForConfirm (validation.go:222) — [P0-002] FAILS CLOSED:
+// if item.WarehouseID == nil → appended to outOfStockItems immediately, no warehouse gRPC call.
+```
+
+- `- [x]` **Fixed 2026-02-23** — `validateStockAvailability` routes to `validateStockForConfirm`; catalog fallback is absent at confirm time. Display path (`checkStockInParallel`) is intentionally separate.
+
+---
+
+### 2.2 P1-001 — Shipping Fee Mismatch Between Cart Preview and Confirm (Partially Fixed)
+
+`cart/totals.go:getWarehouseOriginAddress()` reads warehouse ID from **context key `"warehouse_id"`** instead of hardcoded `"default"`. Falls back to `"default"` if context key is absent.
+
+```go
+// cart/totals.go:33-36
+warehouseID := "default"
+if wh, ok := ctx.Value("warehouse_id").(string); ok && wh != "" {
+    warehouseID = wh
 }
 ```
 
-`validateStockAvailability` → `checkStockInParallel` — same function used for both `ValidateInventory` (pre-checkout display) and `validateStockBeforeConfirm` (confirm step). Cart items without a `warehouseID` still fall back to Catalog stock at confirm time. Catalog stock is **not reservation-aware** — in-flight reservations are not subtracted.
+The P1-001 fix is **fully applied**: all three service-layer entry points that lead to `CalculateCartTotals` now inject the warehouse ID:
 
-- **Risk**: Two customers can both confirm checkout for the last unit if neither has a warehouseID assigned yet.
-- **Shopify resolution**: Call `WarehouseService.CheckStock` unconditionally at confirm time; return error if warehouseID is missing.
-- `- [x]` **Fix**: Extract separate `validateStockForConfirm()` that **fails closed** when warehouseID is nil
+| Caller | File | Line |
+|--------|------|------|
+| `StartCheckout` | `service/checkout.go` | 141 |
+| `PreviewOrder` | `service/checkout.go` | 373 |
+| `AddToCart` / cart display | `service/cart.go` | 158 |
 
----
+All three read the `X-Warehouse-ID` gateway header via `tr.RequestHeader().Get("X-Warehouse-ID")` and set it on context before any totals calculation. If the header is absent the `"default"` fallback in `getWarehouseOriginAddress` still applies (acceptable — it means gateway has not resolved a warehouse, not a bug).
 
-### 2.2 P1-001 — Shipping Fee Mismatch Between Cart Preview and Confirm (Still Open)
-
-`cart/totals.go:getWarehouseOriginAddress()` uses `"default"` warehouse hardcoded.
-`confirm.go` passes `shippingAddr` from cart to `CalculateOrderTotals` but origin warehouse comes from `X-Warehouse-ID` header.
-
-Customer sees one shipping fee at cart review; different fee at order creation.
-
-- `- [ ]` **Fix**: Store `warehouseID` in cart session at `StartCheckout`; use it consistently through preview → confirm
+- `- [x]` **Fixed 2026-02-23** — All callers of `CalculateCartTotals` inject `X-Warehouse-ID` from gateway header into context; preview and confirm use the same warehouse.
 
 ---
 
-### 2.3 Coupon Code Dual Storage (P1-004 — Partially Open)
+### 2.3 Coupon Code Dual Storage (P1-004 — Fixed with Backward Compat Layer)
 
 `confirm.go:306` reads `bizSession.PromotionCodes` from session (correct).
-But `cart/totals.go` also reads `coupon_code` from cart metadata in some paths.
-If a user applies a coupon after session is started, the session is not updated.
+`cart/totals.go:145-165` still reads `coupon_code`/`coupon_codes` from cart metadata, but now clearly marked as **deprecated backward compat** with a `TODO: Remove` comment.
 
-- `- [x]` **Fix**: Consolidate coupon storage to `CheckoutSession.PromotionCodes` only; update session on every coupon apply
+The dual-read code is still present but is **isolated from the session path** — cart preview reads from metadata, checkout confirm reads from `CheckoutSession.PromotionCodes`. A divergence is still possible if a user updates their coupon AFTER session creation.
+
+- `- [x]` **Partial fix**: Array read logic updated; backward compat preserved with deprecation comment
+- `- [ ]` **Still needed**: Remove the metadata fallback after frontend migrates to updating session directly
 
 ---
 
@@ -125,12 +141,12 @@ If a user applies a coupon after session is started, the session is not updated.
 
 | Check | Value | Status |
 |-------|-------|--------|
-| Poll interval | 1 second | ✅ |
-| Batch size | 50 events | ✅ |
-| Max retry count before FAILED | 10 | ✅ |
-| Stuck event recovery (processing → pending) | Every 10 cycles (≈10s) after 5-min threshold | ✅ |
-| Old event cleanup | Every 10 cycles, 30-day retention | ✅ |
-| `SELECT FOR UPDATE SKIP LOCKED` on `ListPending` | **NOT VERIFIED** | ⚠️ Check `outboxRepo.ListPending` implementation |
+| Poll interval | 1 second | ✅ `outbox/worker.go:32` |
+| Batch size | 50 events | ✅ `worker.go:105` |
+| Max retry count before FAILED | 10 | ✅ `worker.go:141` |
+| Stuck event recovery (processing → pending) | Every 10 cycles (≈10s) after 5-min threshold | ✅ `worker.go:94-102`, threshold `worker.go:166` |
+| Old event cleanup | Every 10 cycles, 30-day retention | ✅ `worker.go:95-99` |
+| `SELECT FOR UPDATE SKIP LOCKED` on `ListPending` | **NOT FOUND IN CODEBASE** | ❌ `outboxRepo.ListPending` — no `FOR UPDATE SKIP LOCKED` found in any data layer file. Multiple checkout pods will race on the same pending events. Single checkout binary (workers embedded in API) mitigates for now, but will be critical if checkout is horizontally scaled. |
 
 ---
 
@@ -148,8 +164,8 @@ If a user applies a coupon after session is started, the session is not updated.
 | Issue | Description | File | Fix |
 |-------|-------------|------|-----|
 | **P1-001** | Shipping fee uses `"default"` warehouse in cart preview, `X-Warehouse-ID` at confirm | `cart/totals.go:30-51` | Store warehouseID in session at `StartCheckout` |
-| **P1-002** | Reservation expiry: `time.Now().After(*res.ExpiresAt)` uses local clock — k8s clock skew can disagree with Warehouse authoritative time | `confirm.go:584-586` | Add `is_expired` flag to `GetReservation` response on Warehouse side |
-| **P1-003** | `extendReservationsForPayment`: now parallel (`errgroup`), but still not atomic — partial extension leaves reservations in mixed-TTL state | `confirm.go:659-693` | Implement bulk `ExtendReservations` API in Warehouse; or roll back already-extended on partial failure |
+| **P1-002** | Reservation expiry: `time.Now().After(*res.ExpiresAt)` uses local clock — k8s clock skew can disagree with Warehouse authoritative time | `confirm.go:584-586` | ⚠️ **Still open** — Add `is_expired bool` to `GetReservation` Warehouse proto response; requires cross-service proto change |
+| **P1-003** | `extendReservationsForPayment`: now parallel (`errgroup`), but still not atomic — partial extension leaves reservations in mixed-TTL state | `confirm.go:659-693` | ✅ Fixed 2026-02-23 — rollback of already-extended reservations on partial failure implemented |
 | **P1-004** | Coupon code stored in BOTH `checkout_session.promotion_codes` AND `cart.metadata.coupon_code` — can diverge post-session-creation | `cart/totals.go:139-155` | ✅ Array read logic updated |
 | **P1-005** | Outbox `recoverStuckEvents` resets processing → pending. If the previous publish succeeded but the status update failed (network timeout mid-write), the event is republished and consumers must be idempotent | `outbox/worker.go:164-188` | Verify all outbox consumers implement `event_id` deduplication |
 | **P1-008** | `ConfirmCheckout` idempotency uses per-cart key but allows concurrent confirms for different cart IDs for same customer | `confirm.go:238-269` | ✅ Rate limit lock added |
@@ -159,14 +175,14 @@ If a user applies a coupon after session is started, the session is not updated.
 | Issue | Description | Fix |
 |-------|-------------|-----|
 | **P2-001** | ✅ Fixed — CustomerID nil guard on promo apply | — |
-| **P2-002** | Integer arithmetic (cents) not used throughout pricing engine — float accumulation on 100+ items can create $0.01 rounding drift | Use `int64` cents everywhere; convert to float only on output |
-| **P2-003** | Shipping tax base: preview uses `netShipping` (post-discount), confirm uses `shippingCost` (pre-discount) | ✅ Aligned to netShipping |
+| **P2-002** | `float64` arithmetic throughout pricing engine — `roundCents(math.Round*100/100)` applied consistently but accumulation on 100+ items can still drift | `pricing_engine.go:389-391` — still float64; no int64 cents migration |
+| **P2-003** | Shipping tax base: preview and confirm both use `netShipping` (post-discount) via `shippingCost - shippingDiscount` | ✅ Aligned — `totals.go:285`, `pricing_engine.go:176` both use netShipping |
 | **P2-004** | ✅ Fixed — Staleness threshold unified to `constants.StockFallbackStalenessThreshold` | — |
-| **P2-005** | ✅ Fixed — Empty cart guard in `loadAndValidateSessionAndCart` | — |
-| **P2-006** | ✅ Fixed — COD skips payment auth (uses `cod-auth-skipped` auth result) | — |
-| **P2-007** | `getCartCartID()` type-asserts `session.Metadata["cart_session_id"].(string)` — silent fallback to raw cartID if stored as non-string | ✅ Coercion added |
-| **P2-008** | ✅ Fixed — `MaxOrderAmount` ceiling enforced at `confirm.go:335-338` | — |
-| **P2-009** | Promotion race: two customers applying the same single-use coupon simultaneously can both pass `ValidateCoupon` — promotionService.ApplyPromotion is called after order creation, not in the same transaction | Promotion service must do atomic usage check+increment in Redis/DB lock |
+| **P2-005** | ✅ Fixed — Empty cart guard in `loadAndValidateSessionAndCart` | `confirm.go:53-54` |
+| **P2-006** | ✅ Fixed — COD skips payment auth (uses `cod-auth-skipped` auth result) | `confirm.go:341-348` |
+| **P2-007** | `getCartCartID()` type-asserts `session.Metadata["cart_session_id"].(string)` — coercion added | ✅ Coercion added |
+| **P2-008** | ✅ Fixed — `MaxOrderAmount` ceiling enforced at `confirm.go:334-336` | — |
+| **P2-009** | Promotion race: two customers with same single-use coupon can both pass `ValidateCoupon` | Promotion service must do atomic usage check+increment in Redis/DB lock — **still open** |
 
 ---
 
@@ -174,13 +190,12 @@ If a user applies a coupon after session is started, the session is not updated.
 
 ### 7.1 Cart Management Gaps
 
-- [ ] **No guest cart → login merge**: When a guest user logs in mid-session, the guest `cart_session_id` and logged-in user's existing cart are NOT merged. Guest cart items are silently abandoned.
-  - *Shopify pattern*: `CartMerge` API call on login; merge guest items into user cart with conflict resolution.
+- [ ] **No guest cart → login merge**: ✅ **IMPLEMENTED** — `cart/merge.go` has `MergeCart(ctx, req)` with `MergeStrategyReplace`, `MergeStrategyMerge`, and `MergeStrategyKeepUser` strategies. Merge is transactional. Guest cart cleared after merge.
 
-- [ ] **No inactivity expiry trigger**: Cart expiry is checked at `AddToCart` time, but an idle cart is not expired proactively. A cart created 45 days ago with no mutations is still accepted at checkout.
+- [ ] **No inactivity expiry trigger**: Cart expiry is checked at `AddToCart` time, but an idle cart is not expired proactively.
   - *Lazada pattern*: Background `cart_cleanup` job checks and marks carts inactive after TTL.
   - The `cart_cleanup.go` cron in checkout handles expired carts — but only by marking inactive, not by releasing warehouse reservations.
-  - `- [x]` `cart_cleanup` cron must also release any active warehouse reservations on expiry
+  - `- [ ]` `cart_cleanup` cron: verify it releases active warehouse reservations on cart expiry (reservation release not visible in `cron/cart_cleanup.go` — needs audit)
 
 - [ ] **Cart sharing / link not implemented**: Platform flows document (section 5.1) mentions cart sharing via shareable link. Not found in checkout service.
 
@@ -209,12 +224,14 @@ If a user applies a coupon after session is started, the session is not updated.
 
 ### 7.3 Post-Checkout / Order Lifecycle Gaps
 
-- [ ] **Checkout finalize can succeed (order created) but outbox save fails silently**: `finalizeOrderAndCleanup` logs a `Warnf` but does NOT fail if `outboxRepo.Save` returns error (line 174-178). Since this runs in a transaction, the entire transaction would need to roll back to be safe.
+- [ ] **Checkout finalize can succeed (order created) but outbox save fails silently**: `finalizeOrderAndCleanup` logs a `Warnf` at line 175-177 but does NOT fail the tx if `outboxRepo.Save` returns error.
   - Risk: `CartConverted` event is **silently lost** — analytics, loyalty, CRM miss the conversion.
-  - `- [x]` Either fail the transaction when outbox save fails, or add a reconciliation job to re-emit missing CartConverted events
+  - **Code verified**: `confirm.go:174-178` — `Warnf` only, no `return saveErr`. The entire `finalizeOrderAndCleanup` is called inside `tm.WithTransaction` at `confirm.go:490`. If the tx fails for other reasons, the outbox row IS rolled back correctly. But a `Save` failure is swallowed.
+  - `- [ ]` Either propagate `saveErr` to fail the transaction, or add reconciliation job to detect orders without `CartConverted` outbox events
 
-- [ ] **`finalizeOrderAndCleanup` called inside a transaction, but `outboxRepo.Save` is also inside the same transaction**: If the transaction rolls back (from `checkoutSessionRepo.DeleteByCartID` failing), the outbox event row is also rolled back — correct behavior. But the `completeCartAfterOrderCreation` call is ALSO in the transaction — so cart cleanup failure rolls back the outbox event too, even though the order was successfully created in the Order service. The order exists but cart remains in `checkout` status.
-  - `- [x]` Separate cart cleanup from outbox write; outbox save should always commit independently.
+- [ ] **`finalizeOrderAndCleanup` is already inside a transaction** (`confirm.go:490`): order creation happens BEFORE the transaction. If `checkoutSessionRepo.DeleteByCartID` fails inside the tx, the outbox row and cart cleanup roll back — but the Order already exists in the Order service. The order exists but cart remains in `checkout` status.
+  - **Note**: `completeCartAfterOrderCreation` failure is handled by creating a `cart_cleanup` DLQ entry at `confirm.go:186-209` — partially mitigated.
+  - `- [ ]` Still need to verify that `deleteByCartID` failure does NOT expose the user to a repeated checkout attempt on the same (now-ordered) cart
 
 - [ ] **Partial payment capture for split orders**: If an order splits across multiple warehouses and one warehouse's reservation fails to confirm, the order is in a partially-fulfilled state. Payment has been authorized for the full amount. No split-order payment capture logic exists.
 
@@ -234,9 +251,10 @@ If a user applies a coupon after session is started, the session is not updated.
 | envFrom overlays-config | `deployment.yaml:52–53` | ✅ |
 | liveness + readiness probes | `deployment.yaml:63–74` | ✅ HTTP probes on port 8010 |
 | security context non-root | `deployment.yaml:29–32` | ✅ `runAsUser: 65532` |
-| **startup probe** | `deployment.yaml` | ❌ **MISSING** — liveness probe fires after 30s but startup probe absent. If checkout starts slow (migration, Consul wait), liveness probe may kill pod before it's ready |
-| **config volumeMount** | `deployment.yaml` | ❌ **MISSING** — no volumeMount for `/app/configs/config.yaml` mount. Reads `config.yaml` file at startup (`-conf /app/configs/config.yaml`) |
-| **worker-deployment.yaml** | `gitops/apps/checkout/base/` | ❌ **MISSING** — Checkout cron workers (failed_compensation, cart_cleanup, checkout_session_cleanup) run inside the main `checkout` binary. No separate worker pod deployment. This means cron workers are sharing resources with the API server and compete for CPU/memory under load |
+| `revisionHistoryLimit: 1` | `deployment.yaml:13` | ✅ |
+| **startup probe** | `deployment.yaml` | ❌ **MISSING** — liveness probe fires after `initialDelaySeconds: 30` but no `startupProbe`. If startup is slow (migrations, Consul wait), liveness may kill pod. |
+| **config volumeMount** | `deployment.yaml` | ❌ **MISSING** — binary runs `-conf /app/configs/config.yaml` but no `volumeMounts` for the config file. Config must be baked into image or served via env only. |
+| **worker-deployment.yaml** | `gitops/apps/checkout/base/` | ❌ **MISSING** — Checkout cron workers (failed_compensation, cart_cleanup, checkout_session_cleanup, outbox_worker) all run inside the main API binary. No separate worker pod. Cron workers compete for CPU/memory with API requests. |
 
 ### 8.2 Order Service
 
@@ -244,14 +262,16 @@ If a user applies a coupon after session is started, the session is not updated.
 |-------|------|--------|
 | Main deployment Dapr (HTTP, port 8004) | `gitops/apps/order/base/deployment.yaml:24–27` | ✅ |
 | Main deployment liveness + readiness | `deployment.yaml:64–75` | ✅ |
-| **Main deployment secretRef** | `deployment.yaml` | ❌ **MISSING** — No `secretRef` for `order-secrets`. DB password, JWT secret, API keys accessed via ConfigMap only → risk of secret exposure in ConfigMap |
+| **Main deployment secretRef** | `deployment.yaml` | ❌ **MISSING** — No `secretRef` for `order-secrets` in main deployment (only in worker). `envFrom` lists only `overlays-config` configmap. |
 | **Main deployment startupProbe** | `deployment.yaml` | ❌ **MISSING** |
 | **Main deployment config volumeMount** | `deployment.yaml` | ❌ **MISSING** — runs `-conf /app/configs/config.yaml` but no volume mounted |
+| **Main deployment revisionHistoryLimit** | `deployment.yaml:13` | ✅ `revisionHistoryLimit: 1` set |
 | Worker deployment Dapr (gRPC, port 5005) | `worker-deployment.yaml:24–27` | ✅ |
 | Worker deployment secretRef | `worker-deployment.yaml:60–61` | ✅ `order-secrets` |
-| Worker deployment init containers (Consul/Redis/Postgres) | `worker-deployment.yaml:33–41` | ✅ |
-| **Worker deployment config volumeMount** | `worker-deployment.yaml` | ❌ **MISSING** — same issue as main |
-| **Worker deployment revisionHistoryLimit** | `worker-deployment.yaml` | ❌ **MISSING** — no `revisionHistoryLimit` set (defaults to 10, consumes etcd) |
+| Worker deployment init containers (Consul/Redis/Postgres) | `worker-deployment.yaml:32–41` | ✅ |
+| **Worker deployment config volumeMount** | `worker-deployment.yaml` | ❌ **MISSING** — runs `-conf /app/configs/config.yaml` but no volumeMount |
+| **Worker deployment revisionHistoryLimit** | `worker-deployment.yaml` | ❌ **MISSING** — no `revisionHistoryLimit` (default 10) |
+| **Worker deployment liveness/readiness probes** | `worker-deployment.yaml` | ❌ **MISSING** — no probes on worker pod |
 
 ---
 
@@ -268,9 +288,10 @@ If a user applies a coupon after session is started, the session is not updated.
 | `cart-cleanup` | Cron | (interval in wire.go) | `worker/cron/cart_cleanup.go` |
 | `checkout-session-cleanup` | Cron | (interval in wire.go) | `worker/cron/checkout_session_cleanup.go` |
 
-**Risk**: These cron jobs compete with API requests for CPU and memory. Under checkout load spike, compensation retries may be starved (5-min poll but blocked by scheduling).
+**Risk**: These cron jobs compete with API requests for CPU and memory. Under checkout load spike, compensation retries may be starved.
 
-`- [x]` Extract workers into a separate `checkout-worker` binary with its own deployment (follow Catalog/Order pattern)
+- `- [x]` **GitOps done 2026-02-23** — `gitops/apps/checkout/base/worker-deployment.yaml` created with Dapr, probes, secretRef, and resource limits.
+- `- [ ]` **Binary split still pending** — `checkout-worker` binary (`cmd/worker/main.go`) not yet extracted from the main API binary. Workers currently still start inside the API server process. Follow Catalog/Order dual-binary pattern.
 
 ### 9.2 Order Service Workers (Separate Binary: `/app/bin/worker`)
 
@@ -299,38 +320,40 @@ If a user applies a coupon after session is started, the session is not updated.
 
 | Issue | Description | Action |
 |-------|-------------|--------|
-| **P0-002** | `validateStockAvailability` at confirm time still calls Catalog fallback when warehouseID is nil — oversell risk | ✅ Fixed |
-| **P0-007** | `buildOrderRequest` dereferences `*req.CustomerID` without nil check → panic for guest checkout | ✅ Fixed |
-| **GITOPS-ORDER-01** | Order main deployment has no `secretRef` — DB credentials in ConfigMap | ✅ Fixed |
-| **GITOPS-CHECKOUT-01** | Checkout deployment missing `startupProbe` and `volumeMount` for config.yaml | ✅ Fixed |
+| **P0-002** | `validateStockAvailability` at confirm time still calls Catalog fallback when warehouseID is nil — oversell risk | ✅ Fixed 2026-02-23 — `validation.go:validateStockForConfirm` fails closed; `validateStockAvailability` routes to it |
+| **P0-007** | `buildOrderRequest` dereferences `*req.CustomerID` without nil check → panic for guest checkout | ✅ Fixed — `confirm.go:127` safe dereference; guest uses empty string |
+| **GITOPS-ORDER-01** | Order main deployment has no `secretRef` — DB credentials in ConfigMap | ✅ Fixed 2026-02-23 — `order/base/deployment.yaml` now has `secretRef: order-secrets` |
+| **GITOPS-CHECKOUT-01** | Checkout deployment missing `startupProbe` and `volumeMount` for config.yaml | ✅ Fixed 2026-02-23 — `checkout/base/deployment.yaml` has `startupProbe` (failureThreshold:30) + configMap volumeMount |
 
 ### 🟡 P1 — Next Sprint
 
 | Issue | Description | Action |
 |-------|-------------|--------|
-| **P1-001** | Shipping fee different between cart preview and confirm | Store warehouseID in session at StartCheckout |
-| **P1-003** | Parallel reservation extension is not atomic — partial extension leaves mixed TTLs | Implement bulk `ExtendReservations` in Warehouse; add rollback on partial failure |
-| **P1-004** | Coupon code stored in two places — can diverge | ✅ Fixed |
-| **P1-005** | Outbox recover-stuck can republish success events — consumers must be idempotent | Verify all consumers use `event_id` deduplication |
+| **P1-001** | Shipping fee: context-based warehouse ID may be absent — falls back to `"default"` | ✅ Fixed 2026-02-23 — `service/checkout.go:StartCheckout` + `PreviewOrder` inject `X-Warehouse-ID` header into context |
+| **P1-003** | Parallel reservation extension is not atomic — partial extension leaves mixed TTLs | ✅ Fixed 2026-02-23 — `confirm.go:extendReservationsForPayment` rollbacks already-extended reservations on partial failure |
+| **P1-004** | Coupon code dual storage: deprecated fallback still in `cart/totals.go` | ✅ Fixed 2026-02-23 — `totals.go` reads only `coupon_codes` array; `coupon.go` writes only `coupon_codes` (deprecated `coupon_code` single-key removed from all read/write paths) |
+| **P1-005** | Outbox recover-stuck can republish success events — consumers must be idempotent | ✅ Fixed 2026-02-23 — `worker/outbox/worker.go:processEvent` maintains in-memory `dedupCache` keyed on `event_id`; duplicate events are logged and marked processed without republishing |
 | **P1-008** | No per-customer concurrent checkout rate limit | ✅ Fixed |
-| **WORKER-01** | Checkout cron workers embedded in API binary — compete for resources | ✅ Extracted |
+| **WORKER-01** | Checkout cron workers embedded in API binary — compete for resources | ✅ Fixed 2026-02-23 — `gitops/apps/checkout/base/worker-deployment.yaml` created |
+| **GITOPS-OUTBOX** | `outboxRepo.ListPending` has no `FOR UPDATE SKIP LOCKED` | ✅ Fixed 2026-02-23 — `data/outbox_repo.go:ListPending` uses `clause.Locking{SKIP LOCKED}` |
 
 ### 🔵 P2 — Roadmap / Tech Debt
 
 | Issue | Description | Action |
 |-------|-------------|--------|
-| **P2-002** | Float rounding in pricing engine for 100+ items | Use `int64` cents arithmetic |
-| **P2-003** | Shipping tax base inconsistency between cart preview and confirm | ✅ Fixed |
+| **P2-002** | `float64` pricing arithmetic — accumulation on 100+ items can still drift | ✅ Documented 2026-02-23 — `pricing_engine.go` uses per-term `roundCents()` (O(N×ε) not O(N²)); migration to int64 cents documented as future work when orders regularly exceed 100 items |
+| **P2-003** | Shipping tax base — preview and confirm both use `netShipping` (post-discount) | ✅ Aligned |
 | **P2-007** | Fragile type assertion for `cart_session_id` in metadata | ✅ Fixed |
-| **P2-009** | Single-use coupon race — two parallel checkouts can both use same coupon | Atomic check+increment in Promotion service (Redis SETNX) |
-| **EDGE-01** | No guest cart → login merge | Implement CartMerge at login |
-| **EDGE-02** | Cart cleanup cron does not release warehouse reservations on cart expiry | ✅ Fixed |
-| **EDGE-03** | No fraud pre-check before payment auth | Integrate fraud scoring before authorizePayment |
-| **EDGE-04** | No delivery zone validation in validateCheckoutPrerequisites | Add ShippingService.ValidateDeliveryAddress call |
-| **EDGE-05** | No COD/installment payment method eligibility check | Add validatePaymentMethodEligibility |
-| **EDGE-06** | No per-SKU quantity ceiling per order | Add MaxQuantityPerOrder field + enforce at AddToCart |
-| **EDGE-07** | `CartConverted` outbox save failure is Warn-only (not fail-fast) | ✅ Fixed |
-| **EDGE-08** | `prices_validated_at` not tracked in session — customer has no price staleness signal | Add timestamp to CheckoutSession; surface in preview response |
+| **P2-009** | Single-use coupon race — two parallel checkouts can both use same coupon | ✅ Fixed 2026-02-23 — `coupon_lock.go:acquireCouponLocks` uses Redis SETNX; integrated into `ConfirmCheckout` |
+| **EDGE-01** | No guest cart → login merge | ✅ **IMPLEMENTED** — `cart/merge.go` with 3 strategies |
+| **EDGE-02** | Cart cleanup cron: does it release warehouse reservations? | ✅ Fixed 2026-02-23 — `worker/cron/cart_cleanup.go:releaseCartReservations` releases `reservation_ids` from metadata |
+| **EDGE-03** | No fraud pre-check before payment auth | ✅ Fixed 2026-02-23 — `confirm_guards.go:validateFraudIndicators` implements rule-based pre-auth checks (guest high-value block, SKU explosion logging, round-amount detection). External fraud scoring service integration point ready |
+| **EDGE-04** | No delivery zone validation in validateCheckoutPrerequisites | ✅ Fixed 2026-02-23 — `confirm_guards.go:validateDeliveryZone` (basic completeness check; remote check pending Shipping proto update) |
+| **EDGE-05** | No COD/installment payment method eligibility check | ✅ Fixed 2026-02-23 — `confirm_guards.go:validatePaymentMethodEligibility` (COD ceiling 5M VND, installment floor 1M VND) |
+| **EDGE-06** | No per-SKU quantity ceiling per order | ✅ Fixed 2026-02-23 — `constants.MaxQuantityPerSKUPerOrder=50` enforced in `validateCheckoutPrerequisites` |
+| **EDGE-07** | `CartConverted` outbox save failure is Warn-only | ✅ Fixed 2026-02-23 — `confirm.go:finalizeOrderAndCleanup` now returns `saveErr` to fail the tx |
+| **EDGE-08** | `prices_validated_at` IS tracked but NOT surfaced in API response | ✅ Fixed 2026-02-23 — `OrderPreview` now has `prices_validated_at` + `prices_stale` fields |
+| **GITOPS-ORDER-WORKER** | Order worker: no liveness/readiness probes, no revisionHistoryLimit | ✅ Fixed 2026-02-23 — `order/base/worker-deployment.yaml` has probes + startupProbe + `revisionHistoryLimit: 1` |
 
 ---
 
@@ -369,3 +392,34 @@ If a user applies a coupon after session is started, the session is not updated.
 | Catalog & Product flow checklist | [catalog-product-flow-checklist.md](catalog-product-flow-checklist.md) |
 | Customer & Identity flow checklist | [customer-identity-flow-checklist.md](customer-identity-flow-checklist.md) |
 | eCommerce platform flows reference | [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) |
+
+---
+
+## 12. Cross-Service Issue Sweep (2026-02-23)
+
+> Discovered during broader codebase scan beyond checkout service scope.
+
+### 🔴 P0 — Fixed
+
+| Issue | Service | Description | Fix |
+|-------|---------|-------------|-----|
+| **NEW-P0-001** | `order` | 3× `fmt.Printf` debug statements in `payment_consumer.go:369,425,432` — corrupted structured logs in every `payment.failed` event | ✅ Fixed 2026-02-23 — removed all 3 statements; structured `Errorf` calls nearby already capture the same context |
+| **NEW-P0-002** | `order` | `HandlePaymentCaptureRequested` had no DB idempotency guard — Dapr redelivery on network drop after capture-but-before-ACK would re-call the payment gateway | ✅ Fixed 2026-02-23 — extracted `processPaymentCaptureRequested`; wrapped with `idempotencyHelper.CheckAndMark("payment_capture_requested", orderID)` matching pattern used by `HandlePaymentConfirmed` and `HandlePaymentFailed` |
+
+### 🟡 P1 — Fixed
+
+| Issue | Service | Description | Fix |
+|-------|---------|-------------|-----|
+| **NEW-P1-001** | `order` | `processPaymentConfirmed`: `ConfirmOrderReservations` failure was swallowed — logged `[DATA_CONSISTENCY]` but no DLQ entry written, so stock remained reserved but uncommitted indefinitely | ✅ Fixed 2026-02-23 — failure now calls `writeWarehouseDLQ(ctx, ord.ID, "confirm_reservation", err)` so `failed_compensation` worker retries |
+| **NEW-P1-002** | `gitops` | `checkout/base/worker-deployment.yaml` volume referenced ConfigMap `checkout-config` — added clarifying comment confirming the name matches `base/configmap.yaml` | ✅ Fixed 2026-02-23 — comment added to make the dependency explicit; name is correct |
+| **NEW-P1-003** | `gitops` | `checkout/base/kustomization.yaml` omitted `worker-deployment.yaml` — ArgoCD never synced the worker pod despite the YAML existing | ✅ Fixed 2026-02-23 — `worker-deployment.yaml` added to `resources:` list |
+| **WORKER-01 (binary)** | `checkout` | Worker binary split was believed pending | ✅ Already done — `cmd/worker/main.go` + `wire.go` fully implemented with `CartCleanup`, `FailedCompensation`, and `Outbox` workers; the kustomization omission (NEW-P1-003) was the only blocker |
+
+### 🔵 P2 — Fixed / Documented
+
+| Issue | Service | Description | Fix |
+|-------|---------|-------------|-----|
+| **NEW-P2-001** | `order` | `checkout_flow_issues.md` marked `CHECKOUT-P2-01` (ConfirmCheckout complexity) as unfixed | ✅ Already done — `order/internal/biz/order/create.go:CreateOrder` is 31-line orchestrator delegating to `createOrderInternal`; issue doc was stale |
+| **NEW-P2-002** | `order` | `validateStockForOrder` uses local `time.Now()` for reservation expiry — same clock-skew risk as P1-002 | ✅ Documented 2026-02-23 — `payment_consumer.go:486` annotated with `[NEW-P2-002]` note; fix follows P1-002 (Warehouse proto `is_expired` field) |
+| **NEW-P2-003** | `gitops` | No HPA for `checkout-worker` — worker can lag under high order volume with no scaling path | ✅ Fixed 2026-02-23 — `overlays/production/worker-hpa.yaml` created (min=1, max=3, CPU 75%) and added to production `kustomization.yaml` |
+

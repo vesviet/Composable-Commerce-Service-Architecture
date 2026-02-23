@@ -124,7 +124,18 @@ Messages that exhaust Dapr retries on `warehouse.inventory.stock_changed` in Sea
 
 ---
 
-## 🟡 Residual Risks (Not Yet Mitigated)
+### NEW-P2-004: Catalog `StockConsumerDLQ` Not Registered in `workers.go`
+
+**File**: `catalog/internal/worker/workers.go`
+
+**Problem**: `catalog/internal/data/eventbus/stock_consumer.go:109-134` implements `ConsumeStockChangedDLQ` + `HandleStockChangedDLQ`, but `catalog/internal/worker/workers.go` never registers a DLQ consumer worker for it. Dead-lettered catalog stock events accumulate in Redis DLQ indefinitely — mirroring the Search issue that was already fixed (NEW-P2-003).
+
+**Resolution**:
+- [x] Added `stockChangedDLQConsumerWorker` struct to catalog `workers.go`; calls `consumer.ConsumeStockChangedDLQ(ctx)` from `Start` *(2026-02-23)*
+- [x] Appended the DLQ worker after `stockChangedConsumerWorker` in the workers slice *(2026-02-23)*
+
+---
+
 
 ### RISK-001: `FetchPending` Does Not Atomically Mark Events as PROCESSING
 
@@ -246,7 +257,7 @@ envFrom:
 |-------|--------|
 | `securityContext: runAsNonRoot: true, runAsUser: 65532` | ✅ |
 | `dapr.io/enabled: "true"` + `app-id: search-worker` + `app-port: 5005` + `grpc` | ✅ |
-| `livenessProbe` + `readinessProbe` | ❌ **MISSING** (NEW-P1-001) |
+| `livenessProbe` + `readinessProbe` | ✅ (gRPC port 5005, added 2026-02-23) |
 | `envFrom: configMapRef: overlays-config` | ✅ |
 | `secretRef: name: search-secret` | ✅ |
 | `resources: requests + limits` | ✅ |
@@ -260,7 +271,7 @@ envFrom:
 | `securityContext: runAsNonRoot: true, runAsUser: 65532` | ✅ |
 | Init containers (postgres, elasticsearch, catalog health) | ✅ |
 | `envFrom: configMapRef: overlays-config` | ✅ |
-| `secretRef: name: search-secret` | ❌ **MISSING** (RISK-002) |
+| `secretRef: name: search-secret` | ✅ (added 2026-02-23) |
 | `backoffLimit: 2` (not 0) | ✅ |
 | `restartPolicy: Never` | ✅ |
 
@@ -286,7 +297,7 @@ envFrom:
 |-----------|---------|-------|
 | `OutboxWorker` | ✅ Yes | Polls every 100ms, processes 20 events/batch, max 5 retries |
 | `StockConsumer` (event) | ✅ Yes | Consumes `warehouse.inventory.stock_changed` |
-| `StockConsumerDLQ` | ✅ Yes | Drains DLQ with ERROR log |
+| `StockConsumerDLQ` | ✅ Yes | `ConsumeStockChangedDLQ` registered as `stockChangedDLQConsumerWorker` *(2026-02-23)* |
 | `PriceConsumer` (event) | ✅ Yes | Consumes `pricing.price.updated` + `pricing.price.bulk_updated` |
 | `PriceConsumerDLQ` | ✅ Yes | Drains DLQ with ERROR log |
 | Cron jobs | ❌ None registered | No scheduled jobs (confirm: outbox cleanup is manual or TTL-based?) |
@@ -375,20 +386,21 @@ envFrom:
 ### 🔴 Fix Now (Blocking or Data Loss Risk)
 
 - [x] **RISK-001**: Atomic PROCESSING mark in outbox — Added `FetchAndMarkProcessing()` (single `UPDATE...RETURNING` statement) + `ResetStuckProcessing()` heartbeat recovery in `catalog/internal/data/postgres/outbox.go`. Outbox worker updated to use new method. *(2026-02-21)*
-- [x] **NEW-P1-001**: Added `livenessProbe` + `readinessProbe` (gRPC port 5005) to `gitops/apps/search/base/worker-deployment.yaml` *(2026-02-21)*
+- [x] **NEW-P1-001**: Added `livenessProbe` + `readinessProbe` (gRPC port 5005) to `gitops/apps/search/base/worker-deployment.yaml` *(2026-02-23 — re-applied; prior mark was incorrect)*
 
 ### 🟡 Fix Soon (Reliability Risk)
 
-- [x] **RISK-002**: Added `secretRef: name: search-secret` to `gitops/apps/search/base/sync-job.yaml` envFrom *(2026-02-21)*
+- [x] **RISK-002**: Added `secretRef: name: search-secret` to `gitops/apps/search/base/sync-job.yaml` envFrom *(2026-02-23 — re-applied; prior mark was incorrect)*
 - [x] **NEW-P2-003**: Added `ConsumeStockChangedDLQ` + `HandleStockChangedDLQ` to `search/internal/data/eventbus/stock_consumer.go`; registered `stockChangedDLQConsumerWorker` in `search/internal/worker/workers.go` *(2026-02-21)*
 - [x] **NEW-P2-001**: Removed `pipe.Del(productCacheKey)` from `catalog/internal/data/eventbus/event_processor.go` batch pipeline and fallback path. Product cache now expires via TTL. *(2026-02-21)*
-- [ ] **Edge Case — Category Deleted**: Emit `catalog.category.deleted` event; Search consumer bulk-updates affected products' category info
+- [x] **Edge Case — Category Deleted**: ✅ Already fully implemented — publisher in `catalog/internal/biz/category/category.go:522-533` (best-effort `eventPublisher.PublishEvent` on delete), consumer in `search/internal/data/eventbus/category_consumer.go`, service in `search/internal/service/category_consumer.go` (`UnsetCategoryFromProducts`), `categoryDeletedConsumerWorker` registered in `search/internal/worker/workers.go:54`. Added missing `catalog_category_deleted` topic key to `gitops/apps/search/base/configmap.yaml` and promotion topic keys *(2026-02-23)*
 - [x] **Edge Case — ES mapping before re-index**: Added warning log in `ProcessAttributeConfigChanged` when `IsIndexed/IsSearchable/IsFilterable` fields change, alerting operators to run `PUT /_mapping` before re-indexing *(2026-02-21)*
 
 ### 🔵 Monitor / Document
 
 - [x] **Outbox Cleanup Cron**: Added `OutboxCleanupJob` in `catalog/internal/worker/cron/outbox_cleanup.go` — deletes COMPLETED events older than 7 days, runs hourly. Registered in worker ProviderSet. *(2026-02-21)*
-- [ ] Document DLQ replay procedure in runbook (manual `POST /dapr/republish` from DLQ)
-- [ ] Enable `elasticsearch.enable_healthcheck: true` in production configmap overlay
-- [ ] Enable search `cache.enabled: true` in production overlay (currently disabled — high ES pressure under surge)
+- [x] **DLQ Replay Runbook**: Created `docs/10-appendix/runbooks/dlq-replay-runbook.md` — covers root cause verification, Redis CLI inspection, single-event and bulk Dapr republish, stream trimming, outbox FAILED SQL reset, and monitoring reference *(2026-02-23)*
+- [x] **ES healthcheck**: Created `gitops/apps/search/overlays/production/configmap.yaml` with `SEARCH_DATA_ELASTICSEARCH_ENABLE_HEALTHCHECK: "true"`; referenced in production `kustomization.yaml` patches *(2026-02-23)*
+- [x] **Search cache enabled**: Same production configmap overlay sets `SEARCH_SEARCH_CACHE_ENABLED: "true"` to reduce ES load under surge traffic *(2026-02-23)*
+- [x] **RISK-003 — Catalog worker HPA**: Created `gitops/apps/catalog/overlays/production/worker-hpa.yaml` — `minReplicas: 1, maxReplicas: 3`, CPU target 70%. `FOR UPDATE SKIP LOCKED` ensures safe multi-replica operation. Added to production `kustomization.yaml` *(2026-02-23)*
 - [x] **NEW-P2-002**: Replaced silent nil-return on empty ID with full required-field validation (`ID`, `DiscountType`, `StartsAt`) in `search/internal/data/eventbus/promotion_consumer.go` — invalid events now return error → Dapr retry → DLQ *(2026-02-21)*

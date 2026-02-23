@@ -780,6 +780,14 @@ Gateway → Auth Service
 
 ## 🚨 Known Issues & TODOs
 
+### P0 - Blocking Issues
+
+1. **Raw Goroutines Without Panic Recovery** 🔴
+   - **Issue**: Use of raw `go func()` can cause the application to crash if a panic occurs.
+   - **Location**: `cmd/worker/main.go:56`, `internal/client/user/user_client.go:106`
+   - **Impact**: Service instability
+   - **Fix**: Use `defer func() { recover() }` or `errgroup` for goroutines.
+
 ### P1 - High Priority Issues
 
 1. **Session Management Review** 🟡
@@ -798,6 +806,22 @@ Gateway → Auth Service
    - **Issue**: Token revocation uses database, not optimal for high volume
    - **Location**: `internal/data/postgres/token.go`
    - **Impact**: Performance degradation under load
+   - **Fix**: Redis token blacklisting implementation (partially done in cache.go)
+
+4. **Integration Test Panics** 🟡
+   - **Issue**: `TestCircuitBreakerWithMockService` panics due to a nil logger pointer dereference.
+   - **Location**: `test/integration/circuit_breaker_test.go:119`
+   - **Impact**: Tests fail blocking CI/CD.
+   - **Fix**: Pass a valid `io.Writer` to `log.NewStdLogger`.
+
+### P2 - Normal Priority Issues
+
+1. **Missing Implementation (TODOs)** 🔵
+   - **Issue**: Unresolved TODOs in the token cache and device binding validation.
+   - **Location**: `internal/biz/token/cache.go`, `internal/biz/token/token.go`
+   - **Impact**: Missing non-critical functionality.
+   - **Fix**: Implement the device binding validation or formally track it.
+
    - **Fix**: Implement Redis-based token blacklist with DB fallback
 
 ### P2 - Medium Priority Issues

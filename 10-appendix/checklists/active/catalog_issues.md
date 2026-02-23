@@ -1,6 +1,6 @@
 # Product & Catalog Flow - Code Review Issues
 
-**Last Updated**: 2026-01-21
+**Last Updated**: 2026-02-23
 
 This document lists issues found during the review of the Product & Catalog Flow, based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
 
@@ -9,12 +9,12 @@ This document lists issues found during the review of the Product & Catalog Flow
 ## 🚩 PENDING ISSUES (Unfixed)
 
 ### High Priority
-- [High] **CAT-P1-03 Stock lookup error handling**: Warehouse-specific stock lookup returns 0 on error, causing false out-of-stock. **Required**: Return error or last cached value instead of silent 0 fallback. See `catalog/internal/biz/product/product_price_stock.go`. **Impact**: Products appear unavailable when warehouse service is down, causing lost sales.
+- ~~[High] **CAT-P1-03 Stock lookup error handling**: Warehouse-specific stock lookup returns 0 on error~~ — **[RESOLVED ✅ 2026-02-23]** Verified in `catalog/internal/biz/product/product_price_stock.go:62–75`: `GetStockFromCache` returns an explicit error (not 0) when the warehouse client fails; `GetProductAvailability` surfaces this error to the caller. No fallback-to-zero behaviour.
 
 ### Medium Priority
 - [Medium] **CAT-P2-01 Data ownership documentation**: Unclear query patterns for stock/price between catalog vs search services (CQRS ambiguity). **Required**: Document ownership boundaries—catalog for PDP real-time, search for listings. See `catalog/internal/biz/product/product_price_stock.go`. **Impact**: Developers unsure which service to call, risk of stale data.
 
-- [Medium] **CAT-P2-02 Brand/category referential integrity**: DeleteBrand and DeleteCategory do not check product associations. **Required**: Query products table before deletion, block if references exist. See `catalog/internal/biz/brand/brand.go` line 253 (TODO comment), `catalog/internal/biz/category/category.go` line 292. **Impact**: Dangling references cause broken filters and analytics errors.
+- ~~[Medium] **CAT-P2-02 Brand/category referential integrity**: DeleteBrand and DeleteCategory do not check product associations~~ — **[RESOLVED ✅ 2026-02-23]** Verified in code: `DeleteBrand` (brand.go:344–354) calls `productRepo.FindByBrand` and returns `"cannot delete brand: it is used by N product(s)"` if any exist. `DeleteCategory` (category.go:492–503) calls `productRepo.FindByCategory` and returns `"cannot delete category with associated products"`. Both guards are correctly fail-closed.
 
 - [Medium] **CAT-P2-03 Cache TTL jitter synchronization**: Uses default RNG seed, causing synchronized cache expirations under load. **Required**: Seed RNG at startup (`rand.Seed(time.Now().UnixNano())`) or use crypto/rand per request. See `catalog/internal/biz/product/product_price_stock.go`. **Impact**: Thundering herd on cache miss.
 
@@ -46,6 +46,12 @@ This document lists issues found during the review of the Product & Catalog Flow
 
 - [FIXED ✅] **Category child check**: DeleteCategory now checks for child categories before deletion (line 306-310 in `catalog/internal/biz/category/category.go`). Returns error if children exist, preventing orphaned subcategories.
 
+- [FIXED ✅ 2026-02-23] **CAT-P1-03 Stock lookup error handling**: `GetStockFromCache` returns explicit error on warehouse client failure; `GetProductAvailability` surfaces this to the caller. No silent zero-fallback. Verified in `product_price_stock.go:62–75`.
+
+- [FIXED ✅ 2026-02-23] **CAT-P2-02 Brand/category referential integrity**: Both `DeleteBrand` (`brand.go:344–354`) and `DeleteCategory` (`category.go:492–503`) query products before deletion and reject with an explicit error message if associations exist. Fail-closed: if productRepo check fails, deletion is also blocked.
+
+- [FIXED ✅ 2026-02-23] **GITOPS-CAT-01 Worker volumeMounts**: Added `volumeMounts` block into the container spec in `worker-deployment.yaml`; corrected volume ConfigMap from `overlays-config` to `catalog-config` (the file-based config). Main service deployment is rendered via Kustomize `common-deployment` component.
+
 ## P2 - Maintainability / Architecture
 
 - **Issue**: Unclear data ownership and query patterns for stock/price information. [NOT FIXED]
@@ -58,8 +64,6 @@ This document lists issues found during the review of the Product & Catalog Flow
 
 ## P2 - Data Integrity
 
-- **Issue**: Deleting a brand or category does not check for existing product associations. [NOT FIXED]
-  - **Service**: `catalog`
-  - **Location**: `catalog/internal/biz/brand/brand.go` (`DeleteBrand`), `catalog/internal/biz/category/category.go` (`DeleteCategory`)
-  - **Impact**: Deleting a brand or category that is still linked to products can lead to dangling references, broken links on the frontend, and errors in filtering or analytics. This violates foreign key integrity at a logical level.
-  - **Recommendation**: Before performing the deletion, the usecase should query the `products` table to verify that no products are currently using the `brand_id` or `category_id`. If references exist, the operation should be rejected with a clear error message (e.g., "Cannot delete brand with active products").
+- **Issue**: ~~Deleting a brand or category does not check for existing product associations~~. **[RESOLVED ✅ 2026-02-23]**
+  - `DeleteBrand` (brand.go:344–354) uses `productRepo.FindByBrand` and blocks deletion with `"cannot delete brand: it is used by N product(s)"`.
+  - `DeleteCategory` (category.go:492–503) uses `productRepo.FindByCategory` and blocks with `"cannot delete category with associated products"`.
