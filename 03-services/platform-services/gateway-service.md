@@ -1,15 +1,15 @@
 # 🌐 Gateway Service - Complete Documentation
 
-> **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
-> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
-> **Ports**: 80
+> **Owner**: Platform Team
+> **Last Updated**: 2026-02-23
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)
+> **Ports**: HTTP `80` | gRPC `81`
 
 **Service Name**: Gateway Service
-**Version**: 1.1.6
-**Last Updated**: 2026-02-12
-**Review Status**: 🔄 In Review (Service review & release process)
-**Production Ready**: 95%
+**Version**: 1.1.10
+**Last Updated**: 2026-02-23
+**Review Status**: ✅ Reviewed
+**Production Ready**: 98%
 
 ---
 
@@ -25,6 +25,7 @@
 - [Monitoring & Observability](#-monitoring--observability)
 - [Known Issues & TODOs](#-known-issues--todos)
 - [Development Guide](#-development-guide)
+- [Recent Updates](#-recent-updates)
 
 ---
 
@@ -34,115 +35,213 @@ Gateway Service là **API Gateway** cho toàn bộ e-commerce platform, hoạt �
 
 ### Core Capabilities
 - **🚪 API Gateway**: Centralized request routing và aggregation
-- **🔒 Authentication & Authorization**: JWT validation, role-based access
-- **🛡️ Security**: Rate limiting, CORS, input validation, response sanitization
-- **⚖️ Load Balancing**: Intelligent routing với health checks
-- **📊 Request Transformation**: Body transformation, header manipulation
-- **📈 Monitoring**: Request metrics, error tracking, performance monitoring
-- **🔄 Circuit Breaker**: Fault tolerance và graceful degradation
+- **🔒 Authentication & Authorization**: JWT validation with JWKS, role-based access, JWT blacklist
+- **🛡️ Security**: CSRF protection (HMAC double-submit), rate limiting, CORS, input validation, response sanitization, header injection prevention
+- **⚖️ Load Balancing**: Intelligent routing với health checks và circuit breaker
+- **📊 Request Transformation**: Body transformation, header manipulation, pagination normalization
+- **📈 Monitoring**: Prometheus metrics, Jaeger tracing, structured logging, error monitoring
+- **🔄 Circuit Breaker**: Fault tolerance, exponential backoff retries với jitter
+- **💾 Smart Caching**: Redis-based caching với singleflight (cache stampede prevention), per-endpoint TTL strategies, mutation-based invalidation
+- **📝 Audit Logging**: Admin action tracking
+- **🌐 i18n**: Language detection từ Accept-Language header
+- **🏭 Warehouse Detection**: Location-based routing cho warehouse operations
+- **🔑 Idempotency**: Automatic idempotency key injection cho mutations
+- **📮 Dead Letter Queue**: Failed mutation logging to Redis DLQ for ops replay
 
 ### Business Value
-- **Unified API**: Single entry point cho mobile, web, third-party clients
-- **Security Enforcement**: Centralized security policies
-- **Performance Optimization**: Caching, compression, connection pooling
-- **Operational Visibility**: Comprehensive request tracking và monitoring
-- **Scalability**: Horizontal scaling với load balancing
+- **Unified API**: Single entry point cho mobile, web, admin dashboard, shipper app
+- **Security Enforcement**: Centralized security policies (customer auth + admin auth + CSRF)
+- **Performance Optimization**: Smart caching, singleflight, connection pooling
+- **Operational Visibility**: Request tracking với trace IDs, Prometheus RED metrics
+- **Scalability**: Horizontal scaling với config-driven routing
 
 ### Critical Platform Role
-Gateway Service là **front door** của platform - mọi external request đều đi qua đây. Nó đảm bảo security, performance, và reliability cho toàn bộ system.
+Gateway Service là **front door** của platform — mọi external request đều đi qua đây. Nó đảm bảo security, performance, và reliability cho toàn bộ system.
 
 ---
 
 ## 🏗️ Architecture
 
-### Clean Architecture Implementation
+### Dual-Binary Architecture
+
+Gateway sử dụng **dual-binary architecture** từ cùng một codebase:
+
+| Aspect | Main Service (`cmd/gateway/`) | Worker (`cmd/worker/`) |
+|--------|------|--------|
+| **Purpose** | Serve API requests (HTTP) | Cache invalidation |
+| **Entry point** | `cmd/gateway/main.go` | `cmd/worker/main.go` |
+| **Wire DI** | `cmd/gateway/wire.go` | `cmd/worker/wire.go` |
+| **K8s Deployment** | `deployment.yaml` | `worker-deployment.yaml` |
+| **Ports** | HTTP `80` + gRPC `81` | Dapr gRPC `5005` |
+| **Dapr app-id** | `gateway` | `gateway-worker` |
+
+### Directory Structure
 
 ```
 gateway/
-├── cmd/gateway/                     # Application entry point
+├── cmd/
+│   ├── gateway/                     # 🔵 MAIN SERVICE BINARY
+│   │   ├── main.go                 #    Kratos HTTP server startup
+│   │   ├── wire.go                 #    DI: server + middleware + router
+│   │   └── wire_gen.go             #    Auto-generated
+│   └── worker/                     # 🟠 WORKER BINARY
+│       ├── main.go                 #    Cache invalidation worker
+│       ├── wire.go                 #    DI: cache + event consumers
+│       └── wire_gen.go             #    Auto-generated
 ├── internal/
-│   ├── router/                      # Routing logic
-│   │   ├── auto_router.go          # Dynamic route resolution
-│   │   ├── route_manager.go        # Route management
-│   │   └── utils/                  # Routing utilities
-│   ├── middleware/                  # HTTP middleware stack
-│   │   ├── auth.go                 # Authentication middleware
-│   │   ├── cors.go                 # CORS handling
-│   │   ├── rate_limit.go           # Rate limiting
-│   │   └── language.go             # Language detection
-│   ├── bff/                        # Backend-for-Frontend
-│   ├── client/                     # Service clients
-│   ├── config/                     # Configuration
+│   ├── bff/                        # Backend-for-Frontend aggregation
+│   ├── client/                     # gRPC clients to backend services
+│   │   ├── generated_clients.go    #    Auto-generated client wrappers
+│   │   ├── service_client.go       #    Base client implementation
+│   │   ├── service_manager.go      #    Client lifecycle management
+│   │   └── services.yaml           #    Service discovery configuration
+│   ├── config/                     # Configuration loading (Viper)
+│   │   ├── config.go               #    Config structs
+│   │   └── provider.go             #    Wire DI providers
+│   ├── errors/                     # Error types
 │   ├── handler/                    # Request handlers
-│   ├── server/                     # Server setup
-│   └── transformer/                # Request/response transformers
-├── api/                             # Protocol Buffers (if any)
-├── configs/                         # Environment configs
-└── scripts/                         # Utility scripts
+│   │   ├── aggregation.go          #    Home page BFF aggregation
+│   │   └── conversion.go           #    Data conversion helpers
+│   ├── middleware/                  # 🔴 HTTP middleware stack (core)
+│   │   ├── kratos_middleware.go    #    Main auth + CORS + rate limit + logging
+│   │   ├── admin_auth.go           #    Admin/shipper authentication
+│   │   ├── csrf.go                 #    CSRF protection (HMAC double-submit)
+│   │   ├── smart_cache.go          #    Redis cache with singleflight
+│   │   ├── circuit_breaker.go      #    Circuit breaker pattern
+│   │   ├── rate_limit.go           #    Redis-based rate limiting
+│   │   ├── language.go             #    Accept-Language detection
+│   │   ├── audit_log.go            #    Admin action audit logging
+│   │   ├── monitoring.go           #    Request monitoring & metrics
+│   │   ├── panic_recovery.go       #    Panic recovery (prevents gateway crash)
+│   │   ├── request_validation.go   #    Input validation & sanitization
+│   │   ├── response_sanitizer.go   #    Sensitive data masking
+│   │   ├── validate_access.go      #    User service access validation
+│   │   ├── warehouse_detection.go  #    Location-based routing
+│   │   ├── jwt_validator.go        #    JWT validation logic
+│   │   ├── manager.go              #    Middleware chain manager
+│   │   └── provider.go             #    Wire DI providers
+│   ├── observability/              # Observability stack
+│   │   ├── health/                 #    Health check endpoints
+│   │   ├── jaeger/                 #    Distributed tracing
+│   │   ├── prometheus/             #    Metrics collection
+│   │   └── redis/                  #    Redis-based rate limiting
+│   ├── proxy/                      # HTTP reverse proxy
+│   ├── registry/                   # Service registry (Consul)
+│   ├── router/                     # 🟢 Routing engine
+│   │   ├── kratos_router.go        #    Kratos server route setup
+│   │   ├── route_manager.go        #    Route management + retry logic
+│   │   ├── auto_router.go          #    Dynamic resource-based routing
+│   │   ├── proxy_handler.go        #    Proxy request handler
+│   │   ├── resource_mapping.go     #    Resource → service mapping
+│   │   ├── forwarder.go            #    Request forwarding
+│   │   ├── bff_router.go           #    BFF endpoint routing
+│   │   ├── error_monitoring.go     #    Error tracking
+│   │   ├── health_handler.go       #    Health check handlers
+│   │   ├── swagger_aggregator.go   #    API docs aggregation
+│   │   └── utils/                  #    JWT, CORS, proxy utilities
+│   ├── server/                     # HTTP server setup
+│   │   └── http.go                 #    Kratos HTTP server configuration
+│   ├── service/                    # Internal service logic
+│   │   └── monitoring.go           #    Monitoring service
+│   ├── transformer/                # Request/response transformers
+│   └── worker/                     # Worker-specific logic
+│       └── cache_invalidation_worker.go
+├── api/gateway/v1/                  # Protocol Buffers
+├── configs/
+│   └── gateway.yaml                # Main configuration (routing, middleware, services)
+├── migrations/                      # N/A (gateway has no database)
+├── Dockerfile                       # Multi-stage build (both binaries)
+└── tests/                          # Integration tests
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8001` - Main API gateway endpoint
+- **HTTP API**: `:80` — Main API gateway endpoint
+- **gRPC**: `:81` — gRPC endpoint
 - **Health Check**: `/health/live`, `/health/ready`
 - **Metrics**: `/metrics` (Prometheus)
 
 ### Service Dependencies
 
-#### Internal Dependencies
-- **Auth Service**: Token validation, user authentication
-- **User Service**: User data, permissions
-- **Customer Service**: Customer data, profiles
-- **All Business Services**: Route to appropriate services
+#### Internal Dependencies (gRPC clients)
+- **Auth Service**: Token validation, user authentication (gRPC + JWKS)
+- **User Service**: Access validation, user permissions
+- **Catalog Service**: Product, category, CMS data (for BFF)
+- **Customer Service**: Customer profiles
+- **Order Service**: Order operations
+- **Payment Service**: Payment operations
+- **Checkout Service**: Cart and checkout
+- **Fulfillment Service**: Fulfillment operations
+- **Shipping Service**: Shipping operations
+- **Warehouse Service**: Warehouse operations
+- **Search Service**: Search operations
+- **Review Service**: Product reviews
+- **Pricing Service**: Pricing operations
+- **Promotion Service**: Promotional pricing
+- **Notification Service**: Notification management
+- **Location Service**: Location data
+- **Loyalty-Rewards Service**: Loyalty program
+- **Analytics Service**: Analytics data
 
 #### External Dependencies
-- **Redis**: Caching, session storage, rate limiting
-- **Dapr**: Service discovery, pub/sub (planned)
-- **Consul**: Service discovery
+- **Redis**: Smart caching, JWT blacklist, rate limiting, DLQ
+- **Consul**: Service discovery and registration
 - **Prometheus**: Metrics collection
+- **Jaeger**: Distributed tracing
 
 ---
 
 ## 🌐 API Gateway Features
 
 ### Request Routing
-- **Dynamic Routing**: `/api/v1/{resource}` auto-routing
-- **Service Discovery**: Consul-based service location
-- **Load Balancing**: Round-robin, least connections
-- **Health Checks**: Automatic unhealthy service detection
+- **Config-Driven Routing**: Routes defined in `gateway.yaml` with pattern matching
+- **Dynamic Auto-Routing**: `/api/v1/{resource}` auto-resolves to correct backend service
+- **Service Discovery**: Consul-based service location with health checks
+- **Retry Logic**: Exponential backoff with full jitter (prevents thundering herd)
+- **Idempotency Key Injection**: Gateway generates `gw-` prefixed keys for mutations
 
 ### Security Features
-- **JWT Validation**: Token verification với blacklist checking
-- **Role-Based Access**: Admin/customer permission enforcement
-- **Rate Limiting**: Per-client, per-endpoint limits
-- **CORS**: Configurable cross-origin policies
-- **Input Validation**: Request sanitization và validation
+- **JWT Validation**: JWKS-based token verification với Redis blacklist checking
+- **CSRF Protection**: HMAC double-submit cookie pattern (24h token rotation)
+- **Admin Auth**: Separate middleware for admin/shipper role validation
+- **Header Injection Prevention**: `StripUntrustedHeaders` removes spoofable headers
+- **Role-Based Access**: Admin/customer/shipper permission enforcement
+- **Rate Limiting**: Per-client, per-endpoint limits (Redis-backed)
+- **CORS**: Configurable cross-origin policies with optimized origin lookup
+- **Input Validation**: Request sanitization, URL length limits, path traversal prevention
+- **Response Sanitization**: Sensitive data masking in production responses
 
 ### Performance Features
+- **Smart Caching**: Per-endpoint TTL strategies with Redis backend
+- **Singleflight**: Cache stampede prevention — only one request populates cache per key
 - **Connection Pooling**: HTTP client connection reuse
-- **Response Caching**: Configurable caching layers
-- **Request Compression**: Gzip compression support
-- **Circuit Breaker**: Fault tolerance patterns
+- **Circuit Breaker**: Per-service fault tolerance with automatic recovery
+- **Timeout per Service**: Individual service timeout configuration
+- **Dead Letter Queue**: Failed mutations logged to Redis for ops replay
 
 ---
 
 ## 🔒 Security & Authentication
 
-### Authentication Flow
-1. **Token Extraction**: From Authorization header or cookies
-2. **JWT Validation**: Signature, expiration, issuer verification
-3. **Blacklist Check**: Redis-based token revocation
-4. **User Context**: Extract user info into request context
-5. **Role Verification**: Admin/customer role checking
+### Customer Authentication Flow
+1. **Header Stripping**: Remove user-spoofable headers (`X-User-ID`, `X-Client-Type`, etc.)
+2. **Token Extraction**: From `Authorization: Bearer <token>` header
+3. **JWT Validation (fast path)**: Local JWKS validation (no network call)
+4. **JWT Validation (fallback)**: Auth Service gRPC call if JWKS fails
+5. **Blacklist Check**: Redis-based token revocation check
+6. **User Context Injection**: Set `X-User-ID`, `X-Client-Type`, `X-Customer-ID` headers for downstream services
 
-### Authorization Middleware
-- **Admin Routes**: Require admin role for sensitive operations
-- **Customer Routes**: Customer authentication for user operations
-- **Public Routes**: No authentication required
+### Admin Authentication Flow
+1. **CORS Headers**: Set before any response (prevents browser errors)
+2. **Token Extraction & Validation**: Same as customer flow
+3. **Role Check**: Require one of: `admin`, `system_admin`, `super_admin`, `staff`, `operations_staff`, `shipper`
+4. **Context Injection**: Set `X-Admin-ID`, `X-Admin-Email`, `X-Admin-Roles` headers
 
-### Security Headers
-- **CORS**: Configurable origins, methods, headers
-- **Security Headers**: HSTS, CSP, X-Frame-Options
-- **Response Sanitization**: Remove sensitive data from responses
+### CSRF Protection
+- **Pattern**: HMAC double-submit cookie (stateless, no server session)
+- **Token Format**: `<timestamp_hex>.<hmac_hex>` — auth service issues, gateway validates
+- **Token TTL**: 24 hours with clock skew detection (5 min tolerance)
+- **Exempt Paths**: `/api/v1/auth/login`, `/api/v1/auth/logout`, etc.
+- **Safe Methods**: GET, HEAD, OPTIONS, TRACE skip CSRF check
 
 ---
 
@@ -152,112 +251,150 @@ gateway/
 ```
 Client Request
     ↓
-CORS Middleware
+Panic Recovery          ← Catches panics, prevents gateway crash
     ↓
-Rate Limiting
+CORS Middleware          ← Cross-origin request handling
     ↓
-Authentication
+Response Sanitizer       ← Production-only sensitive data masking
     ↓
-Authorization
+Rate Limiting            ← Per-client request throttling
     ↓
-Language Detection
+Authentication           ← JWT validation + header injection
     ↓
-Request Transformation
+CSRF Validation          ← HMAC token check on mutations
     ↓
-Routing Resolution
+User Context             ← Gateway info headers (request ID, timestamp)
     ↓
-Load Balancing
+Smart Cache              ← Redis cache check (singleflight on miss)
     ↓
-Service Call
+Language Detection       ← Accept-Language processing
     ↓
-Response Transformation
+Warehouse Detection      ← Location-based routing
     ↓
-Response Sanitization
+Request Validation       ← Input sanitization
+    ↓
+Circuit Breaker          ← Per-service fault tolerance
+    ↓
+Routing Resolution       ← Pattern match → service + path
+    ↓
+Proxy Handler            ← Forward request with timeout + retry
     ↓
 Client Response
 ```
 
-### Key Middleware
-- **CORS Handler**: Cross-origin request handling
-- **Auth Middleware**: JWT token validation
-- **Admin Auth**: Role-based admin access control
-- **Language Middleware**: Accept-Language header processing
-- **Audit Log**: Request/response logging for compliance
+### Key Middleware Components
+
+| Middleware | File | Description |
+|-----------|------|-------------|
+| Panic Recovery | `panic_recovery.go` | Catches panics, returns structured 500 response with request_id |
+| CORS | `kratos_middleware.go` | Shared `CORSHandler`, `Vary: Origin`, preflight caching |
+| Auth | `kratos_middleware.go` | JWT validation with JWKS fast-path + Auth Service fallback |
+| Admin Auth | `admin_auth.go` | Shared `JWTValidatorWrapper` singleton via Wire DI |
+| CSRF | `csrf.go` | HMAC double-submit, 24h expiry, exempt paths |
+| Smart Cache | `smart_cache.go` | Redis + singleflight, per-endpoint TTL, mutation invalidation |
+| Circuit Breaker | `circuit_breaker.go` | Per-service state tracking, automatic recovery |
+| Rate Limiter | `rate_limit.go` | Redis-based with fallback in-memory |
+| Language | `language.go` | Accept-Language parsing, default `vi` |
+| Audit Log | `audit_log.go` | Admin action logging |
+| Request Validation | `request_validation.go` | URL length, path traversal, content-type checks |
+| Response Sanitizer | `response_sanitizer.go` | Mask sensitive data in production |
+| Warehouse Detection | `warehouse_detection.go` | Location-based warehouse routing |
+| Monitoring | `monitoring.go` | Request metrics via Prometheus |
 
 ---
 
 ## ⚙️ Configuration
 
-### Environment Variables
-```bash
-# Server
-GATEWAY_HTTP_PORT=8001
-GATEWAY_GRPC_PORT=9001
+### Key Config File: `configs/gateway.yaml`
 
-# Redis
-REDIS_ADDR=redis:6379
-REDIS_DB=0
+```yaml
+gateway:
+  port: 80
+  name: "gateway"
+  version: "v1.1.10"
+  environment: "production"
+  timeout: 30s
+  default_currency: "VND"
 
-# Auth
-JWT_SECRET=your-secret-key
-JWT_ISSUER=gateway-service
+middleware:
+  cors:
+    enabled: true
+    allow_origins: ["https://your-domain.com"]
+    allow_methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    allow_credentials: true
+  rate_limit:
+    enabled: true
+    requests_per_minute: 100
+    burst_size: 20
+  auth:
+    enabled: true
+    token_header: "Authorization"
+    token_prefix: "Bearer "
+  cache:
+    enabled: true
+    default_ttl: "5m"
+    max_entries: 10000
 
-# Services
-AUTH_SERVICE_URL=http://auth:8002
-USER_SERVICE_URL=http://user:8003
-# ... other services
-
-# Gateway Specific
-GATEWAY_DEFAULT_CURRENCY=VND
-
-# Rate Limiting
-RATE_LIMIT_REQUESTS_PER_MINUTE=100
-RATE_LIMIT_BURST=20
+routing:
+  patterns:
+    - prefix: "/api/v1/products"
+      service: "catalog"
+      middlewares: ["auth", "cache"]
+    - prefix: "/admin/api/v1"
+      service: "auto"
+      middlewares: ["admin_auth", "audit_log"]
 ```
 
-### Config Files
-- `configs/gateway.yaml`: Main configuration
-- Environment-specific overrides
+### Ports (from PORT_ALLOCATION_STANDARD.md)
+- **HTTP**: `80` (config.yaml `port`, deployment containerPort, dapr app-port)
+- **gRPC**: `81` (config.yaml `grpc_port`, deployment containerPort)
 
 ---
 
 ## 📊 Monitoring & Observability
 
-### Metrics
-- **Request Count**: Per endpoint, per service
-- **Response Time**: P95, P99 latency tracking
-- **Error Rate**: 4xx, 5xx error percentages
+### Metrics (Prometheus)
+- **Request Count**: Per endpoint, per service, per status code
+- **Response Time**: P50, P95, P99 latency tracking
+- **Error Rate**: 4xx, 5xx percentages
 - **Rate Limiting**: Throttled request counts
+- **Cache**: Hit/miss ratio, singleflight coalescing count
+- **Circuit Breaker**: Open/closed/half-open state per service
 
 ### Health Checks
-- **Liveness**: `/health/live` - Basic health
-- **Readiness**: `/health/ready` - Dependency health
-- **Service Health**: Individual service availability
+- **Liveness**: `/health/live` — Gateway process alive
+- **Readiness**: `/health/ready` — All downstream dependencies reachable
 
 ### Logging
-- **Structured Logs**: JSON format với trace IDs
-- **Request Logging**: All requests với user context
-- **Error Logging**: Detailed error information
-- **Audit Logging**: Security events và admin actions
+- **Structured JSON Logs**: With `trace_id`, `span_id`, `service.name`, `service.version`
+- **Request Logging**: Method, path, status, duration, client IP
+- **Auth Logging**: User ID, client type, roles on every authenticated request
+- **Error Logging**: Detailed error with stack traces
+
+### Tracing
+- **Jaeger**: Distributed tracing via OpenTelemetry
+- **Request ID**: Generated per-request for correlation
 
 ---
 
 ## 🚨 Known Issues & TODOs
 
-### Configuration TODOs
-- [ ] Add deprecation headers after migration complete (configs/gateway.yaml)
-- [ ] Add deprecation headers for payment settings after migration complete
+### P1 (Should Fix)
+- [ ] **[CONCURRENCY]** `kratos_middleware.go:237-268` — In-memory rate limiter uses unprotected `map[string][]time.Time` (data race under concurrent load). Should add `sync.Mutex` or remove in favor of Redis-backed `rate_limit.go`.
+- [ ] **[OBSERVABILITY]** `kratos_middleware.go:408`, `smart_cache.go:350`, `monitoring.go:171` — Raw `fmt.Printf` instead of structured `log.Helper`. Bypasses trace_id propagation.
+- [ ] **[CONCURRENCY]** `aggregation.go:129,161,197` — `go func()` with `sync.WaitGroup` instead of `errgroup`. Has panic recovery and timeouts (not dangerous), but `errgroup` is cleaner.
+- [ ] **[SECURITY]** `kratos_middleware.go:323` — Token validation error message leaks internal details to client. Should return generic message.
+- [ ] **[CONFIG]** `server/http.go:68` — Hardcoded version `"v1.0.0"` and environment `"production"` in health setup. Should use config values.
+
+### P2 (Nice to Have)
+- [ ] **[STYLE]** `kratos_middleware.go:330` — Dead code: `r = r.WithContext(ctx)` is a no-op
+- [ ] **[OPS]** No `startupProbe` in K8s deployment (could help during slow startup)
+- [ ] **[QUALITY]** `smart_cache.go:91-100` — Convoluted language normalization logic
 
 ### Enhancement Opportunities
-- [ ] Implement response caching layer
-- [ ] Add GraphQL support for complex queries
-- [ ] Implement API versioning strategy
-- [ ] Add request/response schema validation
-
-### Performance Optimizations
-- [ ] Connection pooling for service clients
-- [ ] Response compression
-- [ ] Request batching for multiple service calls
+- [ ] Implement response compression (gzip)
+- [ ] Add GraphQL support for complex aggregation queries
+- [ ] Add API versioning strategy (v1 → v2)
 
 ---
 
@@ -268,65 +405,69 @@ RATE_LIMIT_BURST=20
 # Start dependencies
 docker-compose up redis consul
 
-# Run service
+# Run main gateway service
 cd gateway
-make run
+go run cmd/gateway/main.go -conf configs/gateway.yaml
+
+# Run worker (cache invalidation)
+go run cmd/worker/main.go -conf configs/gateway.yaml
 
 # Test endpoints
-curl http://localhost:8001/api/v1/users
+curl http://localhost:80/health/live
+curl http://localhost:80/api/v1/products
 ```
 
 ### Building & Deployment
 ```bash
-# Build
-make build
+# Build both binaries
+go build ./...
 
-# Run tests
-make test
-
-# Linter
+# Lint (zero warnings target)
 golangci-lint run
 
-# Docker build
+# Regenerate Wire (if DI changed)
+cd cmd/gateway && wire
+cd ../worker && wire
+
+# Docker build (multi-stage, produces both binaries)
 docker build -t gateway-service .
 ```
 
 ### Key Development Patterns
-- **Context Keys**: Use typed context keys from `utils/context.go`
-- **Shared Handlers**: Use shared `ProxyHandler` and `CORSHandler` from `RouteManager` for efficiency
-- **Middleware Chain**: Add new middleware to router setup
-- **Error Handling**: Use common/errors package
-- **Logging**: Structured logging với log.Helper
+- **Context Keys**: Use typed context keys from `router/utils/context.go`
+- **Shared Handlers**: Use shared `ProxyHandler` and `CORSHandler` from `RouteManager`
+- **Middleware Registration**: Add new middleware to `middleware/provider.go` and `manager.go`
+- **Service Client**: Add new backend service in `client/services.yaml` and regenerate
+- **Error Handling**: Use `common/errors` package for structured error responses
+- **Logging**: Structured logging via `log.Helper` (never `fmt.Printf`)
+- **DI**: Constructor injection via Wire — no global state
 
 ---
 
-## 📈 Recent Updates (2026-02-01)
+## 📈 Recent Updates
 
-### Code Quality Improvements
-- ✅ Fixed context key collisions (SA1029 warnings)
-- ✅ Removed empty branch statements (SA9003 warnings)
-- ✅ Achieved 100% linter compliance
+### v1.1.10 (2026-02-21)
+- ✅ SmartCacheMiddleware: preserve upstream `Content-Type` for cache HIT and singleflight
+- ✅ Test suite fixes: panic_recovery, request_validation, bff_comprehensive
+- ✅ Removed stale test files referencing superseded types
 
-### Dependency Updates
-- ✅ Updated all microservice dependencies to latest tags
-- ✅ Updated external dependencies (Go modules, protobuf)
-- ✅ Synced vendor directory
+### v1.1.8 (2026-02-20)
+- ✅ Fixed response body truncation at 32KB (context cancelled before body streaming)
+- ✅ `makeRequestWithRetry` returns `CancelFunc` to callers
+- ✅ Removed `replace` directive for common from `go.mod`
+- ✅ Deleted 9 stale review/checklist docs
 
-### Security Enhancements
-- ✅ Improved context value handling
-- ✅ Cleaned up unused code paths
-- ✅ Enhanced type safety
-
-### Code Optimization (2026-02-01)
-- ✅ Refactored `RouteManager` to reuse `ProxyHandler` and `CORSHandler` instances (memory efficiency)
-- ✅ Added `DefaultCurrency` configuration support (dynamic content)
-- ✅ Standardized error handling in proxy handlers to use `RouteManager.handleServiceError`
-- ✅ Cleaned up hardcoded logic in `proxy_handler.go`
+### v1.1.4 (2026-02-01)
+- ✅ Checkout service integration
+- ✅ Rate limiter memory cleanup
+- ✅ JWT secret validation at startup
+- ✅ All dependencies updated to latest versions
 
 ---
 
 **Service Status**: 🟢 Production Ready
-**Last Code Review**: 2026-02-01
-**Critical Issues**: 0
-**Test Coverage**: To be determined
-**Performance**: High (Optimized for high throughput and memory efficiency)
+**Last Code Review**: 2026-02-23
+**Critical Issues (P0)**: 0
+**High Issues (P1)**: 5
+**Build**: ✅ golangci-lint 0 warnings, go build passes
+**Config/GitOps**: ✅ Aligned (ports 80/81)
