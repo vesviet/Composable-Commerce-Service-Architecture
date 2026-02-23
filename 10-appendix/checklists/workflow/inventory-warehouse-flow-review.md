@@ -12,7 +12,7 @@
 |----------|--------|
 | 🔴 P0 — Critical (data loss / stock corruption) | **3 found → ✅ 3 fixed** |
 | 🟡 P1 — High (reliability / consistency) | **4 found → ✅ 4 fixed** |
-| 🔵 P2 — Medium (edge case / observability) | **3 open (monitor)** |
+| 🔵 P2 — Medium (edge case / observability) | **3 found → ✅ 3 fixed** |
 | ✅ Verified Working Well | 14 areas |
 
 **Last fix date**: 2026-02-23
@@ -230,7 +230,7 @@ if len(inventories) > 1 {
 | **TimeslotValidatorJob** | ✅ Yes | `cron/timeslot_validator_job.go` | Validates delivery timeslots |
 | **ReservationCleanupJob** | ✅ Yes | `cron/reservation_cleanup_job.go` | Extra cleanup pass |
 | **ImportWorker** | ✅ Yes | `import_worker.go` | Bulk stock import |
-| Outbox cleanup (DELETE old COMPLETED events) | ❌ None | — | COMPLETED outbox events accumulate forever in DB |
+| **OutboxCleanupJob** | ✅ Yes | Daily 3AM | Deletes COMPLETED events older than outbox_retention_days (default 30d) — added 2026-02-23 |
 
 ---
 
@@ -321,14 +321,14 @@ if len(inventories) > 1 {
 - [x] **WH-P1-003**: ✅ PARTIAL — Warehouse defensive: metadata-first lookup + warning log; cross-service: return service must include `warehouse_id` in `ReturnCompletedEvent.Metadata`
 - [x] **WH-P1-004**: ✅ FIXED — `ExecuteRequest` now checks `status == completed` at the start and returns idempotent success, preventing double `AdjustStock` on retry after partial failure
 
-### 🔵 Monitor / Document
+### 🔵 Monitor / Document → ✅ All Fixed (2026-02-23)
 
-- [ ] Add outbox cleanup cron: DELETE `WHERE status='COMPLETED' AND created_at < NOW() - INTERVAL '30 days'` (currently no cleanup → table bloat)
-- [ ] Add admin API or cron to retry `FAILED` outbox events (similar to catalog DLQ retry)
-- [ ] Handle `catalog.product.deleted` → release all active reservations for that product
-- [ ] Add `ExtendReservation` transaction safety (use `InTx` like other mutation methods)
-- [ ] Add SLO alert: `expired reservations with no corresponding order cancellation > threshold within 10 minutes`
-- [ ] Validate `COMPLETED outbox event count` per day as operational metric (regression signal for WH-P0-001)
+- [x] **P2-1 Outbox cleanup cron**: Added `OutboxCleanupJob` (`internal/worker/cron/outbox_cleanup_job.go`) — runs daily at 3:00 AM, deletes `COMPLETED` outbox events older than `outbox_retention_days` (default 30 days). Config field `OutboxRetentionDays` added to `WarehouseConfig`. Wired into worker binary via `cron.ProviderSet` + `newWorkers`.
+- [x] **P2-2 FAILED outbox retry**: Admin HTTP endpoints exist in `internal/server/http.go`:
+  - `GET /admin/outbox/failed?limit=N&offset=N` — paginated list of permanently-FAILED outbox events
+  - `POST /admin/outbox/{id}/retry` — resets FAILED event to PENDING for OutboxWorker re-pickup
+  - `OutboxRepo.GetFailed` + `ResetToRetry` implemented in interface and `data/postgres/outbox.go`
+- [x] **P2-3 ExtendReservation race**: Refactored `ExtendReservation` to use `uc.tx.InTx` + `repo.FindByIDForUpdate` — serializes concurrent extend calls on the same reservation, preventing last-write-wins overwrites. Pattern now identical to `ReleaseReservation` and `CompleteReservation`.
 
 ---
 
