@@ -1,13 +1,13 @@
 # 🧑‍🤝‍🧑 Customer Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-02-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8003/9003
 
 **Service Name**: Customer Service  
-**Version**: 1.1.3  
-**Last Updated**: 2026-02-06  
+**Version**: 1.1.11  
+**Last Updated**: 2026-02-23  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: ✅ 100%  
 
@@ -347,6 +347,9 @@ CREATE INDEX idx_audit_events_operation ON audit_events(operation);
 | 017 | `017_add_customer_statistics_fields.sql` | Analytics support | Customer metrics |
 | 018 | `018_create_customer_statistics_table.sql` | Statistics tracking | Performance metrics |
 | 019 | `019_create_audit_events_table.sql` | Audit logging | Security & compliance |
+| 020 | `020_add_verification_tokens.sql` | Enhanced verification | Email/phone token support |
+| 021 | `021_add_last_attempted_at_to_outbox_events.sql` | Outbox retry | Accurate exponential backoff |
+| 022 | `022_add_login_lockout_to_customers.sql` | Account lockout | DB-backed lockout counter |
 
 ### Indexes & Performance
 ```sql
@@ -744,40 +747,35 @@ GROUP BY customer_id;
 ## 🚨 Known Issues & TODOs
 
 ### P0 - Critical (Security/Data Integrity)
-1. **Transactional Outbox Missing** 🚨
-   - **Issue**: Events published after DB transaction commit
-   - **Risk**: Event loss on service crash, data inconsistency
-   - **Location**: `customer/internal/biz/customer/customer.go:243`
-   - **Fix**: Implement transactional outbox pattern
-
-2. **2FA Verification Placeholder** 🚨
+1. **2FA Verification Placeholder** 🚨
    - **Issue**: `Verify2FACode` always returns `true`
    - **Risk**: Complete bypass of 2FA security
-   - **Location**: `customer/internal/biz/customer/two_factor.go:105`
+   - **Location**: `customer/internal/biz/customer/two_factor.go`
    - **Fix**: Implement TOTP validation with `github.com/pquerna/otp`
 
 ### P1 - High Priority (Reliability)
-3. **Address Delete Default Logic Flawed** 🟡
-   - **Issue**: Silent failure when setting new default address
-   - **Risk**: Customers left without default address
-   - **Location**: `customer/internal/biz/address/address.go:479-490`
-   - **Fix**: Add error handling and rollback logic
+2. **Segment evaluator runs unrestricted count query on large tables** 🟡
+   - **Issue**: `SELECT COUNT(*) FROM customers` without WHERE clause
+   - **Risk**: Performance degradation at scale
+   - **Fix**: Add `WHERE deleted_at IS NULL` and index hint
 
 ### P2 - Medium Priority (Technical Debt)
-4. **Missing Integration Tests** 🔵
+3. **Missing Integration Tests** 🔵
    - **Issue**: No end-to-end customer registration → address setup flow
    - **Impact**: Undetected integration bugs
    - **Fix**: Add comprehensive integration test suite
 
-5. **Hardcoded Customer Groups** 🔵
-   - **Issue**: Default customer groups hardcoded
-   - **Location**: `customer/internal/biz/customer/customer.go:167-172`
+4. **Hardcoded Customer Groups** 🔵
+   - **Issue**: Default customer groups hardcoded in evaluator cron
    - **Fix**: Make configurable via config service
 
-6. **GDPR Deletion Incomplete** 🔵
-   - **Issue**: Data anonymization not fully implemented
-   - **Location**: GDPR deletion endpoints
-   - **Fix**: Implement complete data anonymization logic
+### ✅ Resolved Issues (Previous Reviews)
+- ~~Transactional Outbox Missing~~ — Implemented outbox pattern with retry + backoff
+- ~~Address Delete Default Logic Flawed~~ — Fixed: auto-assigns new default before delete
+- ~~Address creation/update not transactional~~ — Fixed: wrapped in single DB transaction
+- ~~DB-backed account lockout~~ — Fixed: migration 022, lockout stored in Postgres
+- ~~Vendor directory out of sync~~ — Fixed: `go mod vendor` re-run in v1.1.11 review
+- ~~`FindDuplicateAddress` mock missing from address tests~~ — Fixed in v1.1.11 review
 
 ---
 
