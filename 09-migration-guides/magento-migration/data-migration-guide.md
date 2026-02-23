@@ -18,15 +18,25 @@ This guide provides comprehensive procedures for migrating data from Magento to 
 
 | Magento Table | Microservices Service | Data Type | Priority |
 |---------------|---------------------|-----------|----------|
-| `customer_entity` | Customer Service | Customer Data | High |
-| `customer_address_entity` | Customer Service | Address Data | High |
-| `catalog_product_entity` | Catalog Service | Product Data | High |
-| `catalog_category_entity` | Catalog Service | Category Data | High |
-| `sales_order` | Order Service | Order Data | High |
+| `customer_entity` + EAV sub-tables | Customer Service | Customer Data | High |
+| `customer_address_entity` + EAV sub-tables | Customer Service | Address Data | High |
+| `catalog_product_entity` + EAV sub-tables | Catalog Service | Product Data | High |
+| `catalog_category_entity` + EAV sub-tables | Catalog Service | Category Data | High |
+| `sales_order` + `sales_order_payment` | Order Service | Order Data | High |
 | `sales_order_item` | Order Service | Order Items | High |
-| `wishlist` | Customer Service | Wishlist Data | Medium |
-| `review` | Review Service | Review Data | Medium |
+| `cataloginventory_stock_item` | Warehouse Service | Stock Levels | High |
+| `salesrule` + `salesrule_coupon` | Promotion Service | Coupons/Promotions | High |
+| `sales_creditmemo` | Payment Service | Refund History | Medium |
+| `magento_reward` | Loyalty Service | Loyalty Points | Medium |
+| `wishlist` + `wishlist_item` | Customer Service | Wishlist Data | Medium |
+| `review` + `rating_option_vote` | Review Service | Review Data | Medium |
 | `newsletter_subscriber` | Customer Service | Newsletter Data | Low |
+
+> [!IMPORTANT]
+> **ID Mapping Required**: Magento uses auto-increment integers as primary keys. Microservices use UUIDs. A cross-reference table (`magento_id_map`) **must be created before any data migration** to track the mapping. See [Section 1.4 Identity Mapping](#step-14-identity-mapping) below.
+
+> [!WARNING]
+> **EAV Complexity**: Magento Customer, Product, and Category entities use an Entity-Attribute-Value (EAV) schema. Attributes such as `firstname`, `lastname`, `price`, `description` are NOT in the main entity table — they are spread across `*_varchar`, `*_int`, `*_decimal`, `*_datetime`, `*_text` sub-tables keyed by `attribute_id`. The transformation scripts below handle this correctly by joining all sub-tables.
 
 ---
 
@@ -74,11 +84,16 @@ graph TB
 #!/bin/bash
 # extract-customer-data.sh
 
-# Configuration
-MAGENTO_DB_HOST="magento-db.production.svc.cluster.local"
-MAGENTO_DB_USER="magento_user"
-MAGENTO_DB_PASS="password"
-MAGENTO_DB_NAME="magento_db"
+# Configuration — load from environment (set by K8s Job + Secret)
+# Secret ref: kubectl create secret generic magento-db-creds \
+#   --from-literal=host=magento-db.production.svc.cluster.local \
+#   --from-literal=user=magento_user \
+#   --from-literal=password=<actual-password> \
+#   --from-literal=dbname=magento_db
+MAGENTO_DB_HOST="${MAGENTO_DB_HOST}"
+MAGENTO_DB_USER="${MAGENTO_DB_USER}"
+MAGENTO_DB_PASS="${MAGENTO_DB_PASS}"
+MAGENTO_DB_NAME="${MAGENTO_DB_NAME}"
 EXTRACT_DIR="customer-extracts"
 
 # Create extract directory
@@ -183,169 +198,126 @@ echo "Order data extraction completed"
 
 ### **Step 1.2: Data Transformation**
 
+> [!IMPORTANT]
+> The queries below use proper EAV joins to retrieve Magento attributes. Never use `GROUP_CONCAT` with hardcoded attribute IDs — attribute IDs differ between Magento installations. Always look up IDs via `eav_attribute` first.
+
 #### **Customer Data Transformation**
 ```javascript
 // transform-customer-data.js
+// Credentials loaded from environment variables (set by K8s Secret + Job spec)
 const mysql = require('mysql2/promise');
-const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 
 class CustomerDataTransformer {
     constructor() {
         this.magentoConnection = null;
         this.microConnection = null;
+        this.attrMap = {}; // attribute_code → attribute_id map
     }
 
     async init() {
-        // Connect to Magento database
         this.magentoConnection = await mysql.createConnection({
             host: process.env.MAGENTO_DB_HOST,
             user: process.env.MAGENTO_DB_USER,
             password: process.env.MAGENTO_DB_PASS,
             database: process.env.MAGENTO_DB_NAME
         });
-
-        // Connect to microservices database
         this.microConnection = await mysql.createConnection({
             host: process.env.MICRO_DB_HOST,
             user: process.env.MICRO_DB_USER,
             password: process.env.MICRO_DB_PASS,
             database: process.env.MICRO_DB_NAME
         });
+        await this.loadAttributeMap();
+    }
+
+    // Resolve attribute_code → attribute_id dynamically (safe across Magento versions)
+    async loadAttributeMap() {
+        const [rows] = await this.magentoConnection.execute(`
+            SELECT attribute_id, attribute_code
+            FROM eav_attribute
+            WHERE entity_type_id = (
+                SELECT entity_type_id FROM eav_entity_type WHERE entity_type_code = 'customer'
+            )
+        `);
+        for (const row of rows) {
+            this.attrMap[row.attribute_code] = row.attribute_id;
+        }
     }
 
     async transformCustomers() {
-        console.log('Transforming customer data...');
+        console.log('Transforming customer data (full EAV join)...');
 
-        // Get customer entities with attributes
+        // Pull all EAV varchar + int attributes in one query via PIVOT-style subqueries
         const [rows] = await this.magentoConnection.execute(`
-            SELECT 
+            SELECT
                 ce.entity_id,
                 ce.website_id,
                 ce.email,
                 ce.created_at,
                 ce.updated_at,
                 ce.is_active,
-                ce.disable_auto_group_change,
-                GROUP_CONCAT(
-                    CASE cev.attribute_id
-                        WHEN 1 THEN cev.value
-                        WHEN 2 THEN cev.value
-                        WHEN 3 THEN cev.value
-                        WHEN 4 THEN cev.value
-                        WHEN 5 THEN cev.value
-                    END
-                ) as attributes
+                MAX(CASE WHEN cev.attribute_id = ? THEN cev.value END) AS firstname,
+                MAX(CASE WHEN cev.attribute_id = ? THEN cev.value END) AS lastname,
+                MAX(CASE WHEN cev.attribute_id = ? THEN cev.value END) AS middlename,
+                MAX(CASE WHEN cev.attribute_id = ? THEN cev.value END) AS prefix,
+                MAX(CASE WHEN cev.attribute_id = ? THEN cev.value END) AS suffix,
+                MAX(CASE WHEN cevt.attribute_id = ? THEN cevt.value END) AS dob,
+                MAX(CASE WHEN cevi.attribute_id = ? THEN cevi.value END) AS gender
             FROM customer_entity ce
-            LEFT JOIN customer_entity_varchar cev ON ce.entity_id = cev.entity_id
+            LEFT JOIN customer_entity_varchar cev  ON ce.entity_id = cev.entity_id
+            LEFT JOIN customer_entity_datetime cevt ON ce.entity_id = cevt.entity_id
+            LEFT JOIN customer_entity_int cevi      ON ce.entity_id = cevi.entity_id
             WHERE ce.created_at >= '2020-01-01'
             GROUP BY ce.entity_id
             ORDER BY ce.entity_id
-        `);
+        `, [
+            this.attrMap['firstname'],
+            this.attrMap['lastname'],
+            this.attrMap['middlename'],
+            this.attrMap['prefix'],
+            this.attrMap['suffix'],
+            this.attrMap['dob'],
+            this.attrMap['gender'],
+        ]);
 
         const transformedCustomers = [];
-        
         for (const row of rows) {
-            const attributes = this.parseAttributes(row.attributes);
-            
-            const customer = {
-                id: row.entity_id,
+            // Look up UUID from identity map (created in Step 1.4)
+            const uuid = await this.lookupOrCreateUUID('customer', row.entity_id);
+            transformedCustomers.push({
+                id: uuid,
+                magento_id: row.entity_id,
                 email: row.email,
-                firstName: attributes.firstname || '',
-                lastName: attributes.lastname || '',
-                middleName: attributes.middlename || '',
-                prefix: attributes.prefix || '',
-                suffix: attributes.suffix || '',
-                dob: attributes.dob || null,
-                taxvat: attributes.taxvat || '',
-                gender: attributes.gender || null,
+                firstName: row.firstname || '',
+                lastName: row.lastname || '',
+                middleName: row.middlename || '',
+                prefix: row.prefix || '',
+                suffix: row.suffix || '',
+                dob: row.dob || null,
+                gender: row.gender || null,
                 websiteId: row.website_id,
                 isActive: row.is_active === 1,
-                disableAutoGroupChange: row.disable_auto_group_change === 1,
                 createdAt: row.created_at,
                 updatedAt: row.updated_at,
                 source: 'magento'
-            };
-
-            transformedCustomers.push(customer);
+            });
         }
-
         return transformedCustomers;
     }
 
-    async transformCustomerAddresses() {
-        console.log('Transforming customer addresses...');
-
-        const [rows] = await this.magentoConnection.execute(`
-            SELECT 
-                cae.entity_id,
-                cae.parent_id,
-                cae.is_active,
-                cae.country_id,
-                cae.region_id,
-                cae.postcode,
-                cae.city,
-                cae.street,
-                cae.telephone,
-                cae.company,
-                cae.fax,
-                GROUP_CONCAT(
-                    CASE caev.attribute_id
-                        WHEN 19 THEN caev.value
-                        WHEN 20 THEN caev.value
-                        WHEN 21 THEN caev.value
-                        WHEN 22 THEN caev.value
-                        WHEN 23 THEN caev.value
-                        WHEN 24 THEN caev.value
-                    END
-                ) as attributes
-            FROM customer_address_entity cae
-            LEFT JOIN customer_address_entity_varchar caev ON cae.entity_id = caev.entity_id
-            GROUP BY cae.entity_id
-            ORDER BY cae.entity_id
-        `);
-
-        const transformedAddresses = [];
-        
-        for (const row of rows) {
-            const attributes = this.parseAttributes(row.attributes);
-            
-            const address = {
-                id: row.entity_id,
-                customerId: row.parent_id,
-                firstName: attributes.firstname || '',
-                lastName: attributes.lastname || '',
-                middleName: attributes.middlename || '',
-                company: row.company || '',
-                street: row.street ? row.street.split('\n') : [],
-                city: row.city || '',
-                region: row.region_id || '',
-                regionCode: attributes.region || '',
-                postcode: row.postcode || '',
-                country: row.country_id || '',
-                telephone: row.telephone || '',
-                fax: row.fax || '',
-                vatId: attributes.vat_id || '',
-                isActive: row.is_active === 1,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                source: 'magento'
-            };
-
-            transformedAddresses.push(address);
-        }
-
-        return transformedAddresses;
-    }
-
-    parseAttributes(attributesString) {
-        if (!attributesString) return {};
-        
-        const attributes = {};
-        const parts = attributesString.split(',');
-        
-        // This is a simplified parser - in production, you'd need more robust parsing
-        // based on Magento's EAV structure
-        return attributes;
+    async lookupOrCreateUUID(entityType, magentoId) {
+        const [rows] = await this.microConnection.execute(
+            'SELECT new_uuid FROM magento_id_map WHERE entity_type = ? AND magento_id = ?',
+            [entityType, magentoId]
+        );
+        if (rows.length > 0) return rows[0].new_uuid;
+        const newUUID = uuidv4();
+        await this.microConnection.execute(
+            'INSERT INTO magento_id_map (entity_type, magento_id, new_uuid) VALUES (?, ?, ?)',
+            [entityType, magentoId, newUUID]
+        );
+        return newUUID;
     }
 
     async loadCustomers(customers) {
@@ -639,6 +611,160 @@ else
 fi
 
 echo "Data validation completed successfully"
+```
+
+---
+
+## Step 1.4: Identity Mapping
+
+Magento uses auto-increment integer IDs. Microservices use UUIDs. Before migrating any data, create this mapping table in the **microservices database**:
+
+```sql
+-- Run in microservices DB before starting any migration job
+CREATE TABLE IF NOT EXISTS magento_id_map (
+    entity_type   VARCHAR(64)  NOT NULL,  -- 'customer', 'product', 'order', 'category'
+    magento_id    BIGINT       NOT NULL,
+    new_uuid      UUID         NOT NULL DEFAULT gen_random_uuid(),
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (entity_type, magento_id),
+    UNIQUE (new_uuid)
+);
+```
+
+This table is written **before** loading any entity and is referenced by all subsequent migrations. Cross-service references (e.g., order.customer_id) are resolved through this table:
+
+```sql
+-- Example: resolve Magento customer_id on an order to UUID
+SELECT m.new_uuid
+FROM magento_id_map m
+WHERE m.entity_type = 'customer'
+  AND m.magento_id  = <magento_order.customer_id>;
+```
+
+---
+
+## Step 1.5: Payment & Refund History Migration
+
+```bash
+#!/bin/bash
+# extract-payment-data.sh
+
+echo "Extracting payment & refund history..."
+
+mysqldump -h "${MAGENTO_DB_HOST}" -u "${MAGENTO_DB_USER}" -p"${MAGENTO_DB_PASS}" "${MAGENTO_DB_NAME}" \
+  --single-transaction \
+  sales_payment_transaction \
+  sales_creditmemo \
+  sales_creditmemo_item \
+  sales_creditmemo_grid \
+  > payment-extracts/payment_history.sql
+
+echo "Payment history extraction completed"
+```
+
+```sql
+-- Transform: sales_payment_transaction → payment_service.payment_records
+INSERT INTO payment_records (
+    id, order_id, gateway_txn_id, method, amount, currency,
+    status, created_at, source
+)
+SELECT
+    gen_random_uuid(),
+    m_order.new_uuid,
+    spt.txn_id,
+    spt.method,
+    spt.additional_information::json->>'amount_ordered',
+    spt.additional_information::json->>'order_currency_code',
+    spt.is_closed::boolean,
+    spt.created_at,
+    'magento'
+FROM sales_payment_transaction_staging spt
+JOIN magento_id_map m_order ON m_order.entity_type = 'order' AND m_order.magento_id = spt.order_id;
+```
+
+---
+
+## Step 1.6: Inventory / Stock Migration
+
+> [!IMPORTANT]
+> Inventory is high-velocity data. Do **not** do a one-time dump and call it done. The Debezium CDC (Phase 2 sync) must be running and caught up **before** you cut over catalog reads to microservices, otherwise stock levels will be stale and you risk overselling.
+
+```sql
+-- Initial snapshot: cataloginventory_stock_item → warehouse_service.stock_items
+INSERT INTO stock_items (
+    id, sku, product_id, qty, is_in_stock, min_qty, manage_stock, source
+)
+SELECT
+    gen_random_uuid(),
+    cpe.sku,
+    m_prod.new_uuid,
+    csi.qty,
+    csi.is_in_stock,
+    csi.min_qty,
+    csi.manage_stock,
+    'magento'
+FROM cataloginventory_stock_item csi
+JOIN catalog_product_entity cpe ON cpe.entity_id = csi.product_id
+JOIN magento_id_map m_prod ON m_prod.entity_type = 'product' AND m_prod.magento_id = csi.product_id;
+```
+
+---
+
+## Step 1.7: Promotion & Coupon Migration
+
+```bash
+mysqldump -h "${MAGENTO_DB_HOST}" -u "${MAGENTO_DB_USER}" -p"${MAGENTO_DB_PASS}" "${MAGENTO_DB_NAME}" \
+  --single-transaction \
+  salesrule \
+  salesrule_coupon \
+  salesrule_product_attribute \
+  salesrule_customer \
+  > promotion-extracts/promotions.sql
+```
+
+```sql
+-- salesrule → promotion_service.rules
+INSERT INTO promotion_rules (
+    id, name, description, is_active, coupon_type, discount_amount,
+    discount_type, uses_per_customer, from_date, to_date, source
+)
+SELECT
+    gen_random_uuid(),
+    sr.name, sr.description, sr.is_active,
+    sr.coupon_type, sr.discount_amount, sr.simple_action,
+    sr.uses_per_customer, sr.from_date, sr.to_date,
+    'magento'
+FROM salesrule_staging sr;
+
+-- salesrule_coupon → promotion_service.coupons
+INSERT INTO coupons (
+    id, rule_id, code, usage_limit, usage_per_customer, times_used, expiration_date
+)
+SELECT
+    gen_random_uuid(),
+    pr.id,  -- looked up via magento_id_map
+    sc.code, sc.usage_limit, sc.usage_per_customer, sc.times_used, sc.expiration_date
+FROM salesrule_coupon_staging sc
+JOIN magento_id_map m ON m.entity_type = 'promotion_rule' AND m.magento_id = sc.rule_id
+JOIN promotion_rules pr ON pr.id = m.new_uuid;
+```
+
+---
+
+## Step 1.8: Loyalty Points Migration
+
+```sql
+-- magento_reward → loyalty_service.point_balances
+INSERT INTO loyalty_point_balances (
+    customer_id, points_balance, points_used, source
+)
+SELECT
+    m_cust.new_uuid,
+    mr.points_balance,
+    mr.points_used,
+    'magento'
+FROM magento_reward_staging mr
+JOIN magento_id_map m_cust ON m_cust.entity_type = 'customer' AND m_cust.magento_id = mr.customer_id;
 ```
 
 ---

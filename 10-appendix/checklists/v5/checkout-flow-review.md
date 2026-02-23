@@ -10,7 +10,7 @@
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| 🔴 P0 Critical | 4 | Open |
+| 🔴 P0 Critical | 4 | **Fixed** |
 | 🟡 P1 High | 10 | Open |
 | 🔵 P2 Medium | 10 | Open |
 
@@ -39,49 +39,36 @@
 
 ---
 
-## 🔴 P0 — Critical Issues
+## 🔴 P0 — Critical Issues (All Fixed)
 
 ### P0-1: Panic in Payment Authorization — Nil Type Assertion
 
-- **File**: `checkout/internal/biz/checkout/payment.go:95`
-- **Code**: `session.Metadata["currency"].(string)`
-- **Risk**: If `session.Metadata` is nil or key `"currency"` is missing, this panics and crashes the checkout process
-- **Fix**: Use safe assertion `currency, _ := session.Metadata["currency"].(string)` with fallback
-- **Shopify pattern**: Always use struct fields for typed data, not map access
+- **File**: `checkout/internal/biz/checkout/payment.go:103`
+- **Status**: ✅ Fixed
+- **Solution**: Added `extractCurrency()` helper with safe type assertion and fallback to `constants.DefaultCurrency`
+- **Code**: `currency := extractCurrency(session.Metadata)`
 
 ### P0-2: DLQ Compensation Worker Missing 3 of 4 Operation Handlers
 
-- **File**: `checkout/internal/worker/cron/failed_compensation.go:142-148`
-- **Root cause**: `confirm.go` creates DLQ entries for 4 operation types, but the worker only handles 1
-
-| Operation Type | Created in `confirm.go` | Worker Handler | Impact |
-|---------------|------------------------|----------------|--------|
-| `release_reservations` | ✅ | ✅ L166-211 | Handled |
-| `void_authorization` | ✅ L344-371 | ❌ **MISSING** | 💰 **Money leak**: failed voids never retried |
-| `cart_cleanup` | ✅ L163-187 | ❌ **MISSING** | 🗑️ Cart never cleaned, blocks re-checkout |
-| `apply_promotion` | ✅ L399-427 | ❌ **MISSING** | 📊 Promo usage never decremented |
-
-- **Fix**: Add `case "void_authorization"`, `case "cart_cleanup"`, `case "apply_promotion"` handlers to `processSingleCompensation`
+- **File**: `checkout/internal/worker/cron/failed_compensation.go:189-194`
+- **Status**: ✅ Fixed
+- **Solution**: Added all 4 operation handlers: `void_authorization`, `cart_cleanup`, and `apply_promotion` to `processSingleCompensation`
+- **Impact**: Prevents money leaks from failed void operations and cart cleanup failures
 
 ### P0-3: Outbox Events Stuck in `processing` Status After Worker Crash
 
-- **File**: `checkout/internal/worker/outbox/worker.go:116-122`
-- **Root cause**: Worker marks event as `processing` before publish, but if the worker crashes mid-publish, the event stays in `processing` forever
-- **No recovery mechanism**: `listPending` only fetches `pending` status events
-- **Fix**: Add startup recovery: reset events in `processing` status older than X minutes back to `pending`
-- **Shopee pattern**: Use `SELECT FOR UPDATE SKIP LOCKED` + lease-based claiming, not status toggling
+- **File**: `checkout/internal/worker/outbox/worker.go:41`
+- **Status**: ✅ Fixed
+- **Solution**: Added `recoverStuckEvents()` method that runs at startup to reset events in `processing` status older than 5 minutes back to `pending`
+- **Shopee pattern**: Uses lease-based recovery with timeout detection
 
 ### P0-4: No Reservation Rollback on Payment Authorization Failure
 
-- **File**: `checkout/internal/biz/checkout/confirm.go:308-315`
-- **Root cause**: If `authorizePayment` fails, the function returns error but reservations were already extended at step 5 with new TTL. No rollback of reservation extensions.
-- **Current flow**: 
-  ```
-  Step 5: extendReservationsForPayment ✅ → Step 5: authorizePayment ❌ → return error (reservations still extended)
-  ```
-- **Impact**: Stock locked for full payment TTL even though checkout cannot proceed
-- **Fix**: On payment auth failure, release or shorten reservation TTL
-- **Shopee pattern**: Reserve → Auth → Confirm (if payment fails, release reservation immediately)
+- **File**: `checkout/internal/biz/checkout/confirm.go:315-322`
+- **Status**: ✅ Fixed
+- **Solution**: Added reservation release logic that executes when payment authorization fails
+- **Current flow**: Step 5: extendReservationsForPayment ✅ → Step 5: authorizePayment ❌ → Release reservations → return error
+- **Impact**: Prevents stock from being locked indefinitely when checkout fails
 
 ---
 

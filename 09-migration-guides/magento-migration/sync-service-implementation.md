@@ -1,14 +1,18 @@
 # 🔄 Sync Service Implementation Guide
 
-**Purpose**: Complete implementation guide for real-time sync service  
-**Last Updated**: 2026-02-03  
+**Purpose**: Complete implementation guide for real-time sync from Magento to microservices  
+**Last Updated**: 2026-02-21  
 **Status**: ✅ Ready for implementation
 
 ---
 
 ## 📋 Overview
 
-This guide provides complete implementation details for the real-time sync service that continuously synchronizes data from Magento to microservices. It includes CDC (Change Data Capture), error handling, monitoring, and deployment procedures.
+This guide provides implementation details for the real-time sync service. It uses **Debezium** (MySQL binlog-based CDC — not `updated_at` polling) to capture changes reliably from Magento, including INSERTs, UPDATEs, and DELETEs. Events are forwarded to microservices via **Dapr Pub/Sub** (the platform's existing event infrastructure — no separate Kafka cluster needed).
+
+> [!IMPORTANT]
+> **Why Debezium instead of `updated_at` polling?**
+> Polling on `updated_at` misses DELETE operations entirely and is vulnerable to clock skew and timestamp collisions. Debezium reads MySQL binary logs, capturing every row-level change reliably with exact before/after state.
 
 ---
 
@@ -16,39 +20,272 @@ This guide provides complete implementation details for the real-time sync servi
 
 ```mermaid
 graph TB
-    subgraph "Magento Database"
-        A[Customer Tables] --> B[Change Detection]
-        C[Product Tables] --> B
-        D[Order Tables] --> B
+    subgraph "Magento MySQL"
+        A[customer_entity] --> B[MySQL Binlog]
+        C[catalog_product_entity] --> B
+        D[sales_order] --> B
+        E[cataloginventory_stock_item] --> B
     end
-    
-    subgraph "Sync Service"
-        B --> E[CDC Engine]
-        E --> F[Change Processor]
-        F --> G[Transformation Layer]
-        G --> H[Data Loader]
-        H --> I[Error Handler]
+
+    subgraph "Debezium CDC"
+        B --> F[Debezium MySQL Connector]
+        F --> G[Change Events Stream]
     end
-    
-    subgraph "Microservices Database"
-        H --> J[Customer Service DB]
-        H --> K[Catalog Service DB]
-        H --> L[Order Service DB]
+
+    subgraph "Sync Consumer Service"
+        G --> H[Change Event Consumer]
+        H --> I[ID Mapper — int to UUID]
+        I --> J[Transformer]
+        J --> K[Dapr Pub/Sub Publisher]
+        K --> L[Error Handler + DLQ]
     end
-    
+
+    subgraph "Platform Event Bus — Dapr + Redis Streams"
+        K --> M[migration.customer.changed]
+        K --> N[migration.product.changed]
+        K --> O[migration.order.changed]
+        K --> P[migration.stock.changed]
+    end
+
+    subgraph "Microservices Consumers"
+        M --> Q[Customer Service]
+        N --> R[Catalog Service]
+        O --> S[Order Service]
+        P --> T[Warehouse Service]
+    end
+
     subgraph "Monitoring"
-        M[Metrics Collector] --> N[Prometheus]
-        O[Health Checks] --> P[Alert Manager]
+        U[Prometheus Metrics] --> V[Alert Manager]
     end
 ```
 
 ---
 
-## 🚀 Core Implementation
+## 🚀 Step 1: Debezium MySQL Connector Setup
 
-### **Main Service Structure**
+> [!IMPORTANT]
+> MySQL **must have binlog enabled** before deploying Debezium. Verify with: `SHOW VARIABLES LIKE 'log_bin';`
 
-#### **sync-service/main.go**
+### **1.1 Enable MySQL Binlog on Magento DB**
+
+Add to MySQL config (`/etc/mysql/conf.d/binlog.cnf`):
+```ini
+[mysqld]
+log_bin           = mysql-bin
+binlog_format     = ROW           # Must be ROW, not STATEMENT
+binlog_row_image  = FULL          # Capture full before/after row images
+expire_logs_days  = 7
+server_id         = 1             # Unique ID, must not conflict with replicas
+```
+
+Create Debezium replication user:
+```sql
+CREATE USER 'debezium'@'%' IDENTIFIED BY '${DEBEZIUM_PASS}';
+GRANT SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'debezium'@'%';
+FLUSH PRIVILEGES;
+```
+
+### **1.2 Debezium Connector Configuration**
+
+Deploy as Kubernetes ConfigMap + Connector registration:
+
+```yaml
+# debezium-connector-config.yaml — deployed via Kafka Connect REST API
+# Note: Debezium is deployed as a sidecar next to the sync consumer,
+# using the embedded engine mode (no separate Kafka Connect cluster needed).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: debezium-connector-config
+  namespace: migration
+data:
+  connector.json: |
+    {
+      "name": "magento-mysql-connector",
+      "config": {
+        "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+        "database.hostname": "${MAGENTO_DB_HOST}",
+        "database.port": "3306",
+        "database.user": "debezium",
+        "database.password": "${DEBEZIUM_PASS}",
+        "database.server.id": "184054",
+        "database.server.name": "magento",
+        "database.include.list": "${MAGENTO_DB_NAME}",
+        "table.include.list": "${MAGENTO_DB_NAME}.customer_entity,${MAGENTO_DB_NAME}.customer_address_entity,${MAGENTO_DB_NAME}.catalog_product_entity,${MAGENTO_DB_NAME}.sales_order,${MAGENTO_DB_NAME}.cataloginventory_stock_item,${MAGENTO_DB_NAME}.salesrule_coupon",
+        "include.schema.changes": "false",
+        "snapshot.mode": "initial",
+        "offset.storage": "org.apache.kafka.connect.storage.FileOffsetBackingStore",
+        "offset.storage.file.filename": "/var/debezium/offsets/offsets.dat",
+        "offset.flush.interval.ms": "1000"
+      }
+    }
+```
+
+### **1.3 Sync Consumer — Go Service**
+
+```go
+// sync-service/main.go
+package main
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "log"
+    "os"
+    "time"
+
+    dapr "github.com/dapr/go-sdk/client"
+    _ "github.com/go-sql-driver/mysql"
+    "github.com/prometheus/client_golang/prometheus"
+    "github.com/prometheus/client_golang/prometheus/promhttp"
+    "net/http"
+)
+
+// DebeziumEvent is the envelope Debezium wraps around binlog row events.
+type DebeziumEvent struct {
+    Payload struct {
+        Before map[string]interface{} `json:"before"` // null on INSERT
+        After  map[string]interface{} `json:"after"`  // null on DELETE
+        Source struct {
+            Table string `json:"table"`
+            TsMs  int64  `json:"ts_ms"`
+        } `json:"source"`
+        Op string `json:"op"` // "c"=INSERT, "u"=UPDATE, "d"=DELETE, "r"=snapshot
+    } `json:"payload"`
+}
+
+type SyncService struct {
+    daprClient  dapr.Client
+    idMapper    *IdentityMapper
+    transformer *DataTransformer
+    metrics     *Metrics
+}
+
+func NewSyncService() (*SyncService, error) {
+    daprClient, err := dapr.NewClient()
+    if err != nil {
+        return nil, fmt.Errorf("failed to create Dapr client: %v", err)
+    }
+    return &SyncService{
+        daprClient:  daprClient,
+        idMapper:    NewIdentityMapper(os.Getenv("MICRO_DB_DSN")),
+        transformer: NewDataTransformer(),
+        metrics:     NewMetrics(),
+    }, nil
+}
+
+// HandleChange is called for every binlog event from Debezium.
+func (s *SyncService) HandleChange(ctx context.Context, eventBytes []byte) error {
+    var event DebeziumEvent
+    if err := json.Unmarshal(eventBytes, &event); err != nil {
+        return err
+    }
+
+    p := event.Payload
+    table := p.Source.Table
+    op := p.Op
+
+    start := time.Now()
+
+    // Determine the row data and whether it's a delete
+    rowData := p.After
+    if op == "d" {
+        rowData = p.Before // For deletes, use the before image
+    }
+    if rowData == nil {
+        return nil // snapshot tombstone, skip
+    }
+
+    // Map Magento integer ID → platform UUID
+    entityType := tableToEntityType(table)
+    magentoID := int64(rowData["entity_id"].(float64))
+    platformID, err := s.idMapper.GetOrCreate(ctx, entityType, magentoID)
+    if err != nil {
+        return err
+    }
+    rowData["id"] = platformID
+    rowData["magento_id"] = magentoID
+
+    // Transform field names (Magento → microservice schema)
+    transformed, topic, err := s.transformer.Transform(table, op, rowData)
+    if err != nil {
+        s.metrics.errCount.WithLabelValues(table, "transform").Inc()
+        return err
+    }
+
+    // Publish via Dapr pub/sub (platform's existing Redis Streams bus)
+    payload, _ := json.Marshal(transformed)
+    if err := s.daprClient.PublishEvent(ctx, "pubsub", topic, payload); err != nil {
+        s.metrics.errCount.WithLabelValues(table, "publish").Inc()
+        return err
+    }
+
+    s.metrics.syncDuration.WithLabelValues(table).Observe(time.Since(start).Seconds())
+    s.metrics.syncCount.WithLabelValues(table, op).Inc()
+    return nil
+}
+
+func tableToEntityType(table string) string {
+    switch table {
+    case "customer_entity":               return "customer"
+    case "customer_address_entity":       return "address"
+    case "catalog_product_entity":        return "product"
+    case "sales_order":                   return "order"
+    case "cataloginventory_stock_item":   return "stock"
+    default:                             return table
+    }
+}
+```
+
+### **1.4 Dapr Subscription — Microservice Consumer Side**
+
+Each microservice subscribes to its migration topic via Dapr:
+
+```yaml
+# dapr-subscription-migration.yaml
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: migration-customer-subscription
+  namespace: production
+spec:
+  pubsubname: pubsub
+  topic: migration.customer.changed
+  route: /migration/customer
+  deadLetterTopic: migration.dlq
+---
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: migration-stock-subscription
+  namespace: production
+spec:
+  pubsubname: pubsub
+  topic: migration.stock.changed
+  route: /migration/stock
+  deadLetterTopic: migration.dlq
+```
+
+Customer Service handles migration events idempotently:
+
+```go
+// customer-service/migration_handler.go
+// POST /migration/customer — called by Dapr for each binlog event
+func (h *MigrationHandler) HandleCustomerChange(ctx context.Context, event MigrationEvent) error {
+    // Idempotency: skip if already processed
+    if exists, _ := h.repo.ExistsByMagentoID(ctx, event.MagentoID); exists && event.Op == "c" {
+        return nil
+    }
+    switch event.Op {
+    case "c", "u", "r": // insert, update, or snapshot
+        return h.repo.UpsertFromMigration(ctx, event)
+    case "d":
+        return h.repo.SoftDeleteByMagentoID(ctx, event.MagentoID)
+    }
+    return nil
+}
+```
 ```go
 package main
 

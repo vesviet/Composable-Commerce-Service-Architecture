@@ -1,7 +1,7 @@
 # 🚀 Phase 3: Full Cutover (Gradual Service Migration)
 
 **Purpose**: Phase 3 complete cutover with gradual service migration and Magento hot standby  
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-02-21  
 **Status**: ✅ Ready for implementation
 
 ---
@@ -197,25 +197,81 @@ echo "Order Service Cutover completed"
 ### **Step 3: Performance Optimization**
 
 #### **3.1 Remove Dual-Write Overhead**
-```go
-// customer-service/optimized-handlers.go
-func (h *CustomerHandler) CreateCustomerOptimized(w http.ResponseWriter, r *http.Request) {
-    var customer Customer
-    json.NewDecoder(r.Body).Decode(&customer)
-    
-    // Direct database write - no event publishing
-    customerID, err := h.insertCustomerOptimized(&customer)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-    
-    // Async archive notification (non-blocking)
-    go h.notifyArchiveService("customer", "create", customerID)
-    
-    customer.ID = customerID
-    json.NewEncoder(w).Encode(customer)
-}
+```bash
+# Stop reverse-sync adapter (no longer needed after cutover)
+kubectl scale deployment magento-sync-adapter -n migration --replicas=0
+
+# Stop Debezium connector
+kubectl delete deployment debezium-sync-consumer -n migration
+
+# Update services to remove migration event handlers
+kubectl apply -f configs/optimized-services.yaml
+```
+
+### **Step 4: Payment Transaction Final Reconciliation**
+
+Before cutting over, reconcile payment transaction history between Magento and microservices:
+
+```bash
+#!/bin/bash
+# payment-reconciliation.sh
+# Run this in Phase 3 BEFORE disabling Magento payment writes
+
+echo "Running payment reconciliation..."
+
+MAGENTO_TXNS=$(mysql -h "${MAGENTO_DB_HOST}" -u "${MAGENTO_DB_USER}" \
+  -p"${MAGENTO_DB_PASS}" "${MAGENTO_DB_NAME}" -e "
+  SELECT COUNT(*), SUM(amount) FROM sales_payment_transaction
+    WHERE created_at >= '2020-01-01'
+" | tail -1)
+
+MICRO_TXNS=$(psql "${MICRO_DB_DSN}" -t -c "
+  SELECT COUNT(*), SUM(amount) FROM payment_records
+    WHERE source = 'magento'
+")
+
+echo "Magento transactions: ${MAGENTO_TXNS}"
+echo "Microservices transactions: ${MICRO_TXNS}"
+
+# Fail cutover if mismatch (ops team reviews)
+if [ "${MAGENTO_TXNS}" != "${MICRO_TXNS}" ]; then
+    echo "❌ Payment reconciliation mismatch — DO NOT PROCEED with cutover"
+    exit 1
+fi
+echo "✅ Payment reconciliation passed"
+```
+
+```sql
+-- Spot-check: verify high-value orders have matching payment records
+SELECT
+    o.increment_id,
+    o.grand_total,
+    pr.amount,
+    ABS(o.grand_total - pr.amount) AS diff
+FROM sales_order o
+JOIN magento_id_map m ON m.entity_type = 'order' AND m.magento_id = o.entity_id
+JOIN payment_records pr ON pr.order_id = m.new_uuid
+WHERE ABS(o.grand_total - pr.amount) > 0.01
+ORDER BY diff DESC
+LIMIT 20;
+```
+
+### **Step 5: Loyalty Points Final Sync**
+
+```sql
+-- Before Magento loyalty module is decommissioned, do a final point balance sync.
+-- Run this AFTER the last loyalty transaction processes in Magento.
+INSERT INTO loyalty_point_balances (customer_id, points_balance, source)
+SELECT
+    m.new_uuid,
+    mr.points_balance,
+    'magento_final_sync'
+FROM magento_reward mr
+JOIN magento_id_map m ON m.entity_type = 'customer' AND m.magento_id = mr.customer_id
+ON CONFLICT (customer_id) DO UPDATE
+    SET points_balance = EXCLUDED.points_balance,
+        updated_at = NOW()
+WHERE magento_reward.updated_at > loyalty_point_balances.updated_at;
 ```
 
 #### **3.2 Resource Scaling**
@@ -280,26 +336,32 @@ echo "Emergency rollback for $SERVICE completed"
 
 ## 📋 Phase 3 Checklist
 
-### **Pre-Cutover Checklist**
-- [ ] Phase 2 dual-write stable
-- [ ] Archive service deployed and tested
-- [ ] Performance optimization completed
-- [ ] Monitoring systems enhanced
-- [ ] Rollback procedures tested
+### **Phase 3 Checklist**
 
-### **Cutover Checklist**
+**Pre-Cutover**
+- [ ] Phase 2 dual-write stable for 2+ weeks
+- [ ] Archive service deployed and tested
+- [ ] Payment reconciliation script run and passed
+- [ ] Loyalty points final sync completed
+- [ ] All inventory stock levels verified between systems
+- [ ] All active coupon codes migrated and tested
+- [ ] Rollback procedures tested in staging
+
+**Cutover**
 - [ ] Customer service 100% cutover completed
 - [ ] Catalog service 100% cutover completed
-- [ ] Order service gradual cutover completed
-- [ ] All services optimized for full load
-- [ ] Event processing disabled
+- [ ] Warehouse/Inventory service confirmed live
+- [ ] Order service gradual cutover completed (25% → 50% → 75% → 100%)
+- [ ] Payment service cutover (new transactions only via microservice)
+- [ ] Debezium sync and reverse-sync adapter stopped
+- [ ] Magento write endpoints disabled
 
-### **Post-Cutover Checklist**
+**Post-Cutover**
 - [ ] All services at 100% traffic
-- [ ] Performance targets met
-- [ ] Archive working correctly
-- [ ] Magento hot standby stable
-- [ ] 1-month rollback window active
+- [ ] Performance targets met (< 200ms p99)
+- [ ] Magento hot standby responding to health checks
+- [ ] 1-month rollback window monitoring active
+- [ ] Magento decommission date scheduled
 
 ---
 

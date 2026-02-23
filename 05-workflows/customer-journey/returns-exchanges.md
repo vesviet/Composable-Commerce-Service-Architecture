@@ -658,7 +658,123 @@ sequenceDiagram
 
 ---
 
-**Document Status**: ✅ Complete Implementation-Based Documentation  
-**Last Updated**: January 30, 2026  
-**Next Review**: February 29, 2026  
+## Seller Appeal Process
+
+When a return is approved by the platform against a seller's objection, sellers can appeal.
+
+### Seller Appeal Flow
+
+```
+Return Service → return.approved event → Notification Service
+    → Seller notification: "Return #RET-123 approved against your store"
+    → Seller Centre: appeal button visible for 5 days after decision
+
+Seller → Submit appeal:
+    - Reason: evidence that buyer claim is false
+    - Attachments: original dispatch photos, weight records, packing video
+    → Return Service: create appeal record
+    → SELLER_OPS admin queue
+
+SELLER_OPS Admin:
+    → Review: buyer evidence vs. seller evidence
+    → Decision within 3 business days
+
+    If seller wins appeal:
+        → Return Service: reverse refund (if not yet processed) OR deduct from buyer store credit
+        → Update: return status = APPEAL_SELLER_WON
+        → Escrow: release funds back to seller
+        → Notification: seller + buyer informed
+
+    If buyer wins appeal:
+        → Return Service: confirm original decision
+        → Update: return status = APPEAL_DISMISSED
+        → Seller: deducted from escrow (if not already done)
+        → Notification: seller informed, final decision
+```
+
+**Appeal rules**:
+- Max 1 appeal per return
+- Seller must submit within 5 days of return decision
+- Platform decision after appeal is final
+
+---
+
+## Chargeback vs. Platform Return — Conflict Handling
+
+A buyer may file both a platform return AND a card chargeback for the same order.
+
+```
+Scenario: Return approved + refund processed, then buyer also files chargeback.
+
+Payment Service detects chargeback on order with existing refund:
+    → Check: refund_record WHERE order_id = chargeback.order_id
+    → If refund already processed:
+        → Prepare evidence: refund confirmation, refund timestamp, payment gateway refund ID
+        → Submit to gateway: representment showing refund already issued
+        → Gateway forwards to card network → chargeback dismissed
+        → Log: chargeback.won_with_refund_evidence
+
+Scenario: Chargeback filed before return is processed.
+    → Order Service: flag order chargeback_in_progress = true
+    → Return Service: pause refund processing for this return
+    → FINANCE_ADMIN: decide — either fight chargeback (if fraudulent buyer)
+      or let chargeback proceed (effectively same as refund, faster)
+    → If chargeback succeeded:
+        → Payment Service: funds reversed by bank
+        → Return Service: cancel pending refund (double refund prevention)
+        → Inventory: proceed with return item restock or quarantine
+```
+
+---
+
+## Partial Refund Negotiation
+
+For cases where full refund is disputed (item partially damaged, some accessories missing).
+
+### Buyer-Seller Mediation Flow
+
+```
+Warehouse inspection → PARTIAL_REJECTION (some items accepted, some rejected)
+    → Return Service: calculate partial_refund_amount
+    → Notification to buyer: "We can refund ₫X for accepted items"
+
+If buyer rejects partial refund offer:
+
+    Buyer → Dispute escalation:
+        Return Service: status = PARTIAL_DISPUTE
+        CS Agent assigned
+
+    CS Agent:
+        → Review inspection photos + buyer's claim
+        → Options:
+            a) Accept buyer's full refund claim (over-approve)
+            b) Stand by partial (send detailed inspection report to buyer)
+            c) Offer compromise: ₫Y midpoint amount + store credit for remainder
+
+        → Platform-funded resolution if product was misrepresented by seller:
+            → Full refund approved, deduct from seller escrow
+
+    Resolution:
+        → CS Agent: record final_refund_amount with reason
+        → Payment Service: process final_refund_amount
+        → Notification: buyer + seller informed of final resolution
+```
+
+**Key principle**: In SEA markets (Shopee/Lazada model), platform absorbs disputed amounts where buyer satisfaction is at risk, then recovers from seller if seller-fault is proven.
+
+---
+
+## Changelog
+
+### Version 2.0 (2026-02-21)
+- Added seller appeal process with evidence submission and admin arbitration
+- Added chargeback vs. platform return conflict handling and double-refund prevention
+- Added partial refund negotiation and CS mediation flow
+
+### Version 1.0 (2026-01-30)
+- Initial returns workflow documentation
+
+---
+
+**Last Updated**: 2026-02-21  
 **Maintained By**: Returns Management & Customer Experience Team

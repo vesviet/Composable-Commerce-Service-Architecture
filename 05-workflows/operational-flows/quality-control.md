@@ -1,285 +1,223 @@
 # Quality Control Workflow
 
-**Version**: 1.0  
-**Last Updated**: 2026-01-31  
+**Version**: 2.0  
+**Last Updated**: 2026-02-21  
 **Category**: Operational Flows  
 **Status**: Active
 
 ## Overview
 
-Fulfillment quality control and inspection processes ensuring product quality, order accuracy, and customer satisfaction through systematic quality assurance checks throughout the fulfillment workflow.
+Warehouse QC in e-commerce is about verifying the right item in the right condition ships to the right customer, before handover to carrier. This is not a manufacturing inspection — it is a last-mile accuracy gate done by warehouse staff on packed orders.
+
+---
 
 ## Participants
 
-### Primary Actors
-- **Quality Inspector**: Performs quality checks and inspections
-- **Fulfillment Staff**: Prepares orders and handles QC feedback
-- **QC Supervisor**: Reviews failed inspections and makes decisions
-- **Warehouse Manager**: Oversees quality control operations
+- **Warehouse Staff / Packer**: Performs QC during or after packing
+- **QC Supervisor**: Reviews failed orders, makes disposition decisions
+- **Fulfillment Service**: Triggers QC requirement, records results
+- **Warehouse Service**: Provides inventory/product info
+- **Notification Service**: Alerts staff and sellers for issues
 
-### Systems/Services
-- **Fulfillment Service**: Triggers QC checks and processes results
-- **Warehouse Service**: Provides inventory and product information
-- **Analytics Service**: Tracks quality metrics and trends
-- **Notification Service**: Alerts for quality issues and failures
+---
 
-## Prerequisites
+## QC Trigger Rules
 
-### Business Prerequisites
-- Order picked and packed, ready for quality inspection
-- Quality control standards and procedures defined
-- Inspection criteria configured for product categories
-- Quality control staff trained and available
+| Condition | QC Type | Who Inspects |
+|---|---|---|
+| Order value > ₫5,000,000 | Mandatory 100% | Senior warehouse staff |
+| Contains fragile items | Mandatory 100% | Any staff |
+| First-time seller order | Mandatory 100% | QC Supervisor |
+| Random sampling | 10% of all orders | Any staff |
+| Customer-flagged seller (return rate > 8%) | Mandatory 100% | QC Supervisor |
 
-### Technical Prerequisites
-- Fulfillment service operational with QC integration
-- Quality control workstations configured
-- Barcode scanning equipment functional
-- Photo documentation system available
+All other orders: skip QC, proceed directly to carrier handover.
 
-## Workflow Steps
+---
 
-### Main Flow: Standard Quality Control Process
+## Main Flow: Post-Pack QC
 
-1. **QC Trigger Evaluation**
-   - **Actor**: Fulfillment Service
-   - **System**: Internal QC rules engine
-   - **Input**: Order details, product categories, customer tier
-   - **Output**: QC requirement determination
-   - **Duration**: 50-100ms
+### Step 1: QC Assignment
 
-2. **QC Assignment**
-   - **Actor**: Fulfillment Service
-   - **System**: QC workload balancer
-   - **Input**: QC requirement, inspector availability
-   - **Output**: QC task assigned to inspector
-   - **Duration**: 200-500ms
+```
+Fulfillment Service (after packing step):
+    → Evaluate QC trigger rules
+    → If QC required:
+        Create QC task: { order_id, qc_type, assigned_to }
+        Fulfillment Service: order status = PENDING_QC
+    → If QC not required:
+        Proceed directly to shipping label generation
+```
 
-3. **Package Retrieval**
-   - **Actor**: Quality Inspector
-   - **System**: Fulfillment Service
-   - **Input**: QC task ID, package location
-   - **Output**: Package retrieved for inspection
-   - **Duration**: 2-5 minutes
+### Step 2: Item Verification (Scan-to-Verify)
 
-4. **Order Verification**
-   - **Actor**: Quality Inspector
-   - **System**: Fulfillment Service
-   - **Input**: Package contents, order details
-   - **Output**: Order accuracy verified
-   - **Duration**: 3-8 minutes
+```
+QC Staff:
+    → Scan each item barcode / QR code in package
+    → Fulfillment Service: validate against order line items
+    → Items match → proceed
+    → Items mismatch:
+        Log: wrong_item_in_package (expected SKU, found SKU)
+        Status: QC_FAILED — WRONG_ITEM
+        → Re-pick correct item, restart from packing
+```
 
-5. **Product Quality Inspection**
-   - **Actor**: Quality Inspector
-   - **System**: QC inspection system
-   - **Input**: Product condition, quality criteria
-   - **Output**: Quality assessment completed
-   - **Duration**: 5-15 minutes
+### Step 3: Product Condition Check
 
-6. **Packaging Quality Check**
-   - **Actor**: Quality Inspector
-   - **System**: QC inspection system
-   - **Input**: Package condition, protection adequacy
-   - **Output**: Packaging quality verified
-   - **Duration**: 2-5 minutes
+```
+Staff visual inspection:
+    - No visible damage (dents, tears, cracks, stains)
+    - Original packaging intact (not opened, not tampered)
+    - Labels / stickers intact
+    - Expiry date (for consumables): > [return window + 30 days]
 
-7. **Documentation & Photos**
-   - **Actor**: Quality Inspector
-   - **System**: QC documentation system
-   - **Input**: Inspection results, quality issues
-   - **Output**: QC report with photos generated
-   - **Duration**: 3-7 minutes
+If damage found:
+    Log: product_condition_issue (describe damage)
+    Status: QC_FAILED — DAMAGED
+    → Return to warehouse inventory (quarantine bin)
+    → Pick replacement unit → restart from packing
+    → If no replacement: notify seller, cancel order item, partial refund
+```
 
-8. **QC Decision**
-   - **Actor**: Quality Inspector
-   - **System**: Fulfillment Service
-   - **Input**: Inspection results, quality standards
-   - **Output**: Pass/Fail decision recorded
-   - **Duration**: 1-2 minutes
+### Step 4: Weight Verification
 
-9. **Result Processing**
-   - **Actor**: Fulfillment Service
-   - **System**: Warehouse Service
-   - **Input**: QC decision, order ID
-   - **Output**: Order status updated, next action triggered
-   - **Duration**: 100-300ms
+```
+Packed order → placed on scale
+    → Actual weight vs. declared weight (from product catalog)
+    → Tolerance: ± 5% or ± 50g (whichever is greater)
 
-### Alternative Flow 1: High-Value Order Inspection
+If weight outside tolerance:
+    Flag for QC Supervisor: possible missing item or wrong item
+    QC Supervisor re-opens package, re-verify contents
+    → If missing item: re-pick, repack
+    → If weight catalog data wrong: update catalog, proceed
+```
 
-**Trigger**: Order value exceeds high-value threshold (₫5,000,000)
-**Steps**:
-1. Mandatory QC flag set for order
-2. Senior inspector assignment required
-3. Enhanced inspection checklist applied
-4. Additional photo documentation required
-5. Supervisor approval for QC pass decision
-6. Return to main flow step 9
+### Step 5: Packaging Adequacy Check
 
-### Alternative Flow 2: Random Quality Sampling
+```
+Staff checks:
+    - Package sealed properly (tape, no open seams)
+    - Fragile items: bubble wrap / air pillows present
+    - Multi-item orders: items don't shift/damage each other
+    - Shipping label: correct name, address, barcode (scan to verify)
 
-**Trigger**: Random sampling algorithm selects order (10% of orders)
-**Steps**:
-1. Random QC flag set during fulfillment
-2. Standard QC process with sampling notation
-3. Additional data collection for quality trends
-4. Results contribute to quality statistics
-5. No special handling required
-6. Return to main flow step 9
+If packaging inadequate:
+    → Repack with proper protection materials
+    → Apply new shipping label if damaged
+    → Re-seal and return to QC Step 5
+```
 
-### Alternative Flow 3: Customer-Requested Inspection
+### Step 6: Photo Documentation (High-Value & Mandatory QC Orders)
 
-**Trigger**: Customer specifically requests quality inspection
-**Steps**:
-1. Customer QC request flag set on order
-2. Enhanced inspection with customer-specific criteria
-3. Detailed photo documentation
-4. Customer notification of inspection completion
-5. Premium handling and packaging
-6. Return to main flow step 9
+For orders with QC type = Mandatory 100% or order value > ₫5,000,000:
 
-### Error Handling
+```
+Staff:
+    → Photo 1: All items laid out next to order packing slip
+    → Photo 2: Packed box open (contents visible)
+    → Photo 3: Sealed package with shipping label visible
+    → Upload photos: linked to order_id in QC record
+```
 
-#### Error Scenario 1: QC Inspection Failure
-**Trigger**: Product fails quality inspection
-**Impact**: Order cannot be shipped, customer delivery delayed
-**Resolution**:
-1. Document specific quality issues found
-2. Remove defective items from package
-3. Check inventory for replacement items
-4. If replacement available, repack and re-inspect
-5. If no replacement, notify customer and offer alternatives
+Photos serve as evidence in buyer disputes / chargebacks.
 
-#### Error Scenario 2: Order Accuracy Failure
-**Trigger**: Package contents don't match order
-**Impact**: Wrong items would be shipped to customer
-**Resolution**:
-1. Document discrepancies found
-2. Return incorrect items to inventory
-3. Pick correct items from warehouse
-4. Repack order with correct items
-5. Restart QC process from step 4
+### Step 7: QC Pass — Proceed to Shipping
 
-#### Error Scenario 3: Packaging Damage
-**Trigger**: Package or products damaged during handling
-**Impact**: Customer would receive damaged goods
-**Resolution**:
-1. Assess extent of damage
-2. If minor, repackage with better protection
-3. If major, replace damaged items
-4. Use appropriate packaging materials
-5. Restart QC process from step 6
+```
+Fulfillment Service:
+    → Record: qc_passed_at, inspector_id, qc_type, photos_attached
+    → Order status: QC_PASSED
+    → Trigger: shipping label generation
+    → Handover package to carrier collection point
+```
 
-## Business Rules
+---
 
-### QC Trigger Rules
-- **High-Value Orders**: Orders > ₫5,000,000 require mandatory QC (100%)
-- **Random Sampling**: 10% of all orders selected for random QC
-- **First-Time Customers**: 25% of first-time customer orders
-- **Fragile Items**: Orders containing fragile products (100%)
-- **Customer Request**: Customer-requested inspections (100%)
+## QC Failure Handling
 
-### Quality Standards
-- **Product Condition**: No visible damage, defects, or wear
-- **Order Accuracy**: 100% match between ordered and packed items
-- **Packaging Quality**: Adequate protection for shipping
-- **Documentation**: Complete and accurate shipping labels
-- **Cleanliness**: Products and packaging clean and presentable
+### Wrong Item
 
-## Integration Points
+```
+Severity: High — never ship wrong item
+Action:
+    1. Remove wrong item → return to inventory (wrong_pick_bin)
+    2. Pick correct item
+    3. Re-verify → restart QC from Step 2
+    4. Log picker error for performance tracking
+```
 
-### Service Integrations
-| Service | Integration Type | Purpose | Error Handling |
-|---------|------------------|---------|----------------|
-| Warehouse Service | Synchronous gRPC | Product information | Cache fallback |
-| Analytics Service | Asynchronous Event | Quality metrics | Best effort delivery |
-| Notification Service | Asynchronous Event | Quality alerts | Dead letter queue |
+### Damaged Item
 
-### External Integrations
-| External System | Integration Type | Purpose | SLA |
-|-----------------|------------------|---------|-----|
-| Photo Storage | REST API | QC documentation | 99% availability |
-| Barcode Scanner | Hardware API | Product verification | 99.9% availability |
+```
+Severity: High — never ship damaged goods
+Action:
+    1. Quarantine damaged unit (damaged_stock_bin)
+    2. Warehouse Service: stock adjustment (reason=DAMAGE)
+    3. Pick replacement if available → restart QC
+    4. If no replacement:
+        → Notify seller (if marketplace model)
+        → Order Service: partial cancellation for that item
+        → Payment Service: partial refund
+        → Notification: buyer receives partial refund notice
+```
 
-## Performance Requirements
+### Weight Mismatch Unresolved
 
-### Response Times
-- QC assignment: < 1 second
-- Inspection completion: 10-30 minutes per order
-- QC decision processing: < 500ms
-- Result notification: < 2 seconds
+```
+Severity: Medium — re-inspect once
+Action:
+    1. QC Supervisor opens package, re-verifies item by item
+    2. If resolved: update QC record, proceed
+    3. If weight still wrong: defer to supervisor decision
+       (usually: proceed with note if fragile item packing explains weight delta)
+```
 
-### Throughput
-- Peak load: 200 QC inspections per hour
-- Average load: 80 QC inspections per hour
-- Inspector capacity: 6-8 inspections per hour per inspector
+---
 
-### Availability
-- Target uptime: 99.5%
-- QC system availability during business hours: 99.9%
-- Photo documentation success rate: > 98%
+## Carrier Pre-Handover Check
 
-## Monitoring & Metrics
+Regardless of QC type, always before handing to carrier:
 
-### Key Metrics
-- **QC Pass Rate**: Percentage of orders passing quality inspection
-- **Inspection Time**: Average time per quality inspection
-- **Defect Detection Rate**: Percentage of defects caught by QC
-- **Inspector Productivity**: Inspections completed per hour per inspector
-- **Customer Satisfaction**: Quality-related customer feedback
+```
+Staff / system:
+    ✓ Shipping label barcode scans successfully (scan test)
+    ✓ Package weight entered in carrier manifest matches actual
+    ✓ Package dimensions recorded (if courier calculates volumetric weight)
+    ✓ COD amount (if COD order) written on package clearly
+```
 
-### Alerts
-- **Critical**: QC pass rate < 90%
-- **Critical**: QC system downtime during business hours
-- **Warning**: Unusual increase in quality failures
-- **Info**: Inspector productivity below target
+---
 
-### Dashboards
-- Real-time QC operations dashboard
-- Quality trends and defect analysis
-- Inspector performance dashboard
-- Customer quality feedback dashboard
+## QC Metrics
 
-## Testing Strategy
+| Metric | Target | Alert Threshold |
+|---|---|---|
+| Order accuracy rate | > 99.5% | < 98% |
+| Damaged item catch rate | > 99% | < 97% |
+| QC throughput | 50+ orders/hour | < 30 orders/hour |
+| Weight discrepancy rate | < 0.5% | > 2% |
+| Photo documentation compliance | 100% for mandatory QC | < 95% |
 
-### Test Scenarios
-1. **Standard QC Process**: Normal quality inspection flow
-2. **High-Value Orders**: Enhanced inspection procedures
-3. **Quality Failures**: Various defect scenarios
-4. **System Failures**: QC system downtime handling
-5. **Peak Load**: High-volume inspection processing
+**Daily report**: Fulfillment Service → QC summary event → Analytics Service
+- Count: QC passed, failed (by reason), total orders QC'd
+- Alert: if failure rate > 2% within any 4-hour window
 
-### Test Data
-- Orders with various product categories
-- Simulated quality defects and issues
-- Different customer tiers and requirements
-- Mock inspection results and photos
-
-## Troubleshooting
-
-### Common Issues
-- **Long Inspection Times**: Review inspection procedures and training
-- **High Failure Rates**: Analyze root causes and supplier quality
-- **System Slowdowns**: Check QC system performance and capacity
-- **Photo Upload Failures**: Verify storage system connectivity
-
-### Debug Procedures
-1. Check QC system logs for inspection details
-2. Review inspector workload and assignment logic
-3. Analyze quality failure patterns and trends
-4. Verify photo documentation system status
-5. Test barcode scanning equipment functionality
+---
 
 ## Changelog
 
+### Version 2.0 (2026-02-21)
+- Rewritten for practical e-commerce warehouse operations
+- Replaced manufacturing/ISO framework with scan-to-verify, weight check, photo docs
+- Added carrier pre-handover checklist
+- Added damage disposition flow with refund trigger
+
 ### Version 1.0 (2026-01-31)
 - Initial quality control workflow documentation
-- Comprehensive QC trigger rules and standards
-- Multi-tier inspection process (standard, high-value, random)
-- Quality metrics and performance monitoring
 
 ## References
 
-- [Fulfillment Service Documentation](../../03-services/operational-services/fulfillment-service.md)
-- [Warehouse Service Integration](../../03-services/operational-services/warehouse-service.md)
-- [Quality Control Standards](../../06-operations/procedures/quality-control-standards.md)
-- [Fulfillment Workflow](./order-fulfillment.md)
+- [Order Fulfillment Workflow](./order-fulfillment.md)
+- [Seller & Merchant Flow — Order Management](./seller-merchant.md)
+- [Returns-Exchanges — Item Inspection](../customer-journey/returns-exchanges.md)

@@ -22,6 +22,13 @@ This guide provides a comprehensive **3-phase migration approach** for migrating
 - **Search & Navigation** → [Search Service](../../03-services/search/)
 - **Promotions & Coupons** → [Promotion Service](../../03-services/promotion/)
 - **Loyalty & Rewards** → [Loyalty Service](../../03-services/loyalty-rewards/)
+- **Inventory / Stock** → [Warehouse Service](../../03-services/warehouse/)
+
+> [!WARNING]
+> **This migration has 3 non-trivial technical challenges** that must be addressed before starting:
+> 1. **EAV schema** — Magento stores attributes (firstname, price, description…) in `*_varchar`, `*_int`, `*_decimal` sub-tables. Naive `SELECT *` queries will be missing all attributes. See `data-migration-guide.md` Step 1.2.
+> 2. **Integer → UUID ID mapping** — Magento uses `entity_id` (int), microservices use UUIDs. A `magento_id_map` cross-reference table must be established before any data is migrated. See `data-migration-guide.md` Step 1.4.
+> 3. **True CDC vs. polling** — Real-time sync uses Debezium (MySQL binlog), NOT `updated_at` polling. Polling misses DELETEs and is clock-skew sensitive. See `sync-service-implementation.md`.
 
 ---
 
@@ -47,15 +54,15 @@ This guide provides a comprehensive **3-phase migration approach** for migrating
 
 #### **[Phase 1: Read-Only Migration](./phase-1-read-only.md)**
 - **Smart Routing**: API Gateway routes read APIs to microservices
-- **Real-time Sync**: Magento → Microservices (1s interval)
+- **Real-time CDC**: Debezium MySQL binlog sync (Magento → Microservices)
 - **Automatic Fallback**: Feature flags disable on failures
 - **Zero Risk**: Magento remains source of truth for writes
 
 #### **[Phase 2: Read-Write Migration](./phase-2-read-write.md)**
 - **Gradual Dual-Write**: Enable write APIs by service (Customer → Catalog → Order)
-- **Event-Driven Sync**: Two-way sync via Kafka Event Bus
-- **Hybrid Consistency**: Strong for critical data, eventual for non-critical
-- **Conflict Resolution**: Magento wins strategy
+- **Dapr Pub/Sub Sync**: Bidirectional sync via platform event bus (no separate Kafka)
+- **Timestamp Conflict Resolution**: Newer write wins per entity type
+- **Rollback**: Feature flag disable reverts to Magento in < 10s
 
 #### **[Phase 3: Full Cutover](./phase-3-full-cutover.md)**
 - **Gradual Service Migration**: 100% traffic by service (Week 1-6)
@@ -198,6 +205,6 @@ graph LR
 
 ---
 
-**Last Updated**: February 3, 2026  
+**Last Updated**: 2026-02-21  
 **Review Cycle**: Weekly during active migration  
 **Maintained By**: Migration Team & Platform Engineering

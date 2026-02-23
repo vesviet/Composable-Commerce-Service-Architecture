@@ -1,7 +1,7 @@
 # ✏️ Phase 2: Read-Write Migration (Gradual Dual-Write)
 
 **Purpose**: Phase 2 migration with gradual dual-write and two-way synchronization  
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-02-21  
 **Status**: ✅ Ready for implementation
 
 ---
@@ -103,101 +103,144 @@ graph TB
 
 ### **Step 1: Event Bus Infrastructure**
 
-#### **1.1 Deploy Event Bus (Kafka)**
+> [!IMPORTANT]
+> **Do NOT deploy a separate Kafka cluster** for Phase 2 migration. The platform already runs Dapr Pub/Sub with Redis Streams. Use the existing `pubsub` component. This avoids operating two competing event systems simultaneously.
+
+#### **1.1 Dapr Pub/Sub Configuration (already in platform)**
+
 ```yaml
-# kafka-cluster.yaml
-apiVersion: kafka.strimzi.io/v1beta2
-kind: Kafka
-metadata:
-  name: migration-event-bus
-  namespace: production
-spec:
-  kafka:
-    version: 3.5.0
-    replicas: 3
-    listeners:
-      - name: plain
-        port: 9092
-        type: internal
-        tls: false
-    config:
-      offsets.topic.replication.factor: 3
-      transaction.state.log.replication.factor: 3
-      default.replication.factor: 3
-      min.insync.replicas: 2
-    storage:
-      type: persistent-claim
-      size: 100Gi
-  zookeeper:
-    replicas: 3
-    storage:
-      type: persistent-claim
-      size: 10Gi
+# Already deployed — no additional infra required
+# Verify with:
+kubectl get components -n production pubsub
+# Expected: dapr.io/v1alpha1/Component pubsub (Redis Streams)
 ```
 
-#### **1.2 Event Topics**
+#### **1.2 Migration-specific Dapr Topics**
+
+The Debezium sync service (Phase 1) already publishes to these topics:
+
+| Topic | Publisher | Consumers |
+|---|---|---|
+| `migration.customer.changed` | Sync Service | Customer Service |
+| `migration.product.changed` | Sync Service | Catalog Service |
+| `migration.order.changed` | Sync Service | Order Service |
+| `migration.stock.changed` | Sync Service | Warehouse Service |
+| `migration.dlq` | Dapr (auto) | Ops team via DLQ handler |
+
+For dual-write (microservices → Magento sync), add reverse topics:
+
 ```yaml
-# event-topics.yaml
-apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaTopic
+# Add subscriptions in the Magento sync-adapter service
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
 metadata:
-  name: customer-events
-  namespace: production
+  name: reverse-sync-customer
+  namespace: migration
 spec:
-  partitions: 6
-  replicas: 3
+  pubsubname: pubsub
+  topic: customer.updated           # Platform's existing domain topic
+  route: /reverse-sync/customer
+  deadLetterTopic: migration.dlq
 ---
-apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaTopic
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
 metadata:
-  name: catalog-events
-  namespace: production
+  name: reverse-sync-order
+  namespace: migration
 spec:
-  partitions: 6
-  replicas: 3
----
-apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaTopic
-metadata:
-  name: order-events
-  namespace: production
-spec:
-  partitions: 6
-  replicas: 3
+  pubsubname: pubsub
+  topic: order.placed
+  route: /reverse-sync/order
+  deadLetterTopic: migration.dlq
 ```
 
-### **Step 2: Event Processor Service**
+### **Step 2: Conflict Resolution Strategy**
 
-#### **2.1 Event Processor Deployment**
+> [!WARNING]
+> "Magento wins" is **not sufficient** in Phase 2. During dual-write, both Magento and the microservice can mutate the same record concurrently. Without proper conflict detection, the last write wins arbitrarily and silently overwrites legitimate changes.
+
+#### **2.1 Timestamp-Based Conflict Resolution**
+
+Every entity in the microservice DB carries an `updated_at` timestamp. The Magento sync adapter compares timestamps before applying a change:
+
+```go
+// magento-sync-adapter/conflict_resolver.go
+func (r *ConflictResolver) ResolveCustomerChange(ctx context.Context, event MigrationEvent) error {
+    // Fetch current state from microservices DB
+    current, err := r.customerRepo.FindByMagentoID(ctx, event.MagentoID)
+    if err != nil && !errors.Is(err, ErrNotFound) {
+        return err
+    }
+    if current == nil {
+        // No conflict: new record, apply directly
+        return r.customerRepo.UpsertFromMigration(ctx, event)
+    }
+
+    magentoUpdatedAt := event.UpdatedAt
+    microUpdatedAt := current.UpdatedAt
+
+    if magentoUpdatedAt.After(microUpdatedAt) {
+        // Magento change is newer: apply to microservices
+        return r.customerRepo.UpsertFromMigration(ctx, event)
+    }
+    if microUpdatedAt.After(magentoUpdatedAt) {
+        // Microservices change is newer: sync back to Magento instead
+        return r.magentoAdapter.UpdateCustomer(ctx, current)
+    }
+    // Equal timestamps: idempotent, skip
+    return nil
+}
+```
+
+#### **2.2 Conflict Resolution Policy by Data Type**
+
+| Entity | Policy | Rationale |
+|---|---|---|
+| Customer profile (name, email) | Timestamp-based | Both sides can legitimately update |
+| Order status | Microservices wins | Order state machine is in microservice |
+| Inventory (stock qty) | Microservices wins | Real-time reservations live in microservice |
+| Product price | Admin decision | Pricing is always written from Seller Centre |
+| Coupon usage count | Sum / reconcile | Both sides may increment concurrently |
+
+#### **2.3 Reverse Sync Adapter Deployment**
+
 ```yaml
-# event-processor.yaml
+# magento-sync-adapter.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: event-processor
-  namespace: production
+  name: magento-sync-adapter
+  namespace: migration
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: event-processor
+      app: magento-sync-adapter
   template:
     metadata:
       labels:
-        app: event-processor
+        app: magento-sync-adapter
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "magento-sync-adapter"
+        dapr.io/app-port: "8080"
     spec:
       containers:
-      - name: event-processor
-        image: event-processor:latest
+      - name: magento-sync-adapter
+        image: magento-sync-adapter:latest
         env:
-        - name: KAFKA_BOOTSTRAP_SERVERS
-          value: "migration-event-bus-bootstrap:9092"
         - name: MAGENTO_DB_HOST
-          value: "magento-db.production.svc.cluster.local"
-        - name: MICRO_DB_HOST
-          value: "microservices-db.production.svc.cluster.local"
-        command: ["./event-processor"]
-        args: ["--dual-write", "--conflict-resolution=magento-wins"]
+          valueFrom:
+            secretKeyRef:
+              name: magento-db-creds
+              key: host
+        - name: MAGENTO_DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: magento-db-creds
+              key: password
+        - name: CONFLICT_RESOLUTION_MODE
+          value: "timestamp"  # timestamp | microservices-wins | magento-wins
 ```
 
 ### **Step 3: Update Microservices for Dual-Write**

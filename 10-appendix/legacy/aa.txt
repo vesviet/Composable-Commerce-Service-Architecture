@@ -41,13 +41,54 @@ review
 loyalty-rewards
 analytics
 
-Dựa trên kiến trúc project, hãy review logic nghiệp vụ của system ecommerce
-Kiểm tra sự nhất quán dữ liệu giữa các service
-Có trường hợp nào dữ liệu bị lệch (mismatched) không?
-Cơ chế Retry hoặc Rollback (Saga pattern/Outbox) đã được triển khai đúng chưa?
-Liệt kê các điểm rủi ro về logic (Edge cases) mà code hiện tại chưa xử lý.
-tạo thêm checklist ở docs\10-appendix\checklists\v5
+
+Follow Shopify, Shopee, and Lazada patterns, skills, codebase hiện tại và docs\10-appendix\ecommerce-platform-flows.md
+hãy review logic nghiệp vụ của :
+- Kiểm tra sự nhất quán dữ liệu giữa các service
+- Có trường hợp nào dữ liệu bị lệch (mismatched) không?
+- Cơ chế Retry hoặc Rollback (Saga pattern/Outbox)(service có thực tế cần publish event không) đã được triển khai đúng chưa?
+- Liệt kê các điểm rủi ro về logic (Edge cases) mà code hiện tại chưa xử lý.
+- Check lại các service có thực sự cần publish event không?
+- Check lại các service có thực sự cần subscribe event không?
+- Check config gitops
+- check event, consumer, cron job chạy trên worker
+tạo thêm checklist ở docs\10-appendix\checklists\workflow
 
 process all issue help me
 
-Shopify, Shopee, and Lazada patterns.
+Follow Shopify, Shopee, and Lazada patterns.
+
+follow rule, skill, workflows vs docs 
+
+1. [Customer & Identity Flows](#1-customer--identity-flows)
+2. [Catalog & Product Flows](#2-catalog--product-flows)
+3. [Search & Discovery Flows](#3-search--discovery-flows)
+4. [Pricing, Promotion & Tax Flows](#4-pricing-promotion--tax-flows)
+5. [Cart & Checkout Flows](#5-cart--checkout-flows)
+6. [Order Lifecycle Flows](#6-order-lifecycle-flows)
+7. [Payment Flows](#7-payment-flows)
+8. [Inventory & Warehouse Flows](#8-inventory--warehouse-flows)
+9. [Fulfillment & Shipping Flows](#9-fulfillment--shipping-flows)
+10. [Return & Refund Flows](#10-return--refund-flows)
+11. [Notification Flows](#11-notification-flows)
+12. [Seller / Merchant Flows](#12-seller--merchant-flows)
+13. [Admin & Operations Flows](#13-admin--operations-flows)
+14. [Analytics & Reporting Flows](#14-analytics--reporting-flows)
+15. [Cross-Cutting Concerns](#15-cross-cutting-concerns)
+
+
+docs\10-appendix\checklists\workflow\customer-identity-flow-checklist.md
+docs\10-appendix\checklists\workflow\catalog-product-flow-checklist.md
+docs\10-appendix\checklists\workflow\search-discovery-flow-review.md
+docs\10-appendix\checklists\workflow\pricing-promotion-tax-flow-checklist.md
+docs\10-appendix\checklists\workflow\cart-checkout-flow-checklist.md
+docs\10-appendix\checklists\workflow\order-lifecycle-flow-review.md
+docs\10-appendix\checklists\workflow\payment-flow-checklist.md
+docs\10-appendix\checklists\workflow\inventory-warehouse-flow-review.md
+docs\10-appendix\checklists\workflow\fulfillment-shipping-flow-checklist.md
+docs\10-appendix\checklists\workflow\return-refund-flow-checklist.md
+docs\10-appendix\checklists\workflow\notification-flow-review.md
+docs\10-appendix\checklists\workflow\admin-operations-flow-checklist.md
+docs\10-appendix\checklists\workflow\analytics-reporting-flow-checklist.md
+
+docs\10-appendix\checklists\workflow\cross-cutting-concerns-review.md

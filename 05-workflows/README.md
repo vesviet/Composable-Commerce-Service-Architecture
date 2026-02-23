@@ -17,7 +17,9 @@ This section contains detailed documentation of business processes, user journey
 End-to-end customer-facing processes
 - **[browse-to-purchase.md](customer-journey/browse-to-purchase.md)** - Complete shopping journey from discovery to delivery
 - **[account-management.md](customer-journey/account-management.md)** - Customer registration, profile, and authentication flows
-- **[returns-exchanges.md](customer-journey/returns-exchanges.md)** - Return and exchange processes with refund workflows
+- **[wishlist.md](customer-journey/wishlist.md)** - Wishlist management, back-in-stock and price-drop notification flows
+- **[guest-checkout.md](customer-journey/guest-checkout.md)** - Guest cart, anonymous checkout, cart merge on login, post-purchase account creation
+- **[returns-exchanges.md](customer-journey/returns-exchanges.md)** - Return and exchange processes, seller appeal, chargeback handling, partial refund negotiation
 - **[loyalty-rewards.md](customer-journey/loyalty-rewards.md)** - Loyalty program, points, and rewards workflows
 - **[product-reviews.md](customer-journey/product-reviews.md)** - Product review and rating workflows
 
@@ -25,11 +27,14 @@ End-to-end customer-facing processes
 Internal business operations and processes
 - **[order-fulfillment.md](operational-flows/order-fulfillment.md)** - Complete order processing and fulfillment workflow
 - **[inventory-management.md](operational-flows/inventory-management.md)** - Stock management, reservations, and capacity planning
-- **[payment-processing.md](operational-flows/payment-processing.md)** - Multi-gateway payment flows and reconciliation
+- **[payment-processing.md](operational-flows/payment-processing.md)** - Multi-gateway payment flows, BNPL, QR, escrow, and chargeback handling
 - **[pricing-promotions.md](operational-flows/pricing-promotions.md)** - Dynamic pricing and promotion management
 - **[shipping-logistics.md](operational-flows/shipping-logistics.md)** - Multi-carrier shipping and delivery tracking
-- **[quality-control.md](operational-flows/quality-control.md)** - Fulfillment quality control and inspection processes
+- **[quality-control.md](operational-flows/quality-control.md)** - Warehouse QC: scan-to-verify, weight check, photo documentation, damage disposition
 - **[customer-service-workflow.md](operational-flows/customer-service-workflow.md)** - Customer support operations and ticket management
+- **[seller-merchant.md](operational-flows/seller-merchant.md)** - Seller onboarding, KYC, order ops, performance scoring, escrow/payout, B2B
+- **[admin-operations.md](operational-flows/admin-operations.md)** - RBAC, CS agent operations, seller governance, platform config, campaign management
+- **[analytics-reporting.md](operational-flows/analytics-reporting.md)** - Funnel analysis, RFM/cohort, A/B testing, payout reconciliation, tax reporting
 
 #### **[Integration Flows](integration-flows/)**
 System integrations and data synchronization
@@ -39,6 +44,7 @@ System integrations and data synchronization
 - **[external-apis.md](integration-flows/external-apis.md)** - Third-party integrations (payment gateways, shipping carriers)
 - **[search-indexing.md](integration-flows/search-indexing.md)** - Elasticsearch indexing and search workflows
 - **[reservation-release-flows.md](integration-flows/reservation-release-flows.md)** - Stock reservation and release workflows
+- **[idempotency-saga.md](integration-flows/idempotency-saga.md)** - Outbox pattern, Saga choreography/orchestration, DLQ retry, payment callback idempotency
 
 #### **[Sequence Diagrams](sequence-diagrams/)**
 Visual representations of system interactions
@@ -306,7 +312,7 @@ All 24 deployable services are production-ready and fully operational:
 
 ---
 
-**Last Updated**: February 7, 2026  
+**Last Updated**: 2026-02-21  
 **Platform Status**: 100% Complete, 24/24 Services Production Ready  
 **GitOps**: Kustomize-based deployment with ArgoCD  
 **Maintained By**: Business Process & Architecture Team
