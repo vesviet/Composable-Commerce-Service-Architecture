@@ -17,12 +17,12 @@
 | Return request deduplication | DB unique constraint (`idx_returns_order_active_unique`) | `CreateReturnRequest` | ✅ Idempotent via constraint + retry | Concurrent creation handled |
 | Return item quantity vs. ordered quantity | Order service `GetOrderItems` | `CreateReturnRequest:192` | ✅ Validated: `itemReq.Quantity > orderItem.Quantity` | — |
 | Refund amount calculation | `item.UnitPrice * Quantity - RestockingFee` | `processReturnRefund` | ⚠️ No tax / shipping cost refund logic | Partial refunds missing granularity |
-| Refund processed state | Payment service (`ProcessRefund` response) | `RefundID` + `RefundProcessedAt` | ⚠️ No idempotency key | RET-P1-02: double-refund risk on retry |
-| Restock quantity | Return item `Quantity` if `Restockable=true` | `restockReturnedItems` | ⚠️ WarehouseID defaults to `"default"` | Wrong warehouse if metadata missing |
-| Shipping label | Shipping service `CreateReturnShipment` | `generateReturnShippingLabel` | ⚠️ Origin/destination addresses not passed | RET-P1-03: empty label data |
-| Order status after return | Order service (must update to RETURN_REQUESTED) | Return service (gRPC call?) | ❌ **NOT FOUND** — No order status update call in return biz | Order remains in wrong status |
+| Refund processed state | Payment service (`ProcessRefund` response) | `RefundID` + `RefundProcessedAt` | ✅ Idempotency key `returnID + ":refund"` passed | RET-P1-02 Fixed |
+| Restock quantity | Return item `Quantity` if `Restockable=true` | `restockReturnedItems` | ✅ **Fixed** — `warehouse_id` stored in `ReturnItem.Metadata` at creation time from order item proto field `WarehouseId`; restock routes to correct warehouse | RET-P1-04 Fixed |
+| Shipping label | Shipping service `CreateReturnShipment` | `generateReturnShippingLabel` | ✅ **Fixed** — `GetOrder` now maps `ShippingAddress` to `OrderInfo.ShippingAddress`; used as Origin; warehouse address from `config.business.warehouse_return_address` used as Destination | RET-P1-03 Fixed |
+| Order status after return | Order service (must update to RETURN_REQUESTED) | Return service gRPC call | ✅ **Fixed** — `orderService.UpdateOrderStatus` called in `UpdateReturnRequestStatus` at `approved` and `completed` transitions | `return.go:379-382, 437-443` |
 | Stock update after restock | Warehouse service `RestockItem` | `restockReturnedItems` | ✅ Retry via outbox on failure | — |
-| Event publishing after status changes | `eventPublisher.Publish*` | All consumers | ⚠️ **Direct publish, not outbox** | Events lost on crash/Dapr failure |
+| Event publishing after status changes | `outboxRepo.Save` inside status-update TX | All consumers | ✅ **Fixed** — All lifecycle events (`return.requested/approved/rejected/completed`, all exchange events) now saved to outbox inside the DB transaction | `return.go:248-268, 357-392, 444-452` |
 
 ---
 
@@ -123,15 +123,15 @@ func NewOutboxWorker(...) *outbox.Worker {
 Uses `common/outbox.Worker` — shared implementation. Batch size 50.
 
 | Check | Status |
-|-------|--------|
+|----------|--------|
 | Outbox worker exists and uses common library | ✅ |
 | Refund failure saved to outbox (`return.refund_retry`) | ✅ `refund.go:78-88` |
 | Restock failure saved to outbox (`return.restock_retry`) | ✅ `restock.go:76-87` |
-| **Consumer for `return.refund_retry`** | ❌ **Missing** — outbox publishes the event but there is no worker/consumer within return service that processes `return.refund_retry` events |
-| **Consumer for `return.restock_retry`** | ❌ **Missing** — same gap |
-| Primary lifecycle events via outbox | ❌ All published via direct `eventPublisher.Publish*` |
+| **Consumer for `return.refund_retry`** | ✅ **Fixed** — `ReturnCompensationWorker` processes `return.refund_retry` outbox events directly; wired as Kratos `WorkerServer` in `wire_gen.go` |
+| **Consumer for `return.restock_retry`** | ✅ **Fixed** — `ReturnCompensationWorker` processes `return.restock_retry` events; started via `WorkerServer` |
+| Primary lifecycle events via outbox | ✅ **Fixed** — All state-change events written to outbox inside the status-update transaction; outbox worker publishes them to Dapr |
 
-**Critical**: `return.refund_retry` and `return.restock_retry` events are saved to the outbox table, but if there is no consumer listening to those topics, they are published to Dapr pub/sub and lost — since no service subscribes to those topics.
+**Both workers (`outboxWorker` and `compensationWorker`) are now started via `WorkerServer` registered as a Kratos transport in `wire_gen.go`.**
 
 ---
 
@@ -159,18 +159,19 @@ Missing intermediate statuses for failure handling:
 
 | Issue | Description | File | Fix |
 |-------|-------------|------|-----|
-| **RET-P0-001** | All primary lifecycle events (`return.requested/approved/rejected/completed`, all exchange events) published via **direct Dapr, not outbox**. If service crashes post-DB-write, events are permanently lost. Notification/loyalty/order services miss the signal. | `return.go:251,357,363,358,389` | Write all state-change events to outbox INSIDE the status-update transaction |
-| **RET-P0-002** | `return.refund_retry` and `return.restock_retry` events are saved to outbox and re-published via Dapr, but **no service subscribes to these topics**. The outbox worker publishes them to nowhere. Retry never actually retries. | `refund.go:81`, `restock.go:79-80` | Either: (A) add a Dapr consumer in return service for these retry topics that calls `processReturnRefund` / `restockReturnedItems` again; OR (B) use a cron worker that queries outbox directly |
-| **RET-P0-003** | Order status is not updated when return is approved or completed. Order service still shows original status (`COMPLETED`) after customer return is processed. | `return.go:346-399` | Call `orderService.UpdateOrderStatus` at `approved` → `RETURN_REQUESTED` and at `completed` → `RETURNED` |
+| ~~**RET-P0-001**~~ | ~~All primary lifecycle events (`return.requested/approved/rejected/completed`, all exchange events) published via **direct Dapr, not outbox**~~. | ~~`return.go:251,357,363,358,389`~~ | ✅ **Fixed** — All state-change events written to outbox inside status-update TX (`return.go:248-268, 357-392, 444-452`) |
+| ~~**RET-P0-002**~~ | ~~`return.refund_retry` and `return.restock_retry` events published to Dapr but no service subscribes. Retry never retries.~~ | ~~`refund.go:81`, `restock.go:79-80`~~ | ✅ **Fixed** — `ReturnCompensationWorker` implemented (`internal/worker/compensation_worker.go`) and wired as `WorkerServer` in `wire_gen.go`; polls outbox directly for retry events |
+| ~~**RET-P0-003**~~ | ~~Order status not updated when return is approved/completed. Order remains in incorrect state.~~ | ~~`return.go:346-399`~~ | ✅ **Fixed** — `orderService.UpdateOrderStatus` called at `approved` (→ `RETURN_REQUESTED`) and `completed` (→ `RETURNED`) transitions |
 
 ### 🟡 P1 — High Priority (Confirmed Open from Active Issues)
 
 | Issue | Description | File | Fix |
 |-------|-------------|------|-----|
 | **RET-P1-01** | No granular failure statuses — refund/restock failure causes completed status with silent error. Customer not refunded, system says completed. | `return.go:367-389` | Add `pending_refund`, `refund_failed`, `pending_restock`, `restock_failed` statuses |
-| **RET-P1-02** | `ProcessRefund` called with NO idempotency key. On retry via outbox `return.refund_retry`, payment service may process duplicate refund. | `refund.go:59` | Generate idempotency key from `ReturnRequest.ID + attempt_count`; pass to `PaymentService.ProcessRefund` |
-| **RET-P1-03** | `generateReturnShippingLabel` passes empty `Origin` and `Destination` to `ShippingService.CreateReturnShipment`. Carrier creates invalid label (or silently fails). | `shipping.go:19-24` | Fetch customer address from Order or Customer service; fetch warehouse address from Warehouse service; pass both to label request |
-| **RET-P1-04** | `restockReturnedItems` uses `warehouseID := "default"` fallback. In multi-warehouse setups, items return to wrong location. | `restock.go:47` | Store originating `warehouseID` on order item at order creation; propagate to return item; use as restock destination |
+| ~~**RET-P1-02**~~ | ~~`ProcessRefund` called with NO idempotency key. On retry, payment service may process duplicate refund.~~ | ~~`refund.go:59`~~ | ✅ **Fixed** — Idempotency key `returnID + ":refund"` generated in `refund.go:54`; passed to `PaymentService.ProcessRefund` |
+| ~~**RET-P1-03**~~ | ~~`generateReturnShippingLabel` passes empty `Origin` and `Destination` to `ShippingService.CreateReturnShipment`. Carrier creates invalid label (or silently fails).~~ | ~~`shipping.go:19-24`~~ | ✅ **Fixed** — `GetOrder` maps `ShippingAddress → OrderInfo.ShippingAddress` (Origin); Destination = `config.business.warehouse_return_address`; items list included |
+| ~~**RET-P1-04**~~ | ~~`restockReturnedItems` uses `warehouseID := "default"` fallback. In multi-warehouse setups, items return to wrong location.~~ | ~~`restock.go:47`~~ | ✅ **Fixed** — `OrderItemInfo.WarehouseID` mapped from proto `item.WarehouseId`; stored in `ReturnItem.Metadata["warehouse_id"]` at `CreateReturnRequest`; `restock.go:48-52` reads it at restock time |
+| ~~**RET-P1-05**~~ | ~~No compensation retry worker — failed refunds/restocks are lost~~ | | ✅ **Fixed** — `ReturnCompensationWorker` implemented + wired into `wire_gen.go` |
 
 ### 🔵 P2 — Logic Gaps
 
@@ -251,9 +252,12 @@ The `return_refund_issues.md` references `order/internal/biz/return/return.go`, 
 
 | Worker | Type | Implementation | Status |
 |--------|------|---------------|--------|
-| `checkout-outbox-worker` → `return-outbox-worker` | Continuous | `common/outbox.Worker`, batch=50 | ✅ Using shared implementation |
+| `return-outbox-worker` | Continuous | `common/outbox.Worker`, batch=50 | ✅ Wired via `WorkerServer` in `wire_gen.go` |
 | Cart cleanup / session cleanup | ❌ None | N/A | ✅ Return service has no carts |
-| Failed compensation worker | ❌ **NOT PRESENT** | N/A | ⚠️ Compensation for refund/restock failures goes to outbox but no retry consumer |
+| `ReturnCompensationWorker` | Periodic (30s poll) | `internal/worker/compensation_worker.go` | ✅ **Fixed** — Implemented + wired as `WorkerServer` in `wire_gen.go`; processes `return.refund_retry` and `return.restock_retry` outbox events |
+
+**Both workers are now registered as a Kratos `transport.Server` (`WorkerServer`) and start/stop with the main app lifecycle.**
+
 
 **Critical Gap**: Unlike checkout service which has `FailedCompensationWorker` polling every 5 minutes to retry failures, the return service has **no compensation retry worker**. Refund and restock failures are saved as `return.refund_retry` / `return.restock_retry` outbox events, but:
 
@@ -269,19 +273,19 @@ The `return_refund_issues.md` references `order/internal/biz/return/return.go`, 
 
 | Issue | Description | Action |
 |-------|-------------|--------|
-| **RET-P0-001** | All primary lifecycle events use direct Dapr publish — not outbox. Crash between DB write and Dapr publish loses event permanently | Write all state-change events to outbox inside the status update transaction |
-| **RET-P0-002** | `return.refund_retry` and `return.restock_retry` outbox events are published to Dapr but **nobody subscribes** — retry events go nowhere | Create Dapr consumer subscriptions for retry topics, OR replace with in-process compensation cron worker |
-| **RET-P0-003** | Order status is never updated when return is approved/completed — order remains in incorrect state indefinitely | Add `orderService.UpdateOrderStatus` calls at `approved` and `completed` transitions |
+| ~~**RET-P0-001**~~ | ~~All primary lifecycle events use direct Dapr publish — not outbox~~ | ✅ **Fixed** — All events written to outbox inside TX |
+| ~~**RET-P0-002**~~ | ~~`return.refund_retry` / `return.restock_retry` outbox events published to Dapr but nobody subscribes~~ | ✅ **Fixed** — `ReturnCompensationWorker` polls outbox directly; wired via `WorkerServer` |
+| ~~**RET-P0-003**~~ | ~~Order status never updated when return is approved/completed~~ | ✅ **Fixed** — `orderService.UpdateOrderStatus` called in both transitions |
 
 ### 🟡 P1 — Next Sprint (Confirmed Open)
 
 | Issue | Description | Action |
 |-------|-------------|--------|
 | **RET-P1-01** | No granular failure statuses — `completed` hides refund/restock failures | Add `refund_failed`, `restock_failed` statuses; update state machine |
-| **RET-P1-02** | `ProcessRefund` has no idempotency key — duplicate refund risk on retry | Pass `idempotency_key = returnID + ":refund"` to payment service |
-| **RET-P1-03** | Return shipping label has empty origin/destination — creates invalid labels | Fetch customer address from Order service; warehouse address from Warehouse service |
-| **RET-P1-04** | Restock uses `"default"` warehouseID — wrong warehouse in multi-warehouse setup | Store originating warehouseID on order item; use in return restock |
-| **RET-P1-05** | No compensation retry worker — failed refunds/restocks are lost after retry topic is unsubscribed | Implement `ReturnCompensationWorker` (cron, 5-min poll on failed outbox events) |
+| ~~**RET-P1-02**~~ | ~~`ProcessRefund` has no idempotency key — duplicate refund risk on retry~~ | ✅ **Fixed**: `idempotency_key = returnID + ":refund"` in `refund.go:54` |
+| ~~**RET-P1-03**~~ | ~~Return shipping label has empty origin/destination — creates invalid labels~~ | ✅ **Fixed**: `shipping.go` fetches `order.ShippingAddress` (Origin) + `config.business.warehouse_return_address` (Destination); items list included |
+| ~~**RET-P1-04**~~ | ~~Restock uses `"default"` warehouseID — wrong warehouse in multi-warehouse setup~~ | ✅ **Fixed**: `order_client.go` maps `item.WarehouseId` → `OrderItemInfo.WarehouseID`; `return.go` persists it in `ReturnItem.Metadata["warehouse_id"]` at creation |
+| ~~**RET-P1-05**~~ | ~~No compensation retry worker — failed refunds/restocks are lost after retry topic is unsubscribed~~ | ✅ **Fixed**: `ReturnCompensationWorker` implemented (`internal/worker/compensation_worker.go`) and wired via `WorkerServer` in `wire_gen.go` |
 
 ### 🔵 P2 — Roadmap
 

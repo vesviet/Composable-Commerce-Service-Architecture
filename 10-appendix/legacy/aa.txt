@@ -60,6 +60,8 @@ Follow Shopify, Shopee, and Lazada patterns.
 
 Are there any other related issues?
 
+Please continue with the remaining issues in the fics.
+
 follow rule, skill, workflows vs docs 
 
 1. [Customer & Identity Flows](#1-customer--identity-flows)
@@ -87,8 +89,8 @@ docs\10-appendix\checklists\workflow\cart-checkout-flow-checklist.md
 docs\10-appendix\checklists\workflow\order-lifecycle-flow-review.md
 docs\10-appendix\checklists\workflow\payment-flow-checklist.md
 docs\10-appendix\checklists\workflow\inventory-warehouse-flow-review.md
-
 docs\10-appendix\checklists\workflow\fulfillment-shipping-flow-checklist.md
+
 docs\10-appendix\checklists\workflow\return-refund-flow-checklist.md
 docs\10-appendix\checklists\workflow\notification-flow-review.md
 docs\10-appendix\checklists\workflow\admin-operations-flow-checklist.md

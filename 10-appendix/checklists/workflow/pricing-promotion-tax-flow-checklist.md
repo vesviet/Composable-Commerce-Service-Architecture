@@ -32,7 +32,7 @@
 | 4-level price priority fallback (SKU+WH > SKU > Product+WH > Product) | ✅ | `GetPriceWithPriority` properly cascades |
 | `validatePrice` rejects `BasePrice ≤ 0`, negative SalePrice, SalePrice ≥ BasePrice | ✅ | `price.go:694-717` |
 | Historical price uses `GetHistoricalPrice` — bypasses `IsEffective()` | ✅ | `price.go:473-479` — correct |
-| **Discount table in pricing is a local mirror of promotion data** | ⚠️ | `promo_created_sub.go`: pricing mirrors promotion discounts locally. If promo event is lost or delayed, the local discount table diverges from the promotion service — stale discounts may be applied or not cleaned up. |
+| Discount table in pricing is a local mirror of promotion data | ⚠️ | `promo_created_sub.go`: pricing mirrors promotion discounts locally. If promo event is lost or delayed, the local discount table diverges from the promotion service — stale discounts may be applied or not cleaned up. |
 | Discount module in pricing marked as removed from `CalculationPrice` | ✅ | `calculation.go:260-264` — discounts offloaded to promotion service |
 | `BulkCalculatePrice` — partial failure leaves some items nil, caller not notified | ⚠️ | `calculation.go:498-516` — nil results silently dropped; caller can't distinguish "not found" from "error" |
 
@@ -47,7 +47,7 @@
 | `ConfirmPromotionUsage` is idempotent (0 rows = no-op) | ✅ | `promotion.go:817-820` |
 | Per-customer usage limit (`UsageLimitPerCustomer`) checked during `ValidatePromotions` | ✅ | `validation.go:271-281` — calls `GetUsageByCustomer`, counts existing usages, enforces limit. **Fixed.** |
 | Promotion `ValidatePromotions` fetches customer segments from `CustomerClient` | ⚠️ | Segments come from the request (`req.CustomerSegments`); if caller doesn't populate this field (checkout), validation may skip segment-restricted promotions incorrectly. |
-| `GetAnalyticsSummary` caps promotions at limit 10000 — N+1 queries | ⚠️ | `usage_tracking.go:108-161` — loops over 10k promotions, calls DB for usage stats + coupon stats per promotion. Will cause timeout for large datasets. |
+| `GetAnalyticsSummary` / `GetCampaignAnalytics` — N+1 queries eliminated | ✅ | **Fixed** — `GetBulkCouponStats` and `GetBulkUsageStats` added to repos; `usage_tracking.go` refactored to issue 2 bulk queries per page (not 2 queries per promotion) |
 | Campaign deactivation cascades to promotions but does NOT publish per-promotion events | ⚠️ | `promotion.go:595-608` — individual promotions are deactivated in DB but no outbox events are saved; downstream consumers won't know promotions were deactivated. |
 
 ### 1.3 Tax Service (within Pricing)
@@ -165,7 +165,7 @@
 |---|------|----------|------|------------|
 | E1 | ~~No outbox worker in pricing → `price.updated` events never published~~ | ~~🔴 P0~~ ✅ Fixed | `pricing/internal/biz/worker/outbox.go` | Outbox worker implemented and wired |
 | E2 | ~~`BulkCalculatePrice`: partial failures silently return nil~~ | ~~🟡 P1~~ ✅ Fixed | `calculation.go:481-530` | Returns `([]results, []errors)` — caller now detects partial failures |
-| E3 | Converted prices (currency conversion fallback) are cached **with the original price's ID** — if the source price changes, the cached converted price is not invalidated | 🟡 P1 | `price.go:179-205` | Store converted prices with a derived key excluding ID or use short TTL |
+| E3 | ~~Converted prices (currency conversion fallback) are cached with the original price's ID — if the source price changes, the cached converted price is not invalidated~~ | ~~🟡 P1~~ ✅ Fixed | `price.go:179-205` | Converted price struct sets `ID: ""` — cache key now derived from `productID+currency`, not a stale record ID. |
 | E4 | `GetPrice` with currency fallback silently returns a converted price if the requested currency has no price record — consumer may not know it's using a converted rate | 🔵 P2 | `price.go:131-208` | Add a `PriceSource`/`IsCurrencyConverted` flag on the response |
 | E5 | Dynamic pricing errors are swallowed (graceful degradation) — base price used without alerting | 🔵 P2 | `calculation.go:235-249` | Log metric/alert when dynamic pricing fails |
 | E6 | Price rule tiebreaker uses insertion order (`CreatedAt`) — two rules created at the same second have non-deterministic order across DB instances | 🔵 P2 | `calculation.go:361-367` | Add a secondary stable ID sort |
@@ -179,7 +179,7 @@
 |---|------|----------|------|------------|
 | E8 | ~~`ValidatePromotions` does NOT check per-customer usage count vs `UsageLimitPerCustomer`~~ | ~~🔴 P0~~ ✅ Fixed | `validation.go:271-281` | `GetUsageByCustomer` called, limit enforced |
 | E9 | ~~Campaign deactivation does not emit per-promotion outbox events~~ | ~~🟡 P1~~ ✅ Fixed | `promotion.go:607-617` | Emits `promotion.deactivated` outbox event per-promotion in cascade loop |
-| E10 | `GetAnalyticsSummary` performs N+1 DB queries — coupon stats + usage stats per promotion in loop | 🟡 P1 | `usage_tracking.go:108-160` | Pagination added (500/page) but per-promo queries remain. Add aggregation SQL for coupon+usage stats |
+| E10 | ~~`GetAnalyticsSummary` / `GetCampaignAnalytics` perform N+1 DB queries — coupon stats + usage stats fetched per promotion in loop~~ | ~~🟡 P1~~ ✅ Fixed | `usage_tracking.go` | Added `GetBulkCouponStats` (GROUP BY coupon repo) and `GetBulkUsageStats` (GROUP BY usage repo); now 2 bulk queries per page instead of 2N queries. |
 | E11 | ~~Outbox worker has no maximum retry cap~~ | ~~🟡 P1~~ ✅ Fixed | migration 013 + `data/outbox.go:67` | SQL enforces `retry_count < max_retries`; migration 013 adds `max_retries INT DEFAULT 5` |
 | E12 | ~~`ValidatePromotions` enriches categories with serial 2s timeouts × cart size~~ | ~~🟡 P1~~ ✅ Fixed | `validation.go:509-518` | Parallel goroutines with a single 5s shared timeout context |
 | E13 | Free shipping discount (`DiscountType: free_shipping`) returns `0` for `totalDiscount` — order total unchanged; checkout must read `ShippingDiscount` separately | 🔵 P2 | `validation.go:436-437` | Ensure checkout reads `PromotionValidationResponse.ShippingDiscount` not `TotalDiscount` |
@@ -211,13 +211,15 @@
 
 ## 7. Summary of Findings
 
+**Last Updated**: 2026-02-23
+
 | Priority | Count | Key Items |
 |----------|-------|-----------|
 | 🔴 P0 | **0** | All P0s resolved ✅ |
-| 🟡 P1 | **2** | E3 converted price cache staleness; E10 N+1 analytics per-promo queries |
+| 🟡 P1 | **0** | All P1s resolved ✅ (E3 ✅ price.go:181-184; E10 ✅ bulk queries) |
 | 🔵 P2 | **6** | E4 conversion flag; E5 dynamic pricing alert; E6 rule sort determinism; E13 shipping discount read; E14 stacking enforcement; E15 budget check; E17 tax zero ambiguity; E18 deprecated CalculateTax |
 
-> **Fixed since last review**: E1 ✅, E2 ✅, E7 ✅, E8 ✅, E9 ✅, E11 ✅, E12 ✅, E16 ✅, E19 ✅, E20 ✅, P2 event typo ✅
+> **Fixed since last review**: E1 ✅, E2 ✅, E3 ✅, E7 ✅, E8 ✅, E9 ✅, E10 ✅, E11 ✅, E12 ✅, E16 ✅, E19 ✅, E20 ✅, P2 event typo ✅
 
 ---
 
@@ -229,14 +231,13 @@
 - [x] ~~**[P1]** Add `promo_deleted_sub.go` handler in pricing observer~~ ✅ Done
 - [x] ~~**[P1]** Add outbox max-retry enforcement~~ ✅ Done (migration 013 + SQL filter)
 - [x] ~~**[P1]** Fix campaign deactivation to emit per-promotion outbox events~~ ✅ Done (`promotion.go:607-617`)
-- [x] ~~**[P1]** Fix N+1 analytics query pagination~~ ✅ Partially done (500/page added; `GetUsageStats`/`ListCoupons` per-promo calls remain — E10 still open)
+- [x] ~~**[P1]** Fix N+1 analytics queries in `GetAnalyticsSummary` / `GetCampaignAnalytics`~~ ✅ Done — `GetBulkCouponStats` + `GetBulkUsageStats` added; 2 queries per page instead of 2N
+- [x] ~~**[P1]** Fix converted price cache staleness~~ ✅ Done — `price.go:181` sets `ID: ""` on converted entries; cache key is `productID+currency`-only
 - [x] ~~**[P1]** Fix tax cache invalidation to flush category-scoped keys~~ ✅ Done (`tax.go:375-378` wildcard pattern)
 - [x] ~~**[P1]** Batch catalog enrichment in `enrichRequestWithCatalogData`~~ ✅ Done (parallel goroutines, 5s shared timeout)
 - [x] ~~**[P1]** Add `FOR UPDATE SKIP LOCKED` to `GetPendingOutboxEvents` in pricing~~ ✅ Done (`data/postgres/price.go:119-136`)
 - [x] ~~**[P1]** Refactor `OutboxWorker` to implement `ContinuousWorker`; register in worker binary~~ ✅ Done (`biz/worker/outbox.go`, `internal/worker/workers.go`, `cmd/worker/wire_gen.go`)
 - [x] ~~**[P2]** Fix `promotion.event_created` typo → `promotion.created`~~ ✅ Done
-- [ ] **[P1]** Fix `GetAnalyticsSummary` per-promotion `ListCoupons` + `GetUsageStats` N+1 calls — add aggregated SQL queries (`usage_tracking.go:134-152`)
-- [ ] **[P1]** Fix converted price cache staleness — use derived key or short TTL (`price.go:179-205`)
 - [ ] **[P2]** Verify Search service subscribes to `pricing.price.updated`
 - [ ] **[P2]** Verify Loyalty service subscribes to `promotion.applied`
 - [ ] **[P2]** Add HPA for promotion service in GitOps

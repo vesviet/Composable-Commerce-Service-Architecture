@@ -1,6 +1,6 @@
 # Fulfillment & Shipping Flow — Business Logic Checklist
 
-**Last Updated**: 2026-02-21
+**Last Updated**: 2026-02-23
 **Pattern Reference**: Shopify, Shopee, Lazada — `docs/10-appendix/ecommerce-platform-flows.md` §Fulfillment
 **Services Reviewed**: `fulfillment/`, `shipping/`
 **Reviewer**: Antigravity Agent
@@ -50,7 +50,7 @@
 |-------|--------|-------|
 | `OutboxEventPublisher` correctly writes events to outbox table within transaction | ✅ | `events/outbox_publisher.go:31-51` — uses `common/outbox.Repository.Save` |
 | Events published inside `InTx` (transactional outbox) | ✅ | All state-changing methods publish inside `uc.tx.InTx(...)` |
-| **Outbox polling worker exists to push events to Dapr** | 🔴 | `worker/cron/provider.go:8-10` — `ProviderSet = wire.NewSet()` — EMPTY, NO cron workers. Fulfillment outbox events are written to DB but **NEVER dispatched to Dapr**. The outbox table grows forever and no downstream service receives any `fulfillment.status_changed`, `package.status_changed`, or `picklist.status_changed` events |
+| **Outbox polling worker exists to push events to Dapr** | ✅ Fixed | `cmd/worker/wire_gen.go:94` — `commonOutbox.NewWorker` registered. `cron/provider.go` is empty but worker is wired directly. |
 
 ### 1.3 Event Consumers (Worker)
 
@@ -63,11 +63,11 @@
 
 | Event | Topic | Needed? | Via Outbox? | Status |
 |-------|-------|---------|-------------|--------|
-| `fulfillment.status_changed` | `fulfillment.status_changed` | ✅ Yes — order tracks fulfillment progress | ✅ DB outbox | 🔴 Never dispatched (no polling worker) |
-| `package.status_changed` | `package.status_changed` | ✅ Yes — shipping subscribes to this | ✅ DB outbox | 🔴 Never dispatched |
-| `picklist.status_changed` | `picklist.status_changed` | ✅ Yes — fulfillment worker itself subscribes | ✅ DB outbox | 🔴 Never dispatched |
-| `fulfillment.qc.failed` | `fulfillment.qc.failed` | ✅ Yes — notification service | ✅ DB outbox | 🔴 Never dispatched |
-| `system.error` | `system.error` | ⚠️ Alerting only | ✅ DB outbox | 🔴 Never dispatched |
+| `fulfillment.status_changed` | `fulfillment.status_changed` | ✅ Yes — order tracks fulfillment progress | ✅ DB outbox | ✅ Dispatched via `commonOutbox.NewWorker` |
+| `package.status_changed` | `package.status_changed` | ✅ Yes — shipping subscribes to this | ✅ DB outbox | ✅ Dispatched |
+| `picklist.status_changed` | `picklist.status_changed` | ✅ Yes — fulfillment worker itself subscribes | ✅ DB outbox | ✅ Dispatched |
+| `fulfillment.qc.failed` | `fulfillment.qc.failed` | ✅ Yes — notification service | ✅ DB outbox | ✅ Dispatched |
+| `system.error` | `system.error` | ⚠️ Alerting only | ✅ DB outbox | ✅ Dispatched |
 
 ### 1.5 Events That Fulfillment Should Subscribe To
 
@@ -139,10 +139,10 @@
 
 | Flow Step | Status | Risk |
 |-----------|--------|------|
-| Fulfillment ConfirmPacked publishes `package.status_changed` (created) | ✅ | 🔴 Never dispatched — no outbox worker |
-| Shipping subscribes to `package.status_changed` and moves shipment to `ready` | ✅ | 🔴 Never receives event |
-| Shipping `UpdateShipmentStatus(shipped)` notifies fulfillment/order | ✅ | ⚠️ Wrong topic name in outbox |
-| Fulfillment receives `shipment.delivered` and marks fulfillment `completed` | ❌ | ❌ No subscription on fulfillment side |
+| Fulfillment ConfirmPacked publishes `package.status_changed` (created) | ✅ | ✅ Dispatched via outbox worker |
+| Shipping subscribes to `package.status_changed` and moves shipment to `ready` | ✅ | ✅ Receives event; single-transaction update |
+| Shipping `UpdateShipmentStatus(shipped)` notifies fulfillment/order | ✅ | ✅ Correct topic name (`event.Type`) |
+| Fulfillment receives `shipment.delivered` and marks fulfillment `completed` | ✅ | ✅ `ShipmentDeliveredConsumerWorker` wired |
 | Order receives `shipment.delivered` and transitions to `delivered` | ❓ | Depends on order service subscription |
 
 ### 3.2 Reservation Lifecycle Tracing
@@ -194,13 +194,13 @@
 | `EventbusServerWorker` | Event-driven | Starts gRPC eventbus server | ✅ Running |
 | `OrderStatusConsumerWorker` | Event-driven | `order.status_changed` → create/cancel fulfillment | ✅ Running |
 | `PicklistStatusConsumerWorker` | Event-driven | `picklist.status_changed` → update fulfillment | ✅ Running |
-| **Outbox polling worker** | **Cron** | **Dispatch outbox events to Dapr** | 🔴 **MISSING** |
+| **Outbox polling worker** | **Cron** | **Dispatch outbox events to Dapr** | ✅ Running (via `commonOutbox.NewWorker`, 5s interval) |
 
 ### Shipping Workers
 
 | Worker | Type | Interval | Purpose | Status |
 |--------|------|----------|---------|--------|
-| `OutboxWorker` | Cron | 1s, batch 20 | Dispatch outbox events to Dapr | ✅ Running; ⚠️ wrong topic; ⚠️ no cleanup cron |
+| `OutboxWorker` | Cron | 5s, batch 20 | Dispatch outbox events to Dapr | ✅ Running; uses `event.Type` as topic; has daily cleanup |
 | `PackageStatusConsumerWorker` | Event-driven | Push | `package.status_changed` → update shipment | ✅ Running |
 
 ---
@@ -209,24 +209,24 @@
 
 | # | Risk | Severity | Location |
 |---|------|----------|----------|
-| E1 | **Fulfillment has NO outbox polling worker** — all published events (`fulfillment.status_changed`, `package.status_changed`, `picklist.status_changed`) are written to DB but never dispatched to Dapr. Shipping and Order services never receive fulfillment events. | 🔴 P0 | `worker/cron/provider.go:9` |
+| E1 | **Fulfillment has NO outbox polling worker** — all published events (`fulfillment.status_changed`, `package.status_changed`, `picklist.status_changed`) are written to DB but never dispatched to Dapr. Shipping and Order services never receive fulfillment events. | ✅ Fixed | `cmd/worker/wire_gen.go:94` — `commonOutbox.NewWorker` wired and registered as a `ContinuousWorker` |
 | E2 | **Fulfillment worker-deployment.yaml has NO secretRef** — DB password + secrets missing at pod start | ✅ Fixed | `gitops/apps/fulfillment/base/worker-deployment.yaml` |
 | E3 | **Shipping worker-deployment.yaml has NO secretRef** — carrier API keys and DB credentials unavailable | ✅ Fixed | `gitops/apps/shipping/base/worker-deployment.yaml` |
-| E4 | **Shipping outbox uses `AggregateType` as Dapr topic** — all shipment events are published to topic `shipment`, not to specific topics like `shipment.delivered`, `shipment.status_changed`. Consumers subscribing to specific topics receive nothing | 🟡 P1 | `outbox_worker.go:119` |
-| E5 | `handleOrderConfirmed` calls `CreateFromOrderMulti` + `StartPlanning` in loop — if planning fails for fulfillment N, fulfillments 1..N-1 are in inconsistent state with no rollback | 🟡 P1 | `order_status_handler.go:104-124` |
-| E6 | `HandlePackageReady` loops over multiple shipments with separate transactions — partial update possible if one fails | 🟡 P1 | `package_ready_handler.go:31-73` |
+| E4 | **Shipping outbox uses `AggregateType` as Dapr topic** — all shipment events are published to topic `shipment`, not to specific topics like `shipment.delivered`, `shipment.status_changed`. Consumers subscribing to specific topics receive nothing | ✅ Fixed | `outbox_worker.go:126` — `topic := event.Type` |
+| E5 | `handleOrderConfirmed` calls `CreateFromOrderMulti` + `StartPlanning` in loop — if planning fails for fulfillment N, fulfillments 1..N-1 are in inconsistent state with no rollback | ✅ Fixed | `order_status_handler.go:109-119` — compensation loop cancels planned fulfillments on failure |
+| E6 | `HandlePackageReady` loops over multiple shipments with separate transactions — partial update possible if one fails | ✅ Fixed | `package_ready_handler.go:31-73` — single `WithTransaction` wraps entire loop |
 | E7 | `CancelFulfillment`: `AdjustStock` failures on cancel (picked/packed state) are non-fatal — confirmed stock permanently lost | ✅ Fixed | `fulfillment.go:823-826` |
 | E8 | `HandleQCFailed` releases reservation even when setting status back to PACKING — same items cannot be re-picked from the released reservation | ✅ Fixed | `fulfillment.go:900-907, 912-913` |
-| E9 | Fulfillment has no subscription to `shipment.delivered` — fulfillment never auto-transitions to `completed` status | 🟡 P1 | `worker/event/event_workers.go` |
-| E10 | Shipping has no subscription to `orders.order_cancelled` or `fulfillment.status_changed(cancelled)` — `draft` shipments are never cancelled when order is cancelled | 🟡 P1 | `worker/event/` |
+| E9 | Fulfillment has no subscription to `shipment.delivered` — fulfillment never auto-transitions to `completed` status | ✅ Fixed | `event_workers.go` — `ShipmentDeliveredConsumerWorker` wired |
+| E10 | Shipping has no subscription to `orders.order_cancelled` or `fulfillment.status_changed(cancelled)` — `draft` shipments are never cancelled when order is cancelled | ✅ Fixed | `shipping/worker/event/order_cancelled_consumer.go` |
 | E11 | Shipping `CleanupOldEvents` method exists but no cron job calls it — outbox table grows unbounded | ✅ Fixed | `outbox_worker.go:150-153` |
-| E12 | `GenerateLabel` updates shipment with label URL outside a transaction — label generated but URL not persisted if DB update fails | 🔵 P2 | `shipment_usecase.go:666-672` |
-| E13 | `handleOrderCancelled` uses `err.Error() == "record not found"` string comparison | 🔵 P2 | `order_status_handler.go:136` — use typed sentinel errors |
-| E14 | COD amount fully assigned to first fulfillment in multi-warehouse split — couriers for sub-fulfillments don't know COD obligation | 🔵 P2 | `fulfillment.go:320-328` |
-| E15 | Fulfillment worker-deployment has no liveness/readiness probes | 🔵 P2 | `worker-deployment.yaml:68` |
-| E16 | Shipping worker-deployment has no liveness/readiness probes | 🔵 P2 | `gitops/apps/shipping/base/worker-deployment.yaml` |
-| E17 | Fulfillment worker-deployment has no `revisionHistoryLimit` | 🔵 P2 | `worker-deployment.yaml` |
-| E18 | Outbox worker polling at 1s is aggressive and may cause unnecessary DB load during off-peak hours | 🔵 P2 | `outbox_worker.go:33` |
+| E12 | `GenerateLabel` updates shipment with label URL outside a transaction — label generated but URL not persisted if DB update fails | ✅ Fixed | `label_generation.go:93-112` — wrapped in `WithTransaction` |
+| E13 | `handleOrderCancelled` uses `err.Error() == "record not found"` string comparison | ✅ Fixed | `order_status_handler.go` — uses nil-check after `FindByOrderID` |
+| E14 | COD amount fully assigned to first fulfillment in multi-warehouse split — couriers for sub-fulfillments don't know COD obligation | ✅ Fixed | `fulfillment.go` — `computeProRataCOD` distributes COD proportionally by warehouse item value |
+| E15 | Fulfillment worker-deployment has no liveness/readiness probes | ✅ Fixed | `worker-deployment.yaml` — gRPC probes on port 5005 |
+| E16 | Shipping worker-deployment has no liveness/readiness probes | ✅ Fixed | `gitops/apps/shipping/base/worker-deployment.yaml` — gRPC probes on port 5005 |
+| E17 | Fulfillment worker-deployment has no `revisionHistoryLimit` | ✅ Fixed | `worker-deployment.yaml:13` — `revisionHistoryLimit: 1` |
+| E18 | Outbox worker polling at 1s is aggressive and may cause unnecessary DB load during off-peak hours | ✅ Fixed | `outbox_worker.go:33` — changed to 5s |
 
 ---
 
@@ -234,28 +234,28 @@
 
 | Priority | Count | Key Items |
 |----------|-------|-----------|
-| 🔴 P0 | 3 | E1: No outbox polling worker in fulfillment — all events stuck; E2: fulfillment worker no secretRef; E3: shipping worker no secretRef |
-| 🟡 P1 | 8 | E4: wrong Dapr topic; E5: partial order-confirmed rollback; E6: partial package-ready update; E7: stock leak on cancel; E8: bad QC reservation release; E9: fulfillment never completes; E10: shipments not cancelled on order cancel; E11: no outbox cleanup |
-| 🔵 P2 | 7 | E12–E18: label TX, error typing, COD split, missing probes, cleanup, aggressive polling |
+| 🔴 P0 | 3 | E1: No outbox polling worker in fulfillment — **all fixed**; E2: fulfillment worker no secretRef; E3: shipping worker no secretRef |
+| 🟡 P1 | 8 | E4: wrong Dapr topic; E5: partial order-confirmed rollback; E6: partial package-ready update; E7: stock leak on cancel; E8: bad QC reservation release; E9: fulfillment never completes; E10: shipments not cancelled on order cancel; E11: no outbox cleanup — **all fixed** |
+| 🔵 P2 | 7 | E12–E18: label TX, error typing, COD split, missing probes, cleanup, aggressive polling — **all fixed** |
 
 ---
 
 ## 8. Action Items
 
-- [ ] **[P0]** Create fulfillment outbox polling worker (similar to `shipping/outbox_worker.go`) — must poll `outbox` table every 5-10s and publish to Dapr `pubsub-redis`
+- [x] **[P0]** Create fulfillment outbox polling worker (wired in `cmd/worker/wire_gen.go` using `commonOutbox.NewWorker`)
 - [x] **[P0]** Add `secretRef: fulfillment-secrets` to `gitops/apps/fulfillment/base/worker-deployment.yaml`
 - [x] **[P0]** Add `secretRef: shipping-secrets` to `gitops/apps/shipping/base/worker-deployment.yaml`
 - [x] **[P1]** Fix `outbox_worker.go:119` — use `event.Type` (event type) as Dapr topic, not `event.AggregateType`
-- [ ] **[P1]** Wrap `handleOrderConfirmed` loop in a single saga: if any `StartPlanning` fails, cancel all created fulfillments
-- [ ] **[P1]** Fix `HandlePackageReady` — wrap all shipment updates in a single transaction or collect failures and retry
+- [x] **[P1]** Wrap `handleOrderConfirmed` loop in a single saga: if any `StartPlanning` fails, cancel all created fulfillments
+- [x] **[P1]** Fix `HandlePackageReady` — wrap all shipment updates in a single transaction or collect failures and retry
 - [x] **[P1]** Make `AdjustStock` failures on cancel/partial-pick fatal (or add retry queue) to prevent stock leaks
 - [x] **[P1]** Fix `HandleQCFailed` — for repack path, do NOT release reservation; only release for inspection-failed/damage path
-- [ ] **[P1]** Add `shipment.delivered` subscriber in fulfillment worker to auto-transition to `completed`
-- [ ] **[P1]** Add `orders.order_cancelled` and/or `fulfillment.status_changed(cancelled)` subscriber in shipping to cancel draft/processing shipments
+- [x] **[P1]** Add `shipment.delivered` subscriber in fulfillment worker to auto-transition to `completed`
+- [x] **[P1]** Add `orders.order_cancelled` and/or `fulfillment.status_changed(cancelled)` subscriber in shipping to cancel draft/processing shipments
 - [x] **[P1]** Add cleanup cron job in shipping worker to call `CleanupOldEvents` daily
-- [ ] **[P2]** Wrap `GenerateLabel` + `repo.Update` in `WithTransaction`
-- [ ] **[P2]** Replace string-compare `err.Error() == "record not found"` with typed sentinel error (`errors.Is`)
-- [ ] **[P2]** Implement pro-rata COD split across multi-warehouse fulfillments
-- [ ] **[P2]** Add liveness/readiness probes to fulfillment and shipping worker deployments
-- [ ] **[P2]** Add `revisionHistoryLimit: 1` to fulfillment worker-deployment.yaml
-- [ ] **[P2]** Tune shipping outbox polling interval from 1s to 5-10s to reduce DB pressure
+- [x] **[P2]** Wrap `GenerateLabel` + `repo.Update` in `WithTransaction`
+- [x] **[P2]** Replace string-compare `err.Error() == "record not found"` with typed sentinel error (`errors.Is`)
+- [x] **[P2]** Implement pro-rata COD split across multi-warehouse fulfillments
+- [x] **[P2]** Add liveness/readiness probes to fulfillment and shipping worker deployments
+- [x] **[P2]** Add `revisionHistoryLimit: 1` to fulfillment worker-deployment.yaml
+- [x] **[P2]** Tune shipping outbox polling interval from 1s to 5-10s to reduce DB pressure
