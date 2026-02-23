@@ -1,6 +1,6 @@
 # Return & Refund Flow — Business Logic Review Checklist
 
-**Date**: 2026-02-21
+**Date**: 2026-02-23 (Updated)
 **Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + codebase analysis)
 **Scope**: `return/`, `order/`, `payment/`, `warehouse/`, `shipping/`
 
@@ -28,20 +28,15 @@
 
 ## 2. Data Mismatches Found
 
-### 2.1 Order Status NOT Updated After Return Approved (P0 — New)
+### ~~2.1 Order Status NOT Updated After Return Approved (P0 — New)~~
 
-**Status**: ❌ **Not Implemented**
+**Status**: ✅ **Fixed** (RET-P0-003)
 
-In `UpdateReturnRequestStatus`, when status → `"approved"` or `"completed"`, there is no call to the Order service to update the order status to `RETURN_REQUESTED` or `RETURNED`. The order service independently needs to:
-1. Mark order as `RETURN_REQUESTED` when return is approved
-2. Mark order as `RETURNED`/`REFUNDED` when return is completed
+~~In `UpdateReturnRequestStatus`, when status → `"approved"` or `"completed"`, there is no call to the Order service to update the order status.~~
 
-Without this:
-- Customer sees order as `COMPLETED` even after return is approved
-- Fulfillment/seller sees wrong state → may attempt re-shipment
-- Loyalty points earned on "completed" order are not reversed on return completion
-
-**Fix**: Add `orderService.UpdateOrderStatus(ctx, orderID, "RETURN_REQUESTED")` call inside `UpdateReturnRequestStatus` → `"approved"` case
+`orderService.UpdateOrderStatus` is now called in:
+- `approved` case → `return_requested` (`return.go:398-401`)
+- `completed` case → `returned` (`return.go:458-461`)
 
 ---
 
@@ -69,19 +64,18 @@ Without this:
 
 | Event | Method | Via | Critical? | Status |
 |-------|--------|-----|-----------|--------|
-| `return.requested` | `PublishReturnRequested` | Direct Dapr (not outbox) | ✅ Informational | ⚠️ No durability |
-| `return.approved` | `PublishReturnApproved` | Direct Dapr | ✅ Triggers notification | ⚠️ No durability |
-| `return.rejected` | `PublishReturnRejected` | Direct Dapr | ✅ Informational | ⚠️ No durability |
-| `return.completed` | `PublishReturnCompleted` | Direct Dapr | ✅ Triggers loyalty/points reversal | ⚠️ No durability |
-| `exchange.requested` | `PublishExchangeRequested` | Direct Dapr | Triggers new order creation | ⚠️ No durability |
-| `exchange.approved` | (in exchange.go) | Direct Dapr | — | ⚠️ |
-| `exchange.completed` | (in exchange.go) | Direct Dapr | — | ⚠️ |
+| `return.requested` | `outboxRepo.Save` inside TX | ✅ Outbox (P0-NEW-01 fixed) | ✅ Informational | ✅ Durable |
+| `return.approved` | `outboxRepo.Save` inside TX | ✅ Outbox | ✅ Triggers notification | ✅ Durable |
+| `return.rejected` | `outboxRepo.Save` inside TX | ✅ Outbox | ✅ Informational | ✅ Durable |
+| `return.completed` | `outboxRepo.Save` inside TX | ✅ Outbox | ✅ Triggers loyalty/points reversal | ✅ Durable |
+| `exchange.requested` | `outboxRepo.Save` inside TX | ✅ Outbox (via CreateReturnRequest) | Triggers new order creation | ✅ Durable |
+| `exchange.order_created` | `outboxRepo.Save` with fallback | ✅ Outbox (P1-NEW-05 fixed) | Exchange order tracking | ✅ Durable |
 | `return.refund_retry` | Outbox `outboxRepo.Save` | ✅ Outbox | Compensation retry | ✅ |
 | `return.restock_retry` | Outbox `outboxRepo.Save` | ✅ Outbox | Compensation retry | ✅ |
 
-**Critical Gap**: All primary state-change events (`return.requested`, `return.approved`, `return.rejected`, `return.completed`, all exchange events) are published via **direct Dapr call** — no outbox pattern. If the return service crashes after updating DB status but before publishing, all downstream consumers (notification, order, loyalty) miss the event permanently.
+~~**Critical Gap**: All primary state-change events published via direct Dapr call — no outbox pattern.~~
 
-The outbox repository is injected but is only used for **compensation retry events** (refund/restock failures). The primary lifecycle events bypass it entirely.
+✅ **Resolved**: All lifecycle events now go through the outbox pattern. Direct publish is only used as a last-resort fallback when the outbox save + TX fails.
 
 ---
 
@@ -130,24 +124,23 @@ Uses `common/outbox.Worker` — shared implementation. Batch size 50.
 | **Consumer for `return.refund_retry`** | ✅ **Fixed** — `ReturnCompensationWorker` processes `return.refund_retry` outbox events directly; wired as Kratos `WorkerServer` in `wire_gen.go` |
 | **Consumer for `return.restock_retry`** | ✅ **Fixed** — `ReturnCompensationWorker` processes `return.restock_retry` events; started via `WorkerServer` |
 | Primary lifecycle events via outbox | ✅ **Fixed** — All state-change events written to outbox inside the status-update transaction; outbox worker publishes them to Dapr |
+| **Return status updated after successful compensation retry** | ✅ **Fixed (P1-NEW-01)** — Worker updates return status from `refund_failed`/`restock_failed` → `completed` after successful retry |
 
 **Both workers (`outboxWorker` and `compensationWorker`) are now started via `WorkerServer` registered as a Kratos transport in `wire_gen.go`.**
 
 ---
 
-### 4.2 Status Machine Coverage (RET-P1-01 — Open)
+### 4.2 Status Machine Coverage (RET-P1-01 — Partially Fixed)
 
-Current statuses: `pending → approved → processing → completed` (or `rejected`)
+Current statuses: `pending → approved → processing → completed` (or `rejected`, `refund_failed`, `restock_failed`)
 
-Missing intermediate statuses for failure handling:
-
-| Should Exist | Current State | Risk |
-|-------------|--------------|------|
-| `pending_refund` (after inspection passed, awaiting payment service) | `completed` | Refund failure invisible |
-| `refund_failed` (payment service error) | `completed` (log error only) | Customer not refunded but sees completed |
-| `pending_restock` | `completed` | Inventory not updated but status says complete |
-| `restock_failed` | `completed` | Phantom inventory |
-| `dispute` / `escalated` | Not implemented | Section 10.5 of flows doc |
+| Status | State | Fixed? |
+|--------|-------|--------|
+| `refund_failed` (payment service error) | ✅ Set in `return.go:438`; in state machine (`validation.go`) | ✅ P0-NEW-02 Fixed |
+| `restock_failed` (warehouse service error) | ✅ Set in `return.go:453`; in state machine (`validation.go`) | ✅ P0-NEW-02 Fixed |
+| `pending_refund` (awaiting payment service) | Not implemented | Still open (P1) |
+| `pending_restock` (awaiting warehouse service) | Not implemented | Still open (P1) |
+| `dispute` / `escalated` | Not implemented | Still open (EDGE-03) |
 
 *Shopify pattern*: Returns have `RETURN_REQUESTED → IN_TRANSIT → RECEIVED → INSPECTION → REFUND_PROCESSING → REFUNDED`
 
@@ -237,8 +230,8 @@ Missing intermediate statuses for failure handling:
 | readinessProbe (delay=5s, period=5s) | `deployment.yaml:76–81` | ✅ |
 | securityContext non-root (runAsUser=65532) | `deployment.yaml:30–33` | ✅ |
 | revisionHistoryLimit: 1 | `deployment.yaml:13` | ✅ |
-| **config volumeMount** (`/app/configs/config.yaml`) | `deployment.yaml` | ❌ **MISSING** — binary reads `-conf /app/configs/config.yaml` but no volume mounted |
-| **worker-deployment.yaml** | `gitops/apps/return/base/` | ❌ **MISSING** — outbox worker runs embedded in main `return` binary; no separate worker deployment |
+| **config volumeMount** (`/app/configs/config.yaml`) | `deployment.yaml` | ✅ **Fixed (P0-NEW-03)** — `volumeMount` + `volume` added pointing to `return-config` ConfigMap |
+| **worker-deployment.yaml** | `gitops/apps/return/base/` | ℹ️ **By Design** — Workers (outbox + compensation) run embedded in main `return` binary via `WorkerServer`; no separate deployment needed |
 
 ### 7.2 Return Service vs. Order Service (Which Owns Returns?)
 
@@ -254,16 +247,13 @@ The `return_refund_issues.md` references `order/internal/biz/return/return.go`, 
 |--------|------|---------------|--------|
 | `return-outbox-worker` | Continuous | `common/outbox.Worker`, batch=50 | ✅ Wired via `WorkerServer` in `wire_gen.go` |
 | Cart cleanup / session cleanup | ❌ None | N/A | ✅ Return service has no carts |
-| `ReturnCompensationWorker` | Periodic (30s poll) | `internal/worker/compensation_worker.go` | ✅ **Fixed** — Implemented + wired as `WorkerServer` in `wire_gen.go`; processes `return.refund_retry` and `return.restock_retry` outbox events |
+| `ReturnCompensationWorker` | Periodic (5min poll) | `internal/worker/compensation_worker.go` | ✅ **Fixed** — Processes `return.refund_retry` and `return.restock_retry` outbox events; updates return request status after successful retry (P1-NEW-01) |
 
 **Both workers are now registered as a Kratos `transport.Server` (`WorkerServer`) and start/stop with the main app lifecycle.**
 
+~~**Critical Gap**: The return service had no compensation retry worker. Refund and restock failures were saved as outbox events but never retried.~~
 
-**Critical Gap**: Unlike checkout service which has `FailedCompensationWorker` polling every 5 minutes to retry failures, the return service has **no compensation retry worker**. Refund and restock failures are saved as `return.refund_retry` / `return.restock_retry` outbox events, but:
-
-1. These are published to Dapr topics via outbox worker
-2. No service subscribes to these Dapr topics
-3. The retry never actually retries — events simply disappear into an unsubscribed Dapr topic
+✅ **Resolved**: `ReturnCompensationWorker` polls outbox every 5 minutes for `return.refund_retry` / `return.restock_retry` events and retries the operation. After successful retry, updates the return request status from `refund_failed`/`restock_failed` back to `completed`.
 
 ---
 
@@ -276,16 +266,22 @@ The `return_refund_issues.md` references `order/internal/biz/return/return.go`, 
 | ~~**RET-P0-001**~~ | ~~All primary lifecycle events use direct Dapr publish — not outbox~~ | ✅ **Fixed** — All events written to outbox inside TX |
 | ~~**RET-P0-002**~~ | ~~`return.refund_retry` / `return.restock_retry` outbox events published to Dapr but nobody subscribes~~ | ✅ **Fixed** — `ReturnCompensationWorker` polls outbox directly; wired via `WorkerServer` |
 | ~~**RET-P0-003**~~ | ~~Order status never updated when return is approved/completed~~ | ✅ **Fixed** — `orderService.UpdateOrderStatus` called in both transitions |
+| ~~**P0-NEW-01**~~ | ~~`CreateReturnRequest` outbox save was outside the DB transaction — event could be lost on crash~~ | ✅ **Fixed** — Outbox save moved inside `tm.WithTransaction` block |
+| ~~**P0-NEW-02**~~ | ~~`refund_failed`/`restock_failed` not in state machine — statuses set but unreachable/stuck~~ | ✅ **Fixed** — Added to `validTransitions` map; compensation worker updates status after retry |
+| ~~**P0-NEW-03**~~ | ~~Config volume not mounted in K8s deployment — pod crash-loops~~ | ✅ **Fixed** — `volumeMount` + `volume` added to `deployment.yaml` |
 
-### 🟡 P1 — Next Sprint (Confirmed Open)
+### 🟡 P1 — Next Sprint
 
 | Issue | Description | Action |
 |-------|-------------|--------|
-| **RET-P1-01** | No granular failure statuses — `completed` hides refund/restock failures | Add `refund_failed`, `restock_failed` statuses; update state machine |
-| ~~**RET-P1-02**~~ | ~~`ProcessRefund` has no idempotency key — duplicate refund risk on retry~~ | ✅ **Fixed**: `idempotency_key = returnID + ":refund"` in `refund.go:54` |
-| ~~**RET-P1-03**~~ | ~~Return shipping label has empty origin/destination — creates invalid labels~~ | ✅ **Fixed**: `shipping.go` fetches `order.ShippingAddress` (Origin) + `config.business.warehouse_return_address` (Destination); items list included |
-| ~~**RET-P1-04**~~ | ~~Restock uses `"default"` warehouseID — wrong warehouse in multi-warehouse setup~~ | ✅ **Fixed**: `order_client.go` maps `item.WarehouseId` → `OrderItemInfo.WarehouseID`; `return.go` persists it in `ReturnItem.Metadata["warehouse_id"]` at creation |
-| ~~**RET-P1-05**~~ | ~~No compensation retry worker — failed refunds/restocks are lost after retry topic is unsubscribed~~ | ✅ **Fixed**: `ReturnCompensationWorker` implemented (`internal/worker/compensation_worker.go`) and wired via `WorkerServer` in `wire_gen.go` |
+| **RET-P1-01** | No granular intermediate statuses (`pending_refund`, `pending_restock`) | Partially fixed: `refund_failed`/`restock_failed` added. Full intermediate states for next sprint |
+| ~~**RET-P1-02**~~ | ~~`ProcessRefund` has no idempotency key~~ | ✅ **Fixed**: `idempotency_key = returnID + ":refund"` in `refund.go:54` |
+| ~~**RET-P1-03**~~ | ~~Return shipping label has empty origin/destination~~ | ✅ **Fixed**: `shipping.go` uses `order.ShippingAddress` (Origin) + `config.warehouse_return_address` (Destination) |
+| ~~**RET-P1-04**~~ | ~~Restock uses `"default"` warehouseID~~ | ✅ **Fixed**: `order_client.go` maps `item.WarehouseId` → `ReturnItem.Metadata["warehouse_id"]` |
+| ~~**RET-P1-05**~~ | ~~No compensation retry worker~~ | ✅ **Fixed**: `ReturnCompensationWorker` implemented and wired |
+| ~~**P1-NEW-01**~~ | ~~Compensation worker doesn't update return request status after successful retry~~ | ✅ **Fixed**: Worker now updates status from `refund_failed`/`restock_failed` → `completed` |
+| ~~**P1-NEW-03**~~ | ~~`validateReturnWindow` vs `CheckReturnEligibility` logic mismatch~~ | ✅ **Fixed**: Both now deny when `CompletedAt` is nil (fail-safe) |
+| ~~**P1-NEW-05**~~ | ~~Exchange order created event published directly instead of via outbox~~ | ✅ **Fixed**: Now routes through outbox with direct-publish fallback |
 
 ### 🔵 P2 — Roadmap
 
@@ -293,11 +289,11 @@ The `return_refund_issues.md` references `order/internal/biz/return/return.go`, 
 |-------|-------------|--------|
 | **RET-P2-01** | Refund doesn't include shipping/tax refund component | Add proportional shipping + tax to refund amount |
 | **RET-P2-02** | All items eligible regardless of category — no category-excluded-return policy | Add per-category return eligibility using Catalog service |
-| **RET-P2-03** | Exchange items have `UnitPrice: 0`, `ProductName: ""` in event | Fetch pricing + catalog details before emitting exchange event |
-| **RET-P2-04** | No max refund cap | Add `refundAmount <= order.TotalAmount` guard |
+| **RET-P2-03** | Exchange items have `ProductName: ""` in ExchangeRequestedEvent | Fetch pricing + catalog details before emitting exchange event |
+| ~~**RET-P2-04**~~ | ~~No max refund cap~~ | ✅ **Fixed**: `refundAmount <= order.TotalAmount` guard in `refund.go:43-47` |
 | **RET-P2-05** | Return window hardcoded 30 days — no per-category policy | Add configurable `ReturnWindowDays` per product category |
 | **RET-P2-06** | Evidence upload (photo/video) not implemented | Add `EvidenceURLs []string` to return item |
-| **RET-P2-07** | `ReceiveReturnItems` ignores `inspectionResults` parameter | Apply inspection results to update `item.Condition` and `item.Restockable` |
+| ~~**RET-P2-07**~~ | ~~`ReceiveReturnItems` ignores `inspectionResults` parameter~~ | ✅ **Fixed**: Inspection results applied to `item.Condition` and `item.Restockable` |
 | **RET-P2-08** | Loyalty points not reversed on return completion | Subscribe `return.completed` in loyalty/customer service to deduct points |
 | **EDGE-01** | Partial quantity return: second return req can re-return already-returned items | Track `already_returned_qty` per order item; enforce guard |
 | **EDGE-02** | No seller approval flow — all returns go straight to approved | Add seller approval step with deadline + auto-approve |
