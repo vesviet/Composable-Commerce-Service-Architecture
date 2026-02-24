@@ -2,7 +2,7 @@
 
 **Date**: 2026-02-24
 **Reviewer**: Antigravity (AI)
-**Version Reviewed**: v1.3.4 → v1.3.5
+**Version Reviewed**: v1.3.5 → v1.3.6
 **Status**: ✅ Ready for Release
 
 ---
@@ -57,17 +57,17 @@ _None found._
 
 ## ✅ Completed Actions
 
-1. ✅ Synced `checkout` and `common` to `main`; `gitops` pulled latest (gateway kustomization update only)
+1. ✅ Synced `checkout`, `common`, and `gitops` to `main` — already up to date
 2. ✅ Indexed service structure — dual-binary (`cmd/server/` + `cmd/worker/`) confirmed
 3. ✅ Verified: no `replace` directives in `go.mod`
-4. ✅ Verified: `common` on latest tag `v1.16.0`
-5. ✅ Fixed P1-1: duplicated `DefaultWarehouseID` constant
-6. ✅ Fixed P1-2: stale debug/dead code in `pricing_engine.go`
-7. ✅ Fixed P1-3: hardcoded JWT secret in `configs/config.yaml`
-8. ✅ Verified: `golangci-lint run` → 0 warnings post-fix
-9. ✅ Verified: `go build ./...` → clean
-10. ✅ Updated `CHANGELOG.md` with `[v1.3.5]` entry
-11. ✅ Updated `docs/03-services/core-services/checkout-service.md` (version, date, status)
+4. ✅ Upgraded internal service dependencies to latest tagged versions (catalog, customer, order, payment, pricing, promotion, shipping, warehouse)
+5. ✅ Ran `go mod vendor` to sync vendor directory after upgrades
+6. ✅ Verified: `golangci-lint run` → 0 warnings (post-upgrade)
+7. ✅ Verified: `go build ./...` → clean
+8. ✅ Verified: `go test ./...` → all tests pass (biz/cart, biz/checkout, integration)
+9. ✅ Updated `CHANGELOG.md` with `[v1.3.6]` entry
+10. ✅ Tagged and pushed `v1.3.6`
+11. ✅ Updated `docs/03-services/core-services/checkout-service.md` (version, dep table, status)
 
 ---
 
@@ -111,6 +111,6 @@ _None found._
 
 | Doc | Status |
 |-----|--------|
-| Service doc (`docs/03-services/core-services/checkout-service.md`) | ✅ Updated to v1.3.5 |
-| `checkout/README.md` | ✅ Exists and accurate |
-| `checkout/CHANGELOG.md` | ✅ Updated with v1.3.5 entry |
+| Service doc (`docs/03-services/core-services/checkout-service.md`) | ✅ Updated to v1.3.6 |
+| `checkout/README.md` | ✅ Updated to v1.3.6 |
+| `checkout/CHANGELOG.md` | ✅ Updated with v1.3.6 entry |

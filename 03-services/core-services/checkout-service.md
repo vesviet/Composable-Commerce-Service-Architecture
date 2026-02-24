@@ -6,10 +6,10 @@
 > **Ports**: HTTP `8010` | gRPC `9010`
 
 **Service Name**: Checkout Service
-**Version**: v1.3.5
+**Version**: v1.3.6
 **Last Updated**: 2026-02-24
 **Review Status**: ✅ Reviewed
-**Production Ready**: 99%
+**Production Ready**: 100%
 
 ---
 
@@ -325,14 +325,14 @@ All services use Kubernetes internal DNS for discovery:
 
 ```
 gitlab.com/ta-microservices/common     v1.16.0
-gitlab.com/ta-microservices/catalog    v1.2.8
-gitlab.com/ta-microservices/customer   v1.1.4
-gitlab.com/ta-microservices/order      v1.1.0
-gitlab.com/ta-microservices/payment    v1.1.0
-gitlab.com/ta-microservices/pricing    v1.1.3
-gitlab.com/ta-microservices/promotion  v1.1.2
-gitlab.com/ta-microservices/shipping   v1.1.2
-gitlab.com/ta-microservices/warehouse  v1.1.8
+gitlab.com/ta-microservices/catalog    v1.3.3
+gitlab.com/ta-microservices/customer   v1.2.2
+gitlab.com/ta-microservices/order      v1.1.5
+gitlab.com/ta-microservices/payment    v1.2.1
+gitlab.com/ta-microservices/pricing    v1.1.8
+gitlab.com/ta-microservices/promotion  v1.1.7
+gitlab.com/ta-microservices/shipping   v1.1.6
+gitlab.com/ta-microservices/warehouse  v1.1.9
 ```
 
 No `replace` directives. ✅
@@ -439,5 +439,5 @@ cd ../worker && wire       # Regenerate Wire (worker)
 **Last Code Review**: 2026-02-24
 **Critical Issues (P0)**: 0
 **High Issues (P1)**: 0 (all fixed in v1.3.5)
-**Build**: ✅ golangci-lint 0 warnings, go build passes
+**Build**: ✅ golangci-lint 0 warnings, go build passes (v1.3.6)
 **Config/GitOps**: ✅ Aligned (ports 8010/9010)

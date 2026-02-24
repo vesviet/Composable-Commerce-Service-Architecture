@@ -6,11 +6,11 @@
 > **Ports**: 8006/9006
 
 **Service Name**: Warehouse Service
-**Version**: 1.1.4
-**Last Updated**: 2026-02-23
+**Version**: v1.2.0
+**Last Updated**: 2026-02-24
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: 100%
-**Code Review Date**: 2026-02-23
+**Code Review Date**: 2026-02-24
 
 ---
 
@@ -66,8 +66,8 @@ Warehouse Service là **core service** quản lý warehouse operations, inventor
 ## 🏗️ Architecture
 
 ### Service Ports
-- **HTTP REST**: 8008
-- **gRPC**: 9008
+- **HTTP REST**: 8006
+- **gRPC**: 9006
 
 ### Technology Stack
 - **Framework**: Kratos v2.9.1
@@ -555,14 +555,13 @@ features:
 - **Dapr 1.10+**: Event-driven messaging
 
 ### Go Modules
-```go
-require (
-    github.com/go-kratos/kratos/v2 v2.9.1
-    gorm.io/gorm v1.25.5
-    github.com/redis/go-redis/v9 v9.3.0
-    github.com/360EntSecGroup-Skylar/excelize/v2 v2.8.1
-    github.com/dapr/go-sdk v1.9.1
-)
+```
+gitlab.com/ta-microservices/common             v1.16.0
+gitlab.com/ta-microservices/catalog            v1.3.3
+gitlab.com/ta-microservices/common-operations  v1.1.5
+gitlab.com/ta-microservices/location           v1.0.4
+gitlab.com/ta-microservices/notification       v1.1.6
+gitlab.com/ta-microservices/user               v1.0.9
 ```
 
 ---
@@ -774,5 +773,4 @@ kubectl apply -f k8s/
 
 ---
 
-*This documentation is automatically synchronized with the service implementation. Last updated: 2026-01-29*</content>
-<parameter name="filePath">/Users/tuananh/Desktop/myproject/microservice/docs/03-services/core-services/warehouse-service.md
+*This documentation is automatically synchronized with the service implementation. Last updated: 2026-02-24*

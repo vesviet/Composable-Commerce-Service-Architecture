@@ -6,10 +6,10 @@
 > **Ports**: HTTP `80` | gRPC `81`
 
 **Service Name**: Gateway Service
-**Version**: 1.1.10
-**Last Updated**: 2026-02-23
+**Version**: 1.1.12
+**Last Updated**: 2026-02-24
 **Review Status**: ✅ Reviewed
-**Production Ready**: 98%
+**Production Ready**: 100%
 
 ---
 
@@ -379,22 +379,11 @@ routing:
 
 ## 🚨 Known Issues & TODOs
 
-### P1 (Should Fix)
-- [ ] **[CONCURRENCY]** `kratos_middleware.go:237-268` — In-memory rate limiter uses unprotected `map[string][]time.Time` (data race under concurrent load). Should add `sync.Mutex` or remove in favor of Redis-backed `rate_limit.go`.
-- [ ] **[OBSERVABILITY]** `kratos_middleware.go:408`, `smart_cache.go:350`, `monitoring.go:171` — Raw `fmt.Printf` instead of structured `log.Helper`. Bypasses trace_id propagation.
-- [ ] **[CONCURRENCY]** `aggregation.go:129,161,197` — `go func()` with `sync.WaitGroup` instead of `errgroup`. Has panic recovery and timeouts (not dangerous), but `errgroup` is cleaner.
-- [ ] **[SECURITY]** `kratos_middleware.go:323` — Token validation error message leaks internal details to client. Should return generic message.
-- [ ] **[CONFIG]** `server/http.go:68` — Hardcoded version `"v1.0.0"` and environment `"production"` in health setup. Should use config values.
-
-### P2 (Nice to Have)
-- [ ] **[STYLE]** `kratos_middleware.go:330` — Dead code: `r = r.WithContext(ctx)` is a no-op
-- [ ] **[OPS]** No `startupProbe` in K8s deployment (could help during slow startup)
-- [ ] **[QUALITY]** `smart_cache.go:91-100` — Convoluted language normalization logic
-
 ### Enhancement Opportunities
 - [ ] Implement response compression (gzip)
 - [ ] Add GraphQL support for complex aggregation queries
 - [ ] Add API versioning strategy (v1 → v2)
+- [ ] Add `startupProbe` to K8s deployment for safer rolling updates
 
 ---
 
@@ -446,6 +435,19 @@ docker build -t gateway-service .
 
 ## 📈 Recent Updates
 
+### v1.1.12 (2026-02-24)
+- ✅ Removed dead `RateLimitMiddleware()` (data-race-prone, unreachable in prod)
+- ✅ `LoggingMiddleware` uses structured `log.Helper` — trace IDs now propagate through access logs
+- ✅ Token validation errors logged (Warn) not leaked to HTTP response
+- ✅ Removed no-op `r = r.WithContext(ctx)` dead assignment
+- ✅ Aggregation fan-out refactored to `errgroup.WithContext` (cleaner concurrency)
+- ✅ Accept-Language normalisation simplified to `strings.Cut` one-liner
+- ✅ Health setup reads version/env from config instead of hardcoded strings
+
+### v1.1.11 (2026-02-24)
+- ✅ Updated all 19 internal service proto dependencies to latest tagged versions
+- ✅ Re-synced `vendor/` (was stale: common v1.9.7 vs go.mod v1.13.1)
+
 ### v1.1.10 (2026-02-21)
 - ✅ SmartCacheMiddleware: preserve upstream `Content-Type` for cache HIT and singleflight
 - ✅ Test suite fixes: panic_recovery, request_validation, bff_comprehensive
@@ -466,8 +468,8 @@ docker build -t gateway-service .
 ---
 
 **Service Status**: 🟢 Production Ready
-**Last Code Review**: 2026-02-23
+**Last Code Review**: 2026-02-24
 **Critical Issues (P0)**: 0
-**High Issues (P1)**: 5
+**High Issues (P1)**: 0
 **Build**: ✅ golangci-lint 0 warnings, go build passes
 **Config/GitOps**: ✅ Aligned (ports 80/81)
