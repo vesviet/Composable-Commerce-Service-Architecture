@@ -1,8 +1,8 @@
 # Customer & Identity Flow Review Checklist
 
-**Services**: Auth · User · Customer  
+**Services**: Auth · User · Customer · Loyalty-Rewards  
 **Reference**: [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) §1 · Shopify/Shopee/Lazada patterns  
-**Date**: 2026-02-21  
+**Date**: 2026-02-24 (updated)  
 **Status Legend**: ✅ OK · ⚠️ Risk · ❌ Issue · 🔴 P0 · 🟡 P1 · 🔵 P2
 
 ---
@@ -349,8 +349,8 @@
 
 ```
 [Auth Service]
-  Publishes:  session.created, session.revoked, user.authenticated,
-              account.locked, permission.refresh.needed
+  Publishes:  session.created, session.revoked, user.authenticated, account.locked
+              (permission.refresh.needed removed — was dead code)
   Subscribes: (none)
   Pattern:    Direct publish (fire-and-forget, best-effort)
   ✅ Correct for auth use case
@@ -358,8 +358,8 @@
 [User Service]
   Publishes:  user.created, user.updated, user.deleted, user.status_changed
   Subscribes: (none)
-  Pattern:    Direct HTTP Dapr publish (no outbox) ⚠️ Risk on user.deleted
-  pubsub:     "pubsub" ← WRONG, should be "pubsub-redis"
+  Pattern:    Direct Dapr gRPC publish (common/events.DaprEventPublisher)
+  pubsub:     "pubsub-redis" ✅
 
 [Customer Service]
   Publishes:  customer.created ✅ Outbox
@@ -368,13 +368,106 @@
               customer.verified ✅ Correct CustomerVerifiedEvent struct (events.go:70)
               customer.status.changed ✅ Outbox via writeStatusChangedOutbox
               customer.address.* ⚠️ Direct publish
-              customer.segment.assigned/removed ⚠️ Not published by cron worker
+              customer.segment.assigned/removed ✅ Published by segment.go:315-343
   Subscribes: (none — stats via polling, not events)
   Pattern:    Outbox for core entities; direct publish for secondary events
+
+[Loyalty-Rewards Service]
+  Publishes:  loyalty.points.earned, loyalty.tier.changed, loyalty.points.redeemed
+              (via outbox_publisher.go)
+  Subscribes: customer.created ✅ → create loyalty account + welcome bonus
+              order.completed  ✅ → earn points on order
+              order.cancelled  ✅ → reverse points on cancellation
+  GitOps Sub: gitops/apps/loyalty-rewards/base/dapr-subscription.yaml ✅ Correct (v1alpha1)
+  Svc-local:  loyalty-rewards/dapr/subscription.yaml ⚠️ Stale (v2alpha1, wrong topics)
+  Pattern:    Worker event consumers; outbox for publishing
 ```
 
 ---
 
+## 11. Loyalty-Rewards Service Review (§1.4 Customer Loyalty & Tier)
+
+### 11.1 Data Consistency
+
+| Check | Status | Detail |
+|---|---|---|
+| Loyalty account created atomically with customer.created event | ✅ | Worker creates account + awards 100 welcome points in `handleCustomerCreated` |
+| Idempotency on `customer.created` re-delivery | ✅ | `GetAccount` check before `CreateAccount`; EarnPoints uses `source=welcome_bonus, source_id=customerID` |
+| Idempotency on `order.completed` re-delivery | ✅ | `TransactionExists(ctx, "order", orderID)` before awarding points |
+| Idempotency on `order.cancelled` re-delivery | ✅ | `TransactionExists(ctx, "order_cancellation", orderID)` before reversing |
+| Tier recalculation after point changes | ⚠️ **P2** | `EarnPoints` and `DeductPoints` update balance but tier recalculation is triggered asynchronously — if worker crashes after point award but before tier upgrade, tier becomes stale |
+| `customer.deleted` event consumed by loyalty | ❌ **P1** | No consumer for `customer.deleted` — loyalty account + point history remain active after customer GDPR deletion; violates GDPR/data erasure |
+
+### 11.2 Event Publishing — Does Loyalty Need to Publish?
+
+| Event | Need? | Consumers | Verdict |
+|---|---|---|---|
+| `loyalty.points.earned` | ✅ Yes | Notification (points earned), analytics | ✅ Keep |
+| `loyalty.tier.changed` | ✅ Yes | Notification (tier upgrade), pricing (tier discounts) | ✅ Keep |
+| `loyalty.points.redeemed` | ✅ Yes | Notification, analytics | ✅ Keep |
+| `loyalty.points.expired` | ✅ Yes | Notification (expiry reminder) | ⚠️ Check if cron job publishes this |
+
+### 11.3 Event Subscription — Does Loyalty Need to Subscribe?
+
+| Event | Subscribed | Verdict |
+|---|---|---|
+| `customer.created` | ✅ Yes (gitops dapr-subscription) | ✅ Correct |
+| `order.completed` | ✅ Yes (gitops dapr-subscription) | ✅ Correct |
+| `order.cancelled` | ✅ Yes (gitops dapr-subscription) | ✅ Correct |
+| `customer.deleted` | ❌ Missing | ❌ **P1** Add consumer to purge loyalty data on GDPR deletion |
+| `loyalty.points.expired` | n/a | Published by cron — verify `jobs/` directory has expiry cron |
+
+### 11.4 Dapr Subscription — GitOps vs Service-Local
+
+| Check | Status | Detail |
+|---|---|---|
+| GitOps `dapr-subscription.yaml` correct | ✅ | `gitops/apps/loyalty-rewards/base/dapr-subscription.yaml` has all 3 topics using `dapr.io/v1alpha1` |
+| Service-local `dapr/subscription.yaml` stale | ❌ **P2** | `loyalty-rewards/dapr/subscription.yaml` uses `dapr.io/v2alpha1`, wrong topic `orders.payment.captured` (instead of `order.completed`), missing `customer.created` entry — should be deleted or aligned |
+| Topic naming consistent with publishers | ✅ | `pubsub-redis` / `customer.created` / `order.completed` / `order.cancelled` matches customer and order service publish topics |
+
+### 11.5 GitOps — Worker Deployment
+
+| Check | Status | Detail |
+|---|---|---|
+| Worker deployment exists | ✅ | `gitops/apps/loyalty-rewards/base/worker-deployment.yaml` |
+| Dapr sidecar enabled | ✅ | `dapr.io/enabled: "true"`, `dapr.io/app-id: "loyalty-rewards-worker"` |
+| Dapr app-port matches container port | ✅ | Both `dapr.io/app-port: "9014"` and `containerPort: 9014` |
+| Dapr app-protocol | ✅ | `dapr.io/app-protocol: "grpc"` — correct for gRPC consumer |
+| `secretRef` for DB/Redis credentials | ❌ **P1** | Worker deployment only has `configMapRef: overlays-config` — no `secretRef`. DB credentials (if in secret) not injected into worker |
+| Health probes use port 8081 `/healthz` | ⚠️ **P1** | `livenessProbe/readinessProbe` target `containerPort: health (8081)` but worker binary runs in event mode — no HTTP health server exposed on 8081; probes will fail causing `CrashLoopBackOff` |
+| Resource limits set | ✅ | `requests: 256Mi/100m`, `limits: 512Mi/300m` |
+
+### 11.6 Worker — Cron Jobs
+
+| Check | Status | Detail |
+|---|---|---|
+| Points expiry cron exists | ⚠️ **P2** | `internal/jobs/` directory exists — verify `expiry_job.go` or similar publishes `loyalty.points.expired` event |
+| Cron runs in separate worker mode | ✅ | Worker binary invoked with `-mode event`; verify if cron mode is separate or co-located |
+| Distributed lock on cron to prevent overlap | ⚠️ **P2** | Check if expiry cron uses Redis SETNX lock like customer's segment evaluator |
+
+---
+
+## 12. Updated Action Items
+
+### 🔴 P0 — Must Fix Before Production
+_(All previously identified P0 items resolved — see Section 9)_
+
+### 🟡 P1 — Fix Before Release
+
+- [x] **LOYALTY Worker**: Add `secretRef` for DB/Redis credentials in `worker-deployment.yaml` ✅ `optional: true` secretRef added (credentials remain in ConfigMap for dev; move to Secret for prod)
+- [x] **LOYALTY Worker**: Fix liveness/readiness probes ✅ Replaced HTTP probes on port 8081 with `exec: kill -0 1` process-alive probe
+- [x] **LOYALTY**: Add `customer.deleted` event consumer ✅ `customer_deleted_event.go` created; registered in `consumer.go`; gitops `dapr-subscription.yaml` updated
+- [x] **AUTH**: Device binding check missing audit log at `token.go:388` ✅ **Already implemented** at `token.go:393` — confirmed `LogTokenValidated(ctx, tokenID, userID, true, "device_check_failed")` present
+
+### 🔵 P2 — Nice to Have / Cleanup
+
+- [x] **LOYALTY**: Delete stale `loyalty-rewards/dapr/subscription.yaml` ✅ File removed (was v2alpha1, wrong topics)
+- [x] **LOYALTY**: `gitops/apps/loyalty-rewards/base/dapr-subscription.yaml` updated ✅ DLQ metadata added to all subscriptions; `customer.deleted` subscription added with proper name (`loyalty-rewards-customer-created` etc.)
+- [ ] **LOYALTY**: Verify tier recalculation is triggered synchronously after point award in `EarnPoints`/`DeductPoints`
+- [ ] **LOYALTY**: Confirm `internal/jobs/` has points expiry cron with distributed lock
+
+---
+
 *Generated during Customer & Identity Flow review — 2026-02-21*  
-*Last verified against codebase: 2026-02-23 — all P0/P1/P2 resolved. Zero open issues.*  
+*Updated: 2026-02-24 — added Loyalty-Rewards service review (§11), corrected Event Map, added new P1/P2 items for loyalty-rewards worker*  
 *Cross-reference: [lastphase/](../lastphase/) for P0/P1/P2 fix tracking*
