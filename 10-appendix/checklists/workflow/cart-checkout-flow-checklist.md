@@ -423,3 +423,65 @@ The dual-read code is still present but is **isolated from the session path** �
 | **NEW-P2-002** | `order` | `validateStockForOrder` uses local `time.Now()` for reservation expiry — same clock-skew risk as P1-002 | ✅ Documented 2026-02-23 — `payment_consumer.go:486` annotated with `[NEW-P2-002]` note; fix follows P1-002 (Warehouse proto `is_expired` field) |
 | **NEW-P2-003** | `gitops` | No HPA for `checkout-worker` — worker can lag under high order volume with no scaling path | ✅ Fixed 2026-02-23 — `overlays/production/worker-hpa.yaml` created (min=1, max=3, CPU 75%) and added to production `kustomization.yaml` |
 
+---
+
+## 13. Re-review Pass — 2026-02-24 (Fresh Codebase Analysis)
+
+> Full re-index of `checkout/`, `order/`, `warehouse/`, `analytics/`, `loyalty-rewards/`, `notification/` against [ecommerce-platform-flows.md §5](../../ecommerce-platform-flows.md#5-cart--checkout-flows).
+
+### 13.1 Newly Identified Issues
+
+#### 🔴 P0
+
+| # | Issue | Detail | File |
+|---|-------|--------|------|
+| **2402-P0-01** | **Coupon lock fail-open on Redis outage** — `acquireCouponLocks` catches `TryAcquire` errors and skips the lock (continues checkout). During Redis downtime, two concurrent checkouts for the same single-use coupon will both succeed, double-spending the coupon. | `coupon_lock.go:42` — `if lockErr != nil { uc.log.Warn(...); continue }` | `checkout/internal/biz/checkout/coupon_lock.go:40-44` |
+| **2402-P0-02** | **Promotion usage increment not idempotent by `order_id`** — `retryApplyPromotion` calls `ApplyPromotion` without an idempotency key. If the promotion service returns a transient error after incrementing the counter, the retry will increment again. A coupon may show "used 2×" for a single order. | `failed_compensation.go:360` — no `IdempotencyKey` field in `ApplyPromotionRequest` | `checkout/internal/worker/cron/failed_compensation.go:352-362` |
+| **2402-P0-03** | **Checkout and Order both publish `orders.order.status_changed` for order creation** — `checkout/internal/events/publisher.go:PublishOrderStatusChanged` fires on checkout confirm AND `order/internal/biz/order/events.go:PublishOrderCreatedEvent` fires inside `CreateOrder`. Warehouse `order_status_consumer` deduplicates by `order_id + new_status`, but analytics and notification may not. Consumers receive two `{old_status:"", new_status:"pending"}` events. | `checkout/internal/events/publisher.go:89`, `order/internal/biz/order/events.go:18` | Remove `PublishOrderStatusChanged` from checkout side. |
+
+#### 🟡 P1
+
+| # | Issue | Detail | File |
+|---|-------|--------|------|
+| **2402-P1-01** | **`checkout.cart.converted` has no analytics subscriber** — `analytics/dapr/subscription.yaml` subscribes to `orders.order.status_changed` and `payments.payment.confirmed` but NOT to `checkout.cart.converted`. Cart→Order conversion funnel is untracked in analytics. | `analytics/dapr/subscription.yaml` | Add subscription for topic `cart.converted` |
+| **2402-P1-02** | **`loyalty-rewards` has no Dapr subscription.yaml** — no `dapr/` directory or subscription file found. Loyalty points are never awarded from events (checkout conversion, order completion). Must verify if earning is done via direct gRPC call from order service; if not, loyalty is broken for post-order point awards. | `loyalty-rewards/` | Verify earn mechanism; add subscriptions if event-driven |
+| **2402-P1-03** | **`inventory.stock.committed` event has no consumer** — Order service publishes this via outbox after `ConfirmOrderReservations`, but no service subscribes (not warehouse, not analytics, not search). The event is silently orphaned. | `order/internal/biz/order/create.go:394-408` | Either add warehouse consumer for audit/reconciliation, or remove the event |
+| **2402-P1-04** | **`CartConverted` outbox save + cart completion are in the same transaction** — If `completeCartAfterOrderCreation` fails, the transaction rolls back, including the outbox save. The Order exists in Order service but `CartConverted` is permanently lost (analytics, loyalty, CRM miss the conversion). The compensation worker handles cart cleanup but NOT outbox re-publish. | `checkout/biz/checkout/confirm.go:531-533` | Save outbox event in a separate (post-commit) step, or use a separate compensation type for the event |
+| **2402-P1-05** | **Guest cart TTL is 1h but `CartCleanupWorker` runs every 6h** — Guest carts with warehouse reservations expire at 1h but may hold stock for up to 6h before cleanup. `CheckoutSessionCleanupWorker` (5 min) only handles carts in `checkout` status, not `active` status guest carts. | `checkout/internal/constants/constants.go:100`, `checkout/internal/worker/cron/cart_cleanup.go:49` | Reduce `CartCleanupWorker` interval for guest carts, or add a dedicated fast-cleanup path |
+
+#### 🔵 P2
+
+| # | Issue | Detail | File |
+|---|-------|--------|------|
+| **2402-P2-01** | **`MinOrderAmount` and `MaxOrderAmount` are hardcoded constants** — B2B bulk orders or admin-created orders may legitimately exceed `MaxOrderAmount = 10000`. Thresholds should be configurable per customer group or order type. | `checkout/internal/constants/constants.go:108` | Move to config.yaml; allow per-tier override |
+| **2402-P2-02** | **Analytics does not subscribe to `checkout.cart.converted`** — The cart abandonment rate and cart-to-order conversion rate (key e-commerce KPIs) cannot be computed from currently subscribed events alone. `orders.order.status_changed` shows when an order was created but not whether a cart was abandoned instead of converted. | `analytics/dapr/subscription.yaml` | Add `checkout.cart.converted` subscription |
+| **2402-P2-03** | **Outbox `dedupCache` is in-memory only** — On pod restart or rolling deploy, the dedup cache is cleared. A new pod may re-publish an event that the previous pod already published if the Dapr publish succeeded but the DB `status=processed` update was delayed. Consumer-side idempotency (event_id) is the only protection. | `checkout/internal/worker/outbox/worker.go:27` | Acceptable for now; ensure all consumers check `event_id` |
+
+### 13.2 Re-verified Correct Items (2026-02-24)
+
+| Item | Evidence |
+|------|---------|
+| Checkout is correctly event-consumer-free | No `dapr/` directory, no eventbus consumers — checkout is a pure synchronous orchestrator ✅ |
+| Warehouse correctly subscribes to `orders.order.status_changed` | `warehouse/internal/data/eventbus/order_status_consumer.go` with idempotency dedup on `order_id+new_status` ✅ |
+| Order service idempotency on `cart_session_id` DB unique constraint | `order/biz/order/create.go:138-160` — recovers existing order on duplicate key ✅ |
+| Checkout outbox worker: stuck event recovery + cleanup + dedup | `checkout/worker/outbox/worker.go` — 1s poll, 10-cycle cleanup, 5-min stuck threshold ✅ |
+| Reservation release on abandoned checkout sessions | `checkout/worker/cron/checkout_session_cleanup.go` — 5-min cron, gRPC release via warehouseInventoryService ✅ |
+| Reservation release on cart deletion (30-day cleanup) | `checkout/worker/cron/cart_cleanup.go:releaseCartReservations` ✅ |
+| COD skips payment authorization correctly | `confirm.go:382-398` — `cod-auth-skipped` auth result, void is skipped correctly ✅ |
+| Fraud pre-check is fail-open (availability > correctness) | `confirm.go:375-378` ✅ intended by design |
+| Final stock validation releases ALL reservations on OOS | `confirm.go:682-688` — correct behavior (harsh UX but consistent) ✅ |
+
+### 13.3 2026-02-24 Action Items Summary
+
+| Priority | ID | Action | Owner |
+|----------|----|--------|-------|
+| 🔴 P0 | 2402-P0-01 | Make `acquireCouponLocks` fail-closed for single-use coupons on Redis error | Checkout team |
+| 🔴 P0 | 2402-P0-02 | Add `IdempotencyKey: order_id` to `ApplyPromotion` + idempotent handler in Promotion service | Promotion team |
+| 🔴 P0 | 2402-P0-03 | Remove `PublishOrderStatusChanged` call from Checkout service (`publisher.go:89`) | Checkout team |
+| 🟡 P1 | 2402-P1-01 | Add `checkout.cart.converted` Dapr subscription to analytics | Analytics team |
+| 🟡 P1 | 2402-P1-02 | Verify loyalty point earn mechanism; add event subscriptions if missing | Loyalty team |
+| 🟡 P1 | 2402-P1-03 | Add `inventory.stock.committed` consumer to warehouse, OR delete the event | Warehouse team |
+| 🟡 P1 | 2402-P1-04 | Decouple `CartConverted` outbox save from cart completion transaction | Checkout team |
+| 🟡 P1 | 2402-P1-05 | Reduce guest cart cleanup lag (6h → 1h) for active guest carts | Checkout team |
+| 🔵 P2 | 2402-P2-01 | Make `MinOrderAmount`/`MaxOrderAmount` config-driven | Checkout team |
+
