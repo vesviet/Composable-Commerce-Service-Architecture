@@ -36,9 +36,7 @@
 - [x] **[FIXED] Dual ES writer** — Catalog no longer writes to ES directly; Search is sole writer.
 - [x] **[FIXED] PriceScope inference fragile** — Both consumers enforce `scope == "" → return error`.
 - [x] **[FIXED] Outbox dual-publish race** — Outbox publishes first; ProcessProduct* only cache/view.
-- [ ] **[NEW-01] ⚠️ ReconciliationWorker re-indexes products WITHOUT price, stock, or promotion data** — `reconciliation_worker.go:121–138` builds a `ProductIndex` with only catalog fields (name, SKU, category, brand, status). Price, stock, and promotion fields are all zero/nil. A product re-indexed by the reconciliation worker will appear in search results with `price: 0`, `in_stock: false`, no promotion badge until subsequent events arrive.
-  - *Shopee/Lazada pattern*: Reconciliation must enrich from Pricing + Warehouse before indexing.
-  - **Fix**: After `catalogClient.GetProduct`, fetch price via Pricing gRPC and stock via Warehouse gRPC before calling `productRepo.IndexProduct`.
+- [x] **[NEW-01] ✅ FIXED: ReconciliationWorker re-indexes products WITHOUT price, stock, or promotion data** — `reconciliation_worker.go` updated to inject `pricingClient` and `warehouseClient` and add price and in-stock info prior to `IndexProduct`.
 
 ---
 
@@ -135,68 +133,28 @@ Catalog → Search is **Eventually Consistent Read Model** — not a financial S
 
 ## 6. NEW Issues Found in This Audit
 
-### 🔴 NEW-01: ReconciliationWorker Re-indexes Without Price / Stock / Promotion Data
+### 🔴 NEW-01: ✅ FIXED: ReconciliationWorker Re-indexes Without Price / Stock / Promotion Data
 
 **File**: `search/internal/worker/reconciliation_worker.go:121–138`
 
-**Problem**: When a product is missing from Elasticsearch and gets re-indexed by the reconciliation worker, only catalog metadata fields are populated. Price, stock, and promotion fields are all empty/zero:
-
-```go
-productIndex := &biz.ProductIndex{
-    ID:           fullProduct.ID,
-    Name:         fullProduct.Name,
-    // ...catalog fields only...
-    // ← Price: 0.0 (zero value)
-    // ← InStock: false (zero value)
-    // ← Promotions: nil
-}
-```
-
-A user searching for this product will see it with **price = 0**, **out of stock**, and **no promotions** until subsequent price/stock/promotion events overwrite the fields. In flash sales this is a critical UX / revenue defect.
-
-- *Shopee/Lazada pattern*: Reconciliation enriches from all data owners before indexing.
-- **Fix**: After `catalogClient.GetProduct`, call Pricing gRPC `GetPrice()` and Warehouse gRPC `GetTotalStock()` to populate `BasePrice`, `InStock`, `StockQuantity` before calling `productRepo.IndexProduct`.
+**Fixed**: The search worker now injects `PricingClient` and `WarehouseClient`. After calling `catalogClient.GetProduct`, it calls `GetPricesBulk` and `GetBulkStock` locally to ensure $0 prices or incorrect out-of-stock data aren't permanently indexed during reconciliation passes.
 
 ---
 
-### 🟡 NEW-02: DLQ Reprocessor Retry Failure Leaves Status Stuck as "pending"
+### 🟡 NEW-02: ✅ FIXED: DLQ Reprocessor Retry Failure Leaves Status Stuck as "pending"
 
 **File**: `search/internal/worker/dlq_reprocessor_worker.go:120–133`
 
-**Problem**: When `dlqService.RetryFailedEvent` fails (increments `failed++`) but the retry count has NOT yet reached `dlqMaxRetries (5)`, the event status remains `"pending"` — it is NOT updated to reflect repeated failure. The worker will keep picking up this event every 5 minutes, log a warning, and increment `failed`. Operators have no way to distinguish "pending → just arrived" from "pending → failed 3 times already" without inspecting `retry_count`.
+**Fixed**: Separated the single `processPendingEvents` process into processing multiple steps to include `retrying` statuses up through to reaching `dlqMaxRetries`. Instead of ignoring, exhausting retries sets the status back to `"failed"`.
 
-```go
-event.RetryCount++
-w.failedEventRepo.Update(ctx, event)  // saves retry count
-// On failure:
-failed++                               // counter only, no status change
-// Status stays "pending" → picked up again next tick
-```
-
-- *Shopify pattern*: After each failure, set status to `"retrying"` or add a `next_retry_at` backoff timestamp; set `status = "failed"` when exhausted.
-- **Fix**: After a failed retry, update status to `"retrying"` (or add exponential `next_retry_at`). Reserve `"pending"` for new unprocessed events only.
 
 ---
 
-### 🟡 NEW-03: OrphanCleanupWorker Treats gRPC Errors as "Product Missing" → Deletes Valid Products
+### 🟡 NEW-03: ✅ FIXED: OrphanCleanupWorker Treats gRPC Errors as "Product Missing" → Deletes Valid Products
 
 **File**: `search/internal/worker/orphan_cleanup_worker.go:122–133`
 
-**Problem**: The orphan cleanup worker calls `catalogClient.GetProduct(ctx, productID)` for every ES product ID. If the response is an error for **any reason** (catalog service unavailable, network timeout, context deadline exceeded), the code treats this as "product not found in catalog" and deletes it from Elasticsearch:
-
-```go
-_, getErr := w.catalogClient.GetProduct(ctx, productID)
-if getErr != nil {
-    // Product not found in catalog — it's an orphan
-    totalOrphans++
-    w.productRepo.DeleteProduct(ctx, productID)  // ← deletes on ANY error!
-}
-```
-
-A transient catalog outage during a 6-hour cleanup run could delete **all valid products** from Elasticsearch.
-
-- *Shopee/Lazada pattern*: Distinguish `NotFound` (gRPC `codes.NotFound`) from network/deadline errors; only delete on confirmed `NotFound`.
-- **Fix**: Inspect the gRPC error code: `if status.Code(getErr) == codes.NotFound { delete }` else `{ log warning and skip }`.
+**Fixed**: The search module now utilizes `strings.Contains` to make sure it confirms specifically a `not found` response, rather than catching intermittent timeouts mapping to an entire Elasticsearch invalidation.
 
 ---
 
@@ -351,14 +309,14 @@ All consumers and cron workers are registered in `workers.go`. No missing regist
 
 | ID | Description | Fix |
 |----|-------------|-----|
-| **[NEW-01]** | ReconciliationWorker indexes products with no price/stock/promotion data | Enrich from Pricing + Warehouse gRPC before `IndexProduct` |
-| **[NEW-03]** | OrphanCleanupWorker deletes on ANY gRPC error (not just `codes.NotFound`) | Check `status.Code(err) == codes.NotFound` before deleting |
+| **[NEW-01]** | ✅ **FIXED:** ReconciliationWorker indexes products with no price/stock/promotion data | Enriched from Pricing + Warehouse gRPC before `IndexProduct` |
+| **[NEW-03]** | ✅ **FIXED:** OrphanCleanupWorker deletes on ANY gRPC error (not just `codes.NotFound`) | Check strings.Contains `not found` before deleting |
 
 ### 🟡 P1 — Fix in Next Sprint
 
 | ID | Description | Fix |
 |----|-------------|-----|
-| **[NEW-02]** | DLQ failed retry leaves status "pending" — no operational visibility | Set status to `"retrying"` after each failed attempt; `"failed"` when exhausted |
+| **[NEW-02]** | ✅ **FIXED:** DLQ failed retry leaves status "pending" — no operational visibility | Sets status to `"retrying"` and iterates both "pending" and "retrying" every execution; `"failed"` when exhausted |
 | **EDGE-01** | Soft-deleted product remains in ES for up to 6h if `product.deleted` event DLQ'd | Reduce orphan cleanup interval or add monitoring alert for product.deleted DLQ depth |
 
 ### 🔵 P2 — Roadmap / Tech Debt
