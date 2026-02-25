@@ -8,41 +8,20 @@ golangci-lint run
 
 commit và push
 
-git pull analytics service
-
 Follow docs/07-development/standards/service-review-release-prompt.md and run the process for service name analytics
 
 -go get new tag from gitlab.com/ta-microservices, not use replace, use import 
 review code, code quality, gitops config, business logic
 golangci-lint, make api, go build, wire, commit vs push
 
-check đã dùng templates/update-gitops-image-tag.yaml (follow order/.gitlab-ci.yml)
-
-# Review single workflow
-Follow docs/07-development/standards/workflow-review-release-prompt.md and run the process for workflow **complete-order-flow** in category **sequence-diagrams**.
-
-# Review end-to-end workflow with services
-Follow docs/07-development/standards/end-to-end-workflow-review-prompt.md and run the complete workflow review for **complete-order-flow** in category **sequence-diagrams**.
-
-# Review all workflows in optimal order
-Follow docs/07-development/standards/workflow-review-sequence-guide.md and review workflows in the recommended sequence order.
-
 review code, code quality, argocd config, business logic
 
 index codebase, review code, code quality, gitops config, business logic
 
-index codebase, review code, code quality
-
 Email: customer1@example.com → customer10000@example.com
 Password: password123
 
-return
-review
-loyalty-rewards
-analytics
-
-
-Follow Shopify, Shopee, and Lazada patterns, skills, codebase hiện tại và docs\10-appendix\ecommerce-platform-flows.md
+Follow Shopify, Shopee, and Lazada patterns, skills, rule, workflow, codebase hiện tại và docs\10-appendix\ecommerce-platform-flows.md
 hãy review logic nghiệp vụ của :
 - Kiểm tra sự nhất quán dữ liệu giữa các service
 - Có trường hợp nào dữ liệu bị lệch (mismatched) không?
@@ -60,9 +39,11 @@ Follow Shopify, Shopee, and Lazada patterns.
 
 Are there any other related issues?
 
-Please continue with the remaining issues in the fics.
+Follow rule, skill, workflows vs docs, Please continue with the remaining issues in the fics.
 
-follow rule, skill, workflows vs docs 
+Follow rule, skill, workflows vs docs 
+
+Follow rule, skill commit related services
 
 1. [Customer & Identity Flows](#1-customer--identity-flows)
 2. [Catalog & Product Flows](#2-catalog--product-flows)
@@ -79,7 +60,6 @@ follow rule, skill, workflows vs docs
 13. [Admin & Operations Flows](#13-admin--operations-flows)
 14. [Analytics & Reporting Flows](#14-analytics--reporting-flows)
 15. [Cross-Cutting Concerns](#15-cross-cutting-concerns)
-
 
 docs\10-appendix\checklists\workflow\customer-identity-flow-checklist.md
 docs\10-appendix\checklists\workflow\catalog-product-flow-checklist.md

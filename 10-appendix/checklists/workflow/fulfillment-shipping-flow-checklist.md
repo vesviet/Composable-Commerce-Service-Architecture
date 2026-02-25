@@ -36,12 +36,12 @@
 | `ConfirmPacked` creates package + package_items in transaction | ✅ | `fulfillment.go:609-732` |
 | QC requirement blocks `MarkReadyToShip` | ✅ | `fulfillment.go:751-769` |
 | `CancelFulfillment`: releases reservation or restores confirmed stock based on fulfillment state | ✅ | `fulfillment.go:811-837` |
-| `CancelFulfillment`: `AdjustStock` failures for picked/packed items are silently logged (non-fatal) | ⚠️ | `fulfillment.go:823-826` — stock not restored if AdjustStock fails; no reconciliation mechanism |
-| `CancelFulfillment`: package cancellation errors are silently swallowed | ⚠️ | `fulfillment.go:865-866` — package may remain non-cancelled if repo update fails |
-| `HandleQCFailed` releases reservation even when re-packing the same stock is intended | ⚠️ | `fulfillment.go:900-907` + `912-913` — releases reservation, then sets status back to PACKING. For repack, reservation should be kept, not released |
-| `handleOrderConfirmed` calls `CreateFromOrderMulti` + `StartPlanning` in a loop without an outer transaction | 🟡 | `order_status_handler.go:104-124` — if `StartPlanning` fails for fulfillment #2, fulfillment #1 is already in `planning` status with no rollback |
-| `handleOrderCancelled` uses string-compare `err.Error() == "record not found"` | ⚠️ | `order_status_handler.go:136` — fragile; should use `errors.Is(err, ErrFulfillmentNotFound)` |
-| COD amount fully assigned to first fulfillment in multi-warehouse split | ⚠️ | `fulfillment.go:320-328` — if order splits across 3 warehouses, COD debt tracked only on fulfillment #1. Couriers for #2 and #3 won't know COD amount |
+| `CancelFulfillment`: `AdjustStock` failures for picked/packed items are silently logged (non-fatal) | ✅ Fixed | `fulfillment.go:823-826` — Lỗi từ `AdjustStock` giờ đây được coi là nghiêm trọng (fatal), transaction sẽ được rollback để đảm bảo tính nhất quán của tồn kho. |
+| `CancelFulfillment`: package cancellation errors are silently swallowed | ✅ Fixed | Toàn bộ logic hủy đã được bọc trong transaction, đảm bảo tính nguyên tử. |
+| `HandleQCFailed` releases reservation even when re-packing the same stock is intended | ✅ Fixed | `fulfillment.go:900-907, 912-913` — Logic đã được sửa để không giải phóng reservation khi mục đích là đóng gói lại. |
+| `handleOrderConfirmed` calls `CreateFromOrderMulti` + `StartPlanning` in a loop without an outer transaction | ✅ Fixed | `order_status_handler.go:109-119` — Đã triển khai logic bồi thường (Saga pattern). Nếu một bước `StartPlanning` thất bại, các fulfillment đã tạo trước đó sẽ được hủy để đảm bảo tính toàn vẹn. |
+| `handleOrderCancelled` uses string-compare `err.Error() == "record not found"` | ✅ Fixed | `order_status_handler.go` — Đã chuyển sang sử dụng `errors.Is` để kiểm tra lỗi một cách an toàn. |
+| COD amount fully assigned to first fulfillment in multi-warehouse split | ✅ Fixed | `fulfillment.go` — `computeProRataCOD` phân bổ COD theo tỷ lệ giá trị hàng hóa của mỗi kho, đảm bảo thông tin thu hộ chính xác cho từng đơn vị vận chuyển. |
 | WarehouseID nil guard before calling AdjustStock | ✅ | `fulfillment.go:575, 821` — only calls if warehouseID != nil |
 
 ### 1.2 Outbox Pattern — CRITICAL GAP
@@ -50,7 +50,7 @@
 |-------|--------|-------|
 | `OutboxEventPublisher` correctly writes events to outbox table within transaction | ✅ | `events/outbox_publisher.go:31-51` — uses `common/outbox.Repository.Save` |
 | Events published inside `InTx` (transactional outbox) | ✅ | All state-changing methods publish inside `uc.tx.InTx(...)` |
-| **Outbox polling worker exists to push events to Dapr** | ✅ Fixed | `cmd/worker/wire_gen.go:94` — `commonOutbox.NewWorker` registered. `cron/provider.go` is empty but worker is wired directly. |
+| **Outbox polling worker exists to push events to Dapr** | ✅ Fixed | `cmd/worker/wire_gen.go:94` — `commonOutbox.NewWorker` đã được đăng ký và kích hoạt, đảm bảo các event trong outbox được đẩy lên Dapr. |
 
 ### 1.3 Event Consumers (Worker)
 
@@ -76,7 +76,7 @@
 | `orders.order_status_changed` | ✅ | ✅ Yes — create/cancel fulfillment on order confirmed/cancelled | ✅ Correct |
 | `fulfillment.picklist_status_changed` | ✅ | ✅ Yes — update fulfillment on picklist completion | ✅ Correct |
 | `payment.payment_processed` | ❌ | ❌ No — handled via order.status_changed | ✅ Correct — not needed |
-| `shipping.shipment_delivered` | ❌ | ✅ Yes — fulfillment should transition to `completed` on delivery | ❌ Missing — fulfillment never reaches `completed` status automatically |
+| `shipping.shipment_delivered` | ✅ Yes | ✅ Yes — fulfillment should transition to `completed` on delivery | ✅ `ShipmentDeliveredConsumerWorker` đã được thêm vào để lắng nghe sự kiện này và tự động hoàn thành fulfillment. |
 
 ---
 
@@ -91,9 +91,9 @@
 | `UpdateShipmentStatus` acquires advisory lock + transaction + outbox | ✅ | `shipment_usecase.go:340-377` — `SH-BUG-03 FIX` |
 | State machine validated before every status transition | ✅ | `shipment_usecase.go:581-628` |
 | `StatusDelivered` saves `shipment.delivered` outbox event in same transaction | ✅ | `shipment_usecase.go:369-374` |
-| `GenerateLabel` updates shipment with label URL — no transaction wrapper | ⚠️ | `shipment_usecase.go:666-672` — if label generated but `repo.Update` fails, label is lost; no event published |
+| `GenerateLabel` updates shipment with label URL — no transaction wrapper | ✅ Fixed | `label_generation.go:93-112` — Toàn bộ logic tạo nhãn và cập nhật DB đã được bọc trong `WithTransaction`. |
 | `BatchCreateShipments` wraps all shipments in single transaction | ✅ | `shipment_usecase.go:686-748` — atomicity correct |
-| `HandlePackageReady` updates N shipments per fulfillment in separate transactions | ⚠️ | `package_ready_handler.go:31-73` — each shipment updated in its own `WithTransaction`. If shipment #2 update fails, shipment #1 is already updated to `ready` — partial inconsistency |
+| `HandlePackageReady` updates N shipments per fulfillment in separate transactions | ✅ Fixed | `package_ready_handler.go:31-73` — Toàn bộ vòng lặp cập nhật các shipment giờ được bọc trong một transaction duy nhất, đảm bảo tất cả cùng thành công hoặc thất bại. |
 | `AddTrackingEvent`: status transition validated before update | ✅ | `shipment_usecase.go:447-449` — skips invalid transitions |
 | Carrier failover supported via `CarrierFactory.GetFailoverCarriers` | ✅ | Carrier factory pattern allows fallback |
 | RBAC enforced: shippers can only see their own assigned shipments | ✅ | `shipment_usecase.go:522-538` |
@@ -102,11 +102,11 @@
 
 | Check | Status | Notes |
 |-------|--------|-------|
-| Outbox worker polls every **1 second**, batch size 20 | ✅ | `outbox_worker.go:33,58` — very aggressive polling, may cause DB load |
+| Outbox worker polls every **5 seconds**, batch size 20 | ✅ | `outbox_worker.go:33,58` — Tần suất polling đã được điều chỉnh từ 1s xuống 5s để giảm tải DB. |
 | MaxRetries = 5 with exponential backoff | ✅ | `outbox_worker.go:92, 130` — `MarkFailedWithRetry` handles backoff |
 | Permanent failures marked `FAILED` after MaxRetries | ✅ | `outbox_worker.go:136-139` |
-| `CleanupOldEvents` deletes events > 7 days — but is it called automatically? | ⚠️ | `outbox_worker.go:150-153` — method exists but there is **no cron job** registering it. Old events accumulate. |
-| Topic derived from `event.AggregateType` not `event.Type` | ⚠️ | `outbox_worker.go:119` — `topic := event.AggregateType`. Events with type `shipment.delivered` will be published to topic `shipment` (the aggregate type), not `shipment.delivered`. Consumers subscribing to specific topics may miss events. |
+| `CleanupOldEvents` deletes events > 7 days — but is it called automatically? | ✅ | `outbox_worker.go:150-153` — Đã đăng ký `CleanupOldEvents` như một cron job chạy hàng ngày. |
+| Topic derived from `event.AggregateType` not `event.Type` | ✅ Fixed | `outbox_worker.go:126` — Logic đã được sửa để sử dụng `event.Type` làm topic, đảm bảo định tuyến event chính xác. |
 
 ### 2.3 Event Consumers (Worker)
 
@@ -118,18 +118,18 @@
 
 | Event | Topic | Needed? | Via Outbox? | Status |
 |-------|-------|---------|-------------|--------|
-| `shipment.created` | `shipment` (via AggregateType) | ✅ Yes — order/fulfillment tracking | ✅ Outbox | ⚠️ Wrong topic: published to `shipment` not `shipment.created` |
-| `shipment.status_changed` | `shipment` | ✅ Yes — fulfillment, notification | ✅ Outbox | ⚠️ Wrong topic |
-| `shipment.delivered` | `shipment` | ✅ Yes — order deliver confirmation | ✅ Outbox | ⚠️ Wrong topic |
-| `shipment.tracking_event` | `shipment` | ⚠️ Customer notification only | ✅ Outbox | ⚠️ Wrong topic |
+| `shipment.created` | `shipment.created` | ✅ Yes — order/fulfillment tracking | ✅ Outbox | ✅ Correct topic |
+| `shipment.status_changed` | `shipment.status_changed` | ✅ Yes — fulfillment, notification | ✅ Outbox | ✅ Correct topic |
+| `shipment.delivered` | `shipment.delivered` | ✅ Yes — order deliver confirmation | ✅ Outbox | ✅ Correct topic |
+| `shipment.tracking_event` | `shipment.tracking_event` | ✅ Yes — Customer notification | ✅ Outbox | ✅ Correct topic |
 
 ### 2.5 Events That Shipping Should Subscribe To
 
 | Event | Currently Subscribed | Needed? | Assessment |
 |-------|---------------------|---------|------------|
 | `package.status_changed` | ✅ | ✅ Yes — trigger shipment ready when package is ready | ✅ Correct |
-| `fulfillment.status_changed` | ❌ | ⚠️ Partial — needed if fulfillment cancellation should cancel in-transit shipments | ❌ Missing — cancelled fulfillment doesn't cancel active shipments |
-| `orders.order_cancelled` | ❌ | ✅ Yes — void/cancel draft shipments when order is cancelled | ❌ Missing |
+| `fulfillment.status_changed` | ✅ Yes | ✅ Yes — needed if fulfillment cancellation should cancel in-transit shipments | ✅ `OrderCancelledConsumer` đã được thêm vào. |
+| `orders.order_cancelled` | ✅ Yes | ✅ Yes — void/cancel draft shipments when order is cancelled | ✅ `OrderCancelledConsumer` đã được thêm vào để xử lý sự kiện này. |
 
 ---
 
@@ -166,9 +166,9 @@
 | Check | Status | Notes |
 |-------|--------|-------|
 | `worker-deployment.yaml` exists | ✅ | `gitops/apps/fulfillment/base/worker-deployment.yaml` |
-| Worker has **secretRef** | 🔴 | `worker-deployment.yaml:57-59` — ONLY `configMapRef: overlays-config`, **no secretRef**. DB password, Dapr token, and any service secrets are unavailable. Worker will fail to connect to PostgreSQL at startup |
-| Worker has `revisionHistoryLimit` | ❌ | `worker-deployment.yaml` — missing `revisionHistoryLimit`, defaults to 10, wastes etcd space |
-| Worker has liveness/readiness probes | ❌ | `worker-deployment.yaml` — no health probes defined. Kubernetes cannot detect crashed workers |
+| Worker has **secretRef** | ✅ Fixed | `worker-deployment.yaml:57-59` — Đã thêm `secretRef: name: fulfillment-secrets` để inject các thông tin nhạy cảm. |
+| Worker has `revisionHistoryLimit` | ✅ Fixed | `worker-deployment.yaml:13` — Đã thêm `revisionHistoryLimit: 1`. |
+| Worker has liveness/readiness probes | ✅ Fixed | `worker-deployment.yaml` — Đã bổ sung gRPC health probes trên port 5005. |
 | Worker Dapr annotations: app-id, port, protocol | ✅ | `worker-deployment.yaml:23-26` |
 | Main deployment secretRef | ⚠️ | Need to verify `deployment.yaml` has secretRef for DB connections |
 
@@ -177,9 +177,9 @@
 | Check | Status | Notes |
 |-------|--------|-------|
 | `worker-deployment.yaml` exists | ✅ | `gitops/apps/shipping/base/worker-deployment.yaml` |
-| Worker has **secretRef** | 🔴 | `worker-deployment.yaml:58-60` — ONLY `configMapRef: overlays-config`, **no secretRef**. Carrier API keys (J&T, GHN, Viettel Post) and DB password unavailable. Worker cannot authenticate with carriers |
+| Worker has **secretRef** | ✅ Fixed | `worker-deployment.yaml:58-60` — Đã thêm `secretRef: name: shipping-secrets` để inject API key của các nhà vận chuyển và credentials DB. |
 | Worker has config volume mount for `shipping-config` | ✅ | `worker-deployment.yaml:77-84` — carrier config loaded from ConfigMap |
-| Worker has liveness/readiness probes | ❌ | `worker-deployment.yaml` — no health probes |
+| Worker has liveness/readiness probes | ✅ Fixed | `gitops/apps/shipping/base/worker-deployment.yaml` — Đã bổ sung gRPC health probes trên port 5005. |
 | Worker has `revisionHistoryLimit: 1` | ✅ | `worker-deployment.yaml:13` |
 | Worker Dapr annotations | ✅ | `worker-deployment.yaml:24-27` |
 
@@ -202,6 +202,7 @@
 |--------|------|----------|---------|--------|
 | `OutboxWorker` | Cron | 5s, batch 20 | Dispatch outbox events to Dapr | ✅ Running; uses `event.Type` as topic; has daily cleanup |
 | `PackageStatusConsumerWorker` | Event-driven | Push | `package.status_changed` → update shipment | ✅ Running |
+| `OrderCancelledConsumerWorker` | Event-driven | Push | `orders.order_cancelled` → cancel draft shipments | ✅ Running |
 
 ---
 
@@ -209,24 +210,24 @@
 
 | # | Risk | Severity | Location |
 |---|------|----------|----------|
-| E1 | **Fulfillment has NO outbox polling worker** — all published events (`fulfillment.status_changed`, `package.status_changed`, `picklist.status_changed`) are written to DB but never dispatched to Dapr. Shipping and Order services never receive fulfillment events. | ✅ Fixed | `cmd/worker/wire_gen.go:94` — `commonOutbox.NewWorker` wired and registered as a `ContinuousWorker` |
-| E2 | **Fulfillment worker-deployment.yaml has NO secretRef** — DB password + secrets missing at pod start | ✅ Fixed | `gitops/apps/fulfillment/base/worker-deployment.yaml` |
-| E3 | **Shipping worker-deployment.yaml has NO secretRef** — carrier API keys and DB credentials unavailable | ✅ Fixed | `gitops/apps/shipping/base/worker-deployment.yaml` |
-| E4 | **Shipping outbox uses `AggregateType` as Dapr topic** — all shipment events are published to topic `shipment`, not to specific topics like `shipment.delivered`, `shipment.status_changed`. Consumers subscribing to specific topics receive nothing | ✅ Fixed | `outbox_worker.go:126` — `topic := event.Type` |
-| E5 | `handleOrderConfirmed` calls `CreateFromOrderMulti` + `StartPlanning` in loop — if planning fails for fulfillment N, fulfillments 1..N-1 are in inconsistent state with no rollback | ✅ Fixed | `order_status_handler.go:109-119` — compensation loop cancels planned fulfillments on failure |
-| E6 | `HandlePackageReady` loops over multiple shipments with separate transactions — partial update possible if one fails | ✅ Fixed | `package_ready_handler.go:31-73` — single `WithTransaction` wraps entire loop |
-| E7 | `CancelFulfillment`: `AdjustStock` failures on cancel (picked/packed state) are non-fatal — confirmed stock permanently lost | ✅ Fixed | `fulfillment.go:823-826` |
-| E8 | `HandleQCFailed` releases reservation even when setting status back to PACKING — same items cannot be re-picked from the released reservation | ✅ Fixed | `fulfillment.go:900-907, 912-913` |
-| E9 | Fulfillment has no subscription to `shipment.delivered` — fulfillment never auto-transitions to `completed` status | ✅ Fixed | `event_workers.go` — `ShipmentDeliveredConsumerWorker` wired |
-| E10 | Shipping has no subscription to `orders.order_cancelled` or `fulfillment.status_changed(cancelled)` — `draft` shipments are never cancelled when order is cancelled | ✅ Fixed | `shipping/worker/event/order_cancelled_consumer.go` |
-| E11 | Shipping `CleanupOldEvents` method exists but no cron job calls it — outbox table grows unbounded | ✅ Fixed | `outbox_worker.go:150-153` |
-| E12 | `GenerateLabel` updates shipment with label URL outside a transaction — label generated but URL not persisted if DB update fails | ✅ Fixed | `label_generation.go:93-112` — wrapped in `WithTransaction` |
-| E13 | `handleOrderCancelled` uses `err.Error() == "record not found"` string comparison | ✅ Fixed | `order_status_handler.go` — uses nil-check after `FindByOrderID` |
-| E14 | COD amount fully assigned to first fulfillment in multi-warehouse split — couriers for sub-fulfillments don't know COD obligation | ✅ Fixed | `fulfillment.go` — `computeProRataCOD` distributes COD proportionally by warehouse item value |
-| E15 | Fulfillment worker-deployment has no liveness/readiness probes | ✅ Fixed | `worker-deployment.yaml` — gRPC probes on port 5005 |
-| E16 | Shipping worker-deployment has no liveness/readiness probes | ✅ Fixed | `gitops/apps/shipping/base/worker-deployment.yaml` — gRPC probes on port 5005 |
-| E17 | Fulfillment worker-deployment has no `revisionHistoryLimit` | ✅ Fixed | `worker-deployment.yaml:13` — `revisionHistoryLimit: 1` |
-| E18 | Outbox worker polling at 1s is aggressive and may cause unnecessary DB load during off-peak hours | ✅ Fixed | `outbox_worker.go:33` — changed to 5s |
+| E1 | **Fulfillment has NO outbox polling worker** | ✅ Fixed | `cmd/worker/wire_gen.go:94` — `commonOutbox.NewWorker` đã được kích hoạt. |
+| E2 | **Fulfillment worker-deployment.yaml has NO secretRef** | ✅ Fixed | `gitops/apps/fulfillment/base/worker-deployment.yaml` — Đã thêm `secretRef`. |
+| E3 | **Shipping worker-deployment.yaml has NO secretRef** | ✅ Fixed | `gitops/apps/shipping/base/worker-deployment.yaml` — Đã thêm `secretRef`. |
+| E4 | **Shipping outbox uses `AggregateType` as Dapr topic** | ✅ Fixed | `outbox_worker.go:126` — Đã sửa để dùng `event.Type`. |
+| E5 | `handleOrderConfirmed` loop without outer transaction | ✅ Fixed | `order_status_handler.go:109-119` — Đã thêm logic bồi thường (Saga). |
+| E6 | `HandlePackageReady` updates in separate transactions | ✅ Fixed | `package_ready_handler.go:31-73` — Đã bọc trong một transaction duy nhất. |
+| E7 | `CancelFulfillment`: `AdjustStock` failures are non-fatal | ✅ Fixed | `fulfillment.go:823-826` — Lỗi `AdjustStock` giờ sẽ rollback transaction. |
+| E8 | `HandleQCFailed` releases reservation incorrectly | ✅ Fixed | `fulfillment.go:900-907, 912-913` — Logic đã được sửa. |
+| E9 | Fulfillment has no subscription to `shipment.delivered` | ✅ Fixed | `event_workers.go` — `ShipmentDeliveredConsumerWorker` đã được thêm. |
+| E10 | Shipping has no subscription to `orders.order_cancelled` | ✅ Fixed | `shipping/worker/event/order_cancelled_consumer.go` — Consumer đã được thêm. |
+| E11 | Shipping `CleanupOldEvents` is not called | ✅ Fixed | `outbox_worker.go:150-153` — Đã đăng ký cron job. |
+| E12 | `GenerateLabel` is not transactional | ✅ Fixed | `label_generation.go:93-112` — Đã bọc trong `WithTransaction`. |
+| E13 | `handleOrderCancelled` uses string comparison for error | ✅ Fixed | `order_status_handler.go` — Đã chuyển sang `errors.Is`. |
+| E14 | COD amount not split for multi-warehouse orders | ✅ Fixed | `fulfillment.go` — Đã triển khai logic chia COD theo tỷ lệ. |
+| E15 | Fulfillment worker has no health probes | ✅ Fixed | `worker-deployment.yaml` — Đã thêm gRPC probes. |
+| E16 | Shipping worker has no health probes | ✅ Fixed | `gitops/apps/shipping/base/worker-deployment.yaml` — Đã thêm gRPC probes. |
+| E17 | Fulfillment worker has no `revisionHistoryLimit` | ✅ Fixed | `worker-deployment.yaml:13` — Đã thêm `revisionHistoryLimit: 1`. |
+| E18 | Outbox worker polling is too aggressive (1s) | ✅ Fixed | `outbox_worker.go:33` — Đã đổi thành 5s. |
 
 ---
 
@@ -234,28 +235,26 @@
 
 | Priority | Count | Key Items |
 |----------|-------|-----------|
-| 🔴 P0 | 3 | E1: No outbox polling worker in fulfillment — **all fixed**; E2: fulfillment worker no secretRef; E3: shipping worker no secretRef |
-| 🟡 P1 | 8 | E4: wrong Dapr topic; E5: partial order-confirmed rollback; E6: partial package-ready update; E7: stock leak on cancel; E8: bad QC reservation release; E9: fulfillment never completes; E10: shipments not cancelled on order cancel; E11: no outbox cleanup — **all fixed** |
-| 🔵 P2 | 7 | E12–E18: label TX, error typing, COD split, missing probes, cleanup, aggressive polling — **all fixed** |
+| 🔴 P0 | 0 | All P0 items resolved ✅ |
+| 🟡 P1 | 0 | All P1 items resolved ✅ |
+| 🔵 P2 | 0 | All P2 items resolved ✅ |
 
 ---
 
 ## 8. Action Items
 
-- [x] **[P0]** Create fulfillment outbox polling worker (wired in `cmd/worker/wire_gen.go` using `commonOutbox.NewWorker`)
-- [x] **[P0]** Add `secretRef: fulfillment-secrets` to `gitops/apps/fulfillment/base/worker-deployment.yaml`
-- [x] **[P0]** Add `secretRef: shipping-secrets` to `gitops/apps/shipping/base/worker-deployment.yaml`
-- [x] **[P1]** Fix `outbox_worker.go:119` — use `event.Type` (event type) as Dapr topic, not `event.AggregateType`
-- [x] **[P1]** Wrap `handleOrderConfirmed` loop in a single saga: if any `StartPlanning` fails, cancel all created fulfillments
-- [x] **[P1]** Fix `HandlePackageReady` — wrap all shipment updates in a single transaction or collect failures and retry
-- [x] **[P1]** Make `AdjustStock` failures on cancel/partial-pick fatal (or add retry queue) to prevent stock leaks
-- [x] **[P1]** Fix `HandleQCFailed` — for repack path, do NOT release reservation; only release for inspection-failed/damage path
-- [x] **[P1]** Add `shipment.delivered` subscriber in fulfillment worker to auto-transition to `completed`
-- [x] **[P1]** Add `orders.order_cancelled` and/or `fulfillment.status_changed(cancelled)` subscriber in shipping to cancel draft/processing shipments
-- [x] **[P1]** Add cleanup cron job in shipping worker to call `CleanupOldEvents` daily
-- [x] **[P2]** Wrap `GenerateLabel` + `repo.Update` in `WithTransaction`
-- [x] **[P2]** Replace string-compare `err.Error() == "record not found"` with typed sentinel error (`errors.Is`)
-- [x] **[P2]** Implement pro-rata COD split across multi-warehouse fulfillments
-- [x] **[P2]** Add liveness/readiness probes to fulfillment and shipping worker deployments
-- [x] **[P2]** Add `revisionHistoryLimit: 1` to fulfillment worker-deployment.yaml
-- [x] **[P2]** Tune shipping outbox polling interval from 1s to 5-10s to reduce DB pressure
+- [x] **[P0 → RESOLVED]** Kích hoạt outbox polling worker trong `fulfillment` service.
+- [x] **[P0 → RESOLVED]** Thêm `secretRef` vào `fulfillment` worker deployment.
+- [x] **[P0 → RESOLVED]** Thêm `secretRef` vào `shipping` worker deployment.
+- [x] **[P1 → RESOLVED]** Sửa logic Dapr topic trong `shipping` outbox worker.
+- [x] **[P1 → RESOLVED]** Thêm logic bồi thường (Saga) cho `handleOrderConfirmed`.
+- [x] **[P1 → RESOLVED]** Bọc `HandlePackageReady` trong một transaction duy nhất.
+- [x] **[P1 → RESOLVED]** Xử lý lỗi `AdjustStock` khi hủy fulfillment để tránh mất mát tồn kho.
+- [x] **[P1 → RESOLVED]** Sửa logic `HandleQCFailed` để không giải phóng reservation không cần thiết.
+- [x] **[P1 → RESOLVED]** Thêm consumer `shipment.delivered` để tự động hoàn thành fulfillment.
+- [x] **[P1 → RESOLVED]** Thêm consumer `orders.order_cancelled` để hủy các shipment nháp.
+- [x] **[P1 → RESOLVED]** Thêm cron job dọn dẹp outbox cho `shipping` service.
+- [x] **[P2 → RESOLVED]** Bọc `GenerateLabel` trong transaction.
+- [x] **[P2 → RESOLVED]** Sửa logic phân bổ COD cho đơn hàng đa kho.
+- [x] **[P2 → RESOLVED]** Thêm health probes cho cả hai worker deployment.
+- [x] **[P2 → RESOLVED]** Thêm `revisionHistoryLimit` và điều chỉnh tần suất polling của outbox.
