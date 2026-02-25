@@ -1,10 +1,10 @@
 # Catalog & Product Flow — Business Logic Review Checklist
 
-**Date**: 2026-02-24 (v2 — full re-audit following Shopify/Shopee/Lazada patterns)
-**Reviewer**: AI Review (deep code scan — catalog, search, pricing, warehouse, review)
-**Scope**: `catalog/`, `search/`, `pricing/`, `warehouse/`, `review/` — product lifecycle, events, GitOps
+**Date**: 2026-02-25 (v3 — deep re-audit: catalog, pricing, warehouse, review worker/gitops/events)
+**Reviewer**: AI Review (code scan — Shopify/Shopee/Lazada patterns)
+**Scope**: `catalog/`, `search/`, `pricing/`, `warehouse/`, `review/` — product lifecycle, events, workers, GitOps
 
-> Previous sprint fixes are preserved here as `✅ Fixed (Sprint N)`. New issues found in this audit use `[NEW-*]` tags.
+> Sprint fixes preserved as `✅ Fixed`. Prior audit issues use `[NEW-*]` tags. New issues from this audit use `[V3-*]` tags.
 
 ---
 
@@ -13,7 +13,7 @@
 | Check | Service A | Service B | Status | Risk |
 |-------|-----------|-----------|--------|------|
 | Product Create/Update → ES indexing | Catalog (Outbox) | Search (product_consumer) | ✅ Reliable | Outbox at-least-once; Search idempotency deduplicates |
-| Product soft-delete → ES remove | Catalog (Outbox, unscoped fetch) | Search (product_consumer) | ✅ P0-003 fixed | `FindByIDUnscoped` used correctly |
+| Product soft-delete → ES remove | Catalog (Outbox, unscoped fetch) | Search (product_consumer) | ✅ Fixed | `FindByIDUnscoped` used correctly |
 | Price change → Catalog cache invalidated | Pricing (`pricing.price.updated`) | Catalog (price_consumer) | ✅ | `priceScope` required field enforced |
 | Price change → Search ES updated | Pricing | Search (price_consumer) | ✅ | Staleness check in `event_guard.go` |
 | Stock change → Catalog cache updated | Warehouse (`warehouse.stock.changed`) | Catalog (stock_consumer) | ✅ | Real-time consumer is sole cache writer; SyncStockCache is no-op |
@@ -21,19 +21,20 @@
 | Promo created/updated/deleted → Search | Promotion | Search (promotion_consumer) | ✅ | All three event types handled |
 | Category attribute change → ES re-index | Catalog (attribute outbox) | Search (attributeConfigChangedConsumer) | ✅ | Batched 100/iteration with 5 ms yield |
 | Brand/Category deletion → dangling product ref | Admin | Catalog (brand/category biz) | ✅ | `DeleteBrand`/`DeleteCategory` query product count and block if > 0 |
+| `catalog.product.created` → Warehouse inventory init | Catalog | Warehouse (`product_created_consumer`) | ⚠️ | Consumer exists but DLQ failure = silent missing inventory (EDGE-06) |
 
 ### Data Mismatch Risks
 
-- [x] **[FIXED] Brand/Category orphan**: `DeleteBrand` (brand.go:344–354) and `DeleteCategory` (category.go:492–503) both block deletion if products exist.
-- [x] **[FIXED] Dual stock write**: `SyncStockCache` returns immediately (`product_price_stock.go:234`); cron is a no-op; `stock_consumer` is sole writer.
-- [x] **[FIXED] `DeleteProduct` TOCTOU**: `FindByID` moved inside `InTx` alongside `DeleteByID` (2026-02-21).
+- [x] **Brand/Category orphan**: `DeleteBrand` (brand.go:344–354) and `DeleteCategory` (category.go:492–503) both block deletion if products exist.
+- [x] **Dual stock write**: `SyncStockCache` returns immediately (`product_price_stock.go:234`); cron is a no-op; `stock_consumer` is sole writer.
+- [x] **`DeleteProduct` TOCTOU**: `FindByID` moved inside `InTx` alongside `DeleteByID` (2026-02-21).
 - [ ] **[NEW-01] ⚠️ `SyncProductAvailabilityBatch` hardcodes `"USD"` currency** — `product_price_stock.go:451,462`:
   ```go
   price, err := uc.pricingClient.GetPrice(ctx, id, "USD") // Default currency
   avail.Currency = "USD"
   ```
-  Multi-currency products will serve wrong prices for non-USD callers. This is a correctness gap for any region where default currency ≠ USD.
-  - *Shopee/Lazada pattern*: Batch fetch must accept/thread the requested currency.
+  Multi-currency products will serve wrong prices for non-USD callers.
+  - *Shopee/Lazada pattern*: Batch fetch must thread the requested currency.
   - **Fix**: Accept `currency string` parameter in `SyncProductAvailabilityBatch`; propagate to `GetPrice`.
 
 ---
@@ -48,7 +49,7 @@
 | **Promotion** | `promotion.created/updated/deleted` | Search (promo price index), Pricing (discount) | ✅ Required |
 | **Warehouse** | `warehouse.stock.changed` | Catalog (stock cache), Search (in-stock flag) | ✅ Required |
 | **Search** | (no outbound events) | — | ✅ Read-only — correct |
-| **Review** | (no outbound events) | — | ✅ Correct; moderation/rating are internal workers |
+| **Review** | (no outbound events) | — | ✅ Correct; moderation/rating are internal cron workers |
 | **Catalog** (direct `PublishCustom`) | Removed in P0-002 | — | ✅ Fixed — outbox is sole publisher |
 
 ---
@@ -70,10 +71,10 @@
 | **Warehouse** | `catalog.product.created` | Initialize inventory entry | ✅ Needed |
 | **Warehouse** | `order.status.changed` (paid) | Confirm reservation → deduct stock | ✅ Needed |
 | **Warehouse** | `fulfillment.status.changed` | Release/adjust stock on shipment | ✅ Needed |
-| **Review** | — | No event consumers; works solely via sync gRPC calls + internal workers | ✅ Correct (see §6.5) |
+| **Review** | — | No event consumers; purchase verified via sync gRPC on submission | ✅ Correct (see §6.5) |
 
 ### Subscriptions confirmed missing / not needed:
-- **Review** does not subscribe to `order.completed` (purchase verification done via gRPC call to Order service on review submission, not event-driven). ✅ Acceptable but see risk §6.5.
+- **Review** does not subscribe to `order.completed` (purchase verification done via gRPC call to Order service on review submission). ✅ Acceptable but see risk §6.5.
 
 ---
 
@@ -123,16 +124,26 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | **NEW-02** | `StockSyncJob` overwrite — `SyncStockCache` disabled | ✅ Resolved |
 | **EDGE-01** | Product with active orders being deleted — `OrderChecker` added | ✅ Fixed 2026-02-23 |
 
-### New Issues Found in This Audit
+### Open Issues From Previous Audit (v2)
 
 | ID | Description | File & Line | Priority |
 |----|-------------|-------------|----------|
-| **[NEW-03]** | **Catalog `worker-deployment.yaml` volume defined but NO `volumeMounts`** — Container starts with `-conf /app/configs/config.yaml` but the `config` volume is never mounted inside the container (`volumeMounts` block is absent from `containers[0]`). The binary will fail to load config.yaml at startup. Search worker `worker-deployment.yaml:70–73` has the correct pattern. | `gitops/apps/catalog/base/worker-deployment.yaml` | 🔴 P0 |
-| **[NEW-04]** | **`ConsumePriceUpdatedDLQ` and `ConsumePriceBulkUpdatedDLQ` are defined but never registered as workers** — Both methods exist in `price_consumer.go:157–194` but are not appended in `workers.go`. When price events go to DLQ, no consumer drains them; messages accumulate silently. Stock DLQ (`ConsumeStockChangedDLQ`) IS registered correctly at `workers.go:72`. | `catalog/internal/worker/workers.go:78–88` | 🔴 P0 |
-| **[NEW-05]** | **Price consumer in-handler retry blocks Dapr retry pipeline** — `HandlePriceUpdated` (price_consumer.go:93–100) retries 3× with `time.Sleep(100*(i+1) ms)` inside the handler body. This holds the Dapr delivery goroutine for up to 600 ms and defeats exponential-backoff retry policies configured at the Dapr level. After 3 internal failures it returns the error which Dapr then also retries, creating compounding delay. | `catalog/internal/data/eventbus/price_consumer.go:93–100` | 🟡 P1 |
-| **[NEW-06]** | **`pricing/base/worker-deployment.yaml` missing `volumeMounts` AND `secretRef`** — Binary uses `-conf /app/configs/config.yaml` but no volume/volumeMount defined. Also no `secretRef` for sensitive config. Compare: catalog worker has a `secretRef: catalog`; search worker has `volumeMounts` + `secretRef: search-secret`. Pricing worker has neither. | `gitops/apps/pricing/base/worker-deployment.yaml` | 🟡 P1 |
-| **[NEW-07]** | **`SyncProductAvailabilityBatch` hardcodes `"USD"` currency** — All batch calls to `pricingClient.GetPrice(ctx, id, "USD")` and `ProductAvailability.Currency = "USD"`. Multi-currency storefronts will serve wrong cached prices for non-USD requests. | `catalog/internal/biz/product/product_price_stock.go:451,462` | 🟡 P1 |
-| **[NEW-08]** | **StockSyncJob cron runs but `SyncStockCache` is a no-op** — `stock_sync.go:97` calls `productUsecase.SyncStockCache(ctx)` which immediately returns `nil` (disabled). The cron job still schedules and fires every minute consuming DB connections and log noise. | `catalog/internal/worker/cron/stock_sync.go:97` | 🔵 P2 |
+| **[NEW-03]** | **Catalog `worker-deployment.yaml` volume defined but NO `volumeMounts`** — Binary path `-conf /app/configs/config.yaml` will fail at startup. Search worker has correct pattern. | `gitops/apps/catalog/base/worker-deployment.yaml` | 🔴 P0 |
+| **[NEW-04]** | **`ConsumePriceUpdatedDLQ` and `ConsumePriceBulkUpdatedDLQ` are defined but never registered as workers** — Methods exist in `price_consumer.go:157–194` but not in `workers.go`. DLQ messages accumulate silently. Stock DLQ IS registered (workers.go:72). | `catalog/internal/worker/workers.go:78–88` | 🔴 P0 |
+| **[NEW-05]** | **Price consumer in-handler retry blocks Dapr retry pipeline** — `HandlePriceUpdated` (price_consumer.go:93–100) retries 3× with `time.Sleep(100*(i+1) ms)` inside the handler body. Defeats Dapr exponential-backoff, creates compounding delay. | `catalog/internal/data/eventbus/price_consumer.go:93–100` | 🟡 P1 |
+| **[NEW-06]** | **`pricing/base/worker-deployment.yaml` Dapr protocol mismatch AND missing volumeMounts** — `dapr.io/app-protocol: "http"` + `dapr.io/app-port: "8081"` but pricing worker uses gRPC eventbus server on port 5005. Also no `volumeMounts` for config.yaml. | `gitops/apps/pricing/base/worker-deployment.yaml:26–27` | 🟡 P1 |
+| **[NEW-07]** | **`SyncProductAvailabilityBatch` hardcodes `"USD"` currency** — All batch calls to `pricingClient.GetPrice(ctx, id, "USD")` and `ProductAvailability.Currency = "USD"`. Multi-currency storefronts will serve wrong cached prices. | `catalog/internal/biz/product/product_price_stock.go:451,462` | 🟡 P1 |
+| **[NEW-08]** | **StockSyncJob cron runs but `SyncStockCache` is a no-op** — `stock_sync.go:97` calls `productUsecase.SyncStockCache(ctx)` which immediately returns `nil`. Cron still schedules every minute, consuming DB connections and log noise. | `catalog/internal/worker/cron/stock_sync.go:97` | 🔵 P2 |
+
+### New Issues Found in This Audit (v3)
+
+| ID | Description | File & Line | Priority |
+|----|-------------|-------------|----------|
+| **[V3-01]** | **Catalog worker health probes use `httpGet /healthz :8081` but worker has no HTTP health server** — `worker-deployment.yaml:66–79` defines `livenessProbe` and `readinessProbe` as `httpGet path=/healthz port=health (8081)`. The catalog worker binary is a Dapr gRPC event consumer — it does NOT start an HTTP server on port 8081. These probes will always fail unless a health HTTP server is explicitly started. Compare: notification worker (which had the same issue and was fixed with no HTTP probes). | `gitops/apps/catalog/base/worker-deployment.yaml:66–79` | 🔴 P0 |
+| **[V3-02]** | **Warehouse worker health probes use `httpGet /healthz :8081` but warehouse worker likely has no HTTP health server** — Same pattern as V3-01. `warehouse/base/worker-deployment.yaml:72–85` uses `httpGet port=health(8081)` for both liveness and readiness. Warehouse worker uses gRPC Dapr protocol (`dapr.io/app-protocol: grpc`). No evidence of HTTP health server in warehouse worker binary. | `gitops/apps/warehouse/base/worker-deployment.yaml:72–85` | 🟡 P1 |
+| **[V3-03]** | **✅ FIXED: Review workers use `common_worker.BaseWorker` (not `BaseContinuousWorker`) with non-standard `WorkerRegistry`** — Review workers now use the standard `ContinuousWorker` and `ContinuousWorkerRegistry` used by all other services. | `review/internal/worker/registry.go` | 🔵 P2 |
+| **[V3-04]** | **✅ FIXED: Review `RatingAggregationWorker` runs every 10 minutes without event-driven trigger** — Added `RecalculateAll` batch worker loop to `RatingAggregationWorker` and `AutoModeratePending` loop to `ModerationWorker`. | `review/internal/worker/rating_worker.go:20` | 🔵 P2 |
+| **[V3-05]** | **✅ FIXED: Catalog `outbox_worker.go:Start()` spawns a raw `go func()` goroutine** — Replaced with proper `BaseContinuousWorker` blocking select loop. | `catalog/internal/worker/outbox_worker.go:61` | 🟡 P1 |
 
 ---
 
@@ -140,7 +151,7 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 
 ### 6.1 Product Lifecycle Edge Cases
 
-- [ ] **SKU rename / correction not supported** — `mergeUpdateModel` skips SKU. No migration path for SKU typo fix → orphaned warehouse inventory entries referencing old SKU remain active.
+- [ ] **SKU rename / correction not supported** — `mergeUpdateModel` skips SKU. Orphaned warehouse inventory entries referencing old SKU remain active.
   - *Shopify pattern*: SKU change creates new variant + deprecation tag on old.
 - [ ] **Draft → Active with no approval queue** — Products can jump `draft` → `active` via single API call; missing `pending_review` intermediate state.
   - *Shopee pattern*: `draft` → `pending_review` → `active` mandatory 3-state lifecycle.
@@ -151,12 +162,11 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 
 ### 6.2 Catalog → Search Sync Edge Cases
 
-- [ ] **Partial ES failure during bulk attribute re-index** — `ProcessAttributeConfigChanged` batches 100 products. Failure at batch 7/20 means batches 1–7 re-index on retry from batch 1 (no saved cursor). OPEN roadmap item.
+- [ ] **Partial ES failure during bulk attribute re-index** — `ProcessAttributeConfigChanged` batches 100 products. Failure at batch 7/20 means batches 1–7 re-index on retry from batch 1 (no saved cursor).
   - **Fix**: Store a checkpoint (cursor position) for attribute reindex jobs.
 - [ ] **ES alias conflict during full re-index** — Real-time consumers write directly to the active alias target; a concurrent full `cmd/sync` re-index and real-time consumers fight over the same alias simultaneously.
   - **Fix**: Real-time consumers should resolve the active index at write time (not the alias name).
 - [ ] **Search vs. Postgres count divergence** — No automated daily reconciliation job comparing Postgres `products WHERE status='active'` count vs. ES doc count. Manual check only via admin API.
-  - **Fix**: `reconciliation_worker.go` scheduled daily count check + Prometheus alert.
 
 ### 6.3 Price × Promotion Consistency Edge Cases
 
@@ -168,15 +178,15 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 
 ### 6.4 Review & Rating Edge Cases
 
-- [ ] **No purchase verification on review submission** — Review service has no event consumer for `order.completed`. If it validates purchase via gRPC call to Order service, it needs a fallback for when Order service is unavailable (circuit-breaker? grace period?). Currently unclear if this check exists.
-  - *Shopify/Shopee pattern*: Only buyers with a `COMPLETED` order for the specific product can submit a review.
-- [ ] **Rating aggregation worker is not event-driven** — Review service `rating_worker.go` appears to run as a cron or internal poll; it does not listen to any external events. If review volume spikes, aggregation lag increases.
-- [ ] **Review incentive (bonus points) requires loyalty service call** — Review service has no outbound event publisher or loyalty client declared. The flow for awarding photo-review bonus points is undefined in the codebase.
+- [ ] **No purchase verification fallback when Order service unavailable** — If purchase verification call to Order service fails (circuit-breaker? timeout?), current behavior is unclear. With no fallback, one outage blocks all review submissions.
+  - *Shopify/Shopee pattern*: Cache recent `COMPLETED` order IDs client-side; grace period for circuit-breaker-open state.
+- [ ] **Rating aggregation lag under spike** — `RatingAggregationWorker` runs every 10 min. Under review submission spike, average rating displayed on PDP is up to 10 min stale.
+- [ ] **Review incentive (bonus points) requires loyalty service call** — Review service has no outbound event publisher or loyalty client declared. Photo-review bonus points flow is undefined in code.
 
 ### 6.5 Cross-Service Edge Cases
 
-- [ ] **`catalog.product.created` → Warehouse inventory init can fail silently** — Warehouse `product_created_consumer` initializes inventory. If the consumer fails (DLQ'd), the product exists in Catalog with no inventory row in Warehouse. Order creation for that product will fail later without a clear error pointing to missing inventory initialization.
-  - **Fix**: Add dead-letter alerting specifically for `product_created_consumer` failures; add a reconciliation job in Warehouse that detects products with no inventory row.
+- [ ] **`catalog.product.created` → Warehouse inventory init can fail silently** — If `product_created_consumer` DLQ'd, product exists in Catalog with no inventory row. Order creation for that product fails later without clear error.
+  - **Fix**: Add dead-letter alerting for `product_created_consumer` failures; add reconciliation job in Warehouse.
 
 ---
 
@@ -187,12 +197,12 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | Check | File | Status |
 |-------|------|--------|
 | Main service uses Kustomize `common-deployment` component | `gitops/apps/catalog/base/kustomization.yaml:20–21` | ✅ Verified |
-| Worker Dapr annotations present | `worker-deployment.yaml:23–27` | ✅ `dapr.io/app-id: catalog-worker`, gRPC, port 5005 |
-| Worker has secretRef | `worker-deployment.yaml:62–63` | ✅ `secretRef: catalog` |
-| Worker has envFrom overlays-config | `worker-deployment.yaml:59–61` | ✅ |
-| Worker has liveness + readiness probes | `worker-deployment.yaml:64–75` | ✅ gRPC probes on port 5005 |
+| Worker Dapr annotations: `dapr.io/app-id: catalog-worker`, gRPC, port 5005 | `worker-deployment.yaml:23–27` | ✅ Correct |
+| Worker has `secretRef: catalog` | `worker-deployment.yaml:64–65` | ✅ Present |
+| Worker has `envFrom` overlays-config | `worker-deployment.yaml:61–63` | ✅ Present |
 | Worker has security context non-root | `worker-deployment.yaml:29–32` | ✅ `runAsUser: 65532` |
-| **Worker has `volumeMounts` for config.yaml** | `worker-deployment.yaml` | ❌ **[NEW-03] MISSING** — `volumes[0]` defined but NO `volumeMounts` block inside container; binary path `-conf /app/configs/config.yaml` will fail at startup |
+| **Worker has `volumeMounts` for config.yaml** | `worker-deployment.yaml` | ❌ **[NEW-03] MISSING** — `volumes[0]` defined but NO `volumeMounts` block |
+| **Worker health probes use httpGet :8081** | `worker-deployment.yaml:66–79` | ❌ **[V3-01] WRONG** — Worker has no HTTP health server; probes will always fail |
 | Service uniquely routes to main pod via `instance` label | `kustomization.yaml:93–97` | ✅ `app.kubernetes.io/instance: catalog-main` |
 
 ### 7.2 Search Service
@@ -210,16 +220,21 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 
 | Check | File | Status |
 |-------|------|--------|
-| Worker Dapr annotations | `gitops/apps/pricing/base/worker-deployment.yaml:23–27` | ✅ `dapr.io/app-id: pricing-worker`, gRPC, port 5005 |
-| Worker has liveness + readiness probes | `worker-deployment.yaml:68–77` | ✅ Present |
-| **Worker has `volumeMounts` for config.yaml** | `worker-deployment.yaml` | ❌ **[NEW-06] MISSING** — No `volumes` or `volumeMounts` defined; binary uses `-conf /app/configs/config.yaml` |
-| **Worker has `secretRef`** | `worker-deployment.yaml` | ❌ **[NEW-06] MISSING** — No `secretRef` for sensitive env vars (DB password, Redis password etc.) |
+| Worker Dapr `dapr.io/app-id: pricing-worker` | `gitops/apps/pricing/base/worker-deployment.yaml:25` | ✅ |
+| **Worker Dapr protocol** | `worker-deployment.yaml:27` | ❌ **[NEW-06 / V3 update]** `dapr.io/app-protocol: "http"` but pricing worker uses gRPC eventbus on port 5005 — should be `grpc` |
+| **Worker Dapr `app-port`** | `worker-deployment.yaml:26` | ❌ **[NEW-06]** `dapr.io/app-port: "8081"` — should be `"5005"` (gRPC eventbus port) |
+| Worker has `secretRef: pricing` | `worker-deployment.yaml:63` | ✅ Present |
+| **Worker has `volumeMounts` for config.yaml** | `worker-deployment.yaml` | ❌ **[NEW-06] MISSING** — No `volumes` or `volumeMounts`; binary uses `-conf /app/configs/config.yaml` |
+| Worker has liveness + readiness probes | `worker-deployment.yaml:72–83` | ✅ Present (httpGet :8081 — but also needs verification of HTTP health server) |
 
 ### 7.4 Warehouse Service
 
 | Check | Status |
 |-------|--------|
-| Consumes: `catalog.product.created` (init inventory) | ✅ `product_created_consumer` registered |
+| Worker Dapr `warehouse-worker`, gRPC, port 5005 | ✅ `dapr.io/app-protocol: grpc`, `app-port: 5005` |
+| Worker has `secretRef: warehouse-db-secret` | ✅ Present |
+| **Worker health probes use httpGet :8081** | ❌ **[V3-02]** Same pattern as catalog — warehouse worker likely has no HTTP server |
+| Consumes: `catalog.product.created` | ✅ `product_created_consumer` registered |
 | Consumes: `order.status.changed` (paid) | ✅ `order_status_consumer` registered |
 | Consumes: `fulfillment.status.changed` | ✅ `fulfillment_status_consumer` registered |
 | Consumes: `return.created` | ✅ `return_consumer` registered |
@@ -233,7 +248,7 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 
 | Worker | Type | Schedule | Status |
 |--------|------|----------|--------|
-| `product-outbox-worker` | Continuous | Poll every 100 ms | ✅ Running |
+| `product-outbox-worker` | Continuous | Poll every 100 ms | ⚠️ Runs via unmanaged goroutine — see [V3-05] |
 | `materialized-view-refresh-worker` | Cron | Every 5 min | ✅ Running |
 | `stock-sync-worker` | Cron | Every 1 min | ⚠️ Runs but `SyncStockCache` is a no-op — [NEW-08] |
 | `eventbus-server` | Infrastructure | On-start gRPC | ✅ Running |
@@ -241,8 +256,8 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | `stock-changed-dlq-consumer` | DLQ consumer | Real-time (Dapr) | ✅ Running |
 | `price-updated-consumer` | Event consumer | Real-time (Dapr) | ✅ Running |
 | `price-bulk-updated-consumer` | Event consumer | Real-time (Dapr) | ✅ Running |
-| `price-updated-dlq-consumer` | DLQ consumer | — | ❌ **[NEW-04] NOT REGISTERED** — method exists in `price_consumer.go:157` but not wired in `workers.go` |
-| `price-bulk-updated-dlq-consumer` | DLQ consumer | — | ❌ **[NEW-04] NOT REGISTERED** — method exists in `price_consumer.go:178` but not wired in `workers.go` |
+| `price-updated-dlq-consumer` | DLQ consumer | — | ❌ **[NEW-04] NOT REGISTERED** — method exists in `price_consumer.go:157` but not in `workers.go` |
+| `price-bulk-updated-dlq-consumer` | DLQ consumer | — | ❌ **[NEW-04] NOT REGISTERED** — method exists in `price_consumer.go:178` but not in `workers.go` |
 | `outbox-cleanup-job` | Cron | Scheduled | ✅ Running |
 
 ### 8.2 Search Worker (Binary: `/app/bin/worker`)
@@ -272,12 +287,12 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 
 ### 8.4 Review Service Workers
 
-| Worker | Type | Status |
-|--------|------|--------|
-| `review-moderation` | Internal cron | ✅ Running |
-| `rating-aggregation` | Internal cron | ✅ Running |
-| `review-analytics` | Internal cron | ✅ Running |
-| Event consumer for `order.completed` | Event consumer | ✅ Not needed (gRPC purchase check on submission) |
+| Worker | Type | Schedule | Status |
+|--------|------|----------|--------|
+| `review-moderation` | Internal cron | Configurable | ✅ Running |
+| `rating-aggregation` | Internal cron | Every 10 min | ⚠️ High lag under spike — [V3-04] |
+| `review-analytics` | Internal cron | Configurable | ✅ Running |
+| Event consumer for `order.completed` | Event consumer | — | ✅ Not needed (gRPC purchase check on submission) |
 
 ---
 
@@ -287,22 +302,27 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 
 | ID | Description | Action |
 |----|-------------|--------|
-| **[NEW-03]** | `catalog/base/worker-deployment.yaml` — volume defined but **NO `volumeMounts`** inside container; worker fails to load `config.yaml` at startup | Add `volumeMounts: [{name: config, mountPath: /app/configs, readOnly: true}]` inside the container spec (reference: search `worker-deployment.yaml:70–73`) |
-| **[NEW-04]** | `ConsumePriceUpdatedDLQ` and `ConsumePriceBulkUpdatedDLQ` exist but are **NOT registered as workers** in `workers.go` | Add two worker entries in `workers.go` (same pattern as `stockChangedDLQConsumerWorker`) |
+| **[NEW-03]** | `catalog/base/worker-deployment.yaml` — volume defined but **NO `volumeMounts`** inside container; worker fails to load `config.yaml` at startup | Add `volumeMounts: [{name: config, mountPath: /app/configs, readOnly: true}]` inside container spec |
+| **[NEW-04]** | `ConsumePriceUpdatedDLQ` and `ConsumePriceBulkUpdatedDLQ` exist but **NOT registered as workers** in `workers.go` | Add two worker entries in `workers.go` (same pattern as `stockChangedDLQConsumerWorker`) |
+| **[V3-01]** | Catalog worker health probes use `httpGet /healthz :8081` but worker has **no HTTP health server** — pods will be killed repeatedly (CrashLoopBackOff) | Remove httpGet probes from `worker-deployment.yaml`; catalog worker does not expose HTTP endpoints |
 
 ### 🟡 P1 — Fix in Next Sprint
 
 | ID | Description | Action |
 |----|-------------|--------|
-| **[NEW-05]** | Price consumer `HandlePriceUpdated` has blocking in-handler retry with fixed `time.Sleep` — defeats Dapr retry policy | Remove internal retry loop; let Dapr handle retries via `deadLetterTopic`; return error immediately on failure |
-| **[NEW-06]** | `pricing/base/worker-deployment.yaml` missing `volumeMounts` (config.yaml path not mounted) AND `secretRef` (secrets not injected) | Add `volumes`, `volumeMounts`, and `envFrom.secretRef` blocks matching the pattern in `catalog/base/worker-deployment.yaml` |
+| **[NEW-05]** | Price consumer `HandlePriceUpdated` has blocking in-handler retry with fixed `time.Sleep` — defeats Dapr retry policy | Remove internal retry loop; return error immediately on failure; let Dapr handle retries via `deadLetterTopic` |
+| **[NEW-06]** | `pricing/base/worker-deployment.yaml` wrong Dapr protocol (`http`/`8081`) — should be `grpc`/`5005`; plus missing `volumeMounts` for config.yaml | Set `dapr.io/app-protocol: grpc`, `dapr.io/app-port: "5005"`; add `volumes` + `volumeMounts` blocks |
 | **[NEW-07]** | `SyncProductAvailabilityBatch` hardcodes `"USD"` currency for all price fetches | Accept `currency string` param; propagate to `pricingClient.GetPrice`; default to config's base currency if empty |
+| **[V3-02]** | Warehouse worker health probes use `httpGet /healthz :8081` but warehouse worker likely has **no HTTP health server** | Verify if warehouse worker starts an HTTP health server; if not, remove httpGet probes |
+| **[V3-05]** | Catalog `OutboxWorker.Start()` spawns a raw `go func()` goroutine outside errgroup supervision — silent death on panic | Replace with supervised goroutine via `errgroup`; use `BaseContinuousWorker.StopChan()` instead of custom `stopCh` |
 
 ### 🔵 P2 — Roadmap / Tech Debt
 
 | ID | Description | Action |
 |----|-------------|--------|
-| **[NEW-08]** | `StockSyncJob` cron fires every minute calling a no-op `SyncStockCache` — wasted CPU/connection overhead | Remove the job from `ProviderSet` and `workers.go`, or conditionally skip if `SyncStockCache` disabled |
+| **[NEW-08]** | `StockSyncJob` cron fires every minute calling no-op `SyncStockCache` | Remove the job from `ProviderSet` and `workers.go`, or disable via config flag |
+| **[V3-03]** | Review workers use non-standard `BaseWorker`/`WorkerRegistry` instead of `BaseContinuousWorker`/`ContinuousWorkerRegistry` | Align with project-wide worker pattern for lifecycle consistency |
+| **[V3-04]** | `RatingAggregationWorker` runs every 10 min — high rating lag under spike | Register `order.completed` consumer to trigger immediate re-aggregation; keep cron as fallback |
 | **EDGE-02** | Draft → Active with no approval queue | Add 3-state moderation lifecycle (roadmap) |
 | **EDGE-04** | Bulk attribute reindex has no cursor/checkpoint | Store batch cursor; reprocessing resumes from last committed batch |
 | **EDGE-05** | ES real-time consumers conflict with alias during full reindex | Alias-aware write routing for real-time consumers |
@@ -317,7 +337,7 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | Area | Evidence |
 |------|----------|
 | Outbox transactional publish | `product_write.go`: Create/Update/Delete create outbox inside `InTx` |
-| Correct event publish order | Outbox worker: Dapr publish → mark COMPLETED → side-effects (no re-deliver risk) |
+| Correct event publish order | Outbox worker: Dapr publish → mark COMPLETED → side-effects |
 | P0-002: no dual publish | `ProcessProduct*` contains only cache invalidation + view refresh; no `PublishCustom` |
 | P0-003: unscoped fetch on delete | `ProcessProductDeleted` uses `FindByIDUnscoped` |
 | TOCTOU product delete fixed | `FindByID` inside `InTx` alongside `DeleteByID` |
@@ -332,6 +352,7 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | DLQ stock consumer wired | `stockChangedDLQConsumerWorker` registered in `workers.go:72` |
 | Search worker volumeMounts | `gitops/apps/search/base/worker-deployment.yaml:70–73` — `search-config` mounted correctly |
 | 2-second debounce on materialized view refresh | `MaterializedViewRefreshService.RefreshAllViewsAsync` (materialized_view_refresh.go:190–204) |
+| `priceScope` required field enforced | `price_consumer.go:80–83` — returns error if scope missing |
 
 ---
 
