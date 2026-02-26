@@ -18,9 +18,6 @@ review code, code quality, argocd config, business logic
 
 index codebase, review code, code quality, gitops config, business logic
 
-Email: customer1@example.com → customer10000@example.com
-Password: password123
-
 Follow Shopify, Shopee, and Lazada patterns, skills, rule, workflow, codebase hiện tại và docs\10-appendix\ecommerce-platform-flows.md
 hãy review logic nghiệp vụ của :
 - Kiểm tra sự nhất quán dữ liệu giữa các service

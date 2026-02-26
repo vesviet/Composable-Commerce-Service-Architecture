@@ -1,0 +1,2 @@
+user: customer1000@example.com/Customer1000@example.com
+admin: admin@example.com/Admin123!
