@@ -1,2 +1,2 @@
-user: customer1000@example.com/Customer1000@example.com
-admin: admin@example.com/Admin123!
+customer: customer1000@example.com/Customer1000@example.com
+admin: user/pass là admin@example.com/Admin123!
