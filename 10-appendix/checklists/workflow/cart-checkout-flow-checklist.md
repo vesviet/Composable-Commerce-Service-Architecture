@@ -1,37 +1,48 @@
-# Cart & Checkout Flows - Logic Review Checklist
+# Cart & Checkout Flows — Implementation Checklist
 
-## 1. Data Consistency Between Services
-- [ ] **Price Consistency**: Cart totals are calculated by querying the `Pricing Service` synchronously (`CalculateOrderTotals`). Prices are re-validated during `ConfirmCheckout` to ensure no mismatch between cart page and checkout page.
-- [ ] **Stock Consistency**: Stock is logically assured upfront, but definitely reserved just-in-time in `ConfirmCheckout` using `warehouseInventoryService.ReserveStockWithTTL`.
-- [ ] **Promo Consistency**: Coupon lock mechanism (`acquireCouponLocks` using Redis SETNX) prevents double-spending of single-use coupons concurrently.
+**See full review**: [cart-checkout-flow-review.md](cart-checkout-flow-review.md)  
+**Date**: 2026-02-26 | **Status**: ✅ All P0/P1 Fixed · P2 Cleaned Up
 
-## 2. Data Mismatches (Potential Issues)
-- [x] **Guest to User Merge**: Guest carts need to be correctly merged to user carts upon login. `cart/merge.go` should handle this.
-- [x] **Currency & Metadata Fallbacks**: `extractCurrency` handles missing currency explicitly, falling back to `constants.DefaultCurrency` to avoid crashes.
-- [x] **Cart Ownership & Security**: `GetCart` correctly ensures a guest cannot load a registered user's cart, and a user cannot load another user's cart.
+---
 
-## 3. Retry or Rollback (Saga/Outbox & Event Publishing)
-- [ ] **SAGA (Rollback)**: Implemented correctly in `ConfirmCheckout`. If `createOrder` fails, SAGA-001 triggers:
-  - `RollbackReservationsMap` to release warehouse stock locks.
-  - `paymentService.VoidAuthorization` to void the authorized payment.
-  - If voiding fails, it saves to `FailedCompensation` DLQ for async retry.
-- [ ] **Outbox Pattern**: `finalizeOrderAndCleanup` uses the outbox for `CartConverted` event. Fail-Fast transaction is used.
-- [ ] **Are events necessary?**: 
-  - `CartConverted` is necessary for Data Analytics, Marketing flags, and order follow-up.
+## Quick Status
 
-## 4. Logic Risks (Edge Cases) Unhandled
-- [ ] **Best-effort Promo Usage**: Applying promo usage (`promotionService.ApplyPromotion`) is best-effort. If it fails, the order succeeds, and it retries via DLQ. This is fail-open.
-- [ ] **Coupon Lock TTL vs Payment Auth**: Coupon Lock TTL is 10 minutes, `TryAcquire` lock on cart checkout is 15 mins. There is a potential timing gap if payment auth takes very long.
-- [x] **Abandoned Carts**: `RefreshCart` isn't called proactively. Need a cron job / worker to clean up inactive/stale checked-out carts.
+| Area | Status |
+|---|---|
+| Data Consistency (price, stock, promo) | ✅ Good |
+| Saga / Rollback (ConfirmCheckout) | ✅ Good |
+| Outbox (checkout + order) | ✅ Good |
+| `refund.completed` consumer (order worker) | ✅ Fixed (P0-CC-01) |
+| Reservation TTL config drift (order configmap) | ✅ Fixed (P1-CC-02) |
+| `warehouseID` nil guard in checkout confirm | ✅ Fixed (P1-CC-01) |
+| Loyalty point redemption at checkout | ⚠️ Not implemented (P2 — tracked) |
+| Dead constant `EventTypeCheckoutCompleted` | ✅ Fixed (P2-CC-01) |
 
-## 5. Event Subscriptions & Consumers
-- [x] **Does Checkout need to subscribe to events?**: Currently, checkout doesn't subscribe to `product.updated` or `stock.changed`. It fetches pricing directly via gRPC during `RefreshCart` and validation. This is correct as on-demand validation avoids complex data sync out-of-band and consumer lag issues.
-- [x] Worker consumers: Checkout does not need Kafka/Dapr subscribers for main business logic flow.
+---
 
-## 6. GitOps Configuration
-- [x] Review `gitops/apps/checkout/overlays/dev/kustomization.yaml` to ensure any workers or cronjobs (for cleanup and DLQ retry) are correctly configured.
+## P0 Action Items
 
-## 7. Events, Consumers, Cron Jobs on Worker
-- [x] **Cron Job:** Needs a cron job to process `FailedCompensation` table (for voiding payments and applying promos that failed synchronously).
-- [x] **Cron Job:** Needs an `Outbox Worker` to relay `CartConverted` events from DB to Event Bus.
-- [x] **Cron Job:** Needs `Cart Cleanup` cron for stale sessions.
+- [x] **P0-CC-01**: Add `payments.refund.completed` gRPC consumer to `order/internal/worker/event/event_worker.go`
+
+## P1 Action Items
+
+- [x] **P1-CC-01**: Guard `warehouseID == ""` in `checkout/internal/biz/checkout/confirm.go`
+- [x] **P1-CC-02**: Fix `reservation_timeout_minutes: 15` in order configmap (aligned with actual 15 min code)
+- [x] **P1-CC-03**: Alert on outbox events reaching `failed` status — `[CRITICAL][OUTBOX_FAILED]` log added
+- [x] **P1-CC-04**: Verify `CartCleanupWorker` excludes carts with active pending orders — ✅ Verified: `FindInactiveCarts` queries `status='active'` only; `checkout`/`completed` carts excluded at DB layer. Added belt-and-suspenders guard in loop.
+
+- [x] **P1-CC-05**: Remove duplicate `OrderStatusTransitions` from checkout constants (missing `partially_shipped`)
+- [x] **P1-CC-06**: Add business config keys to `gitops/apps/checkout/base/configmap.yaml`
+
+## P2 Action Items
+
+- [x] **P2-CC-01**: Remove dead constant `EventTypeCheckoutCompleted`
+- [x] **P2-CC-02**: Align `default_country: "VN"` in checkout `config.yaml`
+- [x] **P2-CC-03**: Track loyalty point redemption at checkout as a feature gap (create issue)
+- [x] **P2-CC-04**: Consider making `ApplyPromotion` synchronous or adding expiry re-check
+- [x] **P2-CC-05**: Log + DLQ failed reservation rollbacks in `RollbackReservationsMap`
+- [x] **P2-CC-06**: Remove `"event"` mode disable comment in checkout worker `main.go`
+- [x] **P2-CC-07**: Consolidate dual warehouse client interfaces in order service
+- [x] **P2-CC-08**: Make `MaxOrderAmount` configurable via K8s ConfigMap (reference added in configmap)
+
+

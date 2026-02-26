@@ -78,3 +78,4 @@ docs\10-appendix\checklists\workflow\analytics-reporting-flow-checklist.md
 docs\10-appendix\checklists\workflow\cross-cutting-concerns-review.md
 
 nohup kubectl port-forward svc/argocd-server -n argocd --address 0.0.0.0 8090:443 > argocd-port-forward.log 2>&1 &
+nohup kubectl port-forward svc/traefik -n kube-system --address 0.0.0.0 8081:80 > traefik-pf-8081.log 2>&1 &
