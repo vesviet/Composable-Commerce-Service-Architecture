@@ -1,2 +1,6 @@
 customer: customer1000@example.com/Customer1000@example.com
+https://frontend.tanhdev.com
+
+
 admin: user/pass là admin@example.com/Admin123!
+https://admin.tanhdev.com
