@@ -59,7 +59,7 @@
 
 Files still importing `internal/model` (8 non-test files):
 - [ ] `biz/customer/customer.go` (1357 lines — largest, do last)
-- [ ] `biz/customer/auth.go`
+- [~] `biz/customer/auth.go` — audit constants migrated (`audit.AuditEventLogin` etc.), still uses `model.Customer`
 - [ ] `biz/customer/cache.go`
 - [ ] `biz/customer/verification.go`
 - [ ] `biz/customer/events.go`
@@ -72,7 +72,7 @@ Other biz packages:
 - [ ] `biz/segment/*.go`
 - [ ] `biz/customer_group/*.go`
 - [ ] `biz/wishlist/*.go`
-- [ ] `biz/audit/*.go`
+- [x] `biz/audit/*.go` — commit `9964398`: public API uses domain types, model only at mapper boundary
 - [ ] `biz/analytics/*.go`
 - [ ] `biz/worker/*.go`
 
