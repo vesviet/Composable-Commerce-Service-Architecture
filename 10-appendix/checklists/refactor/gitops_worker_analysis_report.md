@@ -1,96 +1,59 @@
-# Báo Cáo Phân Tích & Code Review: GitOps Worker Config (Senior TA Report)
+# 📋 Báo Cáo Phân Tích & Code Review: GitOps Worker Config
 
-**Dự án:** E-Commerce Microservices  
-**Chủ đề:** Review Config GitOps (Kubernetes Deployment) của các Worker Node  
-**Đường dẫn tham khảo:** `gitops/apps/*/base/worker-deployment.yaml`
-**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
+**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
+**Chủ đề:** Review Config GitOps (Kubernetes Deployment) của các Worker Node.  
+**Đường dẫn tham khảo:** `gitops/apps/*/base/worker-deployment.yaml`  
+**Trạng thái Review:** Đã Review - Cần Refactor Lập Tức  
 
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- **[🔴 P1] [Architecture / DRY] Phân mảnh Worker Manifests:** Vẫn y hệt bên API Deployment, các file `worker-deployment.yaml` vẫn đang bị copy-paste tay 100 dòng cho hơn 20 services. Cần dọn dẹp và gom về base component chung.
-- **[🔵 P2] [Clean Code] Lỗi Naming Secret & Init Container lộn xộn:** Lỗi chính tả tên secret số ít/nhiều (`search-secret` vs `order-secrets`), và việc thiếu đồng nhất InitContainers (`gateway` không có, `analytics` thiếu consul) vẫn còn tồn tại.
-- **[🔵 P2] [Clean Code] Tham số `-mode` lúc có lúc không:** `search` và `order` vẫn thả nổi biến args mà không truyền `-mode event/cron` rõ ràng như `analytics`.
+- **[🚨 P1] [Architecture/DRY] Sự Phân Mảnh Rác Rưởi Của Worker Manifests:** Giống y hệt bên API Deployment, các file `worker-deployment.yaml` vẫn đang bị copy-paste thủ công 100 dòng cho hơn 20 services. Cần dọn dẹp và gom về màn Kustomize base chung duy nhất tại `components`. Không được phép duy trì Technical Debt này nữa.
+- **[🔵 P2] [Clean Code/Naming] Lỗi Naming Secret & Thiếu Nhất Quán Init Container:** Lỗi chính tả tên secret số ít/nhiều (`search-secret` vs `order-secrets`), và việc thiếu định hướng rõ ràng về InitContainers (`gateway` không hề có, `analytics` lại thiếu consul) phô bày sự thiếu chuyên nghiệp trong vận hành. **Yêu cầu:** Thống nhất đặt tên chuẩn `<service-name>-secret`.
+- **[🔵 P2] [Clean Code/Runtime] Tham Số `-mode` Tuỳ Hứng:** Worker Go hỗ trợ cờ `-mode event/cron/all`. Nhưng `search` và `order` lại thả nổi biến `args` gieo xúc xắc cho default logic của code, trong khi `analytics` thì truyền rõ ràng. **Yêu cầu:** Bắt buộc truyền `-mode` tường minh vào mọi file YAML.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+- *(Chưa có New Issues phát sinh thêm trong vòng Review này).*
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Reliability] Vá lỗi Sập Health Check ở Loyalty-Rewards:** Đáng khen ngợi, Worker của `loyalty-rewards` đã được sửa lại: Gạch bỏ hoàn toàn probe gọi GRPC port 5005 chết người, chuyển về chuẩn HTTP `httpGet` vào `/healthz` port 8081. Pod đã khởi động mượt mà.
-- **[FIXED ✅] [Dapr / Comm] Vá lỗi Mất Cấu Hình Dapr ở Analytics:** Worker `analytics` ĐÃ ĐƯỢC bổ sung đầy đủ khối annotation `dapr.io/app-port` và `app-protocol`. Dapr sidecar giờ đã biết trỏ luồng pubsub về đâu.
-
-## 1. Index Toàn Cảnh (GitOps Architecture)
-
-Worker của mỗi service đang được deploy qua Kustomize `base` và overlay (có kèm HPA ở production overlay). Tổng cộng có hơn 20 file `worker-deployment.yaml`.
-Sau khi review chi tiết 5 service đại diện (`analytics`, `search`, `order`, `loyalty-rewards`, `gateway`), dưới đây là cấu trúc chung đang được áp dụng:
-
-1. **Deployment Specs:**
-   - Dùng chung `argocd.argoproj.io/sync-wave: "8"` (Triển khai sau infra, DB, Redis).
-   - SecurityContext: Chuẩn hoá `runAsNonRoot: true` và `runAsUser: 65532`.
-2. **Commands & Args:**
-   - Dùng script shell bọc ngoài để tăng file descriptors: `ulimit -n 65536 || true`
-   - Gọi binary: `exec /app/bin/worker -conf /app/configs/...`
-3. **Configs Mappings:**
-   - Dùng `envFrom` trỏ vào `overlays-config` configMap và `<service>-secrets` secret.
-   - Map volume config vào `/app/configs`.
-4. **Health Port:** Standardized port `8081` mang tên `health`.
+- **[FIXED ✅] [Reliability] Vá Lỗi Sập Health Check Ở Loyalty-Rewards:** Đáng khen ngợi, Worker của `loyalty-rewards` đã được sửa lại: Gạch bỏ hoàn toàn probe chạy nhầm vào GRPC port `5005` chết người trước đó, chuyển về chuẩn HTTP `httpGet` vào `/healthz` port `8081`. Pod đã khởi động mượt mà không bị K8s vả chết oan.
+- **[FIXED ✅] [Dapr/Comm] Vá Lỗi Mất Cấu Hình Dapr Ở Analytics:** Nửa đêm sidecar không biết gọi cổng nào? Lỗi này ĐÃ FIXED khi Worker `analytics` được bổ sung đầy đủ khối annotation `dapr.io/app-port` và `app-protocol`. Dapr sidecar giờ đã biết trỏ luồng pubsub về đâu.
 
 ---
 
-## 2. Các Vấn Đề Và Điểm Bất Đồng Nhất (Inconsistencies & Smells) 🚩
+## 📋 Chi Tiết Phân Tích (Deep Dive)
 
-Mặc dù có chung pattern, nhưng việc copy-paste các file YAML này qua từng service đã gây ra một hệ luỵ lớn về **tính nhất quán (inconsistency)** giữa các file.
+### 1. Hiện Trạng Tốt (GitOps Architecture)
+Worker của mỗi service đang được triển khai qua Kustomize `base` và environment overlays. Điểm sáng chung:
+- **Deployment Specs:** Đồng bộ dùng `argocd.argoproj.io/sync-wave: "8"` (Đảm bảo Worker chỉ boot lên khi Core Infra Postgres/Redis đã sống).
+- **SecurityContext:** Chuẩn hoá `runAsNonRoot: true` và `runAsUser: 65532`. Rất an toàn.
+- **File Descriptors:** Chịu khó bọc bash script để đẩy `ulimit -n 65536`. Đủ tải C10K.
+- **Health Port:** Standardized port `8081` chuyên dụng cho Liveness/Readiness. Tách biệt hẳn luồng Business. Rất Tốt.
 
-### 🚩 2.1. Lỗi Cấu Hình Dapr (Dapr Annotations)
-Hầu hết các service giao tiếp qua Dapr Event-Driven, do đó worker dùng Dapr là điều cốt lõi. Tuy nhiên cấu hình annotations đang không đồng bộ:
-*   `search`, `order`, `loyalty-rewards`, `gateway` đều khai báo chuẩn:
-    *   `dapr.io/enabled: "true"`
-    *   `dapr.io/app-port: "5005"`
-    *   `dapr.io/app-protocol: "grpc"`
-*   🚨 **ĐÁNG BÁO ĐỘNG:** Thằng `analytics` lại **BỎ QUÊN** `app-port` và `app-protocol`. Nếu Dapr Actor hoặc PubSub cần gọi ngược lại grpc/http server của worker, sidecar của analytics sẽ không biết mở port nào!
-*   `gateway` có định nghĩa thêm `log-level` và `graceful-shutdown-seconds`, trong khi các service khác thì không.
+### 2. Sự Cẩu Thả Gây Nguy Hiểm Hệ Thống 🚩
+Việc dung túng thói quen copy-paste file YAML qua từng service đã gây ra một hệ luỵ Inconsistency cực kỳ đau đầu:
 
-### 🚩 2.2. Sự Loạn Loạn Của Health Probes
-Dù tất cả đều chạy một `HealthServer` ở port `8081` theo code Go, nhưng cấu hình Kubernetes Probes lại đang **"mỗi nhà một kiểu"**:
-*   `analytics` & `search`: Dùng HTTP GET `/healthz` trên port `health` (8081) với thời gian đợi mặc định.
-*   `order`: Có thêm `startupProbe` sử dụng TCP Socket ở port `grpc-svc` trong 195s (cho phép app khởi động chậm vì chần chừ đợi Consul).
-*   🚨 **LỖI NGHIÊM TRỌNG Ở LOYALTY-REWARDS:** Lại đi khai báo `grpc` probe ở port `5005` (`grpc: port: 5005`). Điều này cực kỳ nguy hiểm bởi worker không phải lúc nào cũng chạy một GRPC server đầy đủ. Code Go thì start HTTP Health Check port 8081 nhưng YAML k8s lại đi ping GRPC port 5005!
-*   `gateway`/`analytics`: Probe lại có block cấu hình `timeoutSeconds` khác với các service còn lại.
+#### 🚩 2.1. Quên Cấu Hình Dapr Annotations
+Worker sống nhờ Dapr (Event-Driven), dĩ nhiên Dapr Sidecar là mạch máu.
+- Service `search`, `order` khai báo chuẩn: `dapr.io/enabled: "true"`, `dapr.io/app-port: "5005"`, `dapr.io/app-protocol: "grpc"`.
+- Nhưng `analytics` (trước khi fix) lại BỎ QUÊN `app-port` và `app-protocol`. Đây là lỗi sinh tử (P0) nếu Dapr cần gọi ngược lại ứng dụng. Dẫn đến thất thoát Message Pub/Sub. Hệ thống đã fixed nhưng quy trình kiểm duyệt PR lỏng lẻo đang bị cảnh báo.
 
-### 🚩 2.3. Thiếu Tuân Thủ Tiêu Chuẩn Naming Secret/Config
-*   Hầu hết secret được đánh tên dạng theo format số nhiều: `<service>-secrets` (VD: `analytics-secrets`, `order-secrets`, `loyalty-rewards-secrets`).
-*   Một số lại là số ít: `<service>-secret` (VD: `search-secret`, `gateway-secret`). Lỗi chính tả nhỏ này trong GitOps Ops sẽ dẫn tới Mount Error khi ArgoCD deploy.
-*   Tên config file lúc thì `/app/configs/config.yaml`, riêng gateway lại là `/app/configs/gateway.yaml`.
+#### 🚩 2.2. Sự Loạn Luân Của Health Probes
+Dù tất cả đều chạy `HealthServer` HTTP port `8081`. Nhưng K8s Probes lại "mỗi nhà một kiểu":
+- Chuẩn: `analytics` & `search` dùng HTTP GET `/healthz` port `8081`.
+- Rườm rà: `order` tự kẹp thêm `startupProbe` gọi Socket TCP cực kỳ khó hiểu.
+- Thảm Họa (đã fix): `loyalty-rewards` từng đi khai báo Probe bắn vào Cổng gRPC `5005`. Mà Worker thì có lúc không chạy gRPC Server -> Pod bị K8s bóp cổ chết liên hoàn.
 
-### 🚩 2.4. Sự Không Đồng Nhất Của Init Containers
-Một worker thường phải đợi CSDL và Message Queue up.
-*   `search`, `order`, `loyalty-rewards`: Đòi đủ 3 InitContainers (`wait-for-consul`, `wait-for-redis`, `wait-for-postgres`).
-*   `analytics`: Chỉ đợi postgres và redis.
-*   `gateway`: **KHÔNG CÓ InitContainer nào**. Có thể gây crash loop liên tục khi cụm mới start up mà RabbitMQ/Redis chưa sẵn sàng.
+#### 🚩 2.3 Sự Không Đồng Nhất Của Init Containers
+App boot lên mà thiếu DB thì Crash. InitContainers sinh ra để giải quyết. Nhưng:
+- `search`, `order`: Tháo vát chèn đủ 3 thằng đợi (`wait-for-consul`, `redis`, `postgres`).
+- `analytics`: Lười, bỏ qua Consul.
+- `gateway`: Vô tư KHÔNG CÓ cái InitContainer nào. Hậu quả là hễ Deploy Cụm là gateway đỏ lòm vài phút đầu chờ RabbitMQ.
 
-### 🚩 2.5. Tham Số `-mode` Lúc Khác Nhau Lúc Biến Mất
-Dù Worker Code đều implement cờ `--mode`, GitOps lại truyền rất tuỳ ý:
-*   `analytics`: `-mode all`
-*   `loyalty-rewards`: `-mode event`
-*   `search`, `order`: Hoàn toàn **khoa không truyền cờ `-mode`**, khiến hệ thống fallback về giá trị default trong code Go tùy tiện.
+### 3. Giải Pháp Chỉ Đạo Từ Senior
+Đứng dưới góc nhìn Clean Architecture và GitOps thuần thục, việc duy trì >20 file thủ công này là Technical Debt nợ nần ngập đầu.
 
----
-
-## 3. Lời Khuyên & Action Items Cho Đội DevOps / Kỹ Sư Hệ Thống
-
-Đứng dưới góc nhìn Clean Architecture và GitOps thuần thục, việc duy trì >20 file `worker-deployment.yaml` thủ công này là Technical Debt lớn.
-
-### ✅ Giải pháp Kustomize Kế Thừa (DRY in GitOps)
-**Thay thế toàn bộ bằng 1 Base duy nhất!**
-Chúng ta đã dùng Kustomize, tại sao không tạo một base template cho **ALL WORKERS** ở `gitops/apps/common-bases/worker/deployment.yaml` chứa đủ Probes, Args, Dapr annotations.
-
-Từ `gitops/apps/<service>/base/kustomization.yaml`, chỉ cần dùng Patching:
-1. Sửa `name` (thông qua `namePrefix` hoặc `nameSuffix` của kustomization).
-2. Override `volumeMounts` hoặc `secrets` via kustomize patches.
-3. Nếu cần Custom InitContainer thì vá vào qua file patch riêng.
-
-### 📋 Checklist Khắc Phục Khẩn Cấp (P0 - Blocking Sync):
-- [ ] **Liveness/Readiness Probes**: Gạch bỏ GRPC probe trong `loyalty-rewards` worker và đổi toàn bộ sang `httpGet /healthz port 8081`.
-- [ ] **Dapr Annotations**: Bổ sung `dapr.io/app-port: "5005"` (hoặc port tương ứng) và `dapr.io/app-protocol: "grpc"` cho tất cả các worker, gồm cả `analytics`.
-- [ ] **Arguments Consistency**: Explicitly define `-mode event` (hoặc `all`, `cron`) vào `args` block thay vì bỏ qua cho default logic của code.
-- [ ] **Init Containers**: Tuẩn chuẩn hóa Init Containers (PostgreSQL, Redis) thành common components trong kustomize base, mọi worker đều phải tuân thủ để tránh restart crash backoff.
+**Xóa Bỏ Kỉ Nguyên Copy-Paste Bằng Kustomize Kế Thừa (DRY in GitOps)**
+- **Xây Dựng Base Vàng:** Cần ngay 1 Base template cho **ALL WORKERS** tại `gitops/components/common-worker-deployment/deployment.yaml`. Chứa đủ Probes chuẩn `8081`, InitContainers xịn sò nhất, và Dapr annotations chuẩn gRPC.
+- **Patch Để Cá Nhân Hóa:** Từ `gitops/apps/<service>/base/kustomization.yaml`, dev chỉ được quyền dùng Patching để ghi đè Tên file cấu hình, Secret Name, và `-mode`. Không được phép chọc ngoáy vào sức khỏe Health Probes.

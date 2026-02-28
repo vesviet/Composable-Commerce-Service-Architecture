@@ -1,91 +1,40 @@
-# Báo Cáo Phân Tích & Code Review: Database Pagination & N+1 Queries (Senior TA Report)
+# 📋 Báo Cáo Phân Tích & Code Review: Database Pagination & N+1 Queries
 
-**Dự án:** E-Commerce Microservices  
-**Chủ đề:** Khảo sát hiệu năng truy xuất Database, tập trung vào hai "Sát thủ" thầm lặng giết chết Database ở quy mô lớn: N+1 Query và Offset Pagination.
-**Trạng thái Review:** Lần 1 (Pending Fixes - Theo chuẩn Senior Fullstack Engineer & Kratos Clean Architecture)
+**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
+**Chủ đề:** Khảo sát hiệu năng truy xuất Database, nhận diện các vấn đề N+1 Query và Offset Pagination.  
+**Trạng thái Review:** Đã Review - Cần Refactor  
 
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- **[🟡 P1] [Performance] Mới chỉ xây dựng Helper, chưa áp dụng vào Service (Offset Pagination):** Mặc dù gói `common/utils/pagination/cursor.go` đã được tạo ra, nhưng ở tất cả các tầng Repository (điển hình như `transaction.go` và `warehouse.go`), DevOps / Backend Dev vẫn giữ công thức `(Page-1)*Size` từ `pagination.go` cũ. Khả năng scan-and-discard làm giảm hiệu năng hệ thống DB vẫn còn nguyên. *Yêu cầu: Refactor các API List của warehouse, order... đổi sang sử dụng struct `CursorPaginator`.*
-- **[🟡 P1] [Data Fetching] Lạm dụng Preload trong Repo (N+1/Greedy):** Các Repo như `warehouse.go` và `transaction.go` vẫn giữ nguyên lệnh `Preload(...)` cho các hàm danh sách (`List`, `FindByLocation`, `GetByDateRange`...). Việc gọi `List` sinh ra nhiều câu SQL xả rác Network I/O và RAM App. *Yêu cầu: Tuyệt đối bỏ Preload trong hàm `List`, chuyển đổi thành lệnh `.Joins().Select(...)`.*
+- **[🚨 P0] [Performance/Database] Lạm dụng Preload sinh ra N+1 Query (Greedy Fetching):** Các file Repository như `warehouse.go`, `transaction.go` và `order.go` vẫn giữ nguyên lệnh `Preload(...)` cho các hàm danh sách (`List`, `FindByLocation`, `GetByDateRange`...). Việc gọi `List` sinh ra hàng loạt câu SQL phụ, gây lãng phí Network I/O và phình to RAM của App do Cartesian Product hoặc Select dư thừa. **Yêu cầu:** Tuyệt đối cấm dùng `Preload` trong hàm `List` đối với các quan hệ `belongs-to`. Phải chuyển đổi thành lệnh `db.Joins("...").Select("...")` trả về đúng các cột cần thiết cho DTO.
+- **[🟡 P1] [Performance/Database] Chưa áp dụng Keyset/Cursor Pagination cho các bảng lớn:** Gói Helper `common/utils/pagination/cursor.go` đã được Core Team xây dựng, nhưng ở tất cả các tầng Repository, logic cũ `(Page-1)*Size` vẫn đang được sử dụng. Phép toán `OFFSET` bắt DB scan-and-discard, cực kỳ tốn CPU ở các bảng như `orders`, `stock_transactions`. **Yêu cầu:** Refactor luồng Query danh sách của `warehouse` và `order`, đổi sang sử dụng struct `CursorPaginator` thay vì Offset thông thường khi quy mô data > 100k dòng.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- **[🟡 P1] [Query/RAM Safety] Thiếu Limit ở các hàm dạng List phụ trợ:** Một số hàm như `GetByReference` (`transaction.go`), `GetLocations` (`warehouse.go`) trả về mảng danh sách (Slice Array) nhưng không hề sử dụng Offset/Limit hay cursor. Khi hệ thống lớn lên, điều này rủi ro tạo ra OOM RAM đột ngột ở phía Pod K8s. *Yêu cầu: Bổ sung pagination hoặc cứng `Limit(MAX_SAFE)` cho mọi list API nội bộ.*
+- **[Performance/K8s] Tham số trả về danh sách không có Limit (OOM RAM Risk):** Một số hàm nội bộ phục vụ hệ thống (như `GetByReference` trong `transaction.go`, `GetLocations` trong `warehouse.go`) trả về mảng danh sách (`Slice`) nhưng hoàn toàn KHÔNG SỬ DỤNG cấu trúc Offset/Limit hay Cursor. Điều này rủi ro tạo ra Memory Leak / OOM Killed ở các Worker Pods trên K8s khi tập dữ liệu phình to. **Suggested Fix:** Bắt buộc áp dụng cơ chế pagination an toàn, hoặc hardcode một giới hạn an toàn `.Limit(5000)` cho mọi List API phục vụ nghiệp vụ nội bộ.
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Framework] Hoàn thiện thuật toán Keyset/Cursor Pagination:** Gói utils `common/utils/pagination/cursor.go` đã được Core Team xây dựng thành công bao gồm `CursorRequest`, `CursorResponse` và `CursorPaginator` với logic chuẩn xác bằng marker (VD: `id > last_cursor`). Có thể coi như hệ sinh thái framework đã sẵn sàng phục vụ việc refactor db query.
+- **[FIXED ✅] [Framework] Hoàn thiện thuật toán Keyset/Cursor Pagination:** Gói utils `common/utils/pagination/cursor.go` đã được thiết kế thành công với cấu trúc `CursorRequest`, `CursorResponse` và `CursorPaginator`. Logic `id > last_cursor` đã chuẩn xác, tạo tiền đề để các service tiến hành di chuyển (migrate).
 
 ---
 
-## 📋 Chi Tiết Phân Tích (Original TA Report)
+## 📋 Chi Tiết Phân Tích (Deep Dive)
 
-## 1. 🗄️ Vấn Đề Phân Trang (Offset v.s Keyset Pagination)
+### 1. 🗄️ Vấn Đề Phân Trang (Offset v.s Keyset)
+Theo tiêu chuẩn hệ thống lớn, **Offset-based Pagination** (dùng `LIMIT X OFFSET Y`) là Anti-pattern nghiêm trọng khi số lượng dòng vượt qua 100,000. PostgreSQL phải đọc, parse toàn bộ `OFFSET` rows trước khi bỏ đi.
+- **Thực trạng:** Codebase vẫn lạm dụng func `GetOffset()` từ `common/utils/pagination/pagination.go`.
+- **Hệ lụy:** Gây spike CPU Database, chậm API tịnh tiến theo thời gian.
+- **Chỉ đạo:** Cần chuyển sang Query mỏ neo: `SELECT * FROM table WHERE id > 'last_cursor' ORDER BY id ASC LIMIT 20;`.
 
-Khi xem xét cách các Service (đặc biệt là `warehouse`, `order`) phân trang dữ liệu trả về cho Admin Dashboard hoặc Client, tôi nhận thấy một Anti-pattern kinh điển.
-
-### 1.1. Lỗ Hổng Hiệu Năng (P1) 🚩
-Toàn bộ hệ thống đang dựa vào một Helper duy nhất tại `common/utils/pagination/pagination.go` để tính toán phân trang:
-```go
-// GetOffset returns calculated offset for database query
-func (p *Paginator) GetOffset() int {
-	return (p.request.Page - 1) * p.request.PageSize
-}
-```
-Và dưới tầng Repository (`internal/data/postgres`), Dev viết query như sau:
-```go
-query = query.Offset(int(offset)).Limit(int(limit))
-```
-
-**Tại sao đây là Lỗ Hổng?**
-Đây gọi là **Offset-based Pagination**. Trong PostgreSQL, lệnh `LIMIT 20 OFFSET 100000` không có nghĩa là DB nhảy đến dòng 100,000 rồi lấy 20 dòng. Nó bắt Database **đọc, parse và loại bỏ 100,000 dòng đầu tiên** trước khi trả về 20 dòng bạn cần. 
-- Ở 10,000 records đầu: API chạy mất 20ms.
-- Ở 1,000,000 records: API chạy mất 5-10 giây, kéo theo CPU DB tăng vọt (Spike).
-Đối với hệ thống E-commerce, số lượng Order và Transaction lịch sử sẽ tăng tịnh tiến cực nhanh, việc sập DB khi CSKH bấm sang trang 5000 là chuyện một sớm một chiều.
-
-### 1.2. Giải Pháp Chỉ Đạo (Keyset Pagination / Cursor)
-Bắt buộc bổ sung thuật toán **Cursor-based Pagination (Keyset Pagination)** vào gói `common/utils` và áp dụng cho các Table có khối lượng dữ liệu khổng lồ (VD: `orders`, `event_outbox`, `event_idempotency`, `warehouse_transactions`).
-Thay vì truyền `page=5000`, Client phải truyền `cursor=last_seen_id`.
-```sql
--- Query chuẩn (Dùng Index, cực nhanh dù ở dòng 1 tỷ)
-SELECT * FROM orders WHERE id > 'last_seen_id' ORDER BY id ASC LIMIT 20;
-```
-
----
-
-## 2. 🐢 Vấn Đề N+1 Queries & Lạm Dụng Preload
-
-GORM (ORM đang dùng trong dự án) cực kỳ tiện lợi với tính năng lập trình `Preload()`. Rất tiếc, sự tiện lợi sinh ra sự lười biếng.
-
-### 2.1. Lỗ Hổng "Greedy Fetching" (P1) 🚩
-Review tại `warehouse/internal/data/postgres/warehouse.go` và `transaction.go`, tôi phát hiện Dev lạm dụng Preload theo kiểu "Bắt nhầm còn hơn bỏ sót":
-```go
-err = r.DB(ctx).Preload("Warehouse").Preload("FromWarehouse").Preload("ToWarehouse").Find(&results)
-```
-- Khi chạy hàm `Find()` để lấy danh sách (List - 50 items), dòng code trên sẽ khiến GORM bắn ra **4 Câu SQL riêng biệt** vào Database:
-  1. Lấy 50 Transactions.
-  2. Lấy danh sách Warehouse tản mạn của 50 Transaction đó.
-  3. Lấy FromWarehouse...
-  4. Lấy ToWarehouse...
-
-**Hệ Lụy:**
-1. Rác băng thông mạng (Network I/O) giữa App và Database, vì load toàn bộ thông tin Warehouse (Bao gồm các cột TO_TEXT không cần thiết) chỉ để lấy `WarehouseName` hiển thị.
-2. RAM của App phình to vì phải chứa toàn bộ struct đồ sộ.
-
-### 2.2. Giải Pháp Chỉ Đạo (Joins & DTO Select)
-1. **Tuyệt đối cấm lạm dụng Preload trong các hàm `List/Search`**. `Preload` chỉ được phép dùng ở các hàm `GetByID` (lấy 1 record).
-2. Với các hàm `List`, yêu cầu Dev sử dụng lệnh `.Joins()` của GORM và dùng `.Select()` để chỉ Parse những cột thực sự cần thiết trả về cho DTO.
-```go
-// Truy vấn 1 lần duy nhất, lấy đúng những cột cần thiết
-db.Table("transactions t").
-   Select("t.id, t.amount, w.name as warehouse_name").
-   Joins("LEFT JOIN warehouses w ON w.id = t.warehouse_id").
-   Find(&results)
-```
-
----
-
-## 3. Tổng Kết Khuyến Nghị
-
-* **Pagination:** Chấp nhận Offset for Data Admin (các bảng nhỏ, ít tăng trưởng như Users Admin, Phân quyền). Yêu cầu Cursor-Based cho rốn dữ liệu khổng lồ (Orders, Transactions, Logging).
-* **N+1 / OOM RAM:** Audit lại toàn bộ các hàm `List` ở mọi Repository. Bỏ lệnh `Preload`, đập đi xây lại bằng `.Joins()`.
+### 2. 🐢 Lỗ Hổng N+1 Queries (GORM `Preload`)
+Sự tiện lợi của GORM `Preload()` đang làm hỏng hiệu năng hệ thống khi trả về List.
+- **Thực trạng:** Code `err = r.DB(ctx).Preload("Warehouse").Preload("FromWarehouse").Find(&results)` quét ra 4 truy vấn riêng biệt cho 1 API Request.
+- **Hệ lụy:** Request latency tăng cao, lãng phí bộ nhớ lưu các struct con không cần thiết.
+- **Chỉ đạo:** Yêu cầu Dev sử dụng GORM Session an toàn:
+  ```go
+  db.Table("transactions t").
+     Select("t.id, t.amount, w.name as warehouse_name").
+     Joins("LEFT JOIN warehouses w ON w.id = t.warehouse_id").
+     Find(&results)
+  ```

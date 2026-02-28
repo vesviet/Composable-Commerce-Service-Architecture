@@ -1,66 +1,45 @@
-# Báo Cáo Phân Tích & Code Review: Observability, Tracing & Logging (Senior TA Report)
+# 📋 Báo Cáo Phân Tích & Code Review: Observability, Tracing & Logging
 
-**Dự án:** E-Commerce Microservices  
-**Chủ đề:** Đánh giá luồng OpenTelemetry (Tracing), khả năng giám sát vết (Traceparent propagation), và tiêu chuẩn Logging toàn hệ thống.
-**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
+**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
+**Chủ đề:** Đánh giá luồng OpenTelemetry (Tracing), khả năng giám sát vết (Traceparent propagation), và tiêu chuẩn Logging toàn hệ thống.  
+**Trạng thái Review:** Đã Review - Cần Refactor Khẩn Cấp  
 
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- **[🔴 P1] [Observability] Đứt gãy Tracing tại Transactional Outbox:** Kiểm tra lại codebase (`payment/internal/biz`), mặc dù field `Traceparent` đã được khai báo trong struct `OutboxEvent`, hoàn toàn không có dòng code nào xử lý việc lấy ra `traceparent` từ Context để lưu vào DB khi Insert. Hậu quả là Dapr Outbox Worker khi quét DB sẽ tạo ra một TraceID hoàn toàn mới, làm đứt đoạn khả năng truy vết End-to-End từ API xuống tới background job. *Yêu cầu: Bắt buộc inject `ExtractTraceparent(ctx)` vào mọi payload trước khi gọi `outboxRepo.Save()`.*
+- **[🚨 P1] [Observability/Architecture] Đứt Gãy Tracing Tại Luồng Transactional Outbox:** Kiểm tra lại codebase (`payment/internal/biz`), mặc dù field `Traceparent` đã được khai báo trong struct `OutboxEvent`, hoàn toàn không có dòng code nào xử lý việc trích xuất `traceparent` từ Context hiện tại lưu vào DB khi Insert. Hậu quả là Dapr Outbox Worker khi quét DB sẽ tạo ra một TraceID hoàn toàn mới, làm đứt đoạn khả năng truy vết End-to-End từ API xuống tới background job. **Yêu cầu:** Bắt buộc inject `ExtractTraceparent(ctx)` vào mọi payload trước khi gọi `outboxRepo.Save()`.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+- *(Chưa có New Issues phát sinh thêm trong vòng Review này).*
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Observability / Clean Code] Vá lỗi mất TraceID trên Log Centralized Kibana:** Sai lầm cực kì ngớ ngẩn trước đó (cố gắng parse OpenTelemetry context từ Gin thay vì dùng Kratos Logger) ĐÃ ĐƯỢC XÓA BỎ. File rác `common/middleware/logging.go` đã bị triệt tiêu. Đồng thời, cấu hình tại `payment/cmd/payment/main.go` hiện tại đã bơm đúng `tracing.TraceID()` và `tracing.SpanID()` vào StdLogger. Toàn bộ log bắn ra Kibana/Loki giờ đã có ID truy vết.
-
-## 1. 🔭 Phân Tích Hiện Trạng Tracing (OpenTelemetry)
-
-Dựa trên tài liệu chuẩn `common/docs/trace-propagation-standard.md` và mã nguồn, hệ thống đang phụ thuộc mạnh vào Dapr Sidecar để truyền Context.
-
-### 1.1. Synchronous Flow (HTTP / gRPC) - Làm tốt
-- **Kỳ vọng:** Khi gọi từ `Gateway -> Order -> Inventory`, TraceID phải được truyền đi xuyên suốt để vẽ được biểu đồ trên Jaeger/Tempo.
-- **Thực tế:** Dapr tự động làm việc này thông qua annotation `dapr.io/config: tracing-config` trên Pods. Dapr sẽ tiêm W3C `traceparent` vào header. Phía dev Go **không cần code thêm gì**, Kratos và Dapr làm rất tốt chuyện này.
-
-### 1.2. Asynchronous Flow (Dapr PubSub) - Làm tốt
-- **Thực tế:** Dapr tự động bơm `traceparent` vào CloudEvents envelope. Việc truy vết luồng sự kiện Pub/Sub đang hoạt động rơn tru mà không cần code can thiệp.
-
-### 1.3. Lỗ Hổng Tracing ở Transactional Outbox (P1) 🚩
-- **Kỳ vọng:** Khi Order Service lưu một sự kiện vào bảng Outbox (Postgres), nó **bắt buộc** phải lưu kèm `Traceparent` của luồng Request hiện tại. Để khi Outbox Worker quét db và bắn event đi, nó sẽ gắn lại `Traceparent` đó vào CloudEvent. Khi đó, Jaeger mới nối được Trace từ lúc User "Bấm Đặt Hàng" cho tới lúc "Gửi Email Thành Công".
-- **Thực tế:** Mặc dù Struct `outbox.Event` đã có field `Traceparent`, và bản thân `outbox/worker.go` cũng hỗ trợ `tracer.Start(ctx, ...)`. **NHƯNG** khi review code tạo Outbox ở Order/Payment, các Dev **chưa hề** gọi hàm `extractTraceparent(ctx)` để bơm vào Event trước khi `Save()` xuống DB. 
-- **Hệ quả:** Chuỗi Tracing bị đứt gãy hoàn toàn tại điểm Outbox. Trên Jaeger, bạn sẽ thấy luồng xử lý bị cắt làm 2: Một Trace cho API Request, và một Trace hoàn toàn mới cho luồng Async Worker. Rất khó để debug end-to-end.
+- **[FIXED ✅] [Observability/Clean Code] Vá Lỗi Mất TraceID Trên Log Centralized Kibana (P0 Cũ):** Sai lầm nghiêm trọng trước đó (cố gắng parse OpenTelemetry context từ framework Gin tàn dư thay vì dùng chuẩn Kratos Logger) ĐÃ ĐƯỢC XÓA BỎ. File rác `common/middleware/logging.go` đã bị triệt tiêu. Đồng thời, cấu hình tại `payment/cmd/payment/main.go` hiện tại đã bơm đúng `tracing.TraceID()` và `tracing.SpanID()` vào StdLogger thông qua `log.With()`. Toàn bộ log Json bắn ra Kibana/Loki giờ đã có liên kết ID truy vết tuyệt đối.
 
 ---
 
-## 2. 📝 Phân Tích Tiêu Chuẩn Logging (ELK/Loki Stack)
+## 📋 Chi Tiết Phân Tích (Deep Dive)
 
-### 2.1. Vấn Đề TraceID trong Log (P0) 🚩
-Khi hệ thống có lỗi, thao tác đầu tiên của Dev là copy cái `trace_id` từ Jaeger và paste vào Kibana/Loki để tìm toàn bộ log liên quan. Để làm được điều này, **tất cả log JSON phải chứa trường `trace_id`**.
+### 1. Phân Tích Hiện Trạng Tracing (OpenTelemetry)
 
-**Thực tế tại `common/middleware/logging.go`:**
-```go
-// Add trace context if available
-if span := trace.SpanFromContext(param.Request.Context()); span.SpanContext().IsValid() {
-    fields["trace_id"] = span.SpanContext().TraceID().String()
-    fields["span_id"] = span.SpanContext().SpanID().String()
-}
-```
-- **Lỗi logic nghiêm trọng:** Code này đang cố lấy Span Context từ `*gin.Context.Request.Context()`. 
-- Trong kiến trúc Kratos + Dapr, OpenTelemetry Span Context được inject trực tiếp bởi **Dapr Middleware** hoặc **Kratos Middleware**, chứ không phải nằm sẵn trong Gin request gốc.
-- Nếu không có config OpenTelemetry Injector chuẩn xác ở đầu vào của Gin, hàm `trace.SpanFromContext` sẽ luôn trả về một span rỗng/invalid.
-- **Hệ quả:** File Log xuất ra (đẩy lên Kibana) đang **trắng bóc** trường `trace_id`, khiến cho việc mò Bug trên Production bằng Log Centralized gần như vô vọng. 
+Dựa trên tài liệu chuẩn `common/docs/trace-propagation-standard.md` và mã nguồn, hệ thống đang phụ thuộc mạnh mẽ vào Dapr Sidecar để truyền Context.
 
-### 2.2. Vấn Đề Kratos Logger
-Dự án dùng Kratos nhưng lại kẹp Gin middleware (`logging.go`). Kratos bản thân nó có bộ Logger riêng cực kỳ mạnh (`github.com/go-kratos/kratos/v2/log`). Các Dev đang code kiểu "Hồn Kratos, Da ngâm Gin", dẫn tới việc Log từ Kratos internal (báo lỗi gRPC) và Log từ Middleware HTTP (Gin) chạy thành 2 format khác nhau, rớt TraceID lung tung.
+#### 1.1. Synchronous Flow (HTTP / gRPC) - Làm Rất Tốt
+- **Thực tế:** Dapr tự động làm việc này thông qua annotation `dapr.io/config: tracing-config` trên Pods. W3C `traceparent` được tiêm thẳng vào gRPC Metadata/HTTP Header. Kratos bắt được và vẽ lên Jaeger. Dev Go **không cần đụng 1 dòng code**. Hoãn mỹ.
 
----
+#### 1.2. Asynchronous Flow (Dapr PubSub) - Làm Tốt
+- **Thực tế:** Dapr tự động bơm `traceparent` vào chuẩn CloudEvents envelope. Việc truy vết luồng sự kiện Pub/Sub diễn ra trơn tru, liên mạch.
 
-## 3. Bản Chỉ Đạo Refactor (Action Items)
+#### 1.3. Lỗ Hổng Tracing Điểm Chí Tử Ở Luồng Outbox (P1) 🚩
+- **Kỳ vọng:** Khi Order Service lưu một sự kiện vào bảng Outbox Postgres (chờ tới lượt Worker gửi đi), nó **bắt buộc** phải ghim kèm `Traceparent` của luồng Request gốc rễ. Để khi Outbox Worker thức dậy xách event bắn đi, nó sẽ ghép lại `Traceparent` đó. Nhờ vậy, Jaeger mới nối được mấu nối từ lúc User "Bấm Đặt Hàng" cho tới khi "Gửi Email Thành Công" (End to End).
+- **Sự cố tìm thấy:** Mặc dù Struct `outbox.Event` có sẵn field `Traceparent`, khi review mã nguồn tạo Outbox ở Order/Payment, Backend Devs **hoàn toàn quên** gọi hàm trích xuất `extractTraceparent(ctx)` để gán vào Struct trước khi `Save()` xuống database. 
+- **Kết quả đau đớn:** Chuỗi Tracing bị đứt gãy làm 2 tại Outbox DB. Một Trace dừng lại ở đoạn SaveDB. Một Trace hoàn toàn ảo sinh ra ở Worker. Mất vết điều tra!
 
-1. **Vá ngay lỗ hổng Truy vết Outbox (P1):** Ép tất cả các repository có gọi lệnh Insert vào bảng `event_outbox` (như Order, Payment) phải dùng hàm `extractTraceparent(ctx)` để gán vào trường `Traceparent`.
-2. **Sửa Middleware Logging (P0):** 
-   - Vứt bỏ đoạn check SpanContext gắn cứng vào Gin.
-   - Thêm bộ Middleware của Kratos (`tracing.Server()`) vào config chạy Kratos HTTP/gRPC server.
-   - Sửa Kratos Logger global để nó tự động bóc `trace.SpanContextFromContext(ctx).TraceID().String()` và nhét vào mọi dòng log (Dùng `log.With(logger, "trace_id", tracing.TraceID())`). Gắn nó ngay tại hàm `main.go`.
-3. **Đồng nhất Format:** Ép tất cả các file sử dụng standard logger của Kratos theo chuẩn JSON thay vì dùng `logrus` rải rác.
+### 2. Sự Cố Rác Logging Cũ Hướng Trái Kratos (Đã Fix)
+- Dự án dùng framework lõi là Kratos, nhưng kiến trúc sư cũ nào đó đã "đi đêm" mang rác Middleware của Gin vào `common/middleware/logging.go`.
+- Code này cố dịch ngược SpanContext bằng `trace.SpanFromContext(*gin.Context.Request.Context())` - Trong khi Kratos Injector hoàn toàn không nhét Span vào đó.
+- **Hậu quả cũ:** Log đẩy lên Kibana Trắng Bóc field `trace_id`. Tech Lead và SysAdmin bị "mù thính giác" trên Production. Lỗi cực đoan P0 này đã được Core Team thanh lọc và triệt tiêu trong đợt refactor gần nhất.
+
+### 3. Giải Pháp Chỉ Đạo Từ Senior
+1. **Dập Tắt Nguy Cơ Đứt Gãy Outbox (P1):** Ép tất cả các repository đang ghi đè vào bảng `event_outbox` (như Order, Payment) mở code lên, sửa lại object Insert: phải kèm theo giá trị sinh ra từ hàm `extractTraceparent(ctx)`. Yêu cầu QA mở Postman test End-to-End và nhìn trên giao diện Jaeger để verify xem luồng Trace đã nối gân lại với nhau chưa.
+2. **Kỷ Luật Logging Kratos:** Đánh sập toàn bộ các luồng lén xài logrus/zap local. Các Microservice phải tuân thủ dùng chuẩn Kratos interface `log.Logger`. Tại hàm `main.go`, luôn phải tuân theo thủ thuật wrap mạnh mẽ: `logger = log.With(logger, "trace_id", tracing.TraceID(), "span_id", tracing.SpanID())`. Khóa chết field này lên mọi dòng log của Json formatter. Mọi PR (Pull Request) thiếu xót lập tức Reject.

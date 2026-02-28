@@ -1,102 +1,47 @@
-# Báo Cáo Phân Tích & Code Review: Clean Architecture & Domain Separation (Senior TA Report)
+# 📋 Báo Cáo Phân Tích & Code Review: Clean Architecture & Domain Separation
 
-**Dự án:** E-Commerce Microservices  
-**Chủ đề:** Review sự cô lập giữa các tầng kiến trúc (API -> Biz -> Data) và nguyên tắc Domain-Driven Design (DDD).
-**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
+**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
+**Chủ đề:** Review sự cô lập giữa các tầng kiến trúc (API -> Biz -> Data) và nguyên tắc Domain-Driven Design (DDD).  
+**Trạng thái Review:** Đã Review - Cần Refactor Lập Tức  
 
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- **[🟡 P1] [Architecture] Tầng Biz rò rỉ Data Model (GORM):** Mặc dù đã xóa bỏ hàm biến GORM Entity thành Protobuf Message, nhưng tại `customer/internal/biz/customer/customer.go`, các UseCase vẫn đang `import "gitlab.com/ta-microservices/customer/internal/model"` và return thẳng các con trỏ `*model.Customer`. Theo Clean Architecture, tầng Biz phải định nghĩa Domain Struct thuần túy (không dính dáng SQL/Gorm). *Yêu cầu: Tách bạch Domain Model khỏi Data Model, viết mapper tại tầng Service `customer_convert.go` tương tự như cách Order Service đang làm.*
+- **[🟡 P1] [Architecture/Domain] Tầng Biz rò rỉ Data Model (Kratos Anti-Pattern):** Dù đã xóa hàm biến GORM Entity thành Protobuf Message, các UseCase tại `customer/internal/biz/customer/customer.go` vẫn đang `import "gitlab.com/ta-microservices/customer/internal/model"` và return thẳng các con trỏ định dạng `*model.Customer`. Theo Clean Architecture Kratos, tầng Biz **phải định nghĩa Domain Struct thuần túy** (chỉ chứa business logic, không chứa gorm tag). **Yêu cầu:** Tách bạch Domain Model khỏi Data Model, viết mapper tại tầng Service `customer_convert.go` tương tự như cách Order Service hoặc Payment Service đang triển khai chuẩn mực.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu).*
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Data Integrity] Cắt đứt rò rỉ Data -> API:** Hàm `ToCustomerReply()` rác rưởi nằm bên trong GORM entity `internal/model/customer.go` ĐÃ ĐƯỢC XÓA BỎ HOÀN TOÀN. Model đã không còn "biết" về sự tồn tại của Protobuf. Đây là một bước tiến lớn ngăn chặn Data Entity tự ý trả dữ liệu lên tầng Transport.
-
-## 1. Hiện Trạng Triển Khai (The Good - Những điểm làm đúng)
-
-Nhìn chung, dự án bám sát bộ khung Clean Architecture do Kratos đề xuất:
-1. **Tuyệt đối không rò rỉ Database Detail:** Quét toàn bộ source code của thư mục `internal/biz` ở tất cả microservices, hoàn toàn KHÔNG CÓ sự xuất hiện của `gorm.DB` hay các khái niệm liên quan đến SQL/Postgres. Tầng Biz (Domain) hoàn toàn sạch sẽ và độc lập với công nghệ lưu trữ.
-2. **Repository Pattern Chuẩn Mực:** Các lời gọi từ Biz xuống DB đều thông qua các interface rõ ràng (ví dụ: `CustomerRepo interface`). Điều này giúp Unit Test ở tầng Biz cực kỳ dễ dàng bằng tay hoặc dùng Gomock.
+- **[FIXED ✅] [Architecture/API] Chặn Đứng Rò Rỉ Data Model Trực Tiếp Lên API Layer:** Hàm `ToCustomerReply()` và `ToStableCustomerGroupReply()` vốn dĩ vi phạm nghiêm trọng luật MVC (cắm mã gen protobuf vào bên trong GORM model) ĐÃ ĐƯỢC XÓA BỎ HOÀN TOÀN khỏi `internal/model/customer.go`. Model giờ chỉ thuần túy là định dạng DB schema.
 
 ---
 
-## 2. Các Lỗ Hổng Kiến Trúc Cực Tiêu Cực (Khủng Hoảng Clean Architecture) 🚩
+## 📋 Chi Tiết Phân Tích (Deep Dive)
 
-### 🚩 2.1. Lỗi "Đi Tắt Đón Đầu" Ở Customer Service (P0 - Xuyên Thủng Layer)
-Đây là một trong những lỗi tồi tệ nhất của Clean Architecture (Anti-pattern: Anemic Domain Model + Leaky Abstraction).
+### 1. Hiện Trạng Tốt (The Good)
+Dự án phần lớn bám sát được bộ khung Clean Architecture:
+- **Ngăn Chặn GORM Rò Rỉ Tuyệt Đối:** Quét toàn bộ source code của `internal/biz`, KHÔNG CÓ sự xuất hiện của `gorm.DB` hay logic Query. Tầng Biz (Domain) 100% decoupling khỏi hạ tầng lưu trữ.
+- **Repository Pattern Ổn Định:** Lời gọi từ Biz xuống Data thông qua Interfaces (`CustomerRepo`), giúp mock testing cực thuận lợi khi dùng `mockgen`.
 
-Tại service **Customer**:
-1. Tệp `internal/model/customer.go` chứa struct `Customer` với chi chít các tag của GORM:
-   ```go
-   type Customer struct {
-       ID uuid.UUID `gorm:"type:uuid;primaryKey"`
-       // ...
-   }
-   ```
-   *👉 Đây chính xác là Data Entity (Entity gắn chặt với Cấu trúc Bảng Postgres).*
+### 2. Sự Cố Rò Rỉ Khái Niệm Ở Tầng Biz (Lỗi P1 Xuyên Thủng Domain) 🚩
+Sự cố của **Customer Service**:
+- Data Entity `Customer` nằm ở `internal/model` chứa chằng chịt tag của GORM.
+- **Vấn đề:** Ở Tầng Biz (`customer/internal/biz`), các UseCase lại return thẳng kiểu Data Entity `*model.Customer`. Điều này khiến thư mục `biz` - vốn dĩ phải là nơi độc lập định nghĩa Domain Rules - lại phải Import Data Model phụ thuộc.
+- **Mô hình đang chạy thực tế:** `API (Protobuf)` <--- `Biz Layer` (return model) <--- `Data Layer` (gorm model).
+- **Hệ luỵ:** Sửa tên cột Database -> Sửa Gorm Tag -> Thay đổi định dạng Data Entity -> Code tầng Biz gián tiếp bị vỡ hoặc rò rỉ field rác ra ngoài Transport.
 
-2. Nhưng điều đáng sợ là, ngay bên dưới Data Entity đó, dev lại gắn thêm hàm `ToCustomerReply()`:
-   ```go
-   func (m Customer) ToCustomerReply() *pb.Customer { ... }
-   ```
-   *👉 Tức là Data Entity có khả năng tự biến hình thành Protobuf Message (tầng API Transport).*
-
-3. Xấu hơn nữa ở **Tầng Biz** (`customer/internal/biz/customer/customer.go`), các UseCase lại return thẳng kiểu Data Entity `*model.Customer` này. Khiến cho file `biz` - vốn dĩ phải là nơi cao quý nhất, không phụ thuộc vào hạ tầng - nay lại `import "gitlab.com/ta-microservices/customer/internal/model"` (chứa gorm tags).
-
-**Mô hình đang chạy thực tế:**
-`API (Protobuf)` <--- `Biz Layer` (return model) <--- `Data Layer` (gorm model)
-
-**Hệ luỵ nhãn tiền:**
-- Nếu DBA (Database Admin) yêu cầu đổi tên cột trong bảng Customer, sửa tag GORM. Bạn có thể vô ý làm rụng luôn trường đó trên luồng trả về cho Frontend (Mobile App / Web) thông qua Protobuf vì chúng dính chặt làm 1.
-- Biz Layer không còn là "Trung tâm vũ trụ" định nghĩa Luật chơi (Domain Entities), mà Biz Layer đang nằm dưới quyền sinh sát của Data Layer (GORM models lũng đoạn Business).
-
-### 🚩 2.2. Sự Bất Nhất Giữa Các Team (Inconsistency - P1)
-Trái ngược với đống đổ nát ở Customer Service... Thì đội code **Order Service** lại làm **Rất Chuẩn Mực**.
-
-Tại service **Order** (`order/internal/service/order_convert.go`):
-Dev tách bạch hoàn toàn 3 thế giới:
-1. Data Model (`order/internal/model` - Chỉ chứa GORM tags).
-2. Domain Model (`order/internal/biz` - Các struct thuần Go, mang business rules, không có tag json/gorm).
-3. API DTO (Protobuf models).
-
-Ở tầng Service (`order_convert.go`), dev viết các hàm mapper rạch ròi:
-- `convertOrderDomainOrderToBizOrder` (Map từ Biz sang DTO).
-- `convertBizCreateOrderRequestToOrderDomain` (Map DTO vào Biz).
-- Tuyệt đối Data Model (`model.Order`) không ló mặt ra khỏi ranh giới của `internal/data`.
-
----
-
-## 3. Bản Chỉ Đạo Refactor Lớp Lang (Clean Architecture Roadmap)
-
-Để giải quyết mớ hỗn độn này, phải ép toàn hệ thống theo chuẩn của **Order Service**.
-
-### ✅ Tái Cấu Trúc File & Struct Data
-
-**Bước 1: Giết chết sự liên kết Bảng-DB với DTO Protocol Buffers**
-- Vào tất cả các tệp `internal/model/*.go` (Đặc biệt là Customer Service).
-- **Xóa ngay lập tức** các hàm như `ToCustomerReply()`, `ToStableCustomerGroupReply()`. Tầng model là các túi chứa dữ liệu GORM, nó không có tư cách tự xưng là DTO.
-
-**Bước 2: Chuẩn Hóa Biz Layer (Domain Model)**
-- Trong `internal/biz`, định nghĩa lại các Domain Struct thuần Go.
+### 3. Giải Pháp Chỉ Đạo Từ Senior
+Lấy **Order Service** làm hình mẫu chuẩn (Reference Model).
+- **Tầng Biz (`internal/biz`):** Định nghĩa lại Entity thuần Go, không có Tag GORM/JSON.
   ```go
-  // internal/biz/customer.go
   type Customer struct {
-      ID          string
-      Email       string
+      ID           string
+      Email        string
       CustomerType int
-      // Thuần logic nghiệp vụ, cấm gắn tag sql hay gorm
   }
   ```
-- Repo từ `internal/data` lấy Data Entity từ DB xong, phải tự map sang Domain Entity chuẩn rồi mới trả lên cho `internal/biz` xài.
-
-**Bước 3: Tầng Service Làm Trạm Trung Chuyển (DTO Mappers)**
-- Ở `internal/service/`, tạo ra các file `*_convert.go` (giống cách Order Service đang làm).
-- File này có nhiệm vụ map từ Domain Entity (do `biz` xử lý xong) sang Protobuf Message (`pb.<Struct>`).
-
-**Tóm gọn Rule (Bắt buộc Code Reviewer tuân thủ):**
-> 1. Biz gọi Data ➔ Data trả về Biz Model ➔ Biz xử lý Logic dựa trên Biz Model.
-> 2. API gọi Service ➔ Service gọi Biz ➔ Biz trả về Biz Model ➔ Service map Biz Model thành Protobuf ➔ Trả về API.
-> 3. Tuyệt đối nghiêm cấm việc import Data Models (có GORM tag) vào thẳng Tầng Service hoặc để nó làm rò rỉ ra Protobuf Reply.
+- **Tầng Data (`internal/data`):** Repo lấy `model.Customer` từ DB xong, phải tự map sang Domain `biz.Customer` rồi mới trả vể Biz.
+- **Tầng Service (`internal/service/*_convert.go`):** Mapping từ `biz.Customer` sang Protobuf `pb.CustomerReply`.
+- **Tuyệt đối nghiêm cấm:** Việc import `internal/model` vào thẳng Tầng Transport (Service) để làm rò rỉ cấu trúc Database cho Frontend.

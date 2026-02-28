@@ -1,94 +1,56 @@
-# Báo Cáo Phân Tích & Code Review: Kiến Trúc Database & GORM (Senior TA Report)
+# 📋 Báo Cáo Phân Tích & Code Review: Kiến Trúc Database & GORM
 
-**Dự án:** E-Commerce Microservices  
-**Chủ đề:** Review cách các microservice giao tiếp với Database thông qua GORM, Connection Pooling, và Transaction Management.
-**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
+**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
+**Chủ đề:** Review cách các microservice giao tiếp với Database thông qua GORM, Connection Pooling, và Transaction Management.  
+**Trạng thái Review:** Đã Review - Cần Refactor Lập Tức  
 
 ---
 
 ## 🚩 PENDING ISSUES (Unfixed)
-- **[🟡 P1] [Architecture / Maintainability] Phân mảnh Transaction Manager (Tự chế bánh xe):** Kiểm tra lại codebase (`checkout/internal/data/data.go` và `shipping/internal/data/postgres/transaction.go`), các team dev vẫn thi nhau tự định nghĩa các Struct/Interface Transaction riêng rẽ (như `dataTransactionManager`, `PostgresTransactionManager`) thay vì quy về sử dụng thư viện lõi. Code rườm rà, tiềm ẩn rủi ro leak connection/deadlock nếu có ai đó code sai logic Rollback cục bộ. *Yêu cầu: Hard-Requirement, xóa bỏ toàn bộ custom Transaction Manager ở các service, tạo duy nhất một cái tại `common/data/transaction.go` để tái sử dụng toàn bộ hệ thống.*
+- **[🟡 P1] [Architecture/Maintainability] Phân Mảnh Trầm Trọng Transaction Manager (Tự Chế Bánh Xe):** Kiểm tra mã nguồn, các Service như `checkout` (trong `checkout/internal/data/data.go`) và `shipping` (trong `shipping/internal/biz/transaction.go`) đang tự đẻ ra các Struct/Interface Transaction riêng rẽ (như `dataTransactionManager`, `PostgresTransactionManager`). Việc bỏ qua thư viện Lõi để viết lại logic quản lý TX gây ra rủi ro Deadlock hoặc Leak Connection khi block `Rollback()` bị sai dòng. **Yêu cầu (Hard-Requirement):** Xóa bỏ toàn bộ các bộ quản lý TX rác ở Service, yêu cầu dùng duy nhất hàm `NewTransactionManager` từ thư mục `common/data/transaction.go` để bơm GORM tx vào Context an toàn.
 
 ## 🆕 NEWLY DISCOVERED ISSUES
-- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+- *(Chưa có New Issues phát sinh thêm trong vòng Review này).*
 
 ## ✅ RESOLVED / FIXED
-- *(Tại thời điểm code review, thư viện TransactionManager dùng chung cho GORM vẫn chưa được xây dựng).*
-
-## 1. Hiện Trạng Triển Khai (How Database is Implemented)
-
-Hệ thống đang sử dụng **GORM** làm ORM chính để giao tiếp với PostgreSQL.
-- **Connection Maker:** Đội ngũ kiến trúc đã làm rất tốt việc quy tụ logic tạo connection vào `common/utils/database/postgres.go`. File này bọc sẵn hàm `NewPostgresDB` xử lý gọn gàng Connection Pooling (`MaxOpenConns`, `MaxIdleConns`, `ConnMaxLifetime`), Logger, và AutoMigrate.
-- **Repository Pattern:** Dự án sở hữu một Generic Repository cực xịn tại `common/repository/base_repository.go`. File này sử dụng Generics (`[T any]`) bọc sẵn 100% các hàm CRUD cơ bản (FindByID, Create, Update, Delete, List pagination + filter). Mọi model chỉ cần cắm vào là chạy.
+- *(Tại thời điểm review, refactor thư viện `transaction_manager` vẫn đang tiến hành).*
 
 ---
 
-## 2. Các Vấn Đề Lớn Phát Hiện Được (Critical Smells) 🚩
+## 📋 Chi Tiết Phân Tích (Deep Dive)
 
-Mặc dù tầng Core/Common thiết kế khá tốt, nhưng khi áp dụng xuống Business Logic (đặc biệt là xử lý giao dịch - Transaction), các service đang tự phân mảnh nghiêm trọng.
+### 1. Hiện Trạng Tốt (The Good)
+Hệ thống sử dụng **GORM** và thiết lập khá bài bản ở lõi:
+- **Connection Maker:** Logic tạo connection nằm trọn trong `common/utils/database/postgres.go`, setup sẵn Connection Pooling (`MaxOpenConns`, `MaxIdleConns`) chuẩn Enterprise.
+- **Repository Pattern:** Generics Interface `[T any]` tại `common/repository/base_repository.go` đã bọc sẵn 100% CRUD operations (Find, Create, List...). Dev chỉ cần nhúng vào là xài.
 
-### 🚩 2.1. reinventing the wheel ở Transaction Manager (P1)
-**Vấn đề:** 
-Xử lý giao dịch phân tán/cục bộ là xương sống của e-commerce. Thư viện common đã rào trước bằng việc định nghĩa sẵn một interface:
+### 2. Sự Lệch Chuẩn Ở Transaction Manager (P1) 🚩
+Thư viện lõi đã dọn đường sẵn một interface:
 ```go
 // common/repository/transaction.go
 type TransactionManager interface {
     WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 }
 ```
-Và trong `base_repository.go` cũng có sẵn hàm lấy TX ra từ Context: `GetDB()`.
+**Nhưng Backend Dev lại thi nhau "Reinvent the wheel":**
+- `Checkout Service`: Tự định nghĩa `dataTransactionManager`, tự nhét TX vào `context.WithValue`.
+- `Shipping Service`: Vẽ lại nguyên một interface `TransactionManager` và struct `PostgresTransactionManager` khác hoàn toàn bản gốc.
+- `Pricing Service`: Ép Repo tự implement TX thủ công.
 
-**NHƯNG**, các Service lại đang lờ đi thư viện này và thi nhau tự chế lại bánh xe:
-- Ở **Checkout Service** (`checkout/internal/data/data.go` dòng 61-78): Dev tự định nghĩa lại struct `dataTransactionManager` và nhét gorm instance vào Context thông qua `context.WithValue(ctx, ctxTransactionKey{}, tx)`.
-- Ở **Shipping Service** (`shipping/internal/biz/transaction.go`): Thi nhau thiết kế interface `TransactionManager` riêng của biz, sau đó viết struct adapter `PostgresTransactionManager`.
-- Ở **Pricing Service** (`pricing/internal/data/postgres/price.go`): Cố ép repo implement hàm transaction thủ công.
+**Hệ Lụy:**
+Mạnh ai nấy copy-paste code quản lý giao dịch dễ sinh ra:
+1. Deadlock toàn Database nếu quên Rollback khi Panic.
+2. Leak connection pool của GORM, làm sập App khi tải cao.
+3. Không thể xài chung một bộ Unit Test Mock (`MockTransactionManager`).
 
-**Hệ luỵ:**
-Tình trạng mạnh ai nấy code Transaction Manager sẽ dẫn tới:
-- Tràn lan Deadlock nếu logic Rollback ở mỗi service tự chế bị sai lệch.
-- Gorm DB Connection bị leak nếu dev quên đóng block Transaction.
-- Sự phân mảnh trong Unit Tests: Mồi service lại đẻ ra một `MockTransactionManager` khác nhau trong thư mục `testdata` của mình.
+### 3. Giải Pháp Chỉ Đạo Từ Senior
+Lấy lại quyền kiểm soát Transaction Management về tay Core Team bằng một struct chuẩn duy nhất:
 
----
-
-## 3. Bản Chỉ Đạo Refactor Từ Senior (Clean Architecture Roadmap)
-
-Để giải quyết vấn đề phân mảnh Transaction, Core Team phải lấy lại quyền kiểm soát từ tay các Services.
-
-### ✅ Giải pháp: Gom chuẩn hóa Transaction Context vào Common Lib
-
-**B1: Tại thư viện `common` (common/data/transaction.go):**
-Xây dựng một Data Transaction Manager chuẩn mực và duy nhất cho toàn cõi:
 ```go
-package data
-
-import (
-	"context"
-	"gorm.io/gorm"
-)
-
-type txKey struct{}
-
-// Hàm inject Gorm TX vào context (chống override)
-func injectTx(ctx context.Context, tx *gorm.DB) context.Context {
-	return context.WithValue(ctx, txKey{}, tx)
-}
-
-// Hàm lấy Gorm ra khỏi context dùng cho Repository
-func GetDB(ctx context.Context, defaultDB *gorm.DB) *gorm.DB {
-	if tx, ok := ctx.Value(txKey{}).(*gorm.DB); ok {
-		return tx
-	}
-	return defaultDB.WithContext(ctx)
-}
-
-// GormTransactionManager dùng chung toàn dự án
+// common/data/transaction.go
 type GormTransactionManager struct {
 	db *gorm.DB
-}
-
-func NewTransactionManager(db *gorm.DB) *GormTransactionManager {
-	return &GormTransactionManager{db: db}
 }
 
 func (tm *GormTransactionManager) WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
@@ -98,10 +60,4 @@ func (tm *GormTransactionManager) WithTransaction(ctx context.Context, fn func(c
 	})
 }
 ```
-
-**B2: Xóa sổ các "môn phái" Transaction tự chế ở Services:**
-- Xóa `checkout/internal/data/data.go` (đoạn dataTransactionManager).
-- Xóa `shipping/internal/biz/transaction.go`.
-- Tại file Wire (`provider.go`), chỉ cần Inject thẳng `commonData.NewTransactionManager` lên Biz layer. Mọi UseCase sẽ dùng chung một chuẩn Transaction từ trên xuống dưới.
-
-Điều này đảm bảo quy tắc "Transaction Boundary" được gác cổng an toàn tuyệt đối, chấm dứt chuỗi ngày Database deadlock do copy-paste code.
+Sau đó, yêu cầu các team ở Checkout, Shipping vào tệp `wire.go` (`provider.go`), **Inject thẳng `commonData.NewTransactionManager` lên Biz layer**. Toàn bộ UseCase sẽ bắt buộc dùng chung chuẩn Transaction duy nhất này từ trên xuống dưới. Mọi custom code đều sẽ bị Reject lúc Merge.
