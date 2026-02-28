@@ -1,10 +1,16 @@
 # Refactor Checklist — Remaining Work
 
-> **Last verified:** 2026-02-28 (grep + codebase audit)
+> **Last verified:** 2026-02-28 21:55 (grep + codebase audit)
 >
-> **Tracks A–H: ✅ COMPLETE** — Common lib (v1.18.0), GitOps P0, Code P0, Dapr enforcement, Tx/Cache/gRPC, Worker/Migrate DRY, GitOps DRY templates, Performance audits.
+> **Tracks A–H: ✅ COMPLETE** — Common lib, GitOps P0, Code P0, Dapr, Tx/Cache/gRPC, Worker/Migrate DRY, GitOps DRY, Perf audits.
 >
-> **Quy tắc:** Mỗi agent nhận **1 Phase**. Phase 1 có thể chia thêm sub-agent. Phase 2 BLOCKING trên Phase 1A (common/client extension).
+> **Track J2 (Checkout GetOrSet): ✅ COMPLETE** — `cart_repo.go` migrated 3 read methods to `TypedCache.GetOrSet()`. Commit `673d4c5`.
+>
+> **Track K1 (Outbox Tracing): ✅ VERIFIED** — order + payment both inject trace context via `trace.SpanFromContext(ctx)`.
+>
+> **Track L (Biz Validation Cleanup): ✅ NO-OP** — grep found zero redundant manual validation; all business-rule validation is NOT proto-coverable.
+>
+> **Quy tắc:** Mỗi agent nhận **1 Track**. Phase 1 chạy song song. Phase 2 BLOCKING trên Phase 1 Track J.
 
 ---
 
@@ -13,97 +19,92 @@
 ### Track I: Customer Domain Model Separation (P1, 3–5 ngày)
 
 > **Agent I** — Chỉ sửa trong `customer/`
-> **Mục tiêu:** Tách bạch Domain Model khỏi GORM Data Model theo chuẩn Clean Architecture
+> **Mục tiêu:** Tách Domain Model khỏi GORM Data Model theo chuẩn Clean Architecture
 
-**Hiện trạng:** `customer/internal/biz/` import `internal/model` ở **26 files** — vi phạm Clean Architecture (biz phụ thuộc data model).
+**Hiện trạng:** `customer/internal/biz/` import `internal/model` ở **26 files** — vi phạm Clean Architecture.
 
-**Bước thực hiện:**
+#### Step 1: Domain Structs — ✅ DONE (commit `ea7381f`)
 
-1. Tạo domain structs thuần Go trong `biz/` (không GORM tag)
-   - [ ] `biz/customer/domain.go` — `Customer`, `CustomerProfile`
-   - [ ] `biz/address/domain.go` — `Address`
-   - [ ] `biz/preference/domain.go` — `CustomerPreference`
-   - [ ] `biz/segment/domain.go` — `Segment`, `SegmentRule`
-   - [ ] `biz/customer_group/domain.go` — `CustomerGroup`
-   - [ ] `biz/wishlist/domain.go` — `WishlistItem`
-   - [ ] `biz/audit/domain.go` — `AuditEvent`
-   - [ ] `biz/worker/domain.go` — `OutboxEvent`, `ProcessedEvent`
+- [x] `biz/customer/domain.go` — `Customer`, `CustomerAddress`, `CustomerProfile`, `CustomerPreferences`, `StableCustomerGroup`
+- [x] `biz/address/domain.go` — `Address`
+- [x] `biz/preference/domain.go` — `Preference`
+- [x] `biz/segment/domain.go` — `Segment` (with `IsDynamic()`, `IsStatic()`)
+- [x] `biz/customer_group/domain.go` — `CustomerGroup`
+- [x] `biz/wishlist/domain.go` — `Wishlist`, `WishlistItem`
+- [x] `biz/audit/domain.go` — `AuditEvent`, `AuditEventType`, `AuditEventSeverity` constants
 
-2. Update repo interfaces trong `biz/` — return domain types thay vì `*model.X`
-   - [ ] `biz/customer/customer.go` — `CustomerRepo` interface
-   - [ ] `biz/address/address.go` — `AddressRepo` interface
-   - [ ] `biz/preference/preference.go` — `PreferenceRepo` interface
-   - [ ] `biz/segment/segment.go` — `SegmentRepo` interface
-   - [ ] `biz/customer_group/customer_group.go` — `CustomerGroupRepo` interface
-   - [ ] `biz/wishlist/wishlist.go` — `WishlistRepo` interface
+#### Step 2: Data-Layer Mappers — ✅ DONE (commit `ea7381f`)
 
-3. Tạo mappers trong `data/` — `model.X` ↔ `biz.X`
-   - [ ] `data/customer_mapper.go`
-   - [ ] `data/address_mapper.go`
-   - [ ] `data/preference_mapper.go`
-   - [ ] `data/segment_mapper.go`
+- [x] `data/mapper/customer_mapper.go` — bidirectional `model.Customer` ↔ `biz.Customer`
+  - `CustomerToDomain`, `CustomerListToDomain`, `ProfileToDomain`, `PreferencesToDomain`
+  - `AddressToDomainCustomer`, `StableGroupToDomain`, `DomainToCustomerModel`
 
-4. Update `service/*_convert.go` — `biz.X` → `pb.XReply`
-   - [ ] Verify existing converters hoặc tạo mới
+#### Step 3: Migrate Repo Interfaces — return domain types
 
-5. Update tất cả biz use cases — xoá `import "internal/model"`
-   - [ ] `biz/customer/*.go` (11 files)
-   - [ ] `biz/address/*.go` (3 files)
-   - [ ] `biz/preference/*.go` (3 files)
-   - [ ] `biz/segment/*.go` (3 files)
-   - [ ] `biz/customer_group/*.go` (2 files)
-   - [ ] `biz/wishlist/*.go`, `biz/audit/*.go`, `biz/worker/*.go`, `biz/analytics/*.go`
+> **Key insight:** `CustomerRepo` is aliased from `repository/customer.CustomerRepo` which returns `model.Customer`.
+> Migration path: update `repository/customer/customer.go` interface → update `data/` implementations → update biz callers.
 
-6. Build + Lint
-   - [ ] `go build ./...` ✅
-   - [ ] `golangci-lint run` ✅
+- [ ] `repository/customer/customer.go` — `CustomerRepo` interface: `FindByID` → return `*biz.Customer`
+- [ ] `repository/customer_profile/customer_profile.go` — `CustomerProfileRepo` interface
+- [ ] `repository/customer_preference/customer_preference.go` — `CustomerPreferencesRepo` interface
+- [ ] `repository/outbox/outbox.go` — `OutboxEventRepo` interface (if using `model.OutboxEvent`)
 
----
+#### Step 4: Update Data Implementations — use mappers
 
-### Track J: gRPC Client Common Extension (P1, 1 ngày)
+- [ ] `data/customer/customer.go` — repo impl: DB query → `mapper.CustomerToDomain()` → return
+- [ ] `data/customer_profile/customer_profile.go` — repo impl
+- [ ] `data/customer_preference/customer_preference.go` — repo impl
 
-> **Agent J** — Chỉ sửa trong `common/client/`
-> **BLOCKING cho Phase 2 Track K**
+#### Step 5: Migrate Biz Use Cases — remove `import "internal/model"`
 
-**Hiện trạng:** `common/client/grpc_factory.go` chỉ support static endpoint (`GetServiceEndpoint`). 5 service clients đang tự gọi `consul.New()` + `grpc.DialInsecure()`.
+Files still importing `internal/model` (8 non-test files):
+- [ ] `biz/customer/customer.go` (1357 lines — largest, do last)
+- [ ] `biz/customer/auth.go`
+- [ ] `biz/customer/cache.go`
+- [ ] `biz/customer/verification.go`
+- [ ] `biz/customer/events.go`
+- [ ] `biz/customer/social_login.go`
+- [ ] `biz/customer/gdpr.go`
 
-**Bước thực hiện:**
+Other biz packages:
+- [ ] `biz/address/*.go`
+- [ ] `biz/preference/*.go`
+- [ ] `biz/segment/*.go`
+- [ ] `biz/customer_group/*.go`
+- [ ] `biz/wishlist/*.go`
+- [ ] `biz/audit/*.go`
+- [ ] `biz/analytics/*.go`
+- [ ] `biz/worker/*.go`
 
-1. Extend `GRPCClientFactory` hoặc `GRPCClientBuilder`
-   - [ ] Thêm `WithConsulDiscovery(consulAddr, serviceName string)` method
-   - [ ] Wrap `consul.New()` + `grpc.DialInsecure()` + Circuit Breaker + Retry
-   - [ ] Return `*grpc.ClientConn` chuẩn Kratos
+#### Step 6: Update Service Converters — `biz.X` → `pb.XReply`
 
-2. Build + Test
-   - [ ] `go build ./...` ✅
-   - [ ] `go test ./client/...` ✅
+- [ ] `service/*_convert.go` — update or create converters from domain types to proto
 
-3. Tag + Push
-   - [ ] `git tag -a v1.19.0`
-   - [ ] `git push origin main && git push origin v1.19.0`
+#### Step 7: Verify
+
+- [ ] `go build ./...` ✅
+- [ ] `golangci-lint run` ✅
+- [ ] `grep -r 'internal/model' internal/biz/` returns **ZERO** results
 
 ---
 
-### Track L: Biz Validation Cleanup (P2, 2–3 ngày)
+### Track J: Common Client Extension — ✅ DONE
 
-> **Agent L** — Sửa code trong từng service
-> **Mục tiêu:** Dọn code validation thủ công redundant từ biz layer (đã có `validate.Validator()` middleware)
+> **Committed:** `common v1.19.0` (commit `8f213c5`, tag `v1.19.0`)
 
-**Hiện trạng:** Trước khi Track C2 deploy `validate.Validator()`, dev đã code validation thủ công trong biz. Giờ middleware đã active → code thủ công redundant.
-
-- [ ] Audit `grep -rn 'validation.NewValidator\|Validate()' */internal/biz/ --include='*.go'`
-- [ ] Xoá validation thủ công ở các service mà proto rules đã cover
-- [ ] Verify build từng service sau khi xoá
-- [ ] **Lưu ý:** Giữ lại validation logic KHÔNG cover bởi proto (business rules phức tạp)
+- [x] `client/discovery.go` — `DiscoveryClient` struct
+- [x] `NewDiscoveryClient(cfg, logger)` — Consul resolver + circuit breaker
+- [x] `DefaultDiscoveryConfig(consulAddr, serviceName)` — sensible defaults
+- [x] `GetConnection()` → `*grpc.ClientConn` for typed service clients
+- [x] `Call(fn)` — circuit breaker wrapper
+- [x] Build + lint clean
+- [x] Tagged `v1.19.0`, pushed to GitLab
 
 ---
 
 ### Track M: AlertService Integration (P3, 2–3 ngày)
 
-> **Agent M** — Sửa code trong `notification/`, `order/`, `checkout/`, `warehouse/`, `return/`
-> **Mục tiêu:** Implement Slack/PagerDuty integration cho AlertService
-
-**Hiện trạng:** Interface `biz.AlertService` defined ở 4 services, stub implementation exists.
+> **Agent M** — `notification/`, `order/`, `checkout/`, `warehouse/`, `return/`
 
 - [ ] Implement concrete AlertService in `notification/` service
   - [ ] Slack webhook integration (P2/P3 alerts)
@@ -115,8 +116,7 @@
 
 ### Track N: API Gateway Rate Limiting (P2, 1–2 ngày)
 
-> **Agent N** — Sửa config trong `gateway/` hoặc `gitops/`
-> **Mục tiêu:** Chống DDoS Layer 7
+> **Agent N** — `gateway/` hoặc `gitops/`
 
 - [ ] Evaluate rate limiting solution (Traefik middleware / Redis-based)
 - [ ] Configure per-endpoint rate limits
@@ -124,22 +124,25 @@
 
 ---
 
-## Phase 2: Sequential Tracks (SAU KHI Phase 1 Track J xong)
+## Phase 2: Sequential Track (SAU KHI Phase 1 Track J ✅ — UNBLOCKED)
 
 ### Track K: gRPC Client Migration (P1, 2 ngày)
 
-> **Agent K** — Sửa code trong 5 services
-> **Depends on:** Phase 1 Track J (common/client extension)
+> **Agent K** — 5 services
+> **Depends on:** ~~Phase 1 Track J~~ ✅ DONE (`common v1.19.0`)
 
-**Mục tiêu:** Migrate 5 clients sang `common/client` factory với Consul discovery.
+**Mục tiêu:** Migrate 5 clients sang `common/client.DiscoveryClient`.
 
-- [ ] `auth/internal/client/user/user_client.go` — replace `consul.New()` + `grpc.DialInsecure()`
+- [ ] `auth/internal/client/user/user_client.go`
+  - Replace `consul.New()` + `grpc.DialInsecure()` → `client.NewDiscoveryClient()`
+  - Keep domain-specific methods (GetUserPermissions, ValidateUserCredentials, etc.)
+  - Keep custom retry logic (`retryWithBackoff`)
 - [ ] `auth/internal/client/customer/customer_client.go`
 - [ ] `warehouse/internal/client/user_client.go`
 - [ ] `customer/internal/client/auth/auth_client.go`
 - [ ] `search/internal/client/provider.go`
-- [ ] Verify build + lint cho mỗi service
-- [ ] Giữ nguyên domain-specific logic (custom CB config, retry policies)
+- [ ] Update each service: `go get common@v1.19.0`, `go mod tidy`, vendor
+- [ ] Verify build + lint per service
 
 ---
 
@@ -148,34 +151,30 @@
 ### Track P: RBAC Policy Migration (P2, Future)
 - [ ] Evaluate Casbin / OPA cho policy-based access control
 - [ ] Replace hardcoded `RequireRole("admin")` patterns
-- [ ] Load policies từ Database/Redis thay vì compile-time
 
-### Track Q: Cursor Pagination Migration (P1, 8–10 ngày)
-> Audit đã hoàn thành (Track H1). 170+ offset pagination instances.
+### Track Q: Cursor Pagination (P1, 8–10 ngày)
 - [ ] Migrate `warehouse` stock_transactions → `CursorPaginator`
 - [ ] Migrate `order` orders → `CursorPaginator`
-- [ ] Update proto list request/response — thêm `cursor`/`next_cursor`
-- [ ] Rollout dần sang các service khác
+- [ ] Update proto — thêm `cursor`/`next_cursor`
 
-### Track R: GitOps Component Migration (Optional, 18–28 giờ)
-> Templates đã ready (Track G). 3/20 API using common-deployment.
-- [ ] Migrate remaining 17 API deployments → `common-deployment` component
-- [ ] Migrate 20 worker deployments → `common-worker-deployment` component
+### Track R: GitOps Component Migration (Optional)
+- [ ] Migrate remaining 17 API deployments → `common-deployment`
+- [ ] Migrate 20 worker deployments → `common-worker-deployment`
 
 ---
 
 ## Dependency Graph
 
 ```
-Phase 1 (Song song ngay):
-  Track I (Customer Domain)     — độc lập
-  Track J (Common Client Ext)   — BLOCKING cho Phase 2
-  Track L (Biz Validation)      — độc lập
-  Track M (AlertService)        — độc lập
-  Track N (Rate Limiting)       — độc lập
+Phase 1 (Song song):
+  Track I (Customer Domain) — Steps 1-2 ✅, Steps 3-7 remaining
+  Track J (Common Client)   — ✅ DONE v1.19.0
+  Track L (Validation)      — ✅ NO-OP
+  Track M (AlertService)    — TODO
+  Track N (Rate Limiting)   — TODO
 
-Phase 2 (Sau Track J):
-  Track K (gRPC Client Migration) — depends on Track J
+Phase 2 (UNBLOCKED):
+  Track K (gRPC Migration)  — ready to start (Track J done)
 
 Phase 3 (Future):
   Track P (RBAC)
@@ -183,13 +182,15 @@ Phase 3 (Future):
   Track R (GitOps Migration)
 ```
 
-## Agent Assignment Summary
+## Progress Summary
 
-| Agent | Track | Depends On | Scope | Est. |
-|-------|-------|------------|-------|------|
-| Agent I | Customer Domain (I) | None | `customer/` only | 3-5d |
-| Agent J | Common Client Ext (J) | None | `common/client/` only | 1d |
-| Agent K | gRPC Client Migration (K) | Track J | 5 services | 2d |
-| Agent L | Biz Validation (L) | None | Per-service code | 2-3d |
-| Agent M | AlertService (M) | None | notification + 4 services | 2-3d |
-| Agent N | Rate Limiting (N) | None | gateway/gitops | 1-2d |
+| Track | Status | Commit | Notes |
+|-------|--------|--------|-------|
+| J2 Checkout GetOrSet | ✅ Done | `673d4c5` | 3 methods migrated, -63 lines |
+| K1 Outbox Tracing | ✅ Verified | — | order + payment both OK |
+| L Biz Validation | ✅ No-op | — | No redundant validation found |
+| J Common Client | ✅ Done | `8f213c5` (v1.19.0) | DiscoveryClient created |
+| I Customer Domain | 🔨 In Progress | `ea7381f` | Steps 1-2 done, 3-7 remaining |
+| K gRPC Migration | ⏳ Ready | — | Unblocked by Track J |
+| M AlertService | 📋 TODO | — | P3 |
+| N Rate Limiting | 📋 TODO | — | P2 |
