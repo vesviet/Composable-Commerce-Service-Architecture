@@ -1,9 +1,19 @@
-# Báo Cáo Phân Tích Code Kiến Trúc Database & GORM (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Kiến Trúc Database & GORM (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review cách các microservice giao tiếp với Database thông qua GORM, Connection Pooling, và Transaction Management.
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🟡 P1] [Architecture / Maintainability] Phân mảnh Transaction Manager (Tự chế bánh xe):** Kiểm tra lại codebase (`checkout/internal/data/data.go` và `shipping/internal/data/postgres/transaction.go`), các team dev vẫn thi nhau tự định nghĩa các Struct/Interface Transaction riêng rẽ (như `dataTransactionManager`, `PostgresTransactionManager`) thay vì quy về sử dụng thư viện lõi. Code rườm rà, tiềm ẩn rủi ro leak connection/deadlock nếu có ai đó code sai logic Rollback cục bộ. *Yêu cầu: Hard-Requirement, xóa bỏ toàn bộ custom Transaction Manager ở các service, tạo duy nhất một cái tại `common/data/transaction.go` để tái sử dụng toàn bộ hệ thống.*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- *(Tại thời điểm code review, thư viện TransactionManager dùng chung cho GORM vẫn chưa được xây dựng).*
 
 ## 1. Hiện Trạng Triển Khai (How Database is Implemented)
 

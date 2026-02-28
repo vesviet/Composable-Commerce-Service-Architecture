@@ -1,9 +1,24 @@
-# Báo Cáo Phân Tích: Database Pagination & N+1 Queries (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Database Pagination & N+1 Queries (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Khảo sát hiệu năng truy xuất Database, tập trung vào hai "Sát thủ" thầm lặng giết chết Database ở quy mô lớn: N+1 Query và Offset Pagination.
+**Trạng thái Review:** Lần 1 (Pending Fixes - Theo chuẩn Senior Fullstack Engineer & Kratos Clean Architecture)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🟡 P1] [Performance] Mới chỉ xây dựng Helper, chưa áp dụng vào Service (Offset Pagination):** Mặc dù gói `common/utils/pagination/cursor.go` đã được tạo ra, nhưng ở tất cả các tầng Repository (điển hình như `transaction.go` và `warehouse.go`), DevOps / Backend Dev vẫn giữ công thức `(Page-1)*Size` từ `pagination.go` cũ. Khả năng scan-and-discard làm giảm hiệu năng hệ thống DB vẫn còn nguyên. *Yêu cầu: Refactor các API List của warehouse, order... đổi sang sử dụng struct `CursorPaginator`.*
+- **[🟡 P1] [Data Fetching] Lạm dụng Preload trong Repo (N+1/Greedy):** Các Repo như `warehouse.go` và `transaction.go` vẫn giữ nguyên lệnh `Preload(...)` cho các hàm danh sách (`List`, `FindByLocation`, `GetByDateRange`...). Việc gọi `List` sinh ra nhiều câu SQL xả rác Network I/O và RAM App. *Yêu cầu: Tuyệt đối bỏ Preload trong hàm `List`, chuyển đổi thành lệnh `.Joins().Select(...)`.*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- **[🟡 P1] [Query/RAM Safety] Thiếu Limit ở các hàm dạng List phụ trợ:** Một số hàm như `GetByReference` (`transaction.go`), `GetLocations` (`warehouse.go`) trả về mảng danh sách (Slice Array) nhưng không hề sử dụng Offset/Limit hay cursor. Khi hệ thống lớn lên, điều này rủi ro tạo ra OOM RAM đột ngột ở phía Pod K8s. *Yêu cầu: Bổ sung pagination hoặc cứng `Limit(MAX_SAFE)` cho mọi list API nội bộ.*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Framework] Hoàn thiện thuật toán Keyset/Cursor Pagination:** Gói utils `common/utils/pagination/cursor.go` đã được Core Team xây dựng thành công bao gồm `CursorRequest`, `CursorResponse` và `CursorPaginator` với logic chuẩn xác bằng marker (VD: `id > last_cursor`). Có thể coi như hệ sinh thái framework đã sẵn sàng phục vụ việc refactor db query.
+
+---
+
+## 📋 Chi Tiết Phân Tích (Original TA Report)
 
 ## 1. 🗄️ Vấn Đề Phân Trang (Offset v.s Keyset Pagination)
 

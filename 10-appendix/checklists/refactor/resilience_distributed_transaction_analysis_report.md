@@ -1,9 +1,24 @@
-# Báo Cáo Phân Tích: Resilience & Distributed Transaction (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Resilience & Distributed Transaction (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Khảo sát Sức chịu đựng của hệ thống (Resilience) và cách xử lý Giao dịch Phân tán (Distributed Transaction) thông qua Saga Pattern.
+**Trạng thái Review:** Lần 1 (Kiến trúc Đạt Chuẩn - Đã Refactor các điểm nhỏ)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- *(Không còn Pending Issues nào trong báo cáo này. Kiến trúc Dapr Saga Pattern đang hoạt động hoàn hảo.)*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Documentation] Bổ sung Sequence Diagram:** Tệp `docs/05-workflows/sequence-diagrams/order-saga-pattern-validation.md` đã được đội ngũ thiết kế bổ sung, mô tả trực quan 3 Phase của Saga này. Đảm bảo tri thức được truyền tải cho hệ thống.
+- **[FIXED ✅] [Observability] Tích hợp Alerting System:** Interface `biz.AlertService` tại Order (`order/internal/biz/monitoring.go`) CHÍNH THỨC đã được gắn kết với `NotificationService` để trigger các mã lõi (như `CART_CLEANUP_FAILED` hay `PAYMENT_COMPENSATION_FAILED`) bắn thẳng về kênh CS/Ops.
+
+---
+
+## 📋 Chi Tiết Phân Tích (Original TA Report)
 
 ## 1. 🚦 Giao Dịch Phân Tán (Saga Pattern)
 

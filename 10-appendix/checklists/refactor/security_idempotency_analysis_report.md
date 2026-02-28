@@ -1,9 +1,24 @@
-# Báo Cáo Phân Tích: Security & Idempotency Flow (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Security & Idempotency Flow (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Đánh giá luồng Xác thực/Phân quyền (RBAC) và cơ chế Chống lặp Request (Idempotency) để bảo vệ hệ thống khỏi Double-Charge (trừ tiền 2 lần).
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔵 P2] [Technical Debt] Rác code Idempotency tại Payment:** Mặc dù gói `common/idempotency/redis_idempotency.go` đã được Core Team xây dựng xong xuôi đầy đủ chức năng `SetNX`, nhưng Service Payment vẫn giữ lại một bản copy `idempotency.go` của riêng nó nằm ở `payment/internal/biz/common/idempotency.go`. Việc Duplicate code core này rủi ro cho quá trình bảo trì sau này. *Yêu cầu: Payment service phải xóa file local, import và sử dụng trực tiếp từ thư viện `common`.*
+- **[🔵 P2] [Security] Hardcode Role Check:** Phân quyền theo Role đang bị cứng hóa trong code bằng các lệnh như `RequireRole("admin")`. *Nên dùng Policy-Based Access Control (PBAC / Casbin).*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Security/Data] Vá lổ hổng Double-Charge (Race Condition) ở Payment Service:** Vấn đề tồi tệ nhất ở báo cáo trước (dùng combo `Get -> Check -> Set` dễ gây trừ tiền 2 lần khi User spam request) ĐÃ ĐƯỢC VÁ THÀNH CÔNG. Hiện tại `payment/internal/biz/common/idempotency.go` đã chuyển sang dùng lệnh Atomic `SetNX` của Redis ở cả hàm `CheckAndStore` và `Begin`. Luồng thanh toán hiện tại đã chặn đứng được spam request.
+
+---
+
+## 📋 Chi Tiết Phân Tích (Original TA Report)
 
 ## 1. 🛡️ Security & Authentication Flow (RBAC & Gateway)
 

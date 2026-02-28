@@ -1,9 +1,21 @@
-# Báo Cáo Phân Tích Code Kiến Trúc Worker (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Kiến Trúc Worker (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review mã nguồn implementation của các Worker (Cron, Event Consumer, DLQ, Outbox) nằm trong thư mục `internal/worker/*` của các services.
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔴 P1] [Architecture / DRY] Copy-Paste Outbox Worker Pattern:** Kiểm tra codebase cho thấy file `order/internal/worker/outbox/worker.go` vẫn thản nhiên tồn tại với 160 dòng code copy y hệt từ thư viện lõi. Code rác rưởi lặp lại logic vòng lặp Ticker, select channel, retry... *Yêu cầu: Xóa ngay lập tức folder local này ở tất cả các service. Mọi Outbox Worker phải inject trực tiếp từ thư viện `common/outbox` qua Wire.*
+- **[🔴 P1] [Architecture / Maintainability] Boilerplate Khủng Khiếp Ở Từng Cron Job:** Trong thư viện `common/worker` vẫn chưa hề xây dựng struct `CronWorker` để bọc lại vòng lặp `select...ticker`. Hậu quả là mọi Job như `AggregationCronJob`, `OrderCleanupJob` vẫn đang phải tự gõ chay vòng lặp channel, tiềm ẩn rủi ro Goroutine Leak nếu dev code ẩu. *Yêu cầu: Core team phải khẩn cấp bổ sung `commonWorker.NewCronWorker(interval, logicFunc)`.*
+- **[🔵 P2] [Clean Code] DLQ Worker Thiếu Trừu Tượng:** Chưa có generic DLQ Worker cho toàn dự án.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- *(Hiện tại các vấn đề về Worker vẫn chưa được team dev tiến hành refactor).*
 
 ## 1. Hiện Trạng Tổng Quan (Codebase Topology)
 

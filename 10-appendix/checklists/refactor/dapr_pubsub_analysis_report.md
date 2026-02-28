@@ -1,9 +1,20 @@
-# Báo Cáo Phân Tích Code Kiến Trúc Dapr PubSub (Event-Driven) (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Kiến Trúc Dapr PubSub (Event-Driven) (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review cách các microservice giao tiếp Bất Đồng Bộ (Async) thông qua Dapr Pub/Sub.
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔴 P1] [Resilience / Architecture] Warehouse Service gọi thẳng Dapr SDK raw:** Kiểm tra codebase cho thấy file `warehouse/internal/data/storage.go` vẫn ngoan cố gọi `dapr.NewClient()` thay vì sử dụng cấu trúc Publisher bọc sẵn (`common/events/dapr_publisher_grpc.go`). Điều này vứt bỏ đi lớp Circuit Breaker và Retry từ chung dự án. *Yêu cầu: Warehouse buộc phải refactor, dùng chuẩn DI (Wire) truyền `events.EventPublisher` từ common vào Storage/UseCase.*
+- **[🔵 P2] [Clean Code] Vẫn giữ các Local Wrapper dư thừa:** Dù Location service đã fix P1 (không dùng url raw nữa), nó lại chế ra object trung gian `DaprPublisher` nằm ở `location/internal/event/publisher.go` chỉ để wrap lại `commonEvents.EventPublisher`. Việc đẻ ra class trung gian không thêm logic business nào là dư thừa. *Yêu cầu (Nice to have): Xóa hẳn file này, Inject thẳng interface của common vào tầng Biz.*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Resilience] Kỷ luật hóa Shipping & Location Service:** `shipping` đã xóa bỏ file rác `dapr_client.go`, và `location` đã ngưng khởi tạo dapr raw. Qua đó chặn bớt điểm yếu SPOF (Single Point of Failure) khi Dapr sidecar restart.
 
 ## 1. Hiện Trạng Triển Khai (How Event-Driven Architecture is Implemented)
 

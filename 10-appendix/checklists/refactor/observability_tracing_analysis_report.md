@@ -1,9 +1,19 @@
-# Báo Cáo Phân Tích: Observability, Tracing & Logging (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Observability, Tracing & Logging (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Đánh giá luồng OpenTelemetry (Tracing), khả năng giám sát vết (Traceparent propagation), và tiêu chuẩn Logging toàn hệ thống.
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔴 P1] [Observability] Đứt gãy Tracing tại Transactional Outbox:** Kiểm tra lại codebase (`payment/internal/biz`), mặc dù field `Traceparent` đã được khai báo trong struct `OutboxEvent`, hoàn toàn không có dòng code nào xử lý việc lấy ra `traceparent` từ Context để lưu vào DB khi Insert. Hậu quả là Dapr Outbox Worker khi quét DB sẽ tạo ra một TraceID hoàn toàn mới, làm đứt đoạn khả năng truy vết End-to-End từ API xuống tới background job. *Yêu cầu: Bắt buộc inject `ExtractTraceparent(ctx)` vào mọi payload trước khi gọi `outboxRepo.Save()`.*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Observability / Clean Code] Vá lỗi mất TraceID trên Log Centralized Kibana:** Sai lầm cực kì ngớ ngẩn trước đó (cố gắng parse OpenTelemetry context từ Gin thay vì dùng Kratos Logger) ĐÃ ĐƯỢC XÓA BỎ. File rác `common/middleware/logging.go` đã bị triệt tiêu. Đồng thời, cấu hình tại `payment/cmd/payment/main.go` hiện tại đã bơm đúng `tracing.TraceID()` và `tracing.SpanID()` vào StdLogger. Toàn bộ log bắn ra Kibana/Loki giờ đã có ID truy vết.
 
 ## 1. 🔭 Phân Tích Hiện Trạng Tracing (OpenTelemetry)
 

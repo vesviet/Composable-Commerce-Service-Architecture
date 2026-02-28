@@ -1,9 +1,23 @@
-# Báo Cáo Phân Tích Code Kiến Trúc Caching (Redis) (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Kiến Trúc Caching (Redis) (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review cách các microservice triển khai chiến lược Caching (phân tán & cục bộ), Redis integration và rủi ro phân mảnh.
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🟡 P2] [Performance / Reliability] Hiểm hoạ Cache Stampede do chưa xài `GetOrSet`:** Dù Checkout Service đã chuyển sang dùng `TypedCache`, kết quả kiểm tra codebase cho thấy hàm `GetOrSet` (thứ vũ khí tối thượng chặn Thundering Herd) vẫn chưa hề được gọi bất kỳ lần nào trong toàn bộ service này. Mâu thuẫn "Check rỗng rồi gọi DB rồi lại Set" vẫn còn đó. *Yêu cầu: Bắt buộc sử dụng hàm `GetOrSet` cung cấp bởi `commonCache` thay cho thao tác Get/Set thủ công.*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Architecture] Xoá sổ CacheHelper thủ công tại Checkout Service:** Lỗi nghiêm trọng nhất báo cáo đợt trước (P1 rác code mất type-safety) ĐÃ ĐƯỢC XỬ LÝ. File rác `checkout/internal/cache/cache.go` đã bị xóa. Checkout service đã áp dụng triệt để `commonCache.NewTypedCache` kết nối chuẩn qua GORM thông qua `cache_adapter.go` và Provider. Metrics và Type-safe giờ đây được đảm bảo 100%.
+
+---
+
+## 📋 Chi Tiết Phân Tích (Original TA Report)
 
 ## 1. Hiện Trạng Triển Khai (How Caching is Implemented)
 

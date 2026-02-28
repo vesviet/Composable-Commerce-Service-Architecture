@@ -1,9 +1,24 @@
-# Báo Cáo Phân Tích K8s Policies & Resource Ordering (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: K8s Policies & Resource Ordering (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review cấu trúc Deployments Ordering (ArgoCD Sync-Waves) và các Policies (HPA, PDB, NetworkPolicy).  
+**Trạng thái Review:** Lần 1 (Pending Refactor - Khuyến nghị chuyển đổi sang Helm)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔴 P1] [Architecture / DRY] Giấc mơ DRY GitOps (Helm Chart):** Dù các lỗi chí mạng đã được sửa, kho GitOps vẫn duy trì quá nhiều file YAML tĩnh (vấn đề muôn thuở của Kustomize khi scale). Khuyến nghị vứt bỏ setup Kustomize hiện tại và thay thế bằng `microservice-standard-chart` Helm vẫn CHƯA ĐƯỢC THỰC HIỆN.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Cost/Resource] HPA cấu hình sai môi trường:** File `hpa.yaml` ĐÃ BỊ XÓA khỏi thư mục `base/` của tất cả các service. HPA hiện tại chỉ được kích hoạt chuẩn xác ở `overlays/production/hpa.yaml` và `worker-hpa.yaml`. Môi trường Dev (k3d) đã được giải phóng RAM.
+- **[FIXED ✅] [Security/Network] Lỗi P0 Zero-Trust NetworkPolicy:** Các rules Ingress/Egress trong `networkpolicy.yaml` (ví dụ ở Order service) ĐÃ ĐƯỢC SỬA. Thay vì hardcode namespace chứa các đuôi `-dev` (như `payment-dev`), giờ đây rule linh hoạt match dựa trên nhãn chuẩn của K8s: `kubernetes.io/metadata.name: payment`. Đảm bảo luồng mạng chạy tốt ở mọi môi trường Dev và Prod.
+
+---
+
+## 📋 Chi Tiết Phân Tích (Original TA Report)
 
 ## 1. Phân Tích Thứ Tự Deploy (ArgoCD Sync-Wave) 🌊
 

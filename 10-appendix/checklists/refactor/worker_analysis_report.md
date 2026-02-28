@@ -1,9 +1,24 @@
-# Báo Cáo Phân Tích Worker (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review Worker (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Đối tượng phân tích:** Worker component (`cmd/worker/main.go` và `internal/worker`) của tất cả các services.
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🟡 P1] [Code Quality] Tồn dư Logic Filter Mode cũ:** Mặc dù đã có `commonWorker.ParseMode()`, hàm phụ trợ `shouldRunWorker(name, mode string)` cũ vẫn còn sót lại chưa được dọn dẹp tại `order/cmd/worker/main.go`. *Yêu cầu: Xoá bỏ hàm này và sử dụng chuẩn `app.Register()` hoặc Mode enum của framework.*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Architecture] Phân mảnh Bootstrap Logic ở các file `main.go`:** Đã triển khai struct `commonWorker.NewWorkerApp` thành công tại phần lớn các service (`analytics`, `search`, `location`, `customer`, `payment`, v.v.). Boilerplate code đã được gom gọn tinh gọn.
+- **[FIXED ✅] [Technical Debt] Service đặc thù (loyalty-rewards):** Service `loyalty-rewards` đã được refactor hoàn chỉnh, sử dụng Wire DI và `NewWorkerApp` theo đúng quy chuẩn chung của hệ thống.
+
+---
+
+## 📋 Chi Tiết Phân Tích (Original TA Report)
 
 ## 1. Hiện Trạng Cấu Hình Worker (How Workers are Configured)
 

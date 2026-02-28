@@ -1,9 +1,19 @@
-# Báo Cáo Phân Tích Code: Clean Architecture & Domain Separation (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Clean Architecture & Domain Separation (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review sự cô lập giữa các tầng kiến trúc (API -> Biz -> Data) và nguyên tắc Domain-Driven Design (DDD).
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🟡 P1] [Architecture] Tầng Biz rò rỉ Data Model (GORM):** Mặc dù đã xóa bỏ hàm biến GORM Entity thành Protobuf Message, nhưng tại `customer/internal/biz/customer/customer.go`, các UseCase vẫn đang `import "gitlab.com/ta-microservices/customer/internal/model"` và return thẳng các con trỏ `*model.Customer`. Theo Clean Architecture, tầng Biz phải định nghĩa Domain Struct thuần túy (không dính dáng SQL/Gorm). *Yêu cầu: Tách bạch Domain Model khỏi Data Model, viết mapper tại tầng Service `customer_convert.go` tương tự như cách Order Service đang làm.*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Data Integrity] Cắt đứt rò rỉ Data -> API:** Hàm `ToCustomerReply()` rác rưởi nằm bên trong GORM entity `internal/model/customer.go` ĐÃ ĐƯỢC XÓA BỎ HOÀN TOÀN. Model đã không còn "biết" về sự tồn tại của Protobuf. Đây là một bước tiến lớn ngăn chặn Data Entity tự ý trả dữ liệu lên tầng Transport.
 
 ## 1. Hiện Trạng Triển Khai (The Good - Những điểm làm đúng)
 

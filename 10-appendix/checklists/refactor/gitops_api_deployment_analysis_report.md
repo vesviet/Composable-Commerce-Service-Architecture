@@ -1,10 +1,23 @@
-# Báo Cáo Phân Tích GitOps API Deployment Config (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: GitOps API Deployment Config (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review Config GitOps (Kubernetes Deployment) của các API Server Node (App server chính)  
 **Đường dẫn tham khảo:** `gitops/apps/*/base/deployment.yaml`
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔴 P1] [Architecture / DRY] Phân mảnh Deployment Manifests:** Việc copy-paste tệp `deployment.yaml` riêng lẻ rác rưởi vẫn đang diễn ra ở hầu hết các service thay vì kế thừa tệp chuẩn `common-deployment`.
+- **[🟡 P1] [Reliability] Sự Bất Đồng Nhất Về Health Probes:** `loyalty-rewards` vẫn đang set `startupProbe.initialDelaySeconds: 0`. Điều này bắn request health-check ngay lập tức khi DB/Wire chưa kip init, dễ gây restart sai.
+- **[🔵 P2] [Cost] Phân Bổ Tài Nguyên Cảm Tính:** `loyalty-rewards` vẫn bú trọn 1Gi Memory Limit, quá lãng phí so với 1 service ít tính toán.
+- **[🔵 P2] [Clean Code] Lỗi Naming Convention:** Naming `order-secrets` (số nhiều) vs `search-secret` (số ít) vẫn còn y nguyên.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Config/Reliability] Vá lỗi P0 CrashLoopBackOff (Thiếu Mount Config):** Chúc mừng đội ngũ Dev, các file deployment lỗi trước đó (`order`, `loyalty-rewards`) ĐÃ ĐƯỢC THÊM block `volumeMounts` trỏ vào `/app/configs` cùng với khối `volumes`. Giờ đây app đã chạy thành công bằng file config.yaml lấy từ ConfigMap.
 
 ## 1. Hiện Trạng Tổng Quan (The Good, The Bad, The Ugly)
 

@@ -31,9 +31,10 @@ Focus on how background tasks, events, and deployments are handled.
 
 1. `worker_analysis_report.md`
 2. `internal_worker_code_analysis_report.md`
-3. `gitops_worker_analysis_report.md`
+3. `gitops_infrastructure_analysis_report.md` - (Critical P0/P1: Kustomize fragmentation and Secret drift)
 4. `gitops_api_deployment_analysis_report.md`
-5. `kubernetes_policies_analysis_report.md`
+5. `gitops_worker_analysis_report.md`
+6. `kubernetes_policies_analysis_report.md`
 6. `migration_analysis_report.md`
 
 ## 🟢 Phase 4: Operations & Growth Services

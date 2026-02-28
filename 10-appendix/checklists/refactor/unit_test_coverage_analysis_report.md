@@ -1,9 +1,26 @@
-# Báo Cáo Phân Tích: Unit Test & Test Coverage (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Unit Test & Test Coverage (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Đánh giá văn hóa viết Test, mức độ bao phủ mã nguồn (Coverage), và tính tuân thủ các quy tắc trong `testcase.md`.
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔴 P0] [Code Quality / Coverage] Cấu Trúc Viết Test Vi Phạm Nặng `testcase.md`:** `testcase.md` quy định rõ gomock phải được gen ra ở `internal/biz/<package>/mocks/`. Tuy nhiên, kiểm tra codebase thực tế cho thấy DEV vẫn lười/ngó lơ:
+  - **Payment Service**: Tự định nghĩa tay struct mock bằng `testify/mock` dài hơn 400 lines (trong `payment_p0_test.go` và `usecase_test.go`).
+  - **Order Service**: Tự code thuật toán map in-memory phức tạp ở file `internal/biz/mocks.go` dài 700 dòng.
+  *Yêu cầu bắt buộc: Xoá code rác viết tay, cài đặt và sử dụng `go.uber.org/mock/mockgen` để gen tự động `mock_repository.go` trong tất cả các service.*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- *(Tại thời điểm code review, thư viện gomock vẫn chưa được áp dụng, code test thủ công vẫn được giữ nguyên chưa refactor).*
+
+---
+
+## 📋 Chi Tiết Phân Tích (Original TA Report)
 
 ## 1. 📊 Hiện Trạng Khủng Hoảng Test Coverage (P0 - Báo Động Đỏ)
 

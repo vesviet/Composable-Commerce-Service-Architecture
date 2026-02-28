@@ -1,9 +1,19 @@
-# Báo Cáo Phân Tích Code Kiến Trúc Service Discovery (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Kiến Trúc Service Discovery (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review cơ chế Service Discovery (Client-side & Server-side) và Dependency Injection liên quan.
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔴 P1] [Architecture / Maintainability] Reinventing the wheel ở tầng gRPC Client:** Rất đáng tiếc, việc cấu hình gRPC Client thủ công vẫn tồn tại dai dẳng ở mọi service (ví dụ: `auth_client.go`, `shipping_client.go`). Dev vẫn liên tục gọi `authPB.NewAuthServiceClient(conn)` tự setup `grpc.DialInsecure` và tự inject `consul.New()`. Việc này vi phạm quy tắc tái sử dụng code (`DRY`), bỏ sót hoàn toàn mớ Circuit Breaker, Retry chuẩn của hệ thống. *Yêu cầu cấu hình lại factory `NewDiscoveryClient` tập trung ở `common/client`.*
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Framework] Chuẩn hóa Consul Registrar Server-Side:** Lỗi khởi tạo Consul client phân mảnh (P2) ĐÃ ĐƯỢC XÓA BỎ. Quan sát các file `wire.go` của toàn bộ 15++ service (Customer, Order, Shipping...), tất cả đều đã được refactor để ref tới chung một `common/registry/consul.go` (`NewConsulRegistrar`). Điều này giúp thu gọn code khởi tạo server rất nhiều.
 
 ## 1. Hiện Trạng Triển Khai (How Service Discovery is Implemented)
 

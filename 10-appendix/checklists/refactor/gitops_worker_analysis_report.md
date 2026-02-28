@@ -1,10 +1,23 @@
-# Báo Cáo Phân Tích GitOps Worker Config (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: GitOps Worker Config (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review Config GitOps (Kubernetes Deployment) của các Worker Node  
 **Đường dẫn tham khảo:** `gitops/apps/*/base/worker-deployment.yaml`
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔴 P1] [Architecture / DRY] Phân mảnh Worker Manifests:** Vẫn y hệt bên API Deployment, các file `worker-deployment.yaml` vẫn đang bị copy-paste tay 100 dòng cho hơn 20 services. Cần dọn dẹp và gom về base component chung.
+- **[🔵 P2] [Clean Code] Lỗi Naming Secret & Init Container lộn xộn:** Lỗi chính tả tên secret số ít/nhiều (`search-secret` vs `order-secrets`), và việc thiếu đồng nhất InitContainers (`gateway` không có, `analytics` thiếu consul) vẫn còn tồn tại.
+- **[🔵 P2] [Clean Code] Tham số `-mode` lúc có lúc không:** `search` và `order` vẫn thả nổi biến args mà không truyền `-mode event/cron` rõ ràng như `analytics`.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Reliability] Vá lỗi Sập Health Check ở Loyalty-Rewards:** Đáng khen ngợi, Worker của `loyalty-rewards` đã được sửa lại: Gạch bỏ hoàn toàn probe gọi GRPC port 5005 chết người, chuyển về chuẩn HTTP `httpGet` vào `/healthz` port 8081. Pod đã khởi động mượt mà.
+- **[FIXED ✅] [Dapr / Comm] Vá lỗi Mất Cấu Hình Dapr ở Analytics:** Worker `analytics` ĐÃ ĐƯỢC bổ sung đầy đủ khối annotation `dapr.io/app-port` và `app-protocol`. Dapr sidecar giờ đã biết trỏ luồng pubsub về đâu.
 
 ## 1. Index Toàn Cảnh (GitOps Architecture)
 

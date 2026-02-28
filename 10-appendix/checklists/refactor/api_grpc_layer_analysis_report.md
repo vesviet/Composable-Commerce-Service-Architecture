@@ -1,9 +1,25 @@
-# Báo Cáo Phân Tích Code Kiến Trúc API / gRPC & Kratos Service Layer (Senior TA Report)
+# Báo Cáo Phân Tích & Code Review: Kiến Trúc API / gRPC & Kratos Service Layer (Senior TA Report)
 
 **Dự án:** E-Commerce Microservices  
 **Chủ đề:** Review cấu trúc tầng Kratos Service, Error Handling và Data Validation của toàn bộ hệ thống API.
+**Trạng thái Review:** Lần 1 (Pending Refactor - Theo chuẩn Senior Fullstack Engineer)
 
 ---
+
+## 🚩 PENDING ISSUES (Unfixed)
+- **[🔴 P0] [Security / Validation] Missing Protobuf Validator Middleware:** Middleware `validate.Validator()` CỰC KỲ QUAN TRỌNG giúp chạy Protobuf validation rules vẫn **vắng mặt hoàn toàn** tại tất cả các file `internal/server/http.go` và `internal/server/grpc.go`. Input bẩn vẫn có thể lọt vào hệ thống! *Yêu cầu: Hard-block, bắt buộc bổ sung vào Kratos Server Options ngay.*
+- **[🟡 P1] [Architecture] Error Mapping phân mảnh chưa triệt để:** Mặc dù Core Team đã xây dựng `common/api/errors/middleware.go` (`ErrorEncoderMiddleware`), nhưng kết quả scan cho thấy **KHÔNG CÓ DỰ ÁN NÀO ĐANG SỬ DỤNG** middleware này ở tầng Kratos Server. Mỗi service (`customer`, `location`, `auth`) vẫn đang tự viết mã map lỗi riêng hoặc bỏ mặc error rác trả về Client. *Yêu cầu: Nhúng và kích hoạt `apiErrors.ErrorEncoderMiddleware()` đồng loạt.*
+- **[🔵 P2] [Technical Debt] Rác Validation ở tầng Business:** Do chưa bật Validator Middleware, DEV phải chèn tay rải rác cú pháp `validation.NewValidator().Required(...)` trong tầng Biz/Service. Cần xoá sạch ngay khi lỗi P0 kia được sửa.
+
+## 🆕 NEWLY DISCOVERED ISSUES
+- *(Chưa có New Issues phát sinh thêm ngoài scope của TA report ban đầu)*
+
+## ✅ RESOLVED / FIXED
+- **[FIXED ✅] [Framework] Khởi tạo ErrorEncoderMiddleware chung:** Core Team đã build xong chức năng `ErrorEncoderMiddleware` và `NewErrorMapper()` giúp tự động hoá dịch Domain Error sang gRPC/HTTP status chuẩn trong thư viện `common/api/errors`. Khung sườn đã xong, chỉ chờ lắp đặt.
+
+---
+
+## 📋 Chi Tiết Phân Tích (Original TA Report)
 
 ## 1. Hiện Trạng Triển Khai (How API Layer is Implemented)
 
