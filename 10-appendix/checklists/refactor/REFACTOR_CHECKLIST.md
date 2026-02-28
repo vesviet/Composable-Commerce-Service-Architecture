@@ -67,18 +67,22 @@ Files still importing `internal/model` (8 non-test files):
 - [ ] `biz/customer/gdpr.go`
 
 Other biz packages:
-- [ ] `biz/address/*.go`
-- [ ] `biz/preference/*.go`
-- [ ] `biz/segment/*.go`
-- [ ] `biz/customer_group/*.go`
-- [ ] `biz/wishlist/*.go`
+- [x] `biz/address/*.go` — commit `f237b50`: public API returns domain `*Address`, service converter updated
+- [ ] `biz/preference/*.go` — depends on `model.Customer` via CustomerGetter interface
+- [x] `biz/segment/*.go` — commit `63b27dc`: CRUD returns domain `*Segment`, EvaluateSegment stays model (depends on model.Customer)
+- [x] `biz/customer_group/*.go` — commit `f237b50`: returns domain `*CustomerGroup`
+- [x] `biz/wishlist/*.go` — commit `f237b50`: returns domain `*Wishlist/*WishlistItem`
 - [x] `biz/audit/*.go` — commit `9964398`: public API uses domain types, model only at mapper boundary
-- [ ] `biz/analytics/*.go`
-- [ ] `biz/worker/*.go`
+- [ ] `biz/analytics/*.go` — depends on `model.Customer`
+- [ ] `biz/worker/*.go` — depends on `model.OutboxEvent`
 
 #### Step 6: Update Service Converters — `biz.X` → `pb.XReply`
 
-- [ ] `service/*_convert.go` — update or create converters from domain types to proto
+- [x] `service/address.go` — addressToPB accepts domain `*bizAddress.Address`
+- [x] `service/segment.go` — segmentToPB accepts domain `*bizSegment.Segment`
+- [x] `service/helper.go` — modelAddressToDomain + modelSegmentToDomain converters
+- [ ] `service/customer_convert.go` — StableCustomerGroupToReply (unused, low priority)
+- [ ] `service/customer.go` — depends on model.Customer migration
 
 #### Step 7: Verify
 
@@ -168,7 +172,7 @@ Other biz packages:
 
 ```
 Phase 1 (Song song):
-  Track I (Customer Domain) — Steps 1-2 ✅, Steps 3-7 remaining
+  Track I (Customer Domain) — 5/8 biz pkgs ✅ (audit, wishlist, customer_group, address, segment)
   Track J (Common Client)   — ✅ DONE v1.19.0
   Track L (Validation)      — ✅ NO-OP
   Track M (AlertService)    — ✅ ALREADY IMPLEMENTED
@@ -191,7 +195,7 @@ Phase 3 (Future):
 | K1 Outbox Tracing | ✅ Verified | — | order + payment both OK |
 | L Biz Validation | ✅ No-op | — | No redundant validation found |
 | J Common Client | ✅ Done | `8f213c5` (v1.19.0) | DiscoveryClient created |
-| I Customer Domain | 🔨 In Progress | `9964398` | Steps 1-2 done, audit migrated, 22 files remain |
+| I Customer Domain | 🔨 In Progress | `f237b50`, `63b27dc` | 5/8 biz pkgs done, customer core entity remains |
 | K gRPC Migration | ✅ Done | `74b3335`, `a620256`, `362afbf` | 4 clients migrated, search already standard |
 | M AlertService | ✅ Already Done | — | `warehouse/internal/biz/alert/` (4 files, fully wired) |
 | N Rate Limiting | ✅ Already Done | — | `gateway/internal/middleware/rate_limit.go` (447 lines) |
