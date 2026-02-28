@@ -97,18 +97,19 @@ Already migrated biz packages:
 
 ## Standalone P1 Fixes
 
-### Fix S4: N+1 Queries — Preload → Joins in List APIs
+### ~~Fix S4: N+1 Queries — Preload → Joins in List APIs~~ — ✅ ALREADY DONE
 
-> Verified: `warehouse.go:160`, `order.go` — multiple `Preload()` on list endpoints
+> **Re-analysis result:** Already optimized.
+> - `order/data/postgres/order.go` List() already uses `Joins("ShippingAddress")`, `Joins("BillingAddress")` for belongs-to. `Preload("Items")` is correct for has-many.
+> - `warehouse/data/postgres/warehouse.go` List() uses `Preload("Locations")` — correct for has-many (Joins would cause Cartesian product).
+> - `warehouse/data/postgres/inventory.go` List() already uses `Joins("Warehouse")` ✅.
 
-- [ ] `warehouse`: `Preload("Locations").Find()` → `Joins("LEFT JOIN ...")`
-- [ ] `order`: `Preload("Items")`, `Preload("ShippingAddress")` → `Joins`
-- [ ] Add `.Limit(1000)` safety on unbounded internal queries (`GetLocations`, `GetByReference`)
+### ~~Fix S5: Health Probes — `initialDelaySeconds: 0`~~ — ✅ ALREADY DONE
 
-### Fix S5: Health Probes — `initialDelaySeconds: 0`
-
-- [ ] `loyalty-rewards`: set `startupProbe.initialDelaySeconds: 10`
-- [ ] `search`: set `startupProbe.initialDelaySeconds: 10`
+> **Re-analysis result:** Already fixed.
+> Both `loyalty-rewards` and `search` use `common-deployment-v2` component
+> which has `startupProbe.initialDelaySeconds: 10`. No override patches exist.
+> The `build_out.yaml:306` with `initialDelaySeconds: 0` was for analytics (generated snapshot, not source of truth).
 
 ### Fix S6: GitOps — Secrets Documentation Drift
 
@@ -128,10 +129,13 @@ Already migrated biz packages:
 > nor `common/utils/idempotency.Service` (Get/Set/TryAcquire) provides.
 > This is legitimate domain logic, not copy-paste.
 
-### Fix S8: Location — Delete Unnecessary DaprPublisher Wrapper
+### Fix S8: Location — Delete DaprPublisher Wrapper — ✅ DONE
 
-- [ ] Delete `location/internal/event/publisher.go`
-- [ ] Inject `events.EventPublisher` directly via Wire
+> **Commit:** `13aa392`
+
+- [x] Deleted 59-line `publisher.go` (DaprPublisher wrapper + unused Publisher interface)
+- [x] Bind `commonEvents.EventPublisher` directly as `outbox.Publisher` (same method signature)
+- [x] Wire regenerated, `go build ./... && golangci-lint run` ✅
 
 ### Fix S9: RBAC — Remove Copy-Pasted `RequireRole` Middleware
 
