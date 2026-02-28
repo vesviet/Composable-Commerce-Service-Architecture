@@ -68,27 +68,27 @@ Files still importing `internal/model` (8 non-test files):
 
 Other biz packages:
 - [x] `biz/address/*.go` — commit `f237b50`: public API returns domain `*Address`, service converter updated
-- [ ] `biz/preference/*.go` — depends on `model.Customer` via CustomerGetter interface
-- [x] `biz/segment/*.go` — commit `63b27dc`: CRUD returns domain `*Segment`, EvaluateSegment stays model (depends on model.Customer)
+- [x] `biz/preference/*.go` — commit `b5c46e1`: CustomerGetter interface returns domain `*Customer`
+- [x] `biz/segment/*.go` — commit `63b27dc`+`b5c46e1`: CRUD returns domain `*Segment`; EvaluateSegment stays model (circular import)
 - [x] `biz/customer_group/*.go` — commit `f237b50`: returns domain `*CustomerGroup`
 - [x] `biz/wishlist/*.go` — commit `f237b50`: returns domain `*Wishlist/*WishlistItem`
 - [x] `biz/audit/*.go` — commit `9964398`: public API uses domain types, model only at mapper boundary
-- [ ] `biz/analytics/*.go` — depends on `model.Customer`
-- [ ] `biz/worker/*.go` — depends on `model.OutboxEvent`
+- [x] `biz/analytics/*.go` — commit `b5c46e1`: uses domain `*Customer` from GetCustomer, removed model import
+- [ ] `biz/worker/*.go` — uses `model.OutboxEvent` internally (acceptable — persistence type)
 
 #### Step 6: Update Service Converters — `biz.X` → `pb.XReply`
 
 - [x] `service/address.go` — addressToPB accepts domain `*bizAddress.Address`
 - [x] `service/segment.go` — segmentToPB accepts domain `*bizSegment.Segment`
-- [x] `service/helper.go` — modelAddressToDomain + modelSegmentToDomain converters
-- [ ] `service/customer_convert.go` — StableCustomerGroupToReply (unused, low priority)
-- [ ] `service/customer.go` — depends on model.Customer migration
+- [x] `service/helper.go` — commit `b5c46e1`: customerToPB accepts domain `*bizCustomer.Customer`, removed old model converters
+- [x] `service/customer_convert.go` — commit `b5c46e1`: CustomerToReply + StableCustomerGroupToReply accept domain types
+- [x] `service/management.go` — commit `b5c46e1`: all callers use domain Customer, added HasPassword method
 
 #### Step 7: Verify
 
-- [ ] `go build ./...` ✅
-- [ ] `golangci-lint run` ✅
-- [ ] `grep -r 'internal/model' internal/biz/` returns **ZERO** results
+- [x] `go build ./...` ✅ (commit `b5c46e1`)
+- [x] `golangci-lint run` ✅ (commit `b5c46e1`)
+- [ ] `grep -r 'internal/model' internal/biz/` returns **ZERO** results — remaining: segment/rules_engine.go (circular import), events.go files (model types for outbox/events), internal helpers
 
 ---
 
