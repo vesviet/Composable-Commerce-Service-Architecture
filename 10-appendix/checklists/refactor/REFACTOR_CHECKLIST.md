@@ -233,16 +233,16 @@
 ## Track E: ✅ Service Code Enforcement — Transactions + Cache + gRPC (ALL DONE)
 
 > **Agent E** — Migrate services sang common libs
-> **Status:** All items done (E1 ✅, E2 ✅, E3 ✅, E4 ✅, E5 ✅, E6 ✅). Only E1-pricing deferred (different BeginTx pattern).
+> **Status:** All items done (E1 ✅, E2 ✅, E3 ✅, E4 ✅, E5 ✅, E6 ✅). All complete.
 > **Depends on:** Track A hoàn thành
 
-### E1. Transaction Manager — Migrate 4 services ✅
+### E1. Transaction Manager — Migrate 5 services ✅
 - [x] `checkout/internal/data/data.go` — replaced with `commonData.TransactionManager`
 - [x] `checkout/internal/biz/transaction.go` — deleted, dùng Common interface
 - [x] `shipping/internal/biz/transaction.go` + `PostgresTransactionManager` — replaced with `commonData`, `postgres.NewTransactionManager`
 - [x] `order/internal/data/transaction.go` + `transaction_adapter.go` — consolidated with `commonData`
 - [x] `return/internal/biz/transaction.go` + `return/internal/data/transaction.go` — migrated to `commonData`
-- [ ] `pricing/internal/data/postgres/price.go` — **deferred** (uses `repository.TransactionManager` BeginTx pattern)
+- [x] `pricing/internal/data/postgres/price.go` — migrated local `contextKey`/`gormTransaction` → `commonData.GetDB`/`commonData.WithTransaction` (kept `BeginTx` pattern, eliminated 25 lines of duplication)
 - [x] Verify build cho mỗi service
 
 ### E2. Checkout Cache — Migrate sang TypedCache ✅
@@ -274,22 +274,29 @@
 - [x] Both services build successfully
 - [ ] Verify tracing continuity on Jaeger after deployment
 
-### E6. GORM Preload Audit — Replace with Joins in List queries ✅ (warehouse inventory)
+### E6. GORM Preload Audit — Replace with Joins in List queries ✅ (warehouse + order + catalog)
 - [x] `warehouse/internal/data/postgres/inventory.go` — replaced 7 Preload("Warehouse") with Joins("Warehouse") in all list/batch queries
 - [x] Qualified column names with table prefix ("Inventory".) to avoid ambiguity in JOINs
-- [x] Warehouse service builds successfully
-- [ ] `warehouse/internal/data/postgres/` — backorder.go, transaction.go still use Preload in list queries (belongs-to, lower priority)
-- [ ] Audit other services for Preload in List/Search functions
+- [x] `warehouse/internal/data/postgres/transaction.go` — 7 methods converted (List, GetByWarehouse, GetByProduct, GetBySKU, GetByReference, GetByType, GetByDateRange)
+- [x] `warehouse/internal/data/postgres/reservation.go` — 8 methods converted
+- [x] `warehouse/internal/data/postgres/adjustment.go` — 4 methods converted (ListPending, ListByStatus, ListByRequester, ListByWarehouse)
+- [x] `warehouse/internal/data/postgres/backorder.go` — 11 methods converted (settings + queue + allocation repos)
+- [x] `order/internal/data/postgres/order.go` — 4 list methods converted (List, FindByStatus, FindByPaymentStatus, FindByDateRange): ShippingAddress/BillingAddress → Joins, Items kept as Preload (has-many)
+- [x] `order/internal/data/postgres/order_metadata_query.go` — FindByMetadata: ShippingAddress/BillingAddress → Joins
+- [x] `catalog/internal/data/postgres/product.go` — 5 list methods converted (List, FindByCategory, FindByBrand, FindByManufacturer, FindByStatus): Category/Brand/Manufacturer → Joins
+- [x] All services build successfully
+- [x] **Remaining services analyzed**: fulfillment/checkout/customer/search/shipping — all Preloads are has-many or dynamic, cannot safely convert to Joins
+> **Note:** has-many Preloads (Items, Packages, Checks, StatusHistory, Payments, Shipments) must stay as Preload to avoid Cartesian product. Joins only safe for belongs-to relations.
 
 
 ---
 
-## Track F: 🟡 Worker + Migrate DRY (SAU KHI Track A xong)
+## Track F: ✅ Worker + Migrate DRY (SAU KHI Track A xong)
 
 > **Agent F** — Refactor cmd/worker + cmd/migrate across ALL services
 > **Ước lượng:** 3-5 ngày
 > **Depends on:** Track A1 + A2 hoàn thành
-> **Status:** F1 ✅, F2 ✅, F3 ⏸️ (deferred), F4 ✅ (33/33 migrated)
+> **Status:** F1 ✅, F2 ✅, F3 ✅ (outbox_events migration), F4 ✅ (33/33 migrated)
 
 ### F1. Migrate `cmd/worker/main.go` — Dùng WorkerApp ✅ (20/20 services)
 - [x] analytics (zap logger, kept wireWorkers(cfg, sugar, kratosLogger))
@@ -306,11 +313,18 @@
 - [x] order, payment, pricing, promotion, return
 - [x] review, search, shipping, user, warehouse
 
-### F3. Outbox Worker — Deferred ⏸️ (interface incompatibility)
-- [ ] `order/internal/worker/outbox/` — uses custom `biz.OutboxRepo` (ListPending/Update/DeleteOldEvents) incompatible with `common/outbox.Repository` (FetchPending/UpdateStatus/DeleteOld/ResetStuck)
-- [ ] `checkout/internal/worker/outbox/` — same interface mismatch + dedup cache logic
-- [ ] `payment/internal/worker/outbox/` — uses `events.OutboxRepository` with different signatures
-> **Decision:** Adapter pattern too risky for direct migration. Service-specific outbox repos have custom dedup/IsNoOp logic. Re-evaluate after interface alignment.
+### F3. Outbox Schema Migration — `outbox` → `outbox_events` ✅ (3/3 services)
+> Migrated all 3 legacy services from `outbox` table (with `topic` column) to standard `outbox_events` table (with `event_type`, `aggregate_type`, `aggregate_id`). Deleted `common/outbox/legacy_adapter.go`.
+- [x] `order/migrations/040_migrate_outbox_to_outbox_events.sql` — DROP outbox, CREATE outbox_events
+- [x] `order/internal/data/postgres/outbox.go` — rewritten to use `commonOutbox.GormOutboxEvent`, maps `Topic ↔ EventType`
+- [x] `order/internal/worker/outbox/worker.go` — uses `biz.OutboxRepo` (data layer handles schema)
+- [x] `checkout/migrations/008_migrate_outbox_to_outbox_events.sql` — DROP outbox, CREATE outbox_events
+- [x] `checkout/internal/data/outbox_repo.go` — rewritten to use `commonOutbox.GormOutboxEvent`
+- [x] `payment/migrations/015_migrate_outbox_to_outbox_events.sql` — DROP outbox, CREATE outbox_events (includes payment-specific columns: retries, max_retries, next_retry_at, published_at)
+- [x] `common/outbox/legacy_adapter.go` — **deleted** (LegacyOutboxRow + LegacyAdapter no longer needed)
+- [x] `common/outbox/gorm_repository.go` — cleaned up, pure `outbox_events` implementation
+- [x] All 4 services build successfully (common, order, checkout, payment)
+> **Note:** Outbox workers still use service-specific `biz.OutboxRepo` interfaces (not `common/outbox.Repository`) — biz-layer interface alignment deferred to avoid touching all usecases/tests.
 
 ### F4. Cron Workers — CronWorker wrapper ✅ (33/33 migrated)
 - [x] order: 7/7 — cleanup, compensation, capture_retry, cod_auto_confirm, dlq_retry, reservation_cleanup, failed_compensations_cleanup
