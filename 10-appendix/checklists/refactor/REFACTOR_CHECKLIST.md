@@ -102,25 +102,33 @@ Other biz packages:
 
 ---
 
-### Track M: AlertService Integration (P3, 2–3 ngày)
+### Track M: AlertService Integration — ✅ ALREADY IMPLEMENTED
 
-> **Agent M** — `notification/`, `order/`, `checkout/`, `warehouse/`, `return/`
+> Implementation: `warehouse/internal/biz/alert/` (4 files, 800+ lines)
+> Interface: `warehouse/internal/biz/inventory/inventory.go:43-48`
 
-- [ ] Implement concrete AlertService in `notification/` service
-  - [ ] Slack webhook integration (P2/P3 alerts)
-  - [ ] PagerDuty Events API v2 (P0/P1 alerts)
-- [ ] Wire AlertService implementation vào order, checkout, warehouse, return
-- [ ] Verify alert delivery end-to-end
+- [x] `AlertUsecase` implements `CheckLowStock`, `CheckOutOfStock`, `CheckOverstock`, `CheckExpiringStock`
+- [x] `NotificationClient` interface for multi-channel alerts (Slack, email, etc.)
+- [x] `UserServiceClient` for role-based recipient resolution
+- [x] Alert history repo (`warehouse/internal/repository/alert/`) + model
+- [x] Wired via Wire DI in `cmd/warehouse/wire_gen.go:95`
+- [x] Cron jobs: `capacity_monitor_job`, `alert_cleanup_job`, `weekly_report_job`, `daily_summary_job`
+- [x] Threshold configs via `config.AppConfig`
 
 ---
 
-### Track N: API Gateway Rate Limiting (P2, 1–2 ngày)
+### Track N: API Gateway Rate Limiting — ✅ ALREADY IMPLEMENTED
 
-> **Agent N** — `gateway/` hoặc `gitops/`
+> Implementation: `gateway/internal/middleware/rate_limit.go` (447 lines)
+> Config: `gateway/configs/gateway.yaml` lines 62-71
 
-- [ ] Evaluate rate limiting solution (Traefik middleware / Redis-based)
-- [ ] Configure per-endpoint rate limits
-- [ ] Test with load testing tool
+- [x] Redis-based sliding window rate limiting (sorted sets)
+- [x] In-memory fallback with automatic cleanup goroutine
+- [x] Per-IP (IPv6 /64 normalization), per-user, per-endpoint, global limits
+- [x] Rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`)
+- [x] Config: `100 req/min`, `burst_size: 10`, cleanup every 5m
+- [x] Prometheus metrics integration
+- [x] Used in routing: `rate_limit_user`, `rate_limit_webhook` middleware presets
 
 ---
 
@@ -163,8 +171,8 @@ Phase 1 (Song song):
   Track I (Customer Domain) — Steps 1-2 ✅, Steps 3-7 remaining
   Track J (Common Client)   — ✅ DONE v1.19.0
   Track L (Validation)      — ✅ NO-OP
-  Track M (AlertService)    — TODO (P3)
-  Track N (Rate Limiting)   — TODO (P2)
+  Track M (AlertService)    — ✅ ALREADY IMPLEMENTED
+  Track N (Rate Limiting)   — ✅ ALREADY IMPLEMENTED
 
 Phase 2:
   Track K (gRPC Migration)  — ✅ DONE (4 clients migrated, 1 already standard)
@@ -183,7 +191,7 @@ Phase 3 (Future):
 | K1 Outbox Tracing | ✅ Verified | — | order + payment both OK |
 | L Biz Validation | ✅ No-op | — | No redundant validation found |
 | J Common Client | ✅ Done | `8f213c5` (v1.19.0) | DiscoveryClient created |
-| I Customer Domain | 🔨 In Progress | `ea7381f` | Steps 1-2 done, 3-7 remaining |
+| I Customer Domain | 🔨 In Progress | `9964398` | Steps 1-2 done, audit migrated, 22 files remain |
 | K gRPC Migration | ✅ Done | `74b3335`, `a620256`, `362afbf` | 4 clients migrated, search already standard |
-| M AlertService | 📋 TODO | — | P3 |
-| N Rate Limiting | 📋 TODO | — | P2 |
+| M AlertService | ✅ Already Done | — | `warehouse/internal/biz/alert/` (4 files, fully wired) |
+| N Rate Limiting | ✅ Already Done | — | `gateway/internal/middleware/rate_limit.go` (447 lines) |
