@@ -59,6 +59,12 @@
 - **Comments**: Explain "Why", not "What" for complex logic.
 - **Tech Debt**: Track via `TODO(#issue_id)` with priority (P0/P1/P2).
 
+## 🚀 10. DEVOPS & GITOPS
+- **Ports**: Align with `PORT_ALLOCATION_STANDARD.md`.
+- **Scaling**: HPA configuration is MANDATORY for all services.
+- **Sync-Wave**: HPA MUST have a `sync-wave` set to at least **X+1** (where X is the Deployment wave).
+- **Hooks**: Use ArgoCD `PreSync` hooks for database migrations.
+
 ---
 
 ## 📊 SEVERITY DEFINITIONS

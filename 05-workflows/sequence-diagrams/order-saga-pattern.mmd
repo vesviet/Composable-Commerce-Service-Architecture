@@ -1,0 +1,162 @@
+sequenceDiagram
+    participant O as Order Service
+    participant W as Warehouse Service
+    participant P as Payment Service
+    participant F as Fulfillment Service
+    participant N as Notification Service
+    participant DB as Order DB (Outbox)
+    participant E as Event Bus (Dapr)
+    
+    Note over O,E: Order Creation Saga - Reserve → Confirm → Complete Pattern
+    
+    %% Phase 1: Order Initiation (Reserve Phase)
+    rect rgb(200, 220, 240)
+        Note over O: Phase 1: Reserve Resources
+        O->>DB: BEGIN Transaction
+        O->>DB: INSERT order (status=PENDING)
+        O->>DB: INSERT outbox event: order.created
+        O->>DB: COMMIT Transaction
+        
+        O->>E: Publish: order.created
+        Note right of O: Event: {order_id, customer_id, items[], total}
+    end
+    
+    %% Phase 2: Service Reservations
+    rect rgb(240, 220, 200)
+        Note over W,P: Phase 2: Service Reservations
+        
+        E->>W: Subscribe: order.created
+        W->>W: Check stock availability
+        alt Stock Available
+            W->>W: Reserve stock (allocation)
+            W->>DB: Save allocation (expires in 15min)
+            W->>E: Publish: warehouse.stock.reserved
+            Note right of W: Event: {order_id, allocation_id, items[]}
+        else Stock Unavailable
+            W->>E: Publish: warehouse.stock.insufficient
+            Note right of W: Event: {order_id, missing_items[]}
+            W->>W: Trigger alert: STOCK_INSUFFICIENT
+        end
+        
+        E->>P: Subscribe: warehouse.stock.reserved
+        P->>P: Authorize payment
+        alt Payment Authorized
+            P->>P: Hold payment (pre-auth)
+            P->>E: Publish: payment.authorized
+            Note right of P: Event: {order_id, payment_id, auth_code}
+        else Payment Failed
+            P->>E: Publish: payment.authorization.failed
+            Note right of P: Event: {order_id, reason}
+            P->>P: Trigger alert: PAYMENT_AUTH_FAILED
+        end
+    end
+    
+    %% Phase 3: Saga Confirmation or Compensation
+    rect rgb(200, 240, 200)
+        Note over O: Phase 3a: Confirm Saga (Happy Path)
+        E->>O: Subscribe: payment.authorized
+        O->>DB: BEGIN Transaction
+        O->>DB: UPDATE order status=CONFIRMED
+        O->>DB: INSERT outbox event: order.confirmed
+        O->>DB: COMMIT Transaction
+        
+        O->>E: Publish: order.confirmed
+        Note right of O: Event: {order_id, allocation_id, payment_id}
+        
+        E->>W: Subscribe: order.confirmed
+        W->>W: Convert reservation → committed allocation
+        W->>W: Deduct stock from available inventory
+        W->>E: Publish: warehouse.stock.committed
+        
+        E->>P: Subscribe: order.confirmed
+        P->>P: Capture payment (charge customer)
+        P->>E: Publish: payment.captured
+        
+        E->>O: Subscribe: payment.captured
+        O->>DB: UPDATE order status=PAID
+        O->>E: Publish: order.paid
+        
+        E->>F: Subscribe: order.paid
+        F->>F: Create fulfillment task
+        F->>E: Publish: fulfillment.created
+        
+        E->>N: Subscribe: order.confirmed
+        N->>N: Send confirmation email to customer
+        N->>E: Publish: notification.email.sent
+    end
+    
+    rect rgb(240, 200, 200)
+        Note over O,W: Phase 3b: Compensating Transactions (Failure Path)
+        
+        alt Payment Authorization Failed
+            E->>O: Subscribe: payment.authorization.failed
+            O->>DB: UPDATE order status=PAYMENT_FAILED
+            O->>E: Publish: order.cancelled
+            
+            E->>W: Subscribe: order.cancelled
+            W->>W: Release stock allocation
+            W->>E: Publish: warehouse.stock.released
+            
+            E->>N: Subscribe: order.cancelled
+            N->>N: Send cancellation email
+            
+            O->>O: Trigger alert: ORDER_PAYMENT_FAILED
+        end
+        
+        alt Stock Insufficient
+            E->>O: Subscribe: warehouse.stock.insufficient
+            O->>DB: UPDATE order status=STOCK_UNAVAILABLE
+            O->>E: Publish: order.cancelled
+            
+            E->>N: Subscribe: order.cancelled
+            N->>N: Send out-of-stock notification
+            
+            O->>O: Trigger alert: ORDER_STOCK_UNAVAILABLE
+        end
+        
+        alt Payment Capture Failed (After Confirmation)
+            E->>O: Subscribe: payment.capture.failed
+            O->>DB: UPDATE order status=PAYMENT_CAPTURE_FAILED
+            O->>E: Publish: order.payment.retry
+            
+            opt Retry 3 times
+                P->>P: Retry payment capture
+            end
+            
+            alt Retry Exhausted
+                O->>E: Publish: order.payment.manual_review
+                O->>O: Trigger alert: PAYMENT_CAPTURE_FAILED_MANUAL_REVIEW
+                
+                E->>W: Subscribe: order.payment.manual_review
+                W->>W: Hold allocation (48hr timeout)
+                W->>E: Publish: warehouse.stock.on_hold
+            end
+        end
+    end
+    
+    %% Phase 4: Saga Completion
+    rect rgb(220, 200, 240)
+        Note over O,N: Phase 4: Saga Completion
+        E->>O: Subscribe: fulfillment.created
+        O->>DB: UPDATE order status=FULFILLING
+        O->>E: Publish: order.fulfilling
+        
+        Note over O: Saga Complete - Order now in fulfillment workflow
+        Note over O: Monitoring: AlertService tracks failure rates
+        Note over O: Metrics: Success rate, compensation rate, latency
+    end
+    
+    %% Observability Layer
+    rect rgb(240, 240, 240)
+        Note over O,E: Observability & Monitoring
+        O->>O: Metrics: order.saga.started
+        O->>O: Metrics: order.saga.completed
+        O->>O: Metrics: order.saga.compensated
+        O->>O: Metrics: order.saga.duration_ms
+        
+        Note over O: AlertService Integration Points:
+        Note over O: 1. STOCK_INSUFFICIENT → Slack #ops-warehouse
+        Note over O: 2. PAYMENT_AUTH_FAILED → PagerDuty (P3)
+        Note over O: 3. PAYMENT_CAPTURE_FAILED → PagerDuty (P2)
+        Note over O: 4. ORDER_STUCK → PagerDuty (P1) if status=PENDING >30min
+    end
