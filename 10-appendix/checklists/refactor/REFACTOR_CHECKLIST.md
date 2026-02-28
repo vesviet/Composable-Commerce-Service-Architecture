@@ -124,25 +124,18 @@ Other biz packages:
 
 ---
 
-## Phase 2: Sequential Track (SAU KHI Phase 1 Track J ✅ — UNBLOCKED)
+## Phase 2: Sequential Track — ✅ DONE
 
-### Track K: gRPC Client Migration (P1, 2 ngày)
+### Track K: gRPC Client Migration — ✅ DONE
 
-> **Agent K** — 5 services
 > **Depends on:** ~~Phase 1 Track J~~ ✅ DONE (`common v1.19.0`)
 
-**Mục tiêu:** Migrate 5 clients sang `common/client.DiscoveryClient`.
-
-- [ ] `auth/internal/client/user/user_client.go`
-  - Replace `consul.New()` + `grpc.DialInsecure()` → `client.NewDiscoveryClient()`
-  - Keep domain-specific methods (GetUserPermissions, ValidateUserCredentials, etc.)
-  - Keep custom retry logic (`retryWithBackoff`)
-- [ ] `auth/internal/client/customer/customer_client.go`
-- [ ] `warehouse/internal/client/user_client.go`
-- [ ] `customer/internal/client/auth/auth_client.go`
-- [ ] `search/internal/client/provider.go`
-- [ ] Update each service: `go get common@v1.19.0`, `go mod tidy`, vendor
-- [ ] Verify build + lint per service
+- [x] `auth/internal/client/user/user_client.go` — commit `74b3335` (-198/+60 lines)
+- [x] `auth/internal/client/customer/customer_client.go` — commit `74b3335`
+- [x] `warehouse/internal/client/user_client.go` — commit `a620256` (-102/+30 lines)
+- [x] `customer/internal/client/auth/auth_client.go` — commit `362afbf` (-80/+40 lines)
+- [x] `search/internal/client/provider.go` — **NO CHANGE NEEDED** (already uses `common/client.GRPCClientFactory`)
+- [x] All services: `go get common@v1.19.0`, vendor, build + lint clean
 
 ---
 
@@ -170,11 +163,11 @@ Phase 1 (Song song):
   Track I (Customer Domain) — Steps 1-2 ✅, Steps 3-7 remaining
   Track J (Common Client)   — ✅ DONE v1.19.0
   Track L (Validation)      — ✅ NO-OP
-  Track M (AlertService)    — TODO
-  Track N (Rate Limiting)   — TODO
+  Track M (AlertService)    — TODO (P3)
+  Track N (Rate Limiting)   — TODO (P2)
 
-Phase 2 (UNBLOCKED):
-  Track K (gRPC Migration)  — ready to start (Track J done)
+Phase 2:
+  Track K (gRPC Migration)  — ✅ DONE (4 clients migrated, 1 already standard)
 
 Phase 3 (Future):
   Track P (RBAC)
@@ -191,6 +184,6 @@ Phase 3 (Future):
 | L Biz Validation | ✅ No-op | — | No redundant validation found |
 | J Common Client | ✅ Done | `8f213c5` (v1.19.0) | DiscoveryClient created |
 | I Customer Domain | 🔨 In Progress | `ea7381f` | Steps 1-2 done, 3-7 remaining |
-| K gRPC Migration | ⏳ Ready | — | Unblocked by Track J |
+| K gRPC Migration | ✅ Done | `74b3335`, `a620256`, `362afbf` | 4 clients migrated, search already standard |
 | M AlertService | 📋 TODO | — | P3 |
 | N Rate Limiting | 📋 TODO | — | P2 |
