@@ -1,201 +1,223 @@
 # Refactor Checklist — Remaining Work
 
-> **Last verified:** 2026-02-28 21:55 (grep + codebase audit)
+> **Last verified:** 2026-02-28 22:58 (grep + full codebase audit)
 >
-> **Tracks A–H: ✅ COMPLETE** — Common lib, GitOps P0, Code P0, Dapr, Tx/Cache/gRPC, Worker/Migrate DRY, GitOps DRY, Perf audits.
->
-> **Track J2 (Checkout GetOrSet): ✅ COMPLETE** — `cart_repo.go` migrated 3 read methods to `TypedCache.GetOrSet()`. Commit `673d4c5`.
->
-> **Track K1 (Outbox Tracing): ✅ VERIFIED** — order + payment both inject trace context via `trace.SpanFromContext(ctx)`.
->
-> **Track L (Biz Validation Cleanup): ✅ NO-OP** — grep found zero redundant manual validation; all business-rule validation is NOT proto-coverable.
->
-> **Quy tắc:** Mỗi agent nhận **1 Track**. Phase 1 chạy song song. Phase 2 BLOCKING trên Phase 1 Track J.
+> **Tracks A–H, J, J2, K, K1, L, M, N: ✅ ALL COMPLETE** — See [Completed Tracks](#completed-tracks) at bottom.
 
 ---
 
-## Phase 1: Parallel Tracks (Chạy song song ngay)
+## Active Work
 
-### Track I: Customer Domain Model Separation (P1, 3–5 ngày)
+### Track I: Customer Domain Model Separation (P0, ~3 days remaining)
 
-> **Agent I** — Chỉ sửa trong `customer/`
-> **Mục tiêu:** Tách Domain Model khỏi GORM Data Model theo chuẩn Clean Architecture
+> **Scope:** `customer/` only
+> **Goal:** Remove all `import "internal/model"` from `internal/biz/`
 
-**Hiện trạng:** `customer/internal/biz/` import `internal/model` ở **26 files** — vi phạm Clean Architecture.
+**Current state:** 26 files in `biz/` still import `internal/model`. Domain structs and mappers done. 7/10 biz packages migrated.
 
 #### Step 1: Domain Structs — ✅ DONE (commit `ea7381f`)
 
-- [x] `biz/customer/domain.go` — `Customer`, `CustomerAddress`, `CustomerProfile`, `CustomerPreferences`, `StableCustomerGroup`
-- [x] `biz/address/domain.go` — `Address`
-- [x] `biz/preference/domain.go` — `Preference`
-- [x] `biz/segment/domain.go` — `Segment` (with `IsDynamic()`, `IsStatic()`)
-- [x] `biz/customer_group/domain.go` — `CustomerGroup`
-- [x] `biz/wishlist/domain.go` — `Wishlist`, `WishlistItem`
-- [x] `biz/audit/domain.go` — `AuditEvent`, `AuditEventType`, `AuditEventSeverity` constants
-
 #### Step 2: Data-Layer Mappers — ✅ DONE (commit `ea7381f`)
-
-- [x] `data/mapper/customer_mapper.go` — bidirectional `model.Customer` ↔ `biz.Customer`
-  - `CustomerToDomain`, `CustomerListToDomain`, `ProfileToDomain`, `PreferencesToDomain`
-  - `AddressToDomainCustomer`, `StableGroupToDomain`, `DomainToCustomerModel`
 
 #### Step 3: Migrate Repo Interfaces — return domain types
 
-> **Key insight:** `CustomerRepo` is aliased from `repository/customer.CustomerRepo` which returns `model.Customer`.
-> Migration path: update `repository/customer/customer.go` interface → update `data/` implementations → update biz callers.
-
-- [ ] `repository/customer/customer.go` — `CustomerRepo` interface: `FindByID` → return `*biz.Customer`
-- [ ] `repository/customer_profile/customer_profile.go` — `CustomerProfileRepo` interface
-- [ ] `repository/customer_preference/customer_preference.go` — `CustomerPreferencesRepo` interface
-- [ ] `repository/outbox/outbox.go` — `OutboxEventRepo` interface (if using `model.OutboxEvent`)
+- [ ] `repository/customer/customer.go` — `CustomerRepo`: return `*biz.Customer`
+- [ ] `repository/customer_profile/customer_profile.go`
+- [ ] `repository/customer_preference/customer_preference.go`
+- [ ] `repository/outbox/outbox.go` (if using `model.OutboxEvent`)
 
 #### Step 4: Update Data Implementations — use mappers
 
-- [ ] `data/customer/customer.go` — repo impl: DB query → `mapper.CustomerToDomain()` → return
-- [ ] `data/customer_profile/customer_profile.go` — repo impl
-- [ ] `data/customer_preference/customer_preference.go` — repo impl
+- [ ] `data/customer/customer.go` — DB query → `mapper.CustomerToDomain()` → return
+- [ ] `data/customer_profile/customer_profile.go`
+- [ ] `data/customer_preference/customer_preference.go`
 
 #### Step 5: Migrate Biz Use Cases — remove `import "internal/model"`
 
-Files still importing `internal/model` (8 non-test files):
+Core customer package (7 files):
 - [ ] `biz/customer/customer.go` (1357 lines — largest, do last)
-- [~] `biz/customer/auth.go` — audit constants migrated (`audit.AuditEventLogin` etc.), still uses `model.Customer`
+- [ ] `biz/customer/auth.go`
 - [ ] `biz/customer/cache.go`
 - [ ] `biz/customer/verification.go`
 - [ ] `biz/customer/events.go`
 - [ ] `biz/customer/social_login.go`
 - [ ] `biz/customer/gdpr.go`
 
-Other biz packages:
-- [x] `biz/address/*.go` — commit `f237b50`: public API returns domain `*Address`, service converter updated
-- [x] `biz/preference/*.go` — commit `b5c46e1`: CustomerGetter interface returns domain `*Customer`
-- [x] `biz/segment/*.go` — commit `63b27dc`+`b5c46e1`: CRUD returns domain `*Segment`; EvaluateSegment stays model (circular import)
-- [x] `biz/customer_group/*.go` — commit `f237b50`: returns domain `*CustomerGroup`
-- [x] `biz/wishlist/*.go` — commit `f237b50`: returns domain `*Wishlist/*WishlistItem`
-- [x] `biz/audit/*.go` — commit `9964398`: public API uses domain types, model only at mapper boundary
-- [x] `biz/analytics/*.go` — commit `b5c46e1`: uses domain `*Customer` from GetCustomer, removed model import
-- [ ] `biz/worker/*.go` — uses `model.OutboxEvent` internally (acceptable — persistence type)
+Already migrated biz packages:
+- [x] `biz/address/` — commit `f237b50`
+- [x] `biz/preference/` — commit `b5c46e1`
+- [x] `biz/segment/` — commit `63b27dc`+`b5c46e1`
+- [x] `biz/customer_group/` — commit `f237b50`
+- [x] `biz/wishlist/` — commit `f237b50`
+- [x] `biz/audit/` — commit `9964398`
+- [x] `biz/analytics/` — commit `b5c46e1`
+- [ ] `biz/worker/outbox.go` — uses `model.OutboxEvent` (acceptable persistence type)
 
-#### Step 6: Update Service Converters — `biz.X` → `pb.XReply`
-
-- [x] `service/address.go` — addressToPB accepts domain `*bizAddress.Address`
-- [x] `service/segment.go` — segmentToPB accepts domain `*bizSegment.Segment`
-- [x] `service/helper.go` — commit `b5c46e1`: customerToPB accepts domain `*bizCustomer.Customer`, removed old model converters
-- [x] `service/customer_convert.go` — commit `b5c46e1`: CustomerToReply + StableCustomerGroupToReply accept domain types
-- [x] `service/management.go` — commit `b5c46e1`: all callers use domain Customer, added HasPassword method
+#### Step 6: Update Service Converters — ✅ DONE (commit `b5c46e1`)
 
 #### Step 7: Verify
 
-- [x] `go build ./...` ✅ (commit `b5c46e1`)
-- [x] `golangci-lint run` ✅ (commit `b5c46e1`)
-- [ ] `grep -r 'internal/model' internal/biz/` returns **ZERO** results — remaining: segment/rules_engine.go (circular import), events.go files (model types for outbox/events), internal helpers
+- [x] `go build ./...` ✅
+- [x] `golangci-lint run` ✅
+- [ ] `grep -r 'internal/model' internal/biz/` → **ZERO** results
 
 ---
 
-### Track J: Common Client Extension — ✅ DONE
+## Standalone P0 Fixes (Quick Wins, ~0.5 day each)
 
-> **Committed:** `common v1.19.0` (commit `8f213c5`, tag `v1.19.0`)
+### Fix S1: Checkout — Simplify Transaction Manager — ✅ DONE
 
-- [x] `client/discovery.go` — `DiscoveryClient` struct
-- [x] `NewDiscoveryClient(cfg, logger)` — Consul resolver + circuit breaker
-- [x] `DefaultDiscoveryConfig(consulAddr, serviceName)` — sensible defaults
-- [x] `GetConnection()` → `*grpc.ClientConn` for typed service clients
-- [x] `Call(fn)` — circuit breaker wrapper
-- [x] Build + lint clean
-- [x] Tagged `v1.19.0`, pushed to GitLab
+> **Commit:** `f20f451`
 
----
+- [x] Renamed to idiomatic `gormTransactionManager`, cleaned up
+- [x] `go build ./... && golangci-lint run` ✅
 
-### Track M: AlertService Integration — ✅ ALREADY IMPLEMENTED
+### Fix S2: Order — Replace Local Outbox Worker — ✅ DONE
 
-> Implementation: `warehouse/internal/biz/alert/` (4 files, 800+ lines)
-> Interface: `warehouse/internal/biz/inventory/inventory.go:43-48`
+> **Commit:** `bc8addc`
 
-- [x] `AlertUsecase` implements `CheckLowStock`, `CheckOutOfStock`, `CheckOverstock`, `CheckExpiringStock`
-- [x] `NotificationClient` interface for multi-channel alerts (Slack, email, etc.)
-- [x] `UserServiceClient` for role-based recipient resolution
-- [x] Alert history repo (`warehouse/internal/repository/alert/`) + model
-- [x] Wired via Wire DI in `cmd/warehouse/wire_gen.go:95`
-- [x] Cron jobs: `capacity_monitor_job`, `alert_cleanup_job`, `weekly_report_job`, `daily_summary_job`
-- [x] Threshold configs via `config.AppConfig`
+- [x] Deleted 175-line local `worker.go`
+- [x] Wired `common/outbox.Worker` + `OutboxPublisherAdapter` via Wire
+- [x] Wire regenerated, `go build ./... && golangci-lint run` ✅
 
----
+### Fix S3: gRPC Clients — Migrate to `common/client.DiscoveryClient` — ✅ DONE
 
-### Track N: API Gateway Rate Limiting — ✅ ALREADY IMPLEMENTED
+> **Commits:** `44992d8` (order), `04b2d2a` (shipping), `f96d721` (common-operations)
 
-> Implementation: `gateway/internal/middleware/rate_limit.go` (447 lines)
-> Config: `gateway/configs/gateway.yaml` lines 62-71
+| Service | File | Status |
+|---------|------|--------|
+| order | `internal/data/grpc_client/shipping_client.go` | ✅ Done |
+| shipping | `internal/client/catalog_grpc_client.go` | ✅ Done |
+| common-operations | `internal/client/order_client.go` | ✅ Done |
 
-- [x] Redis-based sliding window rate limiting (sorted sets)
-- [x] In-memory fallback with automatic cleanup goroutine
-- [x] Per-IP (IPv6 /64 normalization), per-user, per-endpoint, global limits
-- [x] Rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`)
-- [x] Config: `100 req/min`, `burst_size: 10`, cleanup every 5m
-- [x] Prometheus metrics integration
-- [x] Used in routing: `rate_limit_user`, `rate_limit_webhook` middleware presets
+- [x] All 3 migrated to `common/client.DiscoveryClient` (Consul + Circuit Breaker)
+- [x] `go build ./... && golangci-lint run` per service ✅
 
 ---
 
-## Phase 2: Sequential Track — ✅ DONE
+## Standalone P1 Fixes
 
-### Track K: gRPC Client Migration — ✅ DONE
+### Fix S4: N+1 Queries — Preload → Joins in List APIs
 
-> **Depends on:** ~~Phase 1 Track J~~ ✅ DONE (`common v1.19.0`)
+> Verified: `warehouse.go:160`, `order.go` — multiple `Preload()` on list endpoints
 
-- [x] `auth/internal/client/user/user_client.go` — commit `74b3335` (-198/+60 lines)
-- [x] `auth/internal/client/customer/customer_client.go` — commit `74b3335`
-- [x] `warehouse/internal/client/user_client.go` — commit `a620256` (-102/+30 lines)
-- [x] `customer/internal/client/auth/auth_client.go` — commit `362afbf` (-80/+40 lines)
-- [x] `search/internal/client/provider.go` — **NO CHANGE NEEDED** (already uses `common/client.GRPCClientFactory`)
-- [x] All services: `go get common@v1.19.0`, vendor, build + lint clean
+- [ ] `warehouse`: `Preload("Locations").Find()` → `Joins("LEFT JOIN ...")`
+- [ ] `order`: `Preload("Items")`, `Preload("ShippingAddress")` → `Joins`
+- [ ] Add `.Limit(1000)` safety on unbounded internal queries (`GetLocations`, `GetByReference`)
+
+### Fix S5: Health Probes — `initialDelaySeconds: 0`
+
+- [ ] `loyalty-rewards`: set `startupProbe.initialDelaySeconds: 10`
+- [ ] `search`: set `startupProbe.initialDelaySeconds: 10`
+
+### Fix S6: GitOps — Secrets Documentation Drift
+
+> `gitops/README.md` claims "External Secrets + Vault" but uses Bitnami Sealed Secrets
+
+- [ ] Align README with actual implementation (Sealed Secrets)
 
 ---
 
-## Phase 3: Future Sprints
+## Standalone P2 Fixes
 
-### Track P: RBAC Policy Migration (P2, Future)
-- [ ] Evaluate Casbin / OPA cho policy-based access control
+### ~~Fix S7: Payment — Delete Local Idempotency Copy~~ — ❌ RECLASSIFIED
+
+> **Re-analysis result:** NOT a copy.
+> `payment/internal/biz/common/idempotency.go` implements a `Begin/MarkCompleted/MarkFailed`
+> state machine that neither `common/idempotency.RedisIdempotencyService` (Execute(fn))
+> nor `common/utils/idempotency.Service` (Get/Set/TryAcquire) provides.
+> This is legitimate domain logic, not copy-paste.
+
+### Fix S8: Location — Delete Unnecessary DaprPublisher Wrapper
+
+- [ ] Delete `location/internal/event/publisher.go`
+- [ ] Inject `events.EventPublisher` directly via Wire
+
+### Fix S9: RBAC — Remove Copy-Pasted `RequireRole` Middleware
+
+5 services have local copies instead of using `common/middleware/auth.go`:
+- [ ] `review/internal/middleware/auth.go`
+- [ ] `catalog/internal/middleware/auth.go`
+- [ ] `return/internal/middleware/auth.go`
+- [ ] `promotion/internal/middleware/auth.go`
+- [ ] `pricing/internal/middleware/auth.go`
+
+---
+
+## Future Sprints
+
+### Track P: RBAC Policy Migration (P2)
+- [ ] Evaluate Casbin / OPA for policy-based access control
 - [ ] Replace hardcoded `RequireRole("admin")` patterns
 
-### Track Q: Cursor Pagination (P1, 8–10 ngày)
+### Track Q: Cursor Pagination (P1, 8–10 days)
 - [ ] Migrate `warehouse` stock_transactions → `CursorPaginator`
 - [ ] Migrate `order` orders → `CursorPaginator`
-- [ ] Update proto — thêm `cursor`/`next_cursor`
+- [ ] Update proto — add `cursor`/`next_cursor` fields
 
-### Track R: GitOps Component Migration (Optional)
-- [ ] Migrate remaining 17 API deployments → `common-deployment`
-- [ ] Migrate 20 worker deployments → `common-worker-deployment`
+### Track R: GitOps Component Migration (P0-DRY, 5–8 days)
+- [ ] Migrate remaining 17 API deployments → `common-deployment` component
+- [ ] Migrate 20 worker deployments → `common-worker-deployment` component
+
+### Track T: Unit Test & Mockgen Adoption (P1, 3–5 days)
+- [ ] Replace `order/internal/biz/mocks.go` (700+ lines hand-written) with `mockgen`
+- [ ] Replace `payment` manual `testify/mock` structs with `mockgen`
+- [ ] Mandate `//go:generate mockgen` for all biz interfaces
+- [ ] Coverage campaign: target ≥60% for `order/biz/status`, `payment/biz/refund`
+
+### Track U: CronWorker Wrapper Adoption (P1, 1 day)
+- [ ] Wrap all manual Ticker/select cron loops with `commonWorker.NewCronWorker()`
+- [ ] Target services: order, analytics, catalog, customer
 
 ---
 
-## Dependency Graph
+## TA Report Status (Cross-Reference)
 
-```
-Phase 1 (Song song):
-  Track I (Customer Domain) — 5/8 biz pkgs ✅ (audit, wishlist, customer_group, address, segment)
-  Track J (Common Client)   — ✅ DONE v1.19.0
-  Track L (Validation)      — ✅ NO-OP
-  Track M (AlertService)    — ✅ ALREADY IMPLEMENTED
-  Track N (Rate Limiting)   — ✅ ALREADY IMPLEMENTED
+Reports with **zero remaining issues** (all fixed):
+- ✅ `caching_strategy_analysis_report.md`
+- ✅ `worker_analysis_report.md` (worker main.go bootstrap)
+- ✅ `migration_analysis_report.md`
+- ✅ `resilience_distributed_transaction_analysis_report.md`
+- ✅ `observability_tracing_analysis_report.md` (K1 verified)
 
-Phase 2:
-  Track K (gRPC Migration)  — ✅ DONE (4 clients migrated, 1 already standard)
+Reports **outdated** (re-verified as fixed):
+- ✅ `api_grpc_layer_analysis_report.md` — Report claims 4/21 services use `ErrorEncoderMiddleware`. **Actual: 20/20 deployed.** Mark P1 as RESOLVED.
 
-Phase 3 (Future):
-  Track P (RBAC)
-  Track Q (Cursor Pagination)
-  Track R (GitOps Migration)
-```
+Reports with **remaining issues** mapped to checklist above:
+- `database_pagination_analysis_report.md` → Fix S4, Track Q
+- `unit_test_coverage_analysis_report.md` → Track T
+- `clean_architecture_domain_analysis_report.md` → Track I
+- `security_idempotency_analysis_report.md` → Fix S7, S9
+- `database_transaction_analysis_report.md` → Fix S1
+- `dapr_pubsub_analysis_report.md` → Fix S8
+- `service_discovery_analysis_report.md` → Fix S3
+- `internal_worker_code_analysis_report.md` → Fix S2, Track U
+- `gitops_infrastructure_analysis_report.md` → Fix S6
+- `gitops_api_deployment_analysis_report.md` → Fix S5, Track R
+- `gitops_worker_analysis_report.md` → Track R
+- `kubernetes_policies_analysis_report.md` → Track R
 
-## Progress Summary
+---
+
+## Completed Tracks
 
 | Track | Status | Commit | Notes |
 |-------|--------|--------|-------|
+| A–H | ✅ Done | — | Common lib, GitOps P0, Code P0, Dapr, Tx/Cache/gRPC, Worker/Migrate DRY, Perf |
+| J Common Client | ✅ Done | `8f213c5` (v1.19.0) | `DiscoveryClient` struct |
 | J2 Checkout GetOrSet | ✅ Done | `673d4c5` | 3 methods migrated, -63 lines |
-| K1 Outbox Tracing | ✅ Verified | — | order + payment both OK |
-| L Biz Validation | ✅ No-op | — | No redundant validation found |
-| J Common Client | ✅ Done | `8f213c5` (v1.19.0) | DiscoveryClient created |
-| I Customer Domain | 🔨 In Progress | `f237b50`, `63b27dc` | 5/8 biz pkgs done, customer core entity remains |
 | K gRPC Migration | ✅ Done | `74b3335`, `a620256`, `362afbf` | 4 clients migrated, search already standard |
-| M AlertService | ✅ Already Done | — | `warehouse/internal/biz/alert/` (4 files, fully wired) |
+| K1 Outbox Tracing | ✅ Verified | — | order + payment inject trace context |
+| L Biz Validation | ✅ No-op | — | No redundant validation found |
+| M AlertService | ✅ Already Done | — | `warehouse/internal/biz/alert/` (4 files) |
 | N Rate Limiting | ✅ Already Done | — | `gateway/internal/middleware/rate_limit.go` (447 lines) |
+
+## Priority Summary
+
+| Priority | Items | Est. Effort |
+|----------|-------|-------------|
+| 🔴 P0 Active | Track I (customer domain) | 3 days |
+| 🔴 P0 Quick | S1 (checkout tx), S2 (order outbox), S3 (3 gRPC clients) | 2 days |
+| 🟡 P1 | S4 (N+1), S5 (probes), S6 (docs), Track T (tests), Track U (cron) | 6–8 days |
+| 🔵 P2 | S7 (idempotency), S8 (location), S9 (RBAC copies) | 2 days |
+| ⏳ Future | Track P (RBAC), Q (pagination), R (GitOps DRY) | 15–20 days |
