@@ -3,39 +3,35 @@
 **Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
 **Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
 **Chủ đề:** Đánh giá văn hóa viết Test, mức độ bao phủ mã nguồn (Coverage), và tính tuân thủ quy tắc `testcase.md`.  
-**Trạng thái Review:** Đã Review - Cần Refactor Khẩn Cấp  
+**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - CHƯA FIX - TÌNH TRẠNG BÁO ĐỘNG)
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed)
-- **[🚨 P0] [Code Quality/Test] Cấu Trúc Viết Test Vi Phạm Quy Tắc Mocks Khối Lượng Lớn:** File `testcase.md` quy định rõ gomock phải được gen tự động ở thư mục `internal/biz/<package>/mocks/`. Tuy nhiên, DEV đang viết tay hàng nghìn dòng mock thủ công:
-  - **Payment Service:** Struct mock tự chế bằng `testify/mock` tốn >400 lines (trong `payment_p0_test.go`).
-  - **Order Service:** Tự code map in-memory phức tạp ở `internal/biz/mocks.go` dài >700 lines.
-  **Yêu cầu:** Xóa sạch code rác viết tay. Sử dụng thư viện `go.uber.org/mock/mockgen` để chạy lệnh `go generate` và sinh tự động interface `mock_repository.go` trong toàn bộ service. Lệnh chạy test bắt buộc phải có `SafeToAutoRun: true`.
-- **[🚨 P0] [Coverage] Độ Phủ Tầng Business (Clean Architecture) Dưới 30%:** Các package cốt lõi như `order/biz/validation` (0%), `order/biz/status` (0%), `payment/biz/refund` (0%) hoàn toàn rỗng test code. Hệ thống tài chính và kho vận không thể Release Production nếu Logic Mua/Bán không có Unit Test bảo chứng. **Yêu cầu:** Mở chiến dịch đẩy Coverage các block tài chính/state machine lên tối thiểu 60%.
-
-## 🆕 NEWLY DISCOVERED ISSUES
-- **[CI/CD] Trống rỗng cơ chế báo cáo Coverage tự động:** GitLab CI hoặc GitHub Actions chưa có rule block merge request nếu Test Coverage trượt dưới mức cho phép. **Suggested Fix:** Thêm rule `go test -coverprofile=coverage.out ./internal/biz/...` vào pipeline.
+## 🚩 PENDING ISSUES (Unfixed - KHẨN CẤP)
+- **[🚨 P0] [Code Quality/Test] Cấu Trúc Viết Test Vẫn Dùng Manual Mocks Rác Khối Lượng Lớn:** Kiểm tra thực tế cho thấy DEV vẫn làm lơ lệnh dùng gomock.
+  - **Order Service:** File `internal/biz/mocks.go` chứa một cục tảng đá Mock viết tay dài hơn **700 dòng** ( `MockOrderRepo`, `MockOrderItemRepo`, in-memory Maps...). 
+  - **Payment Service:** Code `payment_p0_test.go` và `usecase_test.go` ngập tràn các struct kế thừa `testify/mock.Mock` thủ công tốn hàng khối code.
+  **Yêu cầu Khẩn (Lần 2):** CẤM VIẾT TAY MOCK cho các Interface lớn! Sử dụng thư viện `go.uber.org/mock/mockgen` lập tức. Sinh tự động `mock_repository.go` trong `internal/biz/<package>/mocks/`.
+- **[🚨 P0] [Coverage] Độ Phủ Tầng Business Bị Bỏ Rơi:** 
+  Khi chạy Audit (`go test -cover`) tại nhánh `internal/biz/...` của Order và Payment, lệnh còn vướng dependency lỗi (`vendor drift`), đồng thời Coverage nhiều mảng cốt lõi như `order/biz/status`, `payment/biz/refund` rỗng testcode. 
+  **Yêu cầu:** Mở campaign Coverage, lấp ngay lỗ hổng logic Tài chính/Kho vận, tối thiểu 60%.
+- **[🟡 P1] [CI/CD] Trống rỗng cơ chế báo cáo Coverage tự động:** Pipeline Gitlab chưa chặn merge khi coverage tụt. **Suggested Fix:** Thêm rule `go test -coverprofile=coverage.out ./internal/biz/...` vào thư mục `gitlab-ci-templates`.
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Structure] Cấu trúc Table-Driven Test và Assertions:** Toàn bộ test hiện có đã tuân thủ chuẩn dùng danh sách `tests := []struct{}` và sử dụng thư viện `testify/assert`, `testify/require`. Không còn phát hiện kiểu check lỗi nguyên thủy `if err != nil { t.Fatal() }`.
+- **[FIXED ✅] [Structure] Cấu trúc Table-Driven Test và Assertions:** Các test đã có trong hệ thống đúng là đã dùng mô hình `tests := []struct{}` và assert chuẩn. Form dáng đúng, nhưng ruột/mock sai.
 
 ---
 
-## 📋 Chi Tiết Phân Tích (Deep Dive)
+## 📋 Hướng Dẫn Kỹ Thuật (Guidelines Từ Senior)
 
 ### 1. 📊 Hiện Trạng Khủng Hoảng Phủ Code (Red Alert)
-Mục tiêu của Clean Architecture là tập trung bảo vệ logic lõi tại `internal/biz`. Nhưng khi Audit thực tế thông qua `go test -cover`:
-- **Order Service:** Nhánh `biz/order` chỉ đạt **20.0%**. Các mảng `order_edit`, `status` là **0%**.
-- **Payment Service:** Nhánh `biz/payment` đạt **18.0%**. Chỉ duy nhất nhánh `biz/settings` đạt chuẩn **80.9%**.
-- **Hệ lụy:** Gây rủi ro sập luồng Checkout/Refund bất cứ lúc nào khi nâng cấp hệ thống hoặc thay đổi DBA schemas.
+Mục tiêu của Clean Architecture là tập trung bảo vệ logic lõi tại `internal/biz`. Nhưng hiện tại:
+- **Hệ lụy:** Sập luồng Checkout/Refund bất cứ lúc nào khi thay đổi cấu trúc DB hoặc logic nâng cấp.
 
-### 2. 🏗️ Phân Tích Sự Chống Lệnh Về Tooling
-Theo tài liệu `testcase.md`, gomock sinh tự động là quy chuẩn.
-- **Thực trạng:** 
-  Dev dùng tay khởi tạo in-memory Maps tốn hàng nghìn dòng code cho Order/Payment Repo.
+### 2. 🏗️ Phân Tích Sự Rủi Ro Của Mock Viết Tay
+Trong `testcase.md`, mặc dù cho phép dùng `testify/mock` cho simple cases, nhưng việc viết `mocks.go` dài 700 dòng là "Tự bắn vào chân".
 - **Tại sao việc này nguy hiểm?**
-  1. Thay đổi struct Field ở Data Repo khiến hằng hà sa số file Mock viết tay bị vỡ Syntax.
-  2. Sự rườm rà của việc maintain các Mock struct tự chế làm các Dev lười viết Test mới (Lý giải tại sao Coverage bằng 0%).
+  1. Đổi Struct ở Data Model là Mock vỡ nát, mất cả ngày đi sửa file `mocks.go`.
+  2. Bị đọa đầy bởi sự cồng kềnh, Dev đâm ra ghét viết thêm Test.
 - **Thực thi:**
-  Tiến hành ban hành lệnh `gomock` toàn hệ thống. Mọi interface từ `internal/biz` bắt buộc có thẻ `//go:generate mockgen ...` ở trên đầu.
+  Tiến hành ban hành lệnh `gomock` toàn hệ thống. Mọi interface từ `internal/biz/xyz` phải có `//go:generate mockgen -destination=mocks/mock_xyz.go -package=mocks . XyzRepo`.

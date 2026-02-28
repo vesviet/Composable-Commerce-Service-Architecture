@@ -3,20 +3,17 @@
 **Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
 **Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
 **Chủ đề:** Review mã nguồn implementation của các Worker (Cron, Event Consumer, DLQ, Outbox) nằm trong thư mục `internal/worker/*`.  
-**Trạng thái Review:** Đã Review - Cần Refactor Khẩn Cấp  
+**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - NGOAN CỐ KHÔNG FIX)
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed)
-- **[🚨 P1] [Architecture/DRY] Copy-Paste Outbox Worker Pattern:** Kiểm tra codebase cho thấy file `order/internal/worker/outbox/worker.go` vẫn thản nhiên tồn tại với 160 dòng code copy y hệt từ thư viện lõi. Code rác rưởi lặp lại logic vòng lặp Ticker, select channel, retry... **Yêu cầu:** Xóa ngay lập tức folder local này ở tất cả các service. Mọi Outbox Worker phải inject trực tiếp từ thư viện `common/outbox` qua Wire.
-- **[🚨 P1] [Architecture/Maintainability] Boilerplate Khủng Khiếp Ở Từng Cron Job:** Trong thư viện `common/worker` vẫn chưa hề xây dựng struct `CronWorker` để bọc lại vòng lặp `select...ticker`. Hậu quả là mọi Job như `AggregationCronJob`, `OrderCleanupJob` vẫn đang phải tự gõ chay vòng lặp channel, tiềm ẩn rủi ro Goroutine Leak nếu dev code ẩu. **Yêu cầu:** Core team phải khẩn cấp bổ sung `commonWorker.NewCronWorker(interval, logicFunc)`.
-- **[🔵 P2] [Clean Code/DRY] DLQ Worker Thiếu Trừu Tượng:** Chưa có Generic DLQ Worker cho toàn dự án, dẫn đến nguy cơ mỗi service lại tự code một vòng lặp nhặt Dead Letter Queue riêng.
-
-## 🆕 NEWLY DISCOVERED ISSUES
-- *(Chưa có New Issues phát sinh thêm trong vòng Review này).*
+## 🚩 PENDING ISSUES (Unfixed - CẦN ACTION)
+- **[🚨 P0] [Architecture/DRY] Bệnh Dịch Copy-Paste Ở Order Outbox Worker Vẫn Còn:** Cực kỳ nghiêm trọng. Tại `order/internal/worker/outbox/worker.go` vẫn giữ y nguyên 160+ dòng code sao chép vòng lặp Ticker, select channel từ thư viện lõi. Order team cãi lệnh, không chịu đổi sang dùng `outbox.NewWorker` từ `common` như Location hay Return service. **Yêu cầu (Hard-Requirement):** Lập tức xoá sạch thư mục `outbox` này tại Order và Refactor lại Wire DI.
+- **[🚨 P1] [Architecture/Maintainability] Boilerplate Khủng Khiếp Ở Từng Cron Job Vẫn Tồn Tại:** Chưa hề có `commonWorker.NewCronWorker(interval, logicFunc)`. Toàn bộ các vòng lặp Go Routine quét DB đang viết tay 100%, nguy cơ Leak Goroutine là không đếm xuể. Yêu cầu làm ngay.
+- **[🔵 P2] [Clean Code/DRY] DLQ Worker Thiếu Trừu Tượng:** Chưa có Generic DLQ Worker.
 
 ## ✅ RESOLVED / FIXED
-- *(Hiện tại các vấn đề về Internal Worker Code vẫn chưa được team dev tiến hành refactor).*
+- *(Hiện tại team Dev vẫn cãi lệnh, đùn đẩy công việc phần Internal Worker này. Không có kết quả nào).*
 
 ---
 
@@ -27,15 +24,15 @@ Hệ thống đang triển khai mô hình Asynchronous Background Processing r�
 - **Cron Jobs:** Chạy định kỳ (VD: `aggregation_cron` ở analytics, `order_cleanup` ở order).
 - **Event Consumers:** Lắng nghe PubSub via Dapr.
 - **Outbox Workers:** Quét DB và đẩy sự kiện (Transactional Outbox Pattern).
-- **DLQ Reprocessor:** Xử lý lại các failed events từ Dead Letter Queue (đặc thù ở Search và Order).
+- **DLQ Reprocessor:** Xử lý lại các failed events từ Dead Letter Queue.
 
 Mọi worker đều đang implement `commonWorker.ContinuousWorker` interface và nhúng `*commonWorker.BaseContinuousWorker` để tái sử dụng logic Start/Stop/HealthCheck. (Điều này Rất Tốt).
 
-### 2. Các Lỗ Hổng Implementation Cần Lên Án (P1) 🚩
+### 2. Các Lỗ Hổng Implementation Cần Lên Án (P0/P1) 🚩
 Dù đã có thư viện `common/worker` và `common/outbox`, việc áp dụng vào code thực tế của các service lại đang **vi phạm nghiêm trọng nguyên tắc DRY (Don't Repeat Yourself)**.
 
-#### 🚩 2.1. Tật Sao Chép Bừa Bãi Outbox Worker
-Đội ngũ kiến trúc đã cất công xây dựng thư viện xịn xò `gitlab.com/ta-microservices/common/outbox` hỗ trợ Pull DB batch, publish event và lock record an toàn. Nhưng tại service **Order** (và một vài service khác), dev lại lười đọc Docs, tự copy-paste 160 dòng mã nguồn ra file local.
+#### 🚩 2.1. LỖI CHỐNG LỆNH CẤP P0: Dịch Copy-Paste Tới Từ Kế Toán (Order Service)
+Đội ngũ kiến trúc đã cất công xây dựng thư viện xịn xò `gitlab.com/ta-microservices/common/outbox` hỗ trợ Pull DB batch, publish event và lock record an toàn. Nhưng tại service **Order**, dev bướng bỉnh lừa dối hệ thống, tự copy-paste 160 dòng mã nguồn ra file local.
 - **Hậu quả:** Nếu Core Team tối ưu hóa Batch Size hoặc thêm Metric theo dõi độ trễ Outbox, Order Service sẽ "mù" tính năng do đang xài đồ giả cầy tách nhánh.
 
 #### 🚩 2.2. Boilerplate Hủy Diệt Ở Từng Cron Job
@@ -57,7 +54,7 @@ func (j *MyCronJob) Start(ctx context.Context) error {
 Việc phó thác sinh mệnh Goroutine (chống leak) cho hàng chục tay Dev khác nhau tự gõ vòng lặp là quyết định tồi của kiến trúc sư.
 
 ### 3. Giải Pháp Chỉ Đạo Từ Senior
-Ngừng dung túng cho các file rác sinh sôi.
+Ngừng dung túng cho các file rác sinh sôi. Điển hình là Order Service Outbox.
 
 #### ✅ Ép Bỏ Outbox Local, Dùng 100% Core Library
 Tại mọi service, xoá sạch thư mục `internal/worker/outbox/`. Tại file Dependency Injection (Wire Provider), chỉ cần trỏ thẳng về Common:

@@ -3,18 +3,16 @@
 **Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
 **Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
 **Chủ đề:** Review chiến lược Caching (phân tán & cục bộ), Redis integration và phòng chống Cache Stampede.  
-**Trạng thái Review:** Đã Review - Cần Refactor Lập Tức  
+**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - ĐÃ FIX HOÀN TOÀN TỐT)
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed)
-- **[🟡 P2] [Performance/Reliability] Hiểm Họa Cache Stampede (Thundering Herd):** Dù Checkout Service đã chuyển sang dùng `TypedCache`, kết quả scan cho thấy **hàm `GetOrSet` vẫn chưa được gọi ở bất kỳ vị trí nào**. Logic "Check rỗng -> Query DB -> Set Cache" thủ công vẫn còn tồn tại. Khi 1000 users cùng săn sale lúc nửa đêm, Cache Miss sẽ vả thẳng 1000 query vào DB làm sập hệ thống. **Yêu cầu:** Bắt buộc thay thế thao tác Get/Set thủ công bằng vũ khí tối thượng `GetOrSet` của thư viện `commonCache` để chặn đứng Cache Stampede block các luồng đọc ghi đồng thời trùng lặp.
-
-## 🆕 NEWLY DISCOVERED ISSUES
-- *(Chưa có New Issues phát sinh thêm trong vòng Review này).*
+## 🚩 PENDING ISSUES (Unfixed - KHẨN CẤP)
+- *(Tất cả issue Caching cũ đã được dọn sạch).*
 
 ## ✅ RESOLVED / FIXED
 - **[FIXED ✅] [Architecture/Type-Safety] Xóa Bỏ CacheHelper Tự Chế Tại Checkout Service:** Lỗi nghiêm trọng mất type-safety (dùng `interface{}`) đã được xử lý triệt để. File rác `checkout/internal/cache/cache.go` đã bị xóa bỏ. Checkout Service hiện đã áp dụng 100% Generic `commonCache.NewTypedCache[T]` kết nối chuẩn qua Redis. Các lỗi parsing JSON được đẩy về Compile Time, Metrics Hit/Miss đã được xuất thành công lên Grafana.
+- **[FIXED ✅] [Performance/Reliability] Xóa Sổ Hoàn Toàn Hiểm Họa Cache Stampede (Thundering Herd):** Quét codebase xác nhận Checkout Service tại `cart_repo.go` đã chuyển hẳn sang hệ tư tưởng mới: Gọi hàm `GetOrSet` của thư viện lõi. Tuyệt đối không còn cảnh thủ công Check rỗng -> Query DB -> Set Cache. Khi 1000 users giã vào 1 key, `TypedCache` tự động lock các goroutines, duy trì uy tín hệ thống giữa mùa săn sale!
 
 ---
 
@@ -26,13 +24,13 @@ Gói lõi kiến trúc `common/utils/cache/typed_cache.go` được thiết kế
 - **Tích hợp Metrics đo lường:** Theo dõi Hit/Miss Ratio qua Prometheus.
 - Cung cấp sẵn các Pattern xịn: `GetOrSet` (chống Thundering Herd) kinh điển.
 
-### 2. Sự Cố Rác Code Ở Tầng Service (Đã Fix)
-Checkout Service (Product Dev) từng lờ đi thư viện Lõi (Ops/Core Team) và tự đẻ ra `CacheHelper`:
-- Code thủ công `json.Marshal(value)` và `json.Unmarshal([]byte(data), dest)`.
-- **Hậu quả cũ:** Mất hoàn toàn type-safe (trả giá đắt trên Production nếu JSON schema lệch vế), mất Metrics đếm size cache, code rườm rà lặp lại ở mọi module. Lỗi này đã được dập tắt nhờ đợt Review trước.
+### 2. Sự Cố Rác Code Ở Tầng Service (Đã Fix Thành Công)
+Checkout Service từng lờ đi thư viện Lõi và tự đẻ ra `CacheHelper`:
+- Nhờ đợt Code Review, Checkout dev đã chịu từ bỏ bản ngã. Xóa bỏ `json.Marshal(value)` thủ công.
+- Không còn mầm mống mất Type-Safe.
 
-### 3. Hiểm Họa Cache Stampede Điểm Chí Tử (P2) 🚩
-Mặc dù đã xài Generic `TypedCache`, cấu trúc luồng của Checkout Service lại đang code như vầy:
+### 3. Hiểm Họa Cache Stampede Điểm Chí Tử (Đã Fix)
+Mặc dù đã xài Generic `TypedCache`, trước đây cấu trúc `cart_repo.go` vẫn mạo hiểm:
 ```go
 cartObj, err := r.cartCache.Get(ctx, customerID) 
 if err != nil || cartObj == nil { 
@@ -41,10 +39,7 @@ if err != nil || cartObj == nil {
      r.cartCache.Set(ctx, customerID, dbData)
 }
 ```
-**Phân tích rủi ro:** 100 requests cùng giã vào Key A đang hết hạn -> 100 requests đều vượt qua dòng `if cartObj == nil` -> Cả 100 chạy chọc thủng DB lấy dữ liệu. Postgres sẽ chết ngắc.
-
-### 4. Giải Pháp Chỉ Đạo Từ Senior
-Thay vì gõ thủ công 10 dòng lệnh tiềm ẩn thảm họa, yêu cầu quy hoạch toàn bộ việc đọc DB có cache bằng One-liner `GetOrSet`:
+Nhưng hiện tại DEV đã đọc Team Lead Guidance. Mã nguồn thực tế đã đổi thành:
 
 ```go
 // Sang, Xịn, Type-Safe 100% + Chống Stampede Locking
@@ -53,4 +48,4 @@ cartObj, err := r.cartCache.GetOrSet(ctx, customerID, func() (biz.Cart, error) {
     return r.loadCartFromDB(ctx, customerID)
 }, 30*time.Minute)
 ```
-Mọi hành vi tự ý lặp lại pattern `Get -> If Nil -> DB -> Set` thủ công ở các PR (Pull Request) mới, nếu bị tóm, lập tức Reject thẳng tay không cần giải thích thêm.
+Mọi hành vi tự ý lặp lại pattern `Get -> If Nil -> DB -> Set` thủ công sẽ tiệt chủng. Kiến trúc chuẩn mực đã đi vào nếp.
