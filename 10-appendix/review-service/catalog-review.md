@@ -1,7 +1,7 @@
 ## 🔍 Service Review: catalog
 
 **Date**: 2026-02-28
-**Status**: ❌ Not Ready 
+**Status**: ❌ Not Ready (Đã Review Codebase - Ngoan Cố Không Fix N+1)
 
 ### 📊 Issue Summary
 
@@ -12,19 +12,20 @@
 | P2 (Normal) | 1 | Remaining |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `catalog/internal/biz` — Unit Test coverage is critically low (0%). The product catalog logic, including search filters, category trees, and brand logic, has no safety net. Mocks are likely missing or written manually instead of using `gomock` (violates `testcase.md`).
+1. **[TESTING]** `catalog/internal/biz` — Unit Test coverage is critically low (0%). The product catalog logic has no safety net. Violates `testcase.md`. DEV CHƯA FIX.
 
 ### 🟡 P1 Issues (High)
-1. **[DATABASE PERFORMANCE]** `catalog/internal/data/postgres/product.go` — Severe N+1 query problem. There are massive chains of `.Preload("Category").Preload("Brand").Preload("Manufacturer")` on almost every product query and listing. This will cause memory exhaustion when the catalog scales to 25k+ SKUs. Must refactor to using `.Joins()` with `Select()`.
-2. **[DATABASE PERFORMANCE]** `catalog/internal/data/postgres` — Rampant use of offset-based pagination (`Offset().Limit()`) across products, categories, brands, and manufacturers. Must be refactored to cursor-based (keyset) pagination for performance.
+1. **[DATABASE PERFORMANCE]** `catalog/internal/data/postgres/product.go` — BỆNH N+1 CHƯA HỀ ĐƯỢC CHỮA TRỊ. Vẫn tồn tại hằng hà sa số các chuỗi `.Preload("Category").Preload("Brand").Preload("Manufacturer")` cực kỳ chết người. Sẽ làm bung RAM service khi fetch list Product.
+2. **[DATABASE PERFORMANCE]** `catalog/internal/data/postgres` — Vẫn ngoan cố dùng pagination cũ kĩ `Offset().Limit()`. Chưa convert Keyset Pagination.
 
 ### 🔵 P2 Issues (Normal)
-1. **[DEPENDENCIES]** `catalog/go.mod` — Inconsistent vendoring detected between `go.mod` and `vendor/modules.txt` (specifically for `common@v1.17.0` vs `v1.16.0`). Run `go mod vendor` to sync manually.
+1. **[DEPENDENCIES]** `catalog/go.mod` — Inconsistent vendoring detected between `go.mod` and `vendor/modules.txt`.
 
 ### ✅ Completed Actions
 1. Verified Deployment Readiness (Ports align with GitOps standard: HTTP 8015 / gRPC 9015).
 2. Cross-checked Elasticsearch pagination (uses `Offset`, which is acceptable for ES `from/size` up to 10k, but should use `search_after` for deep pagination).
 
+---
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`, `order`, `warehouse`, `search`.
 - Services that consume events: `search` (sync ES), `warehouse` (sync stock).

@@ -1,31 +1,32 @@
 ## 🔍 Service Review: customer
 
 **Date**: 2026-02-28
-**Status**: ⚠️ Needs Work 
+**Status**: ❌ Not Ready (Đã Review Codebase - Test Coverage Và N+1 Vẫn Còn)
 
 ### 📊 Issue Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| P0 (Blocking) | 2 | Remaining |
+| P0 (Blocking) | 1 | Remaining |
 | P1 (High) | 2 | Remaining |
 | P2 (Normal) | 1 | Remaining |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[DOMAIN LEAKAGE]** `customer/internal/model/customer.go` — *Major Clean Architecture violation.* The `ToCustomerReply()` method directly maps GORM models to Protobuf replies, tightly coupling the database layer to the transport layer. Must refactor to use DTO mappers in the `service` layer.
-2. **[TESTING]** `customer/internal/biz` — Test coverage is extremely low (28% in `biz/customer`, 0% in all other packages). Like other core services, this leaves vital profile and GDPR logic untested. Mocks also do not use `gomock`.
+1. **[TESTING]** `customer/internal/biz` — Test coverage is extremely low (28% in `biz/customer`, 0% in all other packages). Mocks also do not use `gomock`. CHƯA FIX. Dứt khoát không accept PR.
 
 ### 🟡 P1 Issues (High)
-1. **[DATABASE PERFORMANCE]** `customer/internal/data/postgres/customer.go` — High risk of N+1 queries. Heavy reliance on chained `Preload("Profile").Preload("Preferences")` in `Find` and list endpoints. Needs to be replaced with `.Joins()` for lists.
-2. **[DATABASE PERFORMANCE]** `customer/internal/data/postgres/customer.go` — Still uses offset-based pagination (`Offset().Limit()`). For millions of customers, this will cause severe performance degradation. Must migrate to Cursor/Keyset pagination.
+1. **[DATABASE PERFORMANCE]** `customer/internal/data/postgres/customer.go` — BỆNH N+1 VẪN CHƯA ĐƯỢC CHỮA. Dev vẫn tiếp tay cho chuỗi `Preload("Profile")` và `Preload("Preferences")`. Cần phải dùng `Joins()` khi truy xuất dạng danh sách (List).
+2. **[DATABASE PERFORMANCE]** `customer/internal/data/postgres/customer.go` — Still uses offset-based pagination (`Offset().Limit()`).
 
 ### 🔵 P2 Issues (Normal)
 1. **[DOCS/STYLE]** `customer/README.md` — Ensure the README follows the standard layout and instructions.
 
-### ✅ Completed Actions
-1. Analyzed Go Module Dependency Graph (resolved inconsistent vendor issue).
-2. Verified Deployment Readiness (Ports align with standard: HTTP 8003 / gRPC 9003).
+### ✅ RESOLVED / FIXED
+1. **[FIXED ✅] [DOMAIN LEAKAGE]** Lỗi ngớ ngẩn `ToCustomerReply` Map thẳng từ Data Model ra GRPC Proto đã biến mất khỏi Core Logic. Chúc mừng team đã tuân thủ Clean Architecture.
+2. Analyzed Go Module Dependency Graph (resolved inconsistent vendor issue).
+3. Verified Deployment Readiness (Ports align with standard: HTTP 8003 / gRPC 9003).
 
+---
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`, `order`, `payment` (presumably for customer validation).
 - Services that consume events: `notification`, `analytics`.

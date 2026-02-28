@@ -1,7 +1,7 @@
 ## 🔍 Service Review: notification
 
 **Date**: 2026-02-28
-**Status**: ⚠️ Needs Work 
+**Status**: ❌ Not Ready (Đã Review Codebase - Ngoan Cố Không Fix)
 
 ### 📊 Issue Summary
 
@@ -12,18 +12,19 @@
 | P2 (Normal) | 1 | Remaining |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `notification/internal/biz` — Unit Test coverage is critically low. While `message` has 50.3%, routing components such as `delivery`, `notification`, `preference`, `subscription`, and `template` sit at 0%. Furthermore, they continue the anti-pattern of manually writing mock structs using `testify` rather than implementing interface generation via `gomock`.
+1. **[TESTING]** `notification/internal/biz` — Unit Test coverage is critically low. Routing components (delivery, notification, preference, subscription, template) vẫn đang có 0% Code Coverage. Mocks bằng `testify` hoàn toàn là tàn dư hệ thống cũ, CHƯA ĐƯỢC FIX thành `gomock`.
 
 ### 🟡 P1 Issues (High)
-1. **[DATABASE PERFORMANCE]** `notification/internal/data/postgres/base_repo.go` — The core repository injects `.Offset(offset).Limit(pageSize)` into all list queries. Given that notifications scale linearly with user activity (emails, SMS, push logs), offset pagination guarantees database degradation over time. Must migrate to Keyset/Cursor pagination.
+1. **[DATABASE PERFORMANCE]** `notification/internal/data/postgres/base_repo.go` — The core repository injects `.Offset(offset).Limit(pageSize)` into all list queries. CHƯA ĐƯỢC FIX. 
 
 ### 🔵 P2 Issues (Normal)
-1. **[DEPENDENCIES]** `notification/go.mod` — Inconsistent vendoring detected (`go.mod` vs `vendor/modules.txt`). Run `go mod vendor` to resync dependencies (Common `v1.17.0`, Consul `v1.33.2`).
+1. **[DEPENDENCIES]** `notification/go.mod` — Inconsistent vendoring detected (`go.mod` vs `vendor/modules.txt`). 
 
 ### ✅ Completed Actions
 1. Verified Deployment Readiness (Ports align with GitOps standard: HTTP 8009 / gRPC 9009).
 2. Data Layer Check: No GORM `.Preload()` references that trigger destructive N+1 loops were detected.
 
+---
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`.
 - Services that consume events: Handles events from globally (`order`, `user`, `customer`, `loyalty-rewards`). 

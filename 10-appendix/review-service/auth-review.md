@@ -1,7 +1,7 @@
 ## 🔍 Service Review: auth
 
 **Date**: 2026-02-28
-**Status**: ⚠️ Needs Work 
+**Status**: ❌ Not Ready (Đã Review Codebase - Issue Tồn Đọng)
 
 ### 📊 Issue Summary
 
@@ -12,10 +12,10 @@
 | P2 (Normal) | 3 | Remaining |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `auth/internal/biz` — Unit Test coverage is critically low (~0%). Business rules for login, token generation, and validation have no safety net. This is a severe violation of `testcase.md`.
+1. **[TESTING]** `auth/internal/biz` — Unit Test coverage is critically low (~0%). Business rules for login, token generation, and validation have no safety net. CHƯA ĐƯỢC FIX. Dev cần bổ sung ngay các test table-driven.
 
 ### 🟡 P1 Issues (High)
-1. **[CODE QUALITY]** `auth` — `golangci-lint` fails with numerous warnings. Examples: `json(camel): got 'token_id' want 'tokenId' (tagliatelle)`. This breaks CI pipelines and indicates poor struct tagging practices.
+1. **[CODE QUALITY]** `auth` — Lỗi `golangci-lint`. Struct `TokenID` vẫn đang dùng json tag `token_id` gây ra cảnh báo tagliatelle (`got 'token_id' want 'tokenId'`). CHƯA FIXED.
 
 ### 🔵 P2 Issues (Normal)
 1. **[DOCS]** `auth/README.md` — The README does not conform strictly to the standard template or might be missing precise local run instructions.
@@ -26,6 +26,7 @@
 1. Analyzed Go Module Dependency Graph.
 2. Verified Deployment Readiness (Ports match `PORT_ALLOCATION_STANDARD.md`: 8000/9000).
 
+---
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`, `customer`.
 - Services that consume events: `notification` (presumably for login alerts).

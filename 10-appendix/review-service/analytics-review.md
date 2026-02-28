@@ -1,7 +1,7 @@
 ## 🔍 Service Review: analytics
 
 **Date**: 2026-02-28
-**Status**: ⚠️ Needs Work 
+**Status**: ❌ Not Ready (Đã Review Codebase - Issue Không Đổi)
 
 ### 📊 Issue Summary
 
@@ -12,7 +12,7 @@
 | P2 (Normal) | 1 | Remaining |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `analytics/internal/biz` — Unit Test coverage is critically low (16.9%). The core logic aggregating business metrics lacks validation. Furthermore, it continues the anti-pattern of manually writing mock structs using `testify` rather than implementing interface generation via `gomock`.
+1. **[TESTING]** `analytics/internal/biz` — Unit Test coverage is critically low (16.9%). Core logic thiếu validation. DEV VẪN CHƯA FIX: Vẫn đang dùng `testify` `mock.Mock` bằng tay thay vì dùng `gomock` chuẩn. Yêu cầu refactor khẩn cấp.
 
 ### 🟡 P1 Issues (High)
 *None detected. The repository layer structure is clean, devoid of chained GORM `.Preload()` references and destructive `.Offset().Limit()` pagination loops.*
@@ -24,6 +24,7 @@
 1. Verified Deployment Readiness (Ports align with GitOps standard: HTTP 8019 / gRPC 9019).
 2. Data Layer Check: Clean architecture implemented correctly regarding analytical queries without triggering N+1 transaction loops.
 
+---
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`, `admin`.
 - Services that consume events: None (it purely ingests events from all other domains: `order.placed`, `user.registered`, etc.).

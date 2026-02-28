@@ -18,6 +18,18 @@ This is a comprehensive **microservices-based e-commerce platform** built with m
 - ✅ **Cost Effective**: Pay only for resources you use
 - ✅ **Future-Proof**: Easy to add new features and integrations
 
+---
+
+## 🚨 SENIOR TA (VIRTUAL TEAM LEAD) REVIEW & MANDATES
+**Trạng thái Codebase (Review):** *Đã Audit & Đang Yêu Cầu Chấn Chỉnh Khẩn Cấp Hệ Tham Chiếu.*
+
+*Với tư cách là Senior Fullstack / Team Lead, dựa trên bộ tiêu chuẩn Clean Code và 10 Core Standards, tôi yêu cầu chấn chỉnh ngay các lỗi kiến trúc/hygiene đang tồn đọng trong cấu trúc Source Tree này:*
+
+1. **[🚨 P0 - Dependency Drift] Rác `vendor/`:** 12 Services đang tự ý đẩy `vendor/` codebase lên Git. Yêu cầu **XÓA SẠCH** toàn bộ `vendor/` khỏi repo. Nền tảng phải phụ thuộc vào Go Module Proxy và `go mod tidy` trong CI/CD. Cấm commit vendor.
+2. **[🚨 P1 - Architecture] Rác Dữ Liệu Lỗi Typo:** Thư mục `comman/` ở root là một typo tai hại mạo danh thư viện lõi `common/`. Các file `go.mod.old` hay `go.mod.bak2` nằm vương vãi ở production codebase là không thể chấp nhận. Yêu cầu 1 PR dọn dẹp sạch sẽ mớ rác này.
+3. **[🟡 P1 - Data Integrity] Inconsistency ở Schema Migration:** `payment` đang phình to với cả `migrations/` và `internal/migrations/`. `analytics` có file `001_*.sql` bị duplicate index. Yêu cầu chuẩn hoá duy nhất thư mục `migrations/` ở thư mục gốc của từng service và áp dụng đánh số nghiêm ngặt.
+4. **[🔵 P2 - Clean Code] Entrypoint Sai Chuẩn:** `analytics` và `checkout` đang xài `cmd/server/main.go` thay vì `cmd/<service_name>/main.go`. Yêu cầu rename cho đồng bộ toàn project.
+
 ### 🏗️ Technology Stack
 - **Backend**: Go 1.25+ with [Kratos Framework v2.9.1](https://go-kratos.dev/)
 - **Frontend**: React/Next.js with TypeScript
@@ -88,13 +100,13 @@ This is a comprehensive **microservices-based e-commerce platform** built with m
 
 This section captures the **actual source tree layout** observed in the repository (not just the intended standard). It is useful for onboarding, review scoping, and identifying deviations.
 
-### 🌟 Cross-cutting Notes (Observed)
-- **`vendor/` present in many Go services** (`auth`, `order`, `payment`, `warehouse`, `fulfillment`, `shipping`, `notification`, `search`, `analytics`, `location`, `review`, `loyalty-rewards`). Decide platform policy (commit vendor vs rely on module proxy) to avoid dependency drift.
-- **Migration layout inconsistencies**
-  - `payment/` contains both `migrations/` and `internal/migrations/`.
-  - `analytics/` has multiple `001_*.sql` files — verify Goose ordering/numbering.
-- **Entrypoint naming deviation**: `analytics` uses `cmd/server` instead of `cmd/<service>`.
-- **Repo hygiene**: root contains `comman/` (possible typo/duplicate of `common`). Some services contain backup files (e.g. `shipping/go.mod.old`, `review/go.mod.bak2`).
+### 🚩 CRITICAL CODEBASE ANOMALIES & TECH DEBTS (P0/P1)
+- 🚨 **`vendor/` rác codebase:** Xuất hiện tại `auth`, `order`, `payment`, `warehouse`, `fulfillment`, `shipping`, `notification`, `search`, `analytics`, `location`, `review`, `loyalty-rewards`. *Lệnh:* Xoá bỏ hoàn toàn và chỉ định `go mod tidy` qua CI/CD Pipeline.
+- 🟡 **Lệch chuẩn cấu trúc Migration:**
+  - `payment/` đang ôm đồm cả `migrations/` và `internal/migrations/`.
+  - `analytics/` vi phạm quy tắc đánh version: có nhiều file `001_*.sql` bị trùng lặp numbering.
+- 🔵 **Lệch chuẩn Entrypoint:** `analytics` và `checkout` sử dụng `cmd/server` đi ngược lại với đa số (`cmd/<service>`). Cần rename.
+- 🚨 **Hygiene Codebase Bẩn:** Root folder đẻ ra `comman/` (typo rác từ `common`), cùng với các mảnh vỡ rác như `shipping/go.mod.old`, `review/go.mod.bak2`. Cần bị xoá sổ.
 
 ### 📦 Logistics Services
 
@@ -935,20 +947,21 @@ docker-compose down
 
 ---
 
-## 🚨 KNOWN ISSUES
+## 🚨 VIRTUAL TEAM LEAD'S KNOWN ISSUES (MANDATORY REFACTOR)
 
-### Review Service
-- ⚠️ No integration tests
-- ⚠️ Cache not implemented
+**LƯU Ý:** Các service dưới đây đang vi phạm nghiêm trọng chuẩn mực kiến trúc chung của toàn hệ thống và trở thành Technical Debt khổng lồ. Yêu cầu refactor ngay!
 
-### Loyalty-Rewards Service  
-- 🔴 Common package not imported
-- 🔴 Monolithic structure (needs refactoring)
-- 🔴 No repository layer
-- 🔴 No service layer
-- 🔴 No tests
+### 🟡 Review Service (Nợ Kỹ Thuật P1)
+- ⚠️ **Thiếu Integration Tests:** Không có test end-to-end, rủi ro vỡ logic khi gọi sang Catalog/Order.
+- ⚠️ **Chưa Có Caching:** Vi phạm chuẩn tối ưu DB, nguy cơ nghẽn cổ chai (Bottleneck) khi traffic cao. Cần integrate `common/cache`.
 
-See [SERVICES_QUICK_STATUS.md](file:///Users/tuananh/Desktop/myproject/microservice/SERVICES_QUICK_STATUS.md) for details.
+### 🔴 Loyalty-Rewards Service (THẢM HỌA KIẾN TRÚC P0)
+- 🔴 **Tự Bơi, Không Dùng Core Lib:** Không import `common` package (vi phạm luật DRY của dự án). Hệ quả: Tái chế lại toàn bộ Error, Logs, Middlewares dư thừa.
+- 🔴 **Monolithic Structure:** Viết code kẹt cứng 1 cục (Spaghetti Code), không tách miền (Customer vs Points vs Campaigns).
+- 🔴 **Thiếu Trầm Trọng Tầng Repository & Service:** Adapter đâm chọc thẳng vào DB ở mọi nơi. Clean Architecture bị vứt xó.
+- 🔴 **Zero Tests:** Không một dòng Test Coverage nào. Không được phép merge lên Master.
+
+Xem chi tiết phương án đập đi xây lại tại [SERVICES_QUICK_STATUS.md](file:///Users/tuananh/Desktop/myproject/microservice/SERVICES_QUICK_STATUS.md).
 
 ---
 
