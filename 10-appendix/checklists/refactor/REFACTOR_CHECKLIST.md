@@ -162,7 +162,7 @@ Already migrated biz packages:
 - [ ] Service layer: wire `ListCursor` when cursor param provided
 
 **Order orders:**
-- [ ] Repository: add `ListCursor` to `orderRepo` using `CursorPaginator`
+- [x] Repository: `ListCursor` implemented using `CursorPaginator` — **Commit:** `996d400`
 - [ ] Proto: add `cursor`/`next_cursor` fields to `ListOrdersRequest/Response`
 - [ ] Service layer: wire cursor-based queries
 
