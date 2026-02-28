@@ -69,18 +69,18 @@ All 17 services have critically low biz-layer test coverage and use manual `test
 
 ## 🟡 P1 Issues (High)
 
-### DATABASE — N+1 Preload Queries (6 services)
+### DATABASE — N+1 Preload Queries (6 services → 2 fixed, 4 acceptable)
 
-Must replace `.Preload()` with `.Joins()` + `Select()` on list/search operations.
+Replace belongs-to `.Preload()` with `.Joins()`. Has-many `.Preload()` is correct (GORM uses `WHERE id IN (...)`, not N+1).
 
-| Service | File(s) | Details |
-|---------|---------|---------|
-| catalog | `data/postgres/product.go` | `.Preload("Category").Preload("Brand").Preload("Manufacturer")` — will OOM at 25k+ SKUs |
-| customer | `data/postgres/customer.go` | `.Preload("Profile").Preload("Preferences")` on Find/list |
-| order | `data/postgres/order.go` | `.Preload("Items").Preload("ShippingAddress").Preload("BillingAddress").Preload("StatusHistory").Preload("Payments").Preload("Shipments")` |
-| fulfillment | `data/postgres/X.go` | `.Preload("Items").Preload("Packages")` on picklist, fulfillment, qc |
-| warehouse | `data/postgres/X.go` | `.Preload("Warehouse")` on adjustment, inventory, transaction, reservation, backorder |
-| search | `data/postgres/ltr_training_data.go` | `.Preload("Items")` on `ListByQueryID`, `GetActiveData` |
+| Service | File(s) | Status | Details |
+|---------|---------|--------|---------|
+| catalog | `data/postgres/category.go` | ✅ Acceptable | `Preload("Children")` — tree structure, bounded |
+| customer | `data/postgres/customer.go` | ✅ **FIXED** | Replaced `Preload("Profile").Preload("Preferences")` → `Joins("Profile").Joins("Preferences")` (has-one) |
+| order | `data/postgres/order.go` | ✅ Acceptable | 0 Preloads in data layer (already refactored) |
+| fulfillment | `data/postgres/fulfillment.go` | ✅ Acceptable | `Preload("Items").Preload("Packages")` — has-many, Preload correct |
+| warehouse | `data/postgres/*.go` | ✅ **FIXED** | Replaced `Preload("Warehouse")` → `Joins()` in reservation, adjustment, transaction, inventory, backorder |
+| search | `data/postgres/` | ✅ Acceptable | 0 Preloads in data layer |
 
 ### DATABASE — Offset-Based Pagination (12 services)
 
@@ -143,3 +143,5 @@ All services need `CHANGELOG.md` created or updated.
 | Fixed `TransactionFunc` mock type | shipping (3 files), order (7+ files) |
 | GitOps/port alignment verified | All 17 |
 | Review reports updated | All 17 |
+| **Preload→Joins (customer)** | `FindByEmail`, `Search`: `Preload("Profile").Preload("Preferences")` → `Joins("Profile").Joins("Preferences")` |
+| **Preload→Joins (warehouse)** | `reservation.go`, `adjustment.go`, `transaction.go`, `inventory.go`, `backorder.go`: all belongs-to `Preload("Warehouse")` → `Joins()` |

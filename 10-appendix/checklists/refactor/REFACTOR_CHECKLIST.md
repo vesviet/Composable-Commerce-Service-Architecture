@@ -154,10 +154,17 @@ Already migrated biz packages:
 - [ ] Evaluate Casbin / OPA for policy-based access control
 - [ ] Replace hardcoded `RequireRole("admin")` patterns
 
-### Track Q: Cursor Pagination (P1, 8–10 days)
-- [ ] Migrate `warehouse` stock_transactions → `CursorPaginator`
-- [ ] Migrate `order` orders → `CursorPaginator`
-- [ ] Update proto — add `cursor`/`next_cursor` fields
+### Track Q: Cursor Pagination (P1, 8–10 days) — Partially Done
+
+**Warehouse stock_transactions:**
+- [x] Repository: `ListCursor`, `GetByWarehouseCursor`, `GetByProductCursor` already implemented using `CursorPaginator`
+- [ ] Proto: add `cursor`/`next_cursor` fields to `ListStockTransactionsRequest/Response`
+- [ ] Service layer: wire `ListCursor` when cursor param provided
+
+**Order orders:**
+- [ ] Repository: add `ListCursor` to `orderRepo` using `CursorPaginator`
+- [ ] Proto: add `cursor`/`next_cursor` fields to `ListOrdersRequest/Response`
+- [ ] Service layer: wire cursor-based queries
 
 ### Track R: GitOps Component Migration (P0-DRY, 5–8 days)
 - [ ] Migrate remaining 17 API deployments → `common-deployment` component
@@ -169,9 +176,14 @@ Already migrated biz packages:
 - [ ] Mandate `//go:generate mockgen` for all biz interfaces
 - [ ] Coverage campaign: target ≥60% for `order/biz/status`, `payment/biz/refund`
 
-### Track U: CronWorker Wrapper Adoption (P1, 1 day)
-- [ ] Wrap all manual Ticker/select cron loops with `commonWorker.NewCronWorker()`
-- [ ] Target services: order, analytics, catalog, customer
+### ~~Track U: CronWorker Wrapper Adoption (P1, 1 day)~~ — ✅ ALREADY DONE
+
+> **Re-analysis result:** All 4 services already use `commonWorker.NewCronWorker()`.
+> - `order`: 7 cron jobs — all use `CronWorker` (capture_retry, cod_auto_confirm, etc.)
+> - `analytics`: 3 cron jobs — all use `CronWorker` (aggregation, retention, alert_checker)
+> - `catalog`: 3 cron jobs — all use `CronWorker` (stock_sync, outbox_cleanup, materialized_view)
+> - `customer`: Uses `robfig/cron` for real cron expressions ("daily at 3 AM"), — different\npattern, not a Ticker/select loop. Legitimate use of expression-based scheduling.
+> - `catalog/outbox_worker`: Uses Ticker — this is an **outbox** worker, not a cron. Would need `common/outbox.Worker` migration (same pattern as S2), not `CronWorker`.
 
 ---
 
