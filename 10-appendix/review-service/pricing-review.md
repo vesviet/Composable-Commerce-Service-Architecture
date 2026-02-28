@@ -1,7 +1,7 @@
 ## 🔍 Service Review: pricing
 
 **Date**: 2026-02-28
-**Status**: ❌ Not Ready (Đã Review Codebase - Ngoan Cố Không Fix Lỗi Chậm DB)
+**Status**: ⚠️ Needs Work 
 
 ### 📊 Issue Summary
 
@@ -9,25 +9,26 @@
 |----------|-------|--------|
 | P0 (Blocking) | 1 | Remaining |
 | P1 (High) | 1 | Remaining |
-| P2 (Normal) | 1 | Remaining |
+| P2 (Normal) | 0 | Fixed |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `pricing/internal/biz` — Test coverage is extremely poor (28.5% in `price`, 0% in `calculation`, `currency`, `discount`, `dynamic`, `rule`, `tax`, `worker`). Missing coverage in these financial packages is a severe risk. Furthermore, generated mocks (`gomock`) are not used, violating the standard. CHƯA ĐƯỢC FIX.
+1. **[TESTING]** `pricing/internal/biz` — Coverage extremely poor (28.5% in `price`, 0% in `calculation`, `currency`, `discount`, `dynamic`, `rule`, `tax`, `worker`). No `gomock`.
 
 ### 🟡 P1 Issues (High)
-1. **[DATABASE PERFORMANCE]** `pricing/internal/data/postgres/X.go` — Widespread use of `.Offset(offset).Limit(limit)` for pagination (e.g., `exchange_rate.go`, `price.go`). Đây là mã nguồn chưa đạt độ sâu về tối ưu Postgres. CHƯA ĐƯỢC FIX. Must migrate to Cursor/Keyset pagination.
+1. **[DATABASE PERFORMANCE]** `pricing/internal/data/postgres/X.go` — Widespread offset-based pagination (`exchange_rate.go`, `price.go`). Must migrate to cursor/keyset.
 
 ### 🔵 P2 Issues (Normal)
-1. **[DEPENDENCIES]** `pricing/go.mod` — Run `go mod vendor` to resync dependencies because of vendoring inconsistencies (`go.mod` vs `vendor/modules.txt`).
+*All resolved.*
 
 ### ✅ Completed Actions
-1. Verified Deployment Readiness (Ports align with GitOps standard: HTTP 8002 / gRPC 9002).
-2. Codebase Check: Positive finding — no misuse of GORM `.Preload()` causing N+1 queries was detected in the data layer.
+1. ✅ Vendor sync: updated `common` to `v1.19.0`, ran `go mod tidy && go mod vendor`.
+2. ✅ Lint: `golangci-lint` passes with 0 warnings.
+3. ✅ Deployment Readiness verified (Ports: HTTP 8002 / gRPC 9002).
+4. ✅ No GORM `.Preload()` N+1 misuse detected.
 
----
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`, `catalog`, `order`.
-- Services that consume events: None directly impacted by structure changes. 
+- Services that consume events: None directly impacted.
 - Backward compatibility: ✅ Preserved.
 
 ### 🚀 Deployment Readiness
@@ -37,8 +38,9 @@
 - Migration safety: ✅ 
 
 ### Build Status
-- `golangci-lint`: ❌ Failing (vendor inconsistency).
-- `go build -mod=mod ./...`: ✅ Success
+- `golangci-lint`: ✅ 0 warnings
+- `go build ./...`: ✅ Success
+- `go test ./...`: ✅ Pass
 - `wire`: ✅ Generated 
 - Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
 - `bin/` Files: ✅ Removed 

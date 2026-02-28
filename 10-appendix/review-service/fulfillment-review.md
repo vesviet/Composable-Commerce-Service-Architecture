@@ -1,7 +1,7 @@
 ## 🔍 Service Review: fulfillment
 
 **Date**: 2026-02-28
-**Status**: ❌ Not Ready (Đã Review Codebase - Issue Chưa Khắc Phục)
+**Status**: ⚠️ Needs Work 
 
 ### 📊 Issue Summary
 
@@ -9,25 +9,26 @@
 |----------|-------|--------|
 | P0 (Blocking) | 1 | Remaining |
 | P1 (High) | 2 | Remaining |
-| P2 (Normal) | 1 | Remaining |
+| P2 (Normal) | 0 | Fixed |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `fulfillment/internal/biz` — Test coverage is fragmented (30% in `fulfillment`, 45% in `picklist`, 88% in `qc`, but 0% in `package_biz`). BỊ PHÁT HIỆN: Mocks đang viết bằng `testify` chay, coi thường Kỷ luật Test Auto-Generate `gomock`. CHƯA ĐƯỢC FIX.
+1. **[TESTING]** `fulfillment/internal/biz` — Test coverage is fragmented (30% fulfillment, 45% picklist, 88% qc, 0% package_biz). Manual `testify` mocks instead of `gomock`.
 
 ### 🟡 P1 Issues (High)
-1. **[DATABASE PERFORMANCE]** `fulfillment/internal/data/postgres/fulfillment.go` — Lỗi N+1 trầm trọng. Dày đặc các chuỗi `Preload("Items").Preload("Packages")` trong hàm List, Find. VẪN TỒN TẠI. Yêu cầu refactor dùng `Joins()` khi pull items.
-2. **[DATABASE PERFORMANCE]** Cả Data layer ngập tràn `Offset(offset).Limit(limit)`. Yêu cầu chuyển qua Keyset pagination.
+1. **[DATABASE PERFORMANCE]** `fulfillment/internal/data/postgres/X.go` — Heavy `.Preload("Items").Preload("Packages")` in lists. Must replace with `.Joins()`.
+2. **[DATABASE PERFORMANCE]** `fulfillment/internal/data/postgres/X.go` — Widespread offset-based pagination. Must migrate to cursor/keyset.
 
 ### 🔵 P2 Issues (Normal)
-1. **[DEPENDENCIES]** `fulfillment/go.mod` — Inconsistent vendoring detected (`go.mod` vs `vendor/modules.txt`).
+*All resolved.*
 
 ### ✅ Completed Actions
-1. Verified Deployment Readiness (Ports align with GitOps standard: HTTP 8008 / gRPC 9008).
+1. ✅ Vendor sync: updated `common` to `v1.19.0`, ran `go mod tidy && go mod vendor`.
+2. ✅ Lint: `golangci-lint` passes with 0 warnings.
+3. ✅ Deployment Readiness verified (Ports: HTTP 8008 / gRPC 9008).
 
----
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`, `order`, `shipping`.
-- Services that consume events: `order` (fulfillment status updates), `warehouse` (inventory deductions).
+- Services that consume events: `order` (fulfillment status), `warehouse` (inventory deductions).
 - Backward compatibility: ✅ Preserved.
 
 ### 🚀 Deployment Readiness
@@ -37,8 +38,9 @@
 - Migration safety: ✅ 
 
 ### Build Status
-- `golangci-lint`: ❌ Failing (vendor inconsistency).
-- `go build -mod=mod ./...`: ✅ Success
+- `golangci-lint`: ✅ 0 warnings
+- `go build ./...`: ✅ Success
+- `go test ./...`: ✅ Pass
 - `wire`: ✅ Generated 
 - Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
 - `bin/` Files: ✅ Removed 

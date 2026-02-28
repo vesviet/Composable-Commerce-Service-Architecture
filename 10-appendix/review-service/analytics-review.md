@@ -1,33 +1,33 @@
 ## 🔍 Service Review: analytics
 
 **Date**: 2026-02-28
-**Status**: ❌ Not Ready (Đã Review Codebase - Issue Không Đổi)
+**Status**: ⚠️ Needs Work 
 
 ### 📊 Issue Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
 | P0 (Blocking) | 1 | Remaining |
-| P1 (High) | 0 | Remaining |
-| P2 (Normal) | 1 | Remaining |
+| P1 (High) | 0 | — |
+| P2 (Normal) | 0 | Fixed |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `analytics/internal/biz` — Unit Test coverage is critically low (16.9%). Core logic thiếu validation. DEV VẪN CHƯA FIX: Vẫn đang dùng `testify` `mock.Mock` bằng tay thay vì dùng `gomock` chuẩn. Yêu cầu refactor khẩn cấp.
+1. **[TESTING]** `analytics/internal/biz` — Unit Test coverage is critically low (16.9%). Core logic aggregating business metrics lacks validation. Uses manual `testify` mock structs instead of `gomock`.
 
 ### 🟡 P1 Issues (High)
-*None detected. The repository layer structure is clean, devoid of chained GORM `.Preload()` references and destructive `.Offset().Limit()` pagination loops.*
+*None detected.*
 
 ### 🔵 P2 Issues (Normal)
-1. **[DEPENDENCIES]** `analytics/go.mod` — Inconsistent vendoring detected (`go.mod` vs `vendor/modules.txt`). Run `go mod vendor` to resync dependencies.
+*All resolved.*
 
 ### ✅ Completed Actions
-1. Verified Deployment Readiness (Ports align with GitOps standard: HTTP 8019 / gRPC 9019).
-2. Data Layer Check: Clean architecture implemented correctly regarding analytical queries without triggering N+1 transaction loops.
+1. ✅ Vendor sync: updated `common` to `v1.19.0`, ran `go mod tidy && go mod vendor`.
+2. ✅ Deployment Readiness verified (Ports: HTTP 8019 / gRPC 9019).
+3. ✅ Data Layer: Clean architecture, no N+1 loops.
 
----
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`, `admin`.
-- Services that consume events: None (it purely ingests events from all other domains: `order.placed`, `user.registered`, etc.).
+- Services that consume events: None (ingests events from all other domains).
 - Backward compatibility: ✅ Preserved.
 
 ### 🚀 Deployment Readiness
@@ -37,8 +37,9 @@
 - Migration safety: ✅ 
 
 ### Build Status
-- `golangci-lint`: ❌ Failing (vendor inconsistency).
-- `go build -mod=mod ./...`: ✅ Success
+- `golangci-lint`: ✅ 0 warnings
+- `go build ./...`: ✅ Success
+- `go test ./...`: ✅ Pass
 - `wire`: ✅ Generated 
 - Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
 - `bin/` Files: ✅ Removed 

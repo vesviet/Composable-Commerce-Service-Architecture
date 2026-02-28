@@ -1,7 +1,7 @@
 ## 🔍 Service Review: search
 
 **Date**: 2026-02-28
-**Status**: ❌ Not Ready (Đã Review Codebase)
+**Status**: ⚠️ Needs Work 
 
 ### 📊 Issue Summary
 
@@ -9,26 +9,26 @@
 |----------|-------|--------|
 | P0 (Blocking) | 1 | Remaining |
 | P1 (High) | 2 | Remaining |
-| P2 (Normal) | 1 | Remaining |
+| P2 (Normal) | 0 | Fixed |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `search/internal/biz` — Test coverage is fragmented (37.5% in `biz/search`, but 0% in `cms` and `ml`). The ML (Machine Learning for searches) and CMS search components require comprehensive coverage due to algorithmic complexity. Manual mock structs are used instead of `gomock`, violating the standard. CHƯA ĐƯỢC FIX.
+1. **[TESTING]** `search/internal/biz` — Coverage fragmented (37.5% in `biz/search`, 0% in `cms`, `ml`). Manual mocks instead of `gomock`.
 
 ### 🟡 P1 Issues (High)
-1. **[DATABASE PERFORMANCE]** `search/internal/data/postgres/ltr_training_data.go` — Uses chained `.Preload("Items")` on multiple list methods (such as `ListByQueryID` and `GetActiveData`), which creates N+1 query loops. Needs to be refactored to `.Joins()`. CHƯA ĐƯỢC FIX.
-2. **[DATABASE PERFORMANCE]** `search/internal/data/postgres/X.go` — Widespread use of `.Offset(offset).Limit(limit)` for pagination on postgres tables like `failed_event`, `sync_status`, and `ltr_training_data`. Needs to migrate to Cursor/Keyset pagination. CHƯA ĐƯỢC FIX.
+1. **[DATABASE PERFORMANCE]** `search/internal/data/postgres/ltr_training_data.go` — Chained `.Preload("Items")` on list methods creates N+1 loops. Must refactor to `.Joins()`.
+2. **[DATABASE PERFORMANCE]** `search/internal/data/postgres/X.go` — Widespread offset-based pagination. Must migrate to cursor/keyset.
 
 ### 🔵 P2 Issues (Normal)
-1. **[DEPENDENCIES]** `search/go.mod` — Inconsistent vendoring detected (`go.mod` vs `vendor/modules.txt`). Run `go mod vendor` to resync dependencies to prevent pipeline build failures.
+*All resolved.*
 
 ### ✅ Completed Actions
-1. Verified Deployment Readiness (Ports align with GitOps standard: HTTP 8017 / gRPC 9017).
-2. Checked Elasticsearch implementation: Verified the search service delegates searching to ES properly.
+1. ✅ Vendor sync: updated `common` to `v1.19.0`, ran `go mod tidy && go mod vendor`.
+2. ✅ Lint: `golangci-lint` passes with 0 warnings.
+3. ✅ Deployment Readiness verified (Ports: HTTP 8017 / gRPC 9017).
 
----
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`, `catalog`, `admin`.
-- Services that consume events: None (primarily an event consumer itself).
+- Services that consume events: None (event consumer itself).
 - Backward compatibility: ✅ Preserved.
 
 ### 🚀 Deployment Readiness
@@ -38,8 +38,9 @@
 - Migration safety: ✅ 
 
 ### Build Status
-- `golangci-lint`: ❌ Failing (vendor inconsistency).
-- `go build -mod=mod ./...`: ✅ Success
+- `golangci-lint`: ✅ 0 warnings
+- `go build ./...`: ✅ Success
+- `go test ./...`: ⚠️ Integration tests fail (need running Elasticsearch at localhost:9200). Unit tests pass.
 - `wire`: ✅ Generated 
 - Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
 - `bin/` Files: ✅ Removed 
