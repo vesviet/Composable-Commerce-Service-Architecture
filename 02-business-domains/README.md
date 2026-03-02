@@ -109,9 +109,9 @@ Each domain represents a bounded context with:
 ## 📊 **Domain Metrics**
 
 ### **Coverage**
-- **Commerce**: 8 core business processes documented
+- **Commerce**: 7 core business processes documented
 - **Inventory**: 3 operational workflows documented  
-- **Customer**: 5 customer-facing processes documented
+- **Customer**: 4 customer-facing processes documented
 - **Content**: 3 content management processes documented
 
 ### **Maturity**
@@ -122,6 +122,6 @@ Each domain represents a bounded context with:
 
 ---
 
-**Last Updated**: January 29, 2026  
+**Last Updated**: March 2, 2026  
 **Review Cycle**: Quarterly domain boundary review  
 **Maintained By**: Product & Engineering Teams
