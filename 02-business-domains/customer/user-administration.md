@@ -95,10 +95,24 @@ Allows granular access control beyond roles (e.g., "User X can access `reporting
 - `SUSPENDED`: Temporarily blocked (security risk).
 - `DELETED`: Soft deleted.
 
+## Granular Permission Matrix (RBAC v2)
+
+Following the recent security refactoring, permissions have been broken down from bulk rights into fine-grained atomic operations to adhere to the Principle of Least Privilege.
+
+| Category | Permission Key | Description | Typical Role |
+| :--- | :--- | :--- | :--- |
+| **User Management** | `user:edit_info` | Update basic user profile information. | HR, Admin |
+| **User Management** | `user:edit_group` | Assign or remove users from permission groups. | Super Admin |
+| **User Management** | `user:reset_2fa` | Reset a user's 2FA/MFA token. | IT Support |
+| **Entity Data** | `entity:add_info` | Create new core records (products, customers). | Manager |
+| **Entity Data** | `entity:edit_info` | Modify existing core records. | Manager |
+| **Business Rules** | `rule:edit` | Modify pricing, promotion, or routing rules. | Ops Mngr |
+| **Store Ops** | `store:change` | Switch administrative context between store regions. | Region Mngr |
+
 ### Role Scope
-- `GLOBAL`: Applies platform-wide.
-- `SERVICE_SPECIFIC`: Applies to single service.
-- `READ_ONLY`: Restricted modification rights.
+- `GLOBAL`: Applies platform-wide across all stores and brands.
+- `SERVICE_SPECIFIC`: Applies to single microservice domain (e.g., `catalog` only).
+- `READ_ONLY`: Restricted modification rights, allows `GET` operations only.
 
 ## Integration Points
 

@@ -15,7 +15,6 @@ Core e-commerce business processes and revenue generation
 - **[Checkout Process](commerce/cart-checkout.md)** - Checkout flow and order creation
 - **[Order Management](commerce/order-management.md)** - Order lifecycle and status management
 - **[Payment Processing](commerce/payment-processing.md)** - Payment authorization and capture
-- **[Return & Refund Management](commerce/return-refund-management.md)** - Returns, exchanges, and refunds
 - **[Pricing Management](commerce/pricing-management.md)** - Dynamic pricing and price calculation
 - **[Promotion Management](commerce/promotion-management.md)** - Promotional campaigns and coupon processing
 - **[Tax Calculation](commerce/tax-calculation.md)** - Tax computation and compliance
@@ -32,13 +31,23 @@ Customer-facing services and user management
 - **[Customer Management](customer/customer-management.md)** - Customer profiles and preferences
 - **[User Administration](customer/user-administration.md)** - Admin user management and roles
 - **[Location & Address Management](customer/location-address-management.md)** - Geographic data and addresses
-- **[Notification Management](customer/notification-management.md)** - Multi-channel messaging
 
 ### **📄 Content Domain**
 Content management and product discovery
 - **[Catalog Management](content/catalog-management.md)** - Product catalog and category management
 - **[Search & Discovery](content/search-discovery.md)** - Product search and discovery workflows
 - **[Review Management](content/review-management.md)** - Customer reviews and ratings
+
+### **🛍️ Post-Purchase Domain**
+After-sales support, loyalty, and reverse logistics
+- **[Return & Refund Management](post-purchase/return-refund-management.md)** - Returns, exchanges, and refunds
+- **[Loyalty & Rewards](post-purchase/loyalty-rewards-management.md)** - Points, tiers, and referral programs
+
+### **⚙️ Platform & Operations Domain**
+Shared infrastructure, system operations, and data analytics
+- **[Analytics & Reporting](platform-operations/analytics-management.md)** - Platform-wide data insights
+- **[Audit Logs & Common Ops](platform-operations/audit-logs-management.md)** - System audit trails and shared tasks
+- **[Notification Management](platform-operations/notification-management.md)** - Multi-channel messaging
 
 ---
 
