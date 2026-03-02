@@ -44,7 +44,7 @@ This section contains the foundational architectural documentation for our micro
 ### **Technical Standards**
 - **Clean Architecture**: Dependency inversion and separation of concerns
 - **Microservices Patterns**: Service mesh, circuit breakers, bulkheads
-- **Event Sourcing**: Immutable event logs for audit and replay
+- **Transactional Outbox**: Reliable event publishing with guaranteed delivery
 - **CQRS**: Command Query Responsibility Segregation where appropriate
 - **GitOps**: Declarative infrastructure and application deployment with Kustomize
 
@@ -96,7 +96,7 @@ For new team members, we recommend reading in this order:
 ## 📊 **System Metrics**
 
 ### **Scale**
-- **Services**: 24 deployable microservices + 5 infrastructure services
+- **Services**: 23 deployable services (21 Go + 2 frontends)
 - **Events**: 50+ event types across domains
 - **APIs**: 200+ endpoints with OpenAPI specs
 - **Databases**: 15+ domain-specific databases
@@ -111,7 +111,6 @@ For new team members, we recommend reading in this order:
 
 ---
 
-**Last Updated**: February 7, 2026  
+**Last Updated**: March 2, 2026  
 **Review Cycle**: Monthly architecture review  
-**Maintained By**: Architecture Team  
-**GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
+**Maintained By**: Architecture Team

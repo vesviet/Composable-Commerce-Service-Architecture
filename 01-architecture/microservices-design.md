@@ -17,7 +17,7 @@ Our microservices are organized around business domains rather than technical la
 Business Domains → Microservices Mapping
 ├── Commerce Domain
 │   ├── Order Service (order lifecycle)
-│   ├── Cart Service (shopping cart)
+│   ├── Checkout Service (cart & checkout)
 │   └── Payment Service (payment processing)
 ├── Inventory Domain
 │   ├── Warehouse Service (stock management)
@@ -257,21 +257,20 @@ func NewServer(config *Config) (*Server, error) {
 JWT-based authentication with service-to-service security:
 
 ```go
-// JWT validation middleware
-func JWTMiddleware(secret []byte) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        token := extractToken(c.GetHeader("Authorization"))
-        
-        claims, err := validateJWT(token, secret)
-        if err != nil {
-            c.JSON(401, gin.H{"error": "Unauthorized"})
-            c.Abort()
-            return
+// JWT validation middleware (Kratos)
+func JWTMiddleware(keyFunc jwt.Keyfunc) middleware.Middleware {
+    return func(handler middleware.Handler) middleware.Handler {
+        return func(ctx context.Context, req interface{}) (interface{}, error) {
+            token := jwt.ExtractTokenFromContext(ctx)
+            
+            claims, err := jwt.ParseToken(token, keyFunc)
+            if err != nil {
+                return nil, errors.Unauthorized("UNAUTHORIZED", "invalid token")
+            }
+            
+            ctx = jwt.NewContext(ctx, claims)
+            return handler(ctx, req)
         }
-        
-        c.Set("user_id", claims.UserID)
-        c.Set("roles", claims.Roles)
-        c.Next()
     }
 }
 ```
@@ -416,5 +415,5 @@ func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderReque
 
 ---
 
-**Last Updated**: January 26, 2026  
+**Last Updated**: March 2, 2026  
 **Maintained By**: Architecture Team

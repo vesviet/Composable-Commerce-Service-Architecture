@@ -82,7 +82,7 @@ CREATE TABLE orders (
   order_number VARCHAR(50) UNIQUE NOT NULL,
   customer_id VARCHAR(36) NOT NULL, -- Customer ID or session ID
   status VARCHAR(20) NOT NULL DEFAULT 'confirmed',
-  currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+  currency VARCHAR(3) NOT NULL DEFAULT 'VND',
   subtotal DECIMAL(10,2) DEFAULT 0,
   tax_amount DECIMAL(10,2) DEFAULT 0,
   shipping_amount DECIMAL(10,2) DEFAULT 0,
@@ -424,10 +424,10 @@ type DatabaseConfig struct {
 }
 ```
 
-#### Event Sourcing for Audit
+#### Transactional Outbox for Reliable Events
 ```sql
--- Event store for audit and replay
-CREATE TABLE event_store (
+-- Outbox table for reliable event publishing
+CREATE TABLE event_outbox (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   aggregate_id UUID NOT NULL,
   aggregate_type VARCHAR(100) NOT NULL,
@@ -438,7 +438,7 @@ CREATE TABLE event_store (
 );
 
 -- Index for event replay
-CREATE INDEX idx_event_store_aggregate ON event_store(aggregate_id, event_version);
+CREATE INDEX idx_event_outbox_aggregate ON event_outbox(aggregate_id, event_version);
 ```
 
 ---
@@ -460,7 +460,7 @@ DELETE FROM checkout_sessions
 WHERE expires_at < NOW() - INTERVAL '7 days';
 
 -- Event logs: 1 year retention
-DELETE FROM event_store 
+DELETE FROM event_outbox 
 WHERE created_at < NOW() - INTERVAL '1 year';
 ```
 
@@ -736,6 +736,6 @@ Each service maintains its own schema version:
 
 ---
 
-**Last Updated**: 2026-01-27  
+**Last Updated**: 2026-03-02  
 **Maintained By**: Data Architecture Team  
 **Review Cycle**: Quarterly architecture review

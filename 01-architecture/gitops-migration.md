@@ -268,10 +268,10 @@ deployment_time: 35-45 minutes (full platform)
 ```yaml
 changes:
   manifests_created: 240+
-    - 24 services × 10 manifests per service
+    - 23 services × 10 manifests per service
     
   kustomizations_created: 72
-    - 24 services × 3 (base + 2 overlays)
+    - 23 services × 3 (base + 2 overlays)
     
   components_created: 3
     - common-infrastructure-envvars
@@ -373,7 +373,7 @@ components:
    - Updated ArgoCD configuration
 
 3. **[README.md](README.md)**
-   - Updated system metrics (24 deployable services)
+   - Updated system metrics (23 deployable services)
    - Added GitOps reference
    - Updated last updated date
 
@@ -630,5 +630,5 @@ If you encounter issues with the migration:
 **Status**: ✅ Completed  
 **Legacy Repository**: `argocd/` (deprecated, kept for reference)  
 **Active Repository**: `gitops/` (Kustomize-based)  
-**Last Updated**: February 7, 2026  
+**Last Updated**: March 2, 2026  
 **Maintained By**: Platform Engineering Team

@@ -270,27 +270,23 @@ func NewPerformanceMetrics() *PerformanceMetrics {
     }
 }
 
-// Performance middleware
-func (m *PerformanceMetrics) HTTPMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        start := time.Now()
-        
-        c.Next()
-        
-        duration := time.Since(start)
-        status := strconv.Itoa(c.Writer.Status())
-        
-        m.RequestDuration.WithLabelValues(
-            c.Request.Method,
-            c.FullPath(),
-            status,
-        ).Observe(duration.Seconds())
-        
-        m.RequestCount.WithLabelValues(
-            c.Request.Method,
-            c.FullPath(),
-            status,
-        ).Inc()
+// Performance middleware (Kratos)
+func (m *PerformanceMetrics) HTTPMiddleware() middleware.Middleware {
+    return func(handler middleware.Handler) middleware.Handler {
+        return func(ctx context.Context, req interface{}) (interface{}, error) {
+            start := time.Now()
+            
+            reply, err := handler(ctx, req)
+            
+            duration := time.Since(start)
+            info, _ := transport.FromServerContext(ctx)
+            method := info.Operation()
+            
+            m.RequestDuration.WithLabelValues(method).Observe(duration.Seconds())
+            m.RequestCount.WithLabelValues(method).Inc()
+            
+            return reply, err
+        }
     }
 }
 ```
@@ -322,32 +318,24 @@ func InitTracing(serviceName string) (*trace.TracerProvider, error) {
     return tp, nil
 }
 
-// Tracing middleware for performance analysis
-func TracingMiddleware(serviceName string) gin.HandlerFunc {
+// Tracing middleware for performance analysis (Kratos)
+func TracingMiddleware(serviceName string) middleware.Middleware {
     tracer := otel.Tracer(serviceName)
     
-    return func(c *gin.Context) {
-        ctx, span := tracer.Start(c.Request.Context(), c.FullPath())
-        defer span.End()
-        
-        // Add request attributes
-        span.SetAttributes(
-            attribute.String("http.method", c.Request.Method),
-            attribute.String("http.url", c.Request.URL.String()),
-            attribute.String("user.id", c.GetString("user_id")),
-        )
-        
-        c.Request = c.Request.WithContext(ctx)
-        c.Next()
-        
-        // Add response attributes
-        span.SetAttributes(
-            attribute.Int("http.status_code", c.Writer.Status()),
-            attribute.Int("http.response_size", c.Writer.Size()),
-        )
-        
-        if c.Writer.Status() >= 400 {
-            span.SetStatus(codes.Error, "HTTP Error")
+    return func(handler middleware.Handler) middleware.Handler {
+        return func(ctx context.Context, req interface{}) (interface{}, error) {
+            info, _ := transport.FromServerContext(ctx)
+            ctx, span := tracer.Start(ctx, info.Operation())
+            defer span.End()
+            
+            reply, err := handler(ctx, req)
+            
+            if err != nil {
+                span.SetStatus(codes.Error, err.Error())
+                span.RecordError(err)
+            }
+            
+            return reply, err
         }
     }
 }
@@ -475,22 +463,14 @@ WHERE status = 'active' AND inventory_count > 0;
 Efficient data serialization and compression:
 
 ```go
-// Response optimization middleware
-func ResponseOptimizationMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // Enable compression
-        if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-            c.Header("Content-Encoding", "gzip")
-            c.Header("Vary", "Accept-Encoding")
+// Response optimization middleware (Kratos)
+func ResponseOptimizationMiddleware() middleware.Middleware {
+    return func(handler middleware.Handler) middleware.Handler {
+        return func(ctx context.Context, req interface{}) (interface{}, error) {
+            reply, err := handler(ctx, req)
+            // Kratos handles compression and content negotiation via transport layer
+            return reply, err
         }
-        
-        // Set cache headers for static content
-        if isStaticContent(c.Request.URL.Path) {
-            c.Header("Cache-Control", "public, max-age=31536000") // 1 year
-            c.Header("ETag", generateETag(c.Request.URL.Path))
-        }
-        
-        c.Next()
     }
 }
 
@@ -867,7 +847,7 @@ groups:
 
 ---
 
-**Last Updated**: January 29, 2026  
+**Last Updated**: March 2, 2026  
 **Performance Review**: Weekly performance review  
 **Maintained By**: Performance Team & Architecture Team  
 **SLA Review**: Monthly SLA assessment

@@ -167,20 +167,25 @@ type Role struct {
     Permissions []Permission `json:"permissions"`
 }
 
-// Authorization middleware
-func RequirePermission(resource, action string) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        userID := c.GetString("user_id")
-        roles := c.GetStringSlice("roles")
-        
-        hasPermission := s.authzService.CheckPermission(userID, roles, resource, action)
-        if !hasPermission {
-            c.JSON(403, gin.H{"error": "Insufficient permissions"})
-            c.Abort()
-            return
+// Authorization middleware (Kratos)
+func RequirePermission(resource, action string) middleware.Middleware {
+    return func(handler middleware.Handler) middleware.Handler {
+        return func(ctx context.Context, req interface{}) (interface{}, error) {
+            claims, ok := jwt.FromContext(ctx)
+            if !ok {
+                return nil, errors.Unauthorized("UNAUTHORIZED", "missing credentials")
+            }
+            
+            userID := claims.(jwt.MapClaims)["user_id"].(string)
+            roles := claims.(jwt.MapClaims)["roles"].([]interface{})
+            
+            hasPermission := checkPermission(userID, roles, resource, action)
+            if !hasPermission {
+                return nil, errors.Forbidden("FORBIDDEN", "insufficient permissions")
+            }
+            
+            return handler(ctx, req)
         }
-        
-        c.Next()
     }
 }
 ```
@@ -259,28 +264,31 @@ spec:
 ### **API Gateway Security**
 Centralized security controls at the gateway level:
 
-```yaml
-# Kong security plugins
-plugins:
-- name: rate-limiting
-  config:
-    minute: 100
-    hour: 1000
-    policy: local
-- name: jwt
-  config:
-    secret_is_base64: false
-    key_claim_name: kid
-    claims_to_verify: ["exp", "iat"]
-- name: cors
-  config:
-    origins: ["https://yourdomain.com"]
-    methods: ["GET", "POST", "PUT", "DELETE"]
-    headers: ["Accept", "Content-Type", "Authorization"]
-    credentials: true
-- name: ip-restriction
-  config:
-    deny: ["192.168.1.0/24"] # Block internal networks from external access
+```go
+// Gateway Service security middleware (Kratos-based)
+func NewSecurityMiddleware(authClient authv1.AuthServiceClient) middleware.Middleware {
+    return func(handler middleware.Handler) middleware.Handler {
+        return func(ctx context.Context, req interface{}) (interface{}, error) {
+            // Rate limiting
+            if err := rateLimiter.Allow(ctx); err != nil {
+                return nil, errors.TooManyRequests("RATE_LIMITED", "too many requests")
+            }
+            
+            // JWT validation
+            token := transport.ExtractToken(ctx)
+            claims, err := authClient.ValidateToken(ctx, &authv1.ValidateTokenRequest{Token: token})
+            if err != nil {
+                return nil, errors.Unauthorized("INVALID_TOKEN", "invalid or expired token")
+            }
+            
+            // Set user context
+            ctx = context.WithValue(ctx, "user_id", claims.UserId)
+            ctx = context.WithValue(ctx, "roles", claims.Roles)
+            
+            return handler(ctx, req)
+        }
+    }
+}
 ```
 
 ---
@@ -794,7 +802,7 @@ Service level agreements for security operations:
 
 ---
 
-**Last Updated**: January 29, 2026  
+**Last Updated**: March 2, 2026  
 **Security Review**: Monthly security architecture review  
 **Maintained By**: Security Team & Architecture Team  
 **Classification**: Internal Use Only

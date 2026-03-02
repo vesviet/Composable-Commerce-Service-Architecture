@@ -285,7 +285,7 @@ gitops/
 │       ├── apps/             # Production environment applications
 │       ├── projects/         # ArgoCD projects
 │       └── resources/        # Environment-specific resources
-├── apps/                     # Application configurations (24 services)
+├── apps/                     # Application configurations (23 services)
 │   ├── auth/
 │   │   ├── base/             # Base manifests
 │   │   ├── overlays/
@@ -297,7 +297,7 @@ gitops/
 │   ├── catalog/
 │   ├── checkout/
 │   ├── order/
-│   └── ...                   # 24 deployable services
+│   └── ...                   # 23 deployable services
 ├── infrastructure/            # Infrastructure components
 │   ├── databases/            # PostgreSQL, Redis configurations
 │   ├── monitoring/           # Prometheus, Grafana, AlertManager
@@ -857,7 +857,7 @@ pipeline:
 
 ---
 
-**Last Updated**: February 7, 2026  
+**Last Updated**: March 2, 2026  
 **Review Cycle**: Quarterly  
 **Maintained By**: Platform Engineering Team  
 **GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
