@@ -6,6 +6,7 @@
 **Reference**: `docs/10-appendix/ecommerce-platform-flows.md` §3 (Search & Discovery)
 
 > Previous sprint fixes are preserved as `✅ Fixed (Sprint N)`. New issues found in this audit use `[NEW-*]` tags.
+> **Audit 2026-03-02**: EDGE-01 mitigated — hourly `ReconciliationWorker` in `search/internal/worker/reconciliation_worker.go` re-indexes missing products.
 
 ---
 
@@ -317,7 +318,7 @@ All consumers and cron workers are registered in `workers.go`. No missing regist
 | ID | Description | Fix |
 |----|-------------|-----|
 | **[NEW-02]** | ✅ **FIXED:** DLQ failed retry leaves status "pending" — no operational visibility | Sets status to `"retrying"` and iterates both "pending" and "retrying" every execution; `"failed"` when exhausted |
-| **EDGE-01** | Soft-deleted product remains in ES for up to 6h if `product.deleted` event DLQ'd | Reduce orphan cleanup interval or add monitoring alert for product.deleted DLQ depth |
+| ~~**EDGE-01**~~ | ~~Soft-deleted product remains in ES for up to 6h if `product.deleted` event DLQ'd~~ | ✅ Mitigated — hourly `ReconciliationWorker` detects and re-indexes missing products (verified 2026-03-02) |
 
 ### 🔵 P2 — Roadmap / Tech Debt
 

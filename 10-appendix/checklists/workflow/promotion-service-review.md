@@ -4,7 +4,8 @@
 **Reviewer**: Antigravity Agent
 **Services Reviewed**: `promotion/`
 **Dependencies**: catalog, checkout, gateway, order (proto consumers)
-**Scope**: Business logic, data consistency, error handling, events, GitOps, cron/worker.
+**Scope**: Business logic, data consistency, error handling, events, GitOps, cron/worker.  
+**Audit**: 2026-03-02 — P1-2 (N+1 GetTopPerforming) and P1-3 (N+1 CustomerHistory) verified FIXED with bulk queries
 
 ---
 
@@ -272,8 +273,8 @@
 | # | Issue | Status |
 |---|-------|--------|
 | P1-1 | Outbox poll interval 30s (too slow) | ✅ **FIXED** (5s) |
-| P1-2 | `GetTopPerformingPromotions` N+1 queries | ⚠️ Remaining |
-| P1-3 | `GetCustomerPromotionHistory` N+1 queries | ⚠️ Remaining |
+| P1-2 | ~~`GetTopPerformingPromotions` N+1 queries~~ | ✅ FIXED — uses `GetBulkUsageStats` + `GetBulkCouponStats` (2 queries instead of 2N) |
+| P1-3 | ~~`GetCustomerPromotionHistory` N+1 queries~~ | ✅ FIXED — uses `GetPromotionsByIDs` batch load (1 query instead of N) |
 | P1-4 | `isPromotionApplicable` uses `context.Background()` | ✅ **FIXED** |
 | P1-5 | Main deployment missing `secretRef: promotion-secrets` | ✅ **FIXED** |
 | P1-6 | No HPA for worker or main deployment | ✅ **FIXED** (worker HPA) |
@@ -295,8 +296,8 @@
 ### ⚡ High Priority (P1 — fix within sprint)
 
 - [x] **P1-1**: ✅ Change outbox poll interval from 30s → 5s
-- [ ] **P1-2**: Refactor `GetTopPerformingPromotions` to use `GetBulkUsageStats` + `GetBulkCouponStats`
-- [ ] **P1-3**: Batch-load promotions and coupons in `GetCustomerPromotionHistory`
+- [x] ~~**P1-2**~~: ✅ `GetTopPerformingPromotions` now uses `GetBulkUsageStats` + `GetBulkCouponStats` (verified `usage_tracking.go:277-284`)
+- [x] ~~**P1-3**~~: ✅ `GetCustomerPromotionHistory` now uses `GetPromotionsByIDs` batch load (verified `usage_tracking.go:378`)
 - [x] **P1-4**: ✅ Replace `context.Background()` with `ctx` in `isPromotionApplicable:272`
 - [x] **P1-5**: ✅ Add `secretRef: promotion-secrets` to main `deployment.yaml`
 - [x] **P1-6**: ✅ Create HPA for worker deployment

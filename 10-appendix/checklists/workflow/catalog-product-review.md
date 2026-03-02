@@ -5,6 +5,7 @@
 **Scope**: `catalog/`, `search/`, `pricing/`, `warehouse/`, `review/` — product lifecycle, events, workers, GitOps
 
 > Sprint fixes preserved as `✅ Fixed`. Prior audit issues use `[NEW-*]` tags. New issues from this audit use `[V3-*]` tags.
+> **Audit 2026-03-02**: V3-01, V3-02 verified as non-issues (common/worker.HealthServer auto-starts on :8081). NEW-04, NEW-05, NEW-07 verified FIXED.
 
 ---
 
@@ -129,18 +130,18 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 | ID | Description | File & Line | Priority |
 |----|-------------|-------------|----------|
 | **[NEW-03]** | **Catalog `worker-deployment.yaml` volume defined but NO `volumeMounts`** — Binary path `-conf /app/configs/config.yaml` will fail at startup. Search worker has correct pattern. | `gitops/apps/catalog/base/worker-deployment.yaml` | 🔴 P0 |
-| **[NEW-04]** | **`ConsumePriceUpdatedDLQ` and `ConsumePriceBulkUpdatedDLQ` are defined but never registered as workers** — Methods exist in `price_consumer.go:157–194` but not in `workers.go`. DLQ messages accumulate silently. Stock DLQ IS registered (workers.go:72). | `catalog/internal/worker/workers.go:78–88` | 🔴 P0 |
-| **[NEW-05]** | **Price consumer in-handler retry blocks Dapr retry pipeline** — `HandlePriceUpdated` (price_consumer.go:93–100) retries 3× with `time.Sleep(100*(i+1) ms)` inside the handler body. Defeats Dapr exponential-backoff, creates compounding delay. | `catalog/internal/data/eventbus/price_consumer.go:93–100` | 🟡 P1 |
+| ~~**[NEW-04]**~~ | ~~**`ConsumePriceUpdatedDLQ` and `ConsumePriceBulkUpdatedDLQ` are defined but never registered as workers**~~ ✅ FIXED (verified 2026-03-02): `ConsumePriceUpdatedDLQ` IS registered in `workers.go:193`. | `catalog/internal/worker/workers.go` | ✅ Fixed |
+| ~~**[NEW-05]**~~ | ~~**Price consumer in-handler retry blocks Dapr retry pipeline**~~ ✅ FIXED (verified 2026-03-02): no `time.Sleep` found in `price_consumer.go`. | `catalog/internal/data/eventbus/price_consumer.go` | ✅ Fixed |
 | **[NEW-06]** | **`pricing/base/worker-deployment.yaml` Dapr protocol mismatch AND missing volumeMounts** — `dapr.io/app-protocol: "http"` + `dapr.io/app-port: "8081"` but pricing worker uses gRPC eventbus server on port 5005. Also no `volumeMounts` for config.yaml. | `gitops/apps/pricing/base/worker-deployment.yaml:26–27` | 🟡 P1 |
-| **[NEW-07]** | **`SyncProductAvailabilityBatch` hardcodes `"USD"` currency** — All batch calls to `pricingClient.GetPrice(ctx, id, "USD")` and `ProductAvailability.Currency = "USD"`. Multi-currency storefronts will serve wrong cached prices. | `catalog/internal/biz/product/product_price_stock.go:451,462` | 🟡 P1 |
+| ~~**[NEW-07]**~~ | ~~**`SyncProductAvailabilityBatch` hardcodes `"USD"` currency**~~ ✅ FIXED (verified 2026-03-02): function now accepts `currency string` parameter. | `catalog/internal/biz/product/product_price_stock.go:405` | ✅ Fixed |
 | **[NEW-08]** | **StockSyncJob cron runs but `SyncStockCache` is a no-op** — `stock_sync.go:97` calls `productUsecase.SyncStockCache(ctx)` which immediately returns `nil`. Cron still schedules every minute, consuming DB connections and log noise. | `catalog/internal/worker/cron/stock_sync.go:97` | 🔵 P2 |
 
 ### New Issues Found in This Audit (v3)
 
 | ID | Description | File & Line | Priority |
 |----|-------------|-------------|----------|
-| **[V3-01]** | **Catalog worker health probes use `httpGet /healthz :8081` but worker has no HTTP health server** — `worker-deployment.yaml:66–79` defines `livenessProbe` and `readinessProbe` as `httpGet path=/healthz port=health (8081)`. The catalog worker binary is a Dapr gRPC event consumer — it does NOT start an HTTP server on port 8081. These probes will always fail unless a health HTTP server is explicitly started. Compare: notification worker (which had the same issue and was fixed with no HTTP probes). | `gitops/apps/catalog/base/worker-deployment.yaml:66–79` | 🔴 P0 |
-| **[V3-02]** | **Warehouse worker health probes use `httpGet /healthz :8081` but warehouse worker likely has no HTTP health server** — Same pattern as V3-01. `warehouse/base/worker-deployment.yaml:72–85` uses `httpGet port=health(8081)` for both liveness and readiness. Warehouse worker uses gRPC Dapr protocol (`dapr.io/app-protocol: grpc`). No evidence of HTTP health server in warehouse worker binary. | `gitops/apps/warehouse/base/worker-deployment.yaml:72–85` | 🟡 P1 |
+| ~~**[V3-01]**~~ | ~~**Catalog worker health probes use `httpGet /healthz :8081`**~~ ✅ NON-ISSUE (verified 2026-03-02): `common/worker.NewWorkerApp` defaults `healthPort: 8081` and `ContinuousWorkerRegistry.StartAll()` auto-starts a `HealthServer` on that port. Probes are correct. | `common/worker/app.go:90`, `continuous_worker.go:201` | ✅ OK |
+| ~~**[V3-02]**~~ | ~~**Warehouse worker health probes**~~ ✅ NON-ISSUE: Same as V3-01 — all workers using `NewWorkerApp` get the HTTP health server. | `common/worker/app.go:90` | ✅ OK |
 | **[V3-03]** | **✅ FIXED: Review workers use `common_worker.BaseWorker` (not `BaseContinuousWorker`) with non-standard `WorkerRegistry`** — Review workers now use the standard `ContinuousWorker` and `ContinuousWorkerRegistry` used by all other services. | `review/internal/worker/registry.go` | 🔵 P2 |
 | **[V3-04]** | **✅ FIXED: Review `RatingAggregationWorker` runs every 10 minutes without event-driven trigger** — Added `RecalculateAll` batch worker loop to `RatingAggregationWorker` and `AutoModeratePending` loop to `ModerationWorker`. | `review/internal/worker/rating_worker.go:20` | 🔵 P2 |
 | **[V3-05]** | **✅ FIXED: Catalog `outbox_worker.go:Start()` spawns a raw `go func()` goroutine** — Replaced with proper `BaseContinuousWorker` blocking select loop. | `catalog/internal/worker/outbox_worker.go:61` | 🟡 P1 |

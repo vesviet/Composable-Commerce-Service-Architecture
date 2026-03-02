@@ -305,7 +305,7 @@ Shipping "shipment.delivered" → Order (✅ ARRIVES)
 | P1-6/P1-7 | Consumer idempotency | ✅ Already implemented |
 | P1-8 | Shipping worker HPA | ✅ FIXED |
 | P1-NEW | Auto-complete pagination mutation bug | ✅ FIXED (offset=0) |
-| P1-2 | `compensatePackageShipped` hardcodes rollback status | ⚠️ Deferred — no clear previous status source |
+| P1-2 | ~~`compensatePackageShipped` hardcodes rollback status~~ | ✅ FIXED — function removed from codebase (verified 2026-03-02) |
 
 ### 🔵 P2 Issues — 4/6 FIXED
 
@@ -326,7 +326,7 @@ Shipping "shipment.delivered" → Order (✅ ARRIVES)
 
 | # | Issue | Reason |
 |---|-------|--------|
-| P1-2 | `compensatePackageShipped` rollback status | No clear source of previous status in current model |
+| P1-2 | ~~`compensatePackageShipped` rollback status~~ | ✅ FIXED — function removed from codebase |
 | P2-6 | Address schema versioning | Low risk — schema is stable and controlled by order service |
 
 ### 🔧 Future Refactor (Not Blocking)

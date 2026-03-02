@@ -3,7 +3,8 @@
 **Reviewed**: 2026-02-26
 **Pattern Reference**: Shopify, Shopee, Lazada + `docs/10-appendix/ecommerce-platform-flows.md` §10
 **Services Involved**: return, order, payment, warehouse, shipping, notification, loyalty-rewards
-**Status**: ✅ P0-01, P0-02, P0-03, P1-01, P1-03, P1-04 FIXED | Remaining: P1-02, P1-05, P2-*
+**Status**: ✅ ALL P0/P1 FIXED | Remaining: P2-*  
+**Audit**: 2026-03-02 — P1-02 (loyalty clawback) verified: `loyalty-rewards/internal/worker/event/return_events.go` + `workers.go:208`. P1-05 (partial return) verified: `order/internal/constants/constants.go:125` `OrderStatusPartiallyReturned`
 
 ---
 
@@ -312,10 +313,10 @@ CONSUMERS:
 | ID | Issue | Status | Fix Description |
 |----|-------|--------|-----------------|
 | RET-P1-01 | Order status not restored on rejection/cancellation | ✅ FIXED | Added `orderService.UpdateOrderStatus(orderID, "completed")` on rejection and cancellation. |
-| RET-P1-02 | **Loyalty points not clawed back on return** | ❌ TODO | Add `return_consumer.go` in loyalty-rewards to subscribe to `orders.return.completed`. |
+| RET-P1-02 | ~~**Loyalty points not clawed back on return**~~ | ✅ FIXED | `return_events.go:30` in loyalty-rewards + `workers.go:208` wires consumer + DLQ |
 | RET-P1-03 | No cancellation event | ✅ FIXED | Added `cancelled` case with `orders.return.cancelled` event, `ReturnCancelledEvent` struct, and `PublishReturnCancelled`. |
 | RET-P1-04 | Compensation worker no max retry | ✅ FIXED | Added `maxCompensationRetries = 5`. Events exceeding limit are marked `dlq`. |
-| RET-P1-05 | **Partial return → order status** | ❌ TODO | Track returned items per order. Use `partially_returned` status. |
+| RET-P1-05 | ~~**Partial return → order status**~~ | ✅ FIXED | `OrderStatusPartiallyReturned` in `order/constants.go:125` + `processReturnCompleted` in `return_consumer.go:116` |
 
 ### 🟢 P2 — Nice to Have
 

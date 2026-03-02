@@ -4,78 +4,56 @@
 
 ---
 
-## � Contents
+## 📂 Contents
 
 ### 🚀 Deployment & Operations
 
 | File | Description |
 |------|-------------|
-| **[SERVICE_DEPLOY_ORDER.md](SERVICE_DEPLOY_ORDER.md)** | **Deployment order index** — sorted wave-by-wave based on go.mod dependency graph. Use this when replacing local `replace` directives with published imports or planning a fresh cluster rollout. |
+| **[SERVICE_DEPLOY_ORDER.md](SERVICE_DEPLOY_ORDER.md)** | Deployment order index — sorted wave-by-wave based on go.mod dependency graph |
+| **[ecommerce-platform-flows.md](ecommerce-platform-flows.md)** | End-to-end e-commerce platform business flows |
 
 ---
 
-### 📋 Checklists
+### 📋 Checklists & Reviews
 
-Process and quality assurance checklists in **[checklists/](checklists/)**.
-
-| Checklist | Purpose |
+| Directory | Purpose |
 |-----------|---------|
-| `production-readiness.md` | Verify service is ready for production |
-| `deployment-checklist.md` | Safe deployment verification steps |
-| `security-checklist.md` | Security review gate |
-| `code-review-checklist.md` | Code review quality standards |
-| `performance-checklist.md` | Performance validation |
-| `incident-response-checklist.md` | Incident response procedures |
+| **[checklists/](checklists/)** | Master review directory — workflow reviews, refactor analysis, active issues |
+| **[review-service/](review-service/)** | Per-service review summaries (18 services + master checklist) |
+| **[service-review-checklists/](service-review-checklists/)** | Per-service detailed review checklists |
+| **[audits/](audits/)** | Performance audits (pagination, preload) |
 
 ---
 
-### 📝 Templates
+### 📝 Templates & References
 
-Document and process templates in **[templates/](templates/)**.
-
-| Template | Purpose |
-|----------|---------|
-| `service-documentation.md` | Template for new service documentation |
-| `runbook-template.md` | SRE runbook template |
-| `adr-template.md` | Architecture Decision Record (ADR) template |
-| `workflow-template.md` | Business workflow documentation template |
-| `api-specification-template.yaml` | OpenAPI spec template |
-| `event-schema-template.json` | Dapr event schema template |
-
----
-
-### � References
-
-External and industry references in **[references/](references/)**.
-
-| Reference | Purpose |
+| Directory | Purpose |
 |-----------|---------|
-| `industry-standards.md` | Microservices, API design, security frameworks |
-| `technology-stack.md` | Complete technology stack documentation |
+| **[templates/](templates/)** | Document and process templates |
+| **[references/](references/)** | Codebase index, glossary |
+| **[runbooks/](runbooks/)** | Operational runbooks (DLQ replay) |
+| **[plan/](plan/)** | Refactoring plans |
 
 ---
 
-### �️ Legacy & Archive
+### 🧪 Bug Reports
 
-Historical documentation kept for context.
+| Directory | Purpose |
+|-----------|---------|
+| **[test-admin/](test-admin/)** | Admin UI bug reports with evidence screenshots |
+| **[test-bugs/](test-bugs/)** | Order flow bug reports with evidence screenshots |
+
+---
+
+### 🗃️ Legacy & Archive
 
 | Directory | Contents |
 |-----------|----------|
-| **[legacy/](legacy/)** | Migration notes and deprecated docs |
-| **[archive/](archive/)** | Archived reference materials |
+| **[legacy/](legacy/)** | Scratch notes |
+| **[archive/](archive/)** | Documentation restructure history, gap analysis |
 
 ---
 
-## � Related Docs
-
-| Section | Link |
-|---------|------|
-| Architecture | [../01-architecture/](../01-architecture/) |
-| Services | [../03-services/](../03-services/) |
-| Operations | [../06-operations/](../06-operations/) |
-| Development | [../07-development/](../07-development/) |
-
----
-
-**Last Updated**: 2026-02-19
+**Last Updated**: 2026-03-02
 **Maintained By**: Platform Team
