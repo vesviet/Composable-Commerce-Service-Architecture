@@ -63,18 +63,27 @@ Architecture Decision Records (ADRs) document significant architectural and tech
 
 | ADR | Title | Date | Status |
 |-----|-------|------|--------|
-| [ADR-016](ADR-016-frontend-architecture-react.md) | Frontend Architecture (React) | 2026-02-03 | ✅ Accepted |
+| [ADR-016](ADR-016-frontend-architecture-react.md) | Frontend Architecture (React + Next.js) | 2026-02-03 | ✅ Accepted |
 | [ADR-017](ADR-017-common-library-architecture.md) | Common Library Architecture | 2026-02-03 | ✅ Accepted |
 | [ADR-018](ADR-018-local-development-environment.md) | Local Development Environment | 2026-02-03 | ✅ Accepted |
 | [ADR-019](ADR-019-logging-strategy.md) | Logging Strategy | 2026-02-03 | ✅ Accepted |
 | [ADR-020](ADR-020-error-handling-resilience.md) | Error Handling & Resilience | 2026-02-03 | ✅ Accepted |
 
+### 📦 Data & Domain (ADR-021 to ADR-024)
+
+| ADR | Title | Date | Status |
+|-----|-------|------|--------|
+| [ADR-021](ADR-021-price-stock-data-ownership.md) | Price & Stock Data Ownership | 2026-02-12 | ✅ Accepted |
+| [ADR-022](ADR-022-dynamic-sql-pivoting-for-eav.md) | Dynamic SQL Pivoting for EAV | 2026-03-02 | ✅ Accepted |
+| [ADR-023](ADR-023-standardized-caching-worker-patterns.md) | Standardized Caching and Worker Patterns | 2026-03-02 | ✅ Accepted |
+| [ADR-024](ADR-024-inventory-data-ownership.md) | Inventory Data Ownership | 2026-03-02 | ✅ Accepted |
+
 ---
 
 ## 📊 ADR Statistics
 
-- **Total ADRs**: 20
-- **Accepted**: 20 (100%)
+- **Total ADRs**: 24
+- **Accepted**: 24 (100%)
 - **Proposed**: 0
 - **Rejected**: 0
 - **Superseded**: 0
@@ -86,6 +95,7 @@ Architecture Decision Records (ADRs) document significant architectural and tech
 - **APIs & Integration**: 3 ADRs
 - **Configuration & Data**: 2 ADRs
 - **Frontend & Development**: 5 ADRs
+- **Data & Domain**: 4 ADRs
 
 ---
 
@@ -265,8 +275,8 @@ Don't create ADRs for:
 
 ---
 
-**Last Updated**: February 7, 2026  
-**Total ADRs**: 20  
+**Last Updated**: March 2, 2026  
+**Total ADRs**: 24  
 **Maintained By**: Architecture Team  
 **Review Cycle**: Quarterly
 
