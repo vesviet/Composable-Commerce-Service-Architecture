@@ -9,6 +9,7 @@
 
 ### **Core Workflows**
 - **[Git Workflow](./git-workflow.md)** - Branching strategy and Git best practices
+- **[CI/CD Pipeline Flow](./ci-cd-pipeline.md)** - Continuous Integration and Delivery pipeline stages
 - **[Feature Development](./feature-development.md)** - End-to-end feature development process
 - **[Release Process](./release-process.md)** - Release and deployment workflow
 - **[Hotfix Process](./hotfix-process.md)** - Emergency fix procedures

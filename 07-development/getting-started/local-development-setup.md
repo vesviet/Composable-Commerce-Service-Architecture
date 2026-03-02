@@ -245,39 +245,64 @@ docker exec -it source_redis redis-cli
 
 ## 🔍 Common Issues & Solutions
 
-### Port Conflicts
+### 1. Port Conflicts (Common with `make up-infra`)
+When running `docker-compose up -d` or `make up-infra`, you might hit port conflicts for Postgres (`5432`) or Redis (`6379`).
 ```bash
-# Check what's using ports
-lsof -i :8000
+# Check what process is using the port
 lsof -i :5432
+lsof -i :8000
 
-# Kill processes using ports
+# Kill processes using ports (if safe to do so)
 kill -9 <PID>
 ```
 
-### Docker Issues
+### 2. Dapr Sidecar Issues
+If services cannot communicate, the Dapr sidecar might have crashed or failed to init.
+```bash
+# Check Dapr logs locally
+dapr logs --app-id {service_name}
+
+# Restart Dapr locally
+make run-dapr
+
+# Ensure Dapr placement service is running via Docker
+docker ps | grep dapr
+```
+
+### 3. Database Initialization Errors
+If services panic on startup with "connection refused" or "relation does not exist":
+```bash
+# Ensure infrastructure is fully up
+docker-compose ps
+
+# Run the initialization scripts
+./scripts/init-databases.sh
+
+# Run Goose migrations manually for the failing service
+cd {service}
+go run cmd/migrate/main.go up
+```
+
+### 4. Docker / k3d Issues
 ```bash
 # Reset Docker environment
 docker system prune -a
 docker-compose down -v
 docker-compose up -d
+
+# Re-create k3d cluster
+k3d cluster delete dev-cluster
+k3d cluster create dev-cluster --port "8080:80@loadbalancer"
 ```
 
-### Go Module Issues
+### 5. Go Module & Permission Issues
 ```bash
-# Clean module cache
+# Clean module cache if packages fail to download
 go clean -modcache
 go mod download
 go mod tidy
-```
 
-### Permission Issues
-```bash
-# Fix Docker permissions (Linux)
-sudo usermod -aG docker $USER
-# Then logout and login again
-
-# Fix file permissions
+# Fix file permissions (Linux)
 sudo chown -R $USER:$USER .
 chmod +x scripts/*.sh
 ```
