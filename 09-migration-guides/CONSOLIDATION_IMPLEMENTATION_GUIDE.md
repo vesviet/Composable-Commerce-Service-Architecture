@@ -46,15 +46,15 @@
 - **Pattern:** Service-specific implementations
 - **Status:** Needs consolidation
 
-### ❌ **PENDING IMPLEMENTATIONS**
+### 🟡 **PLANNED IMPLEMENTATIONS**
 
-#### Workers/Jobs (10/19 services) 🔴 **NOT STARTED**
+#### Workers/Jobs (10/19 services) 🟡 **PLANNED (See ADR-023)**
 - **Services:** order, payment, pricing, warehouse, catalog, shipping, fulfillment, common-operations, search, analytics
-- **Status:** Needs common worker framework
+- **Status:** Needs common worker framework. Planned in ADR-023 (Distributed locks, Graceful shutdown).
 
-#### Caching Patterns (10/19 services) 🔴 **INCONSISTENT**
+#### Caching Patterns (10/19 services) 🟡 **PLANNED (See ADR-023)**
 - **Services:** order, catalog, pricing, warehouse, customer, review, search, analytics, fulfillment, promotion
-- **Status:** Different caching patterns, needs standardization
+- **Status:** Different caching patterns, needs standardization. Planned in ADR-023 (Stampede protection, Cache-Aside).
 
 ---
 

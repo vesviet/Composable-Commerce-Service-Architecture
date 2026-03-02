@@ -476,6 +476,33 @@ kubectl scale deployment event-processor --replicas=0
 echo "Emergency Phase 2 rollback completed"
 ```
 
+### **Data Reconciliation (Split-Brain Fallback)**
+In the rare event of a rollback where dual-write failed, you may be left in a "Split-Brain" scenario (Microservices have writes that Magento did not receive). Run the reconciliation script to sync the missing records back to Magento based on `updated_at` timestamps.
+
+```bash
+#!/bin/bash
+# data-reconciliation-split-brain.sh
+SERVICE=$1
+TIME_WINDOW_MINUTES=${2:-60}
+
+echo "Starting Data Reconciliation for $SERVICE (last $TIME_WINDOW_MINUTES mins)..."
+
+# 1. Export recently updated records from Microservices
+pg_dump -h $PG_HOST -U $PG_USER -d ${SERVICE}_db \
+  --table=${SERVICE}_table \
+  --data-only \
+  --column-inserts \
+  --where="updated_at >= NOW() - INTERVAL '$TIME_WINDOW_MINUTES minutes'" > /tmp/${SERVICE}_recent.sql
+
+# 2. Run Python Translation Script to convert Microservices SQL to Magento SQL
+python3 scripts/format_to_magento_sql.py --service=$SERVICE --input=/tmp/${SERVICE}_recent.sql --output=/tmp/magento_reconcile.sql
+
+# 3. Apply to Magento DB
+mysql -h $MAGENTO_DB_HOST -u $MAGENTO_DB_USER -p$MAGENTO_DB_PASS $MAGENTO_DB_NAME < /tmp/magento_reconcile.sql
+
+echo "Data Reconciliation completed. Fallback synced."
+```
+
 ---
 
 ## 📋 Phase 2 Checklist
