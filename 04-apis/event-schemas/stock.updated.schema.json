@@ -2,60 +2,108 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://api.company.com/schemas/events/stock.updated/v1.0.0",
   "title": "Stock Updated Event",
-  "description": "Event published when inventory stock level changes",
+  "description": "Emitted when inventory stock level changes",
   "type": "object",
-  "required": ["eventType", "sku", "warehouseId", "quantity", "timestamp"],
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
   "properties": {
-    "eventType": {
-      "type": "string",
-      "const": "warehouse.stock.updated",
-      "description": "Event type identifier"
-    },
-    "sku": {
-      "type": "string",
-      "description": "Stock Keeping Unit identifier"
-    },
-    "warehouseId": {
+    "event_id": {
       "type": "string",
       "format": "uuid",
-      "description": "Warehouse identifier"
+      "description": "Unique identifier for this event instance"
     },
-    "quantity": {
-      "type": "integer",
-      "description": "New stock quantity (can be negative for adjustments)"
-    },
-    "previousQuantity": {
-      "type": "integer",
-      "description": "Previous stock quantity before update"
-    },
-    "changeType": {
+    "event_type": {
       "type": "string",
-      "enum": ["INCREMENT", "DECREMENT", "SET", "RESERVED", "RELEASED", "TRANSFERRED"],
-      "description": "Type of stock change"
+      "const": "stock.updated",
+      "description": "Event type identifier"
     },
-    "reason": {
+    "event_version": {
       "type": "string",
-      "description": "Reason for stock change (e.g., 'ORDER_FULFILLMENT', 'ADJUSTMENT', 'RETURN')"
+      "const": "1.0",
+      "description": "Event schema version"
     },
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp when stock was updated"
+      "description": "When the event occurred"
     },
-    "metadata": {
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "warehouse-service"
+    },
+    "data": {
       "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sku",
+        "warehouse_id",
+        "quantity"
+      ],
       "properties": {
-        "orderId": {
+        "sku": {
           "type": "string",
-          "format": "uuid"
+          "description": "Stock Keeping Unit identifier"
         },
-        "userId": {
+        "warehouse_id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "description": "Warehouse identifier"
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "New stock quantity"
+        },
+        "previous_quantity": {
+          "type": "integer",
+          "description": "Previous stock quantity before update"
+        },
+        "change_type": {
+          "type": "string",
+          "enum": [
+            "INCREMENT",
+            "DECREMENT",
+            "SET",
+            "RESERVED",
+            "RELEASED",
+            "TRANSFERRED"
+          ],
+          "description": "Type of stock change"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reason for stock change (e.g., ORDER_FULFILLMENT, ADJUSTMENT, RETURN)"
+        },
+        "order_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Related order identifier if applicable"
         }
-      },
-      "additionalProperties": true
+      }
     }
-  }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440025",
+      "event_type": "stock.updated",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T15:00:00Z",
+      "source": "warehouse-service",
+      "data": {
+        "sku": "WIDGET-BLUE-M",
+        "warehouse_id": "wh_01",
+        "quantity": 98,
+        "previous_quantity": 100,
+        "change_type": "DECREMENT",
+        "reason": "ORDER_FULFILLMENT",
+        "order_id": "ord_789012"
+      }
+    }
+  ]
 }
-

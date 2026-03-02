@@ -2,62 +2,110 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://api.company.com/schemas/events/cart.item_added/v1.0.0",
   "title": "Cart Item Added Event",
-  "description": "Event published when an item is added to shopping cart",
+  "description": "Emitted when an item is added to shopping cart",
   "type": "object",
-  "required": ["eventType", "cartId", "itemId", "productId", "sku", "quantity", "timestamp"],
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
   "properties": {
-    "eventType": {
+    "event_id": {
       "type": "string",
-      "const": "orders.cart.item_added",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "cart.item_added",
       "description": "Event type identifier"
     },
-    "cartId": {
+    "event_version": {
       "type": "string",
-      "format": "uuid",
-      "description": "Shopping cart identifier"
-    },
-    "customerId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Customer identifier (null for guest carts)"
-    },
-    "sessionId": {
-      "type": "string",
-      "description": "Session identifier for guest carts"
-    },
-    "itemId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Cart item identifier"
-    },
-    "productId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Product identifier"
-    },
-    "sku": {
-      "type": "string",
-      "description": "Product SKU"
-    },
-    "quantity": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Item quantity added"
-    },
-    "price": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Price per unit at time of addition"
+      "const": "1.0",
+      "description": "Event schema version"
     },
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp when item was added"
+      "description": "When the event occurred"
     },
-    "metadata": {
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "order-service"
+    },
+    "data": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "required": [
+        "cart_id",
+        "item_id",
+        "product_id",
+        "sku",
+        "quantity"
+      ],
+      "properties": {
+        "cart_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Shopping cart identifier"
+        },
+        "customer_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Customer identifier (null for guest carts)"
+        },
+        "session_id": {
+          "type": "string",
+          "description": "Session identifier for guest carts"
+        },
+        "item_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Cart item identifier"
+        },
+        "product_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Product identifier"
+        },
+        "sku": {
+          "type": "string",
+          "description": "Product SKU"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Item quantity added"
+        },
+        "price": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Price per unit at time of addition"
+        }
+      }
     }
-  }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440021",
+      "event_type": "cart.item_added",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T10:25:00Z",
+      "source": "order-service",
+      "data": {
+        "cart_id": "cart_123456",
+        "customer_id": "cust_345678",
+        "item_id": "item_001",
+        "product_id": "prod_456",
+        "sku": "WIDGET-BLUE-M",
+        "quantity": 2,
+        "price": 749500
+      }
+    }
+  ]
 }
-

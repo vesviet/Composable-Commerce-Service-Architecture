@@ -3,7 +3,7 @@
 
 openapi: 3.0.3
 info:
-    title: ""
+    title: "Catalog Service API"
     version: 0.0.1
 paths:
     /api/v1/catalog/attributes:
@@ -375,7 +375,7 @@ paths:
         get:
             tags:
                 - CategoryService
-            description: GetCategoryTree must be registered before GetCategory to ensure /tree route matches before /{id}
+            description: Get the full category hierarchy as a tree structure
             operationId: CategoryService_GetCategoryTree
             parameters:
                 - name: maxDepth

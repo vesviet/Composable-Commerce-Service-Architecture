@@ -3,7 +3,7 @@
 
 openapi: 3.0.3
 info:
-    title: ""
+    title: "Notification Service API"
     version: 0.0.1
 paths:
     /api/v1/delivery/stats:

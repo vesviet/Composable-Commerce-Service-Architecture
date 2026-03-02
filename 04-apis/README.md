@@ -177,7 +177,7 @@ Create Order:       POST /api/v1/orders
 Payment:            POST /api/v1/payments/process
 Cart Management:    GET  /api/v1/checkout/cart
 Start Checkout:     POST /api/v1/checkout/checkout
-Create Return:      POST /api/v1/returns/returns
+Create Return:      POST /api/v1/returns
 Admin Users:        GET  /api/v1/admin/users
 Frontend Home:      GET  /api/v1/frontend/pages/home
 ```
@@ -209,5 +209,5 @@ curl -H "Authorization: Bearer <token>" /api/v1/customers/profile
 
 ---
 
-**Last Updated**: February 2, 2026  
+**Last Updated**: March 2, 2026  
 **Maintained By**: API Team & Service Owners

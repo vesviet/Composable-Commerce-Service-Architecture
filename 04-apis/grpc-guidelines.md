@@ -201,39 +201,36 @@ message Money {
 
 ## 🚨 **Error Handling**
 
-### **Standard Error Response**
-```protobuf
-// Use google.rpc.Status for rich error information
-import "google/rpc/status.proto";
-import "google/rpc/error_details.proto";
+### **Standard Error Response (Go/Kratos)**
+```go
+import (
+    "github.com/go-kratos/kratos/v2/errors"
+)
 
-// In your gRPC service:
-rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {
-  option (google.api.http) = {
-    get: "/v1/orders/{order_id}"
-  };
+// 1. Resource not found
+func (s *OrderService) GetOrder(ctx context.Context, req *pb.GetOrderRequest) (*pb.GetOrderResponse, error) {
+    order, err := s.repo.FindByID(ctx, req.OrderId)
+    if err != nil {
+        return nil, errors.NotFound("ORDER_NOT_FOUND", "order %s not found", req.OrderId)
+    }
+    return &pb.GetOrderResponse{Order: order}, nil
 }
 
-// Error examples:
-// 1. Resource not found
-throw new StatusException(Status.NOT_FOUND.withDescription("Order not found")
-    .withCause(new NotFoundException("Order " + orderId + " not found")));
-
 // 2. Validation errors
-throw new StatusException(Status.INVALID_ARGUMENT.withDescription("Invalid request")
-    .withDetails(InvalidArgument.newBuilder()
-        .addFieldViolations(FieldViolation.newBuilder()
-            .setField("customer_id")
-            .setDescription("Customer ID is required")
-            .build())
-        .build()));
+func (s *OrderService) CreateOrder(ctx context.Context, req *pb.CreateOrderRequest) (*pb.CreateOrderResponse, error) {
+    if req.CustomerId == "" {
+        return nil, errors.BadRequest("INVALID_CUSTOMER_ID", "customer_id is required")
+    }
+    // ...
+}
 
 // 3. Permission denied
-throw new StatusException(Status.PERMISSION_DENIED.withDescription("Access denied")
-    .withDetails(ErrorInfo.newBuilder()
-        .setReason("INSUFFICIENT_PERMISSIONS")
-        .addMetadata("required_permission", "orders:read")
-        .build()));
+func (s *OrderService) DeleteOrder(ctx context.Context, req *pb.DeleteOrderRequest) (*pb.DeleteOrderResponse, error) {
+    if !hasPermission(ctx, "orders:delete") {
+        return nil, errors.Forbidden("PERMISSION_DENIED", "requires orders:delete permission")
+    }
+    // ...
+}
 ```
 
 ### **Custom Error Types**
@@ -388,27 +385,33 @@ message OrderChatMessage {
 ### **JWT Interceptor**
 ```go
 // Server-side authentication
+// Use typed context keys (not string keys)
+type contextKey struct{ name string }
+var (
+    userIDKey = &contextKey{"user_id"}
+    rolesKey  = &contextKey{"roles"}
+)
+
 func authInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-    metadata, ok := metadata.FromIncomingContext(ctx)
+    md, ok := metadata.FromIncomingContext(ctx)
     if !ok {
         return nil, status.Error(codes.Unauthenticated, "missing metadata")
     }
-    
-    tokens := metadata.Get("authorization")
+
+    tokens := md.Get("authorization")
     if len(tokens) == 0 {
         return nil, status.Error(codes.Unauthenticated, "missing authorization token")
     }
-    
-    // Validate JWT token
+
     claims, err := validateJWT(tokens[0])
     if err != nil {
         return nil, status.Error(codes.Unauthenticated, "invalid token")
     }
-    
-    // Add user context
-    ctx = context.WithValue(ctx, "user_id", claims.UserID)
-    ctx = context.WithValue(ctx, "roles", claims.Roles)
-    
+
+    // Add user context with typed keys
+    ctx = context.WithValue(ctx, userIDKey, claims.UserID)
+    ctx = context.WithValue(ctx, rolesKey, claims.Roles)
+
     return handler(ctx, req)
 }
 ```
@@ -439,7 +442,7 @@ func NewGRPCClientPool(address string, size int) []*grpc.ClientConn {
     pool := make([]*grpc.ClientConn, size)
     for i := 0; i < size; i++ {
         conn, err := grpc.Dial(address,
-            grpc.WithInsecure(),
+            grpc.WithTransportCredentials(insecure.NewCredentials()),
             grpc.WithKeepaliveParams(keepalive.ClientParameters{
                 Time:                10 * time.Second,
                 Timeout:             3 * time.Second,
@@ -457,11 +460,10 @@ func NewGRPCClientPool(address string, size int) []*grpc.ClientConn {
 
 ### **Compression**
 ```go
-// Enable compression
-server := grpc.NewServer(
-    grpc.RPCCompressor(grpc.NewGZIPCompressor()),
-    grpc.RPCDecompressor(grpc.NewGZIPDecompressor()),
-)
+import "google.golang.org/grpc/encoding/gzip"
+
+// Enable compression on client side
+client.CallOption(grpc.UseCompressor(gzip.Name))
 ```
 
 ---
@@ -510,7 +512,7 @@ func TestOrderService_Integration(t *testing.T) {
     defer server.Stop()
     
     // Create client
-    conn, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure())
+    conn, err := grpc.Dial(lis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
     require.NoError(t, err)
     defer conn.Close()
     

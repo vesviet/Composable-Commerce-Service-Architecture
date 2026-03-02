@@ -2,49 +2,95 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://api.company.com/schemas/events/order.status_changed/v1.0.0",
   "title": "Order Status Changed Event",
-  "description": "Event published when order status changes",
+  "description": "Emitted when an order status is updated",
   "type": "object",
-  "required": ["eventType", "orderId", "oldStatus", "newStatus", "timestamp"],
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
   "properties": {
-    "eventType": {
+    "event_id": {
       "type": "string",
-      "const": "orders.order.status_changed",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "order.status_changed",
       "description": "Event type identifier"
     },
-    "orderId": {
+    "event_version": {
       "type": "string",
-      "format": "uuid",
-      "description": "Order identifier"
-    },
-    "customerId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Customer who placed the order"
-    },
-    "oldStatus": {
-      "type": "string",
-      "enum": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", ""],
-      "description": "Previous order status (empty string for new orders)"
-    },
-    "newStatus": {
-      "type": "string",
-      "enum": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"],
-      "description": "New order status"
-    },
-    "reason": {
-      "type": "string",
-      "description": "Reason for status change (optional)"
+      "const": "1.0",
+      "description": "Event schema version"
     },
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp when status changed"
+      "description": "When the event occurred"
     },
-    "metadata": {
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "order-service"
+    },
+    "data": {
       "type": "object",
-      "description": "Additional metadata",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "previous_status",
+        "new_status"
+      ],
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Order identifier"
+        },
+        "customer_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Customer identifier"
+        },
+        "previous_status": {
+          "type": "string",
+          "description": "Previous order status"
+        },
+        "new_status": {
+          "type": "string",
+          "description": "New order status"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reason for status change"
+        },
+        "changed_by": {
+          "type": "string",
+          "description": "User or service that triggered the change"
+        }
+      }
     }
-  }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440010",
+      "event_type": "order.status_changed",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T11:00:00Z",
+      "source": "order-service",
+      "data": {
+        "order_id": "ord_789012",
+        "customer_id": "cust_345678",
+        "previous_status": "PENDING",
+        "new_status": "CONFIRMED",
+        "reason": "Payment verified",
+        "changed_by": "system"
+      }
+    }
+  ]
 }
-

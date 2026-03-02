@@ -2,57 +2,106 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://api.company.com/schemas/events/product.created/v1.0.0",
   "title": "Product Created Event",
-  "description": "Event published when a new product is created in the catalog",
+  "description": "Emitted when a new product is created in the catalog",
   "type": "object",
-  "required": ["eventType", "productId", "sku", "name", "timestamp"],
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
   "properties": {
-    "eventType": {
+    "event_id": {
       "type": "string",
-      "const": "catalog.product.created",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "product.created",
       "description": "Event type identifier"
     },
-    "productId": {
+    "event_version": {
       "type": "string",
-      "format": "uuid",
-      "description": "Unique product identifier"
-    },
-    "sku": {
-      "type": "string",
-      "description": "Stock Keeping Unit identifier"
-    },
-    "name": {
-      "type": "string",
-      "description": "Product name"
-    },
-    "categoryId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Category identifier"
-    },
-    "brandId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Brand identifier (optional)"
-    },
-    "manufacturerId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Manufacturer identifier (optional)"
-    },
-    "status": {
-      "type": "string",
-      "enum": ["ACTIVE", "INACTIVE", "DRAFT"],
-      "description": "Product status"
+      "const": "1.0",
+      "description": "Event schema version"
     },
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp when product was created"
+      "description": "When the event occurred"
     },
-    "metadata": {
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "catalog-service"
+    },
+    "data": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "required": [
+        "product_id",
+        "sku",
+        "name"
+      ],
+      "properties": {
+        "product_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique product identifier"
+        },
+        "sku": {
+          "type": "string",
+          "description": "Stock Keeping Unit identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Product name"
+        },
+        "category_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Category identifier"
+        },
+        "brand_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Brand identifier"
+        },
+        "manufacturer_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Manufacturer identifier"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "INACTIVE",
+            "DRAFT"
+          ],
+          "description": "Product status"
+        }
+      }
     }
-  }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440023",
+      "event_type": "product.created",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T09:00:00Z",
+      "source": "catalog-service",
+      "data": {
+        "product_id": "prod_456",
+        "sku": "WIDGET-BLUE-M",
+        "name": "Blue Widget Medium",
+        "category_id": "cat_001",
+        "brand_id": "brand_001",
+        "status": "ACTIVE"
+      }
+    }
+  ]
 }
-

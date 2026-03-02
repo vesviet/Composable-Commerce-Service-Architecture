@@ -2,58 +2,116 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://api.company.com/schemas/events/shipment.created/v1.0.0",
   "title": "Shipment Created Event",
-  "description": "Event published when a shipment is created for order fulfillment",
+  "description": "Emitted when a shipment is created for order fulfillment",
   "type": "object",
-  "required": ["eventType", "shipmentId", "orderId", "status", "timestamp"],
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
   "properties": {
-    "eventType": {
+    "event_id": {
       "type": "string",
-      "const": "shipping.shipment.created",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "shipment.created",
       "description": "Event type identifier"
     },
-    "shipmentId": {
+    "event_version": {
       "type": "string",
-      "format": "uuid",
-      "description": "Unique shipment identifier"
-    },
-    "orderId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Associated order identifier"
-    },
-    "carrierId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Shipping carrier identifier"
-    },
-    "carrierName": {
-      "type": "string",
-      "enum": ["UPS", "FEDEX", "DHL", "USPS", "CUSTOM"],
-      "description": "Shipping carrier name"
-    },
-    "trackingNumber": {
-      "type": "string",
-      "description": "Carrier tracking number"
-    },
-    "status": {
-      "type": "string",
-      "enum": ["PENDING", "READY", "PICKED_UP", "IN_TRANSIT", "DELIVERED", "FAILED"],
-      "description": "Shipment status"
-    },
-    "warehouseId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Warehouse where shipment originates"
+      "const": "1.0",
+      "description": "Event schema version"
     },
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp when shipment was created"
+      "description": "When the event occurred"
     },
-    "metadata": {
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "shipping-service"
+    },
+    "data": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "required": [
+        "shipment_id",
+        "order_id",
+        "status"
+      ],
+      "properties": {
+        "shipment_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique shipment identifier"
+        },
+        "order_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Associated order identifier"
+        },
+        "carrier_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Shipping carrier identifier"
+        },
+        "carrier_name": {
+          "type": "string",
+          "enum": [
+            "UPS",
+            "FEDEX",
+            "DHL",
+            "USPS",
+            "CUSTOM"
+          ],
+          "description": "Shipping carrier name"
+        },
+        "tracking_number": {
+          "type": "string",
+          "description": "Carrier tracking number"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "READY",
+            "PICKED_UP",
+            "IN_TRANSIT",
+            "DELIVERED",
+            "FAILED"
+          ],
+          "description": "Shipment status"
+        },
+        "warehouse_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Warehouse where shipment originates"
+        }
+      }
     }
-  }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440026",
+      "event_type": "shipment.created",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T16:00:00Z",
+      "source": "shipping-service",
+      "data": {
+        "shipment_id": "ship_001",
+        "order_id": "ord_789012",
+        "carrier_name": "DHL",
+        "tracking_number": "DHL123456789",
+        "status": "PENDING",
+        "warehouse_id": "wh_01"
+      }
+    }
+  ]
 }
-

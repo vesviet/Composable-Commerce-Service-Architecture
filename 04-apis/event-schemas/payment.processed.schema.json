@@ -2,62 +2,123 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://api.company.com/schemas/events/payment.processed/v1.0.0",
   "title": "Payment Processed Event",
-  "description": "Event published when a payment transaction is successfully processed",
+  "description": "Emitted when a payment transaction is successfully processed",
   "type": "object",
-  "required": ["eventType", "paymentId", "orderId", "status", "amount", "timestamp"],
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
   "properties": {
-    "eventType": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
       "type": "string",
       "const": "payment.processed",
       "description": "Event type identifier"
     },
-    "paymentId": {
+    "event_version": {
       "type": "string",
-      "format": "uuid",
-      "description": "Unique payment transaction identifier"
-    },
-    "orderId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Associated order identifier"
-    },
-    "customerId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Customer who made the payment"
-    },
-    "status": {
-      "type": "string",
-      "enum": ["SUCCESS", "FAILED", "PENDING", "REFUNDED"],
-      "description": "Payment status"
-    },
-    "amount": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Payment amount"
-    },
-    "currency": {
-      "type": "string",
-      "pattern": "^[A-Z]{3}$",
-      "default": "USD"
-    },
-    "paymentMethod": {
-      "type": "string",
-      "enum": ["CREDIT_CARD", "DEBIT_CARD", "PAYPAL", "STRIPE", "VNPAY", "BANK_TRANSFER"],
-      "description": "Payment method used"
-    },
-    "transactionId": {
-      "type": "string",
-      "description": "External payment gateway transaction ID"
+      "const": "1.0",
+      "description": "Event schema version"
     },
     "timestamp": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "When the event occurred"
     },
-    "metadata": {
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "payment-service"
+    },
+    "data": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "required": [
+        "payment_id",
+        "order_id",
+        "status",
+        "amount"
+      ],
+      "properties": {
+        "payment_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique payment transaction identifier"
+        },
+        "order_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Associated order identifier"
+        },
+        "customer_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Customer who made the payment"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "SUCCESS",
+            "FAILED",
+            "PENDING",
+            "REFUNDED"
+          ],
+          "description": "Payment status"
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Payment amount"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 currency code"
+        },
+        "payment_method": {
+          "type": "string",
+          "enum": [
+            "CREDIT_CARD",
+            "DEBIT_CARD",
+            "PAYPAL",
+            "STRIPE",
+            "VNPAY",
+            "BANK_TRANSFER"
+          ],
+          "description": "Payment method used"
+        },
+        "transaction_id": {
+          "type": "string",
+          "description": "External payment gateway transaction ID"
+        }
+      }
     }
-  }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440002",
+      "event_type": "payment.processed",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T10:31:00Z",
+      "source": "payment-service",
+      "data": {
+        "payment_id": "pay_123456",
+        "order_id": "ord_789012",
+        "customer_id": "cust_345678",
+        "status": "SUCCESS",
+        "amount": 1499000,
+        "currency": "VND",
+        "payment_method": "VNPAY",
+        "transaction_id": "txn_ext_abc123"
+      }
+    }
+  ]
 }
-

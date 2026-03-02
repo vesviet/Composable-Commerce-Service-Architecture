@@ -2,55 +2,100 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://api.company.com/schemas/events/cart.checked_out/v1.0.0",
   "title": "Cart Checked Out Event",
-  "description": "Event published when shopping cart is converted to order",
+  "description": "Emitted when shopping cart is converted to order",
   "type": "object",
-  "required": ["eventType", "cartId", "orderId", "customerId", "totalAmount", "timestamp"],
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "timestamp",
+    "data"
+  ],
   "properties": {
-    "eventType": {
+    "event_id": {
       "type": "string",
-      "const": "orders.cart.checked_out",
+      "format": "uuid",
+      "description": "Unique identifier for this event instance"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "cart.checked_out",
       "description": "Event type identifier"
     },
-    "cartId": {
+    "event_version": {
       "type": "string",
-      "format": "uuid",
-      "description": "Shopping cart identifier"
-    },
-    "orderId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Created order identifier"
-    },
-    "customerId": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Customer identifier"
-    },
-    "totalAmount": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Total order amount"
-    },
-    "currency": {
-      "type": "string",
-      "pattern": "^[A-Z]{3}$",
-      "default": "USD",
-      "description": "ISO 4217 currency code"
-    },
-    "itemCount": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Number of items in cart"
+      "const": "1.0",
+      "description": "Event schema version"
     },
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp when checkout completed"
+      "description": "When the event occurred"
     },
-    "metadata": {
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event",
+      "example": "order-service"
+    },
+    "data": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": false,
+      "required": [
+        "cart_id",
+        "order_id",
+        "customer_id",
+        "total_amount"
+      ],
+      "properties": {
+        "cart_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Shopping cart identifier"
+        },
+        "order_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Created order identifier"
+        },
+        "customer_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Customer identifier"
+        },
+        "total_amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total order amount"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "ISO 4217 currency code"
+        },
+        "item_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of items in cart"
+        }
+      }
     }
-  }
+  },
+  "examples": [
+    {
+      "event_id": "550e8400-e29b-41d4-a716-446655440020",
+      "event_type": "cart.checked_out",
+      "event_version": "1.0",
+      "timestamp": "2026-02-02T10:30:00Z",
+      "source": "order-service",
+      "data": {
+        "cart_id": "cart_123456",
+        "order_id": "ord_789012",
+        "customer_id": "cust_345678",
+        "total_amount": 1499000,
+        "currency": "VND",
+        "item_count": 3
+      }
+    }
+  ]
 }
-
