@@ -1,142 +1,45 @@
 # 🔄 Migration Guides
 
-**Purpose**: Migration procedures and refactoring documentation  
-**Last Updated**: 2026-02-03  
-**Status**: ✅ Active - Essential migration procedures
+**Purpose**: Migration procedures, platform consolidation, and Magento migration documentation  
+**Last Updated**: 2026-03-02
 
 ---
 
 ## 📋 Overview
 
-This section contains essential migration guides for the microservices platform. It covers platform migrations, service refactoring, and data migration procedures.
-
-### 🎯 What You'll Find Here
-
-- **[K8S Migration Quick Guide](./K8S_MIGRATION_QUICK_GUIDE.md)** - Kubernetes migration procedures
-- **[Consolidation Implementation](./CONSOLIDATION_IMPLEMENTATION_GUIDE.md)** - System consolidation guide
-- **[Migration Summary](./MIGRATION_SUMMARY.md)** - Migration overview and status
-- **[Project Status](./project-status.md)** - Current migration project status
-- **[Roadmap](./roadmap.md)** - Future migration plans
+This section contains migration guides for the microservices platform — how to migrate **from Magento** and how to consolidate/standardize services with the **common library**.
 
 ---
 
-## 🎯 Migration Principles
+## 📚 Available Guides
 
-### **🛡️ Safety First**
-- **Zero Downtime**: All migrations must maintain service availability
-- **Rollback Plans**: Every migration must have a tested rollback procedure
-- **Data Integrity**: Comprehensive data validation and verification
-- **Monitoring**: Enhanced monitoring during migration periods
-- **Gradual Rollout**: Phased migration with canary deployments
+### 🛍️ Magento Migration (3-Phase)
+Complete guide for migrating from Magento to microservices with zero-downtime.
 
-### **📊 Risk Management**
-- **Impact Assessment**: Evaluate business and technical impact
-- **Stakeholder Communication**: Clear communication with all affected parties
-- **Testing Strategy**: Comprehensive testing in staging environments
-- **Performance Impact**: Monitor and optimize performance during migration
+- **[Magento Migration Overview](./magento-migration/)** — Strategy, timeline, architecture
+- **[Phase 1: Read-Only](./magento-migration/phase-1-read-only.md)** — Gateway routing, CDC sync
+- **[Phase 2: Read-Write](./magento-migration/phase-2-read-write.md)** — Dual-write with Dapr PubSub
+- **[Phase 3: Full Cutover](./magento-migration/phase-3-full-cutover.md)** — Complete migration
+- **[Data Migration Guide](./magento-migration/data-migration-guide.md)** — EAV extraction, ID mapping
+- **[Sync Service](./magento-migration/sync-service-implementation.md)** — CDC engine implementation
+- **[Step-by-Step](./magento-migration/step-by-step-migration.md)** — Detailed procedures
 
----
+### 🔧 Platform Consolidation
+- **[Consolidation Implementation Guide](./CONSOLIDATION_IMPLEMENTATION_GUIDE.md)** — Common library patterns (health checks, DB connections, config, HTTP clients, event publishing)
 
-## 🚀 Quick Start
-
-### **For Platform Migrations**
-1. **[K8S Migration Guide](./K8S_MIGRATION_QUICK_GUIDE.md)** - Kubernetes migration procedures
-2. **[Consolidation Guide](./CONSOLIDATION_IMPLEMENTATION_GUIDE.md)** - System consolidation
-3. **[Migration Summary](./MIGRATION_SUMMARY.md)** - Overview and status
-
-### **For Service Migrations**
-1. **[Project Status](./project-status.md)** - Current migration status
-2. **[Roadmap](./roadmap.md)** - Future migration plans
-3. **[Implementation Guide](./CONSOLIDATION_IMPLEMENTATION_GUIDE.md)** - Implementation procedures
-
----
-
-## 📚 Available Migration Guides
-
-### **Essential Guides**
-- **[K8S Migration Quick Guide](./K8S_MIGRATION_QUICK_GUIDE.md)** - Kubernetes migration procedures
-- **[Consolidation Implementation](./CONSOLIDATION_IMPLEMENTATION_GUIDE.md)** - System consolidation guide
-- **[Migration Summary](./MIGRATION_SUMMARY.md)** - Migration overview and status
-
-### **Magento Migration**
-- **[Magento Migration Overview](./magento-migration/)** - Complete Magento to microservices migration
-- **[Phase 1: Read-Only](./magento-migration/phase-1-read-only.md)** - Read-only migration phase
-- **[Phase 2: Read-Write](./magento-migration/phase-2-read-write.md)** - Gradual cutover phase
-- **[Phase 3: Full Cutover](./magento-migration/phase-3-full-cutover.md)** - Complete migration and decommissioning
-
-### **Planning & Status**
-- **[Project Status](./project-status.md)** - Current migration project status
-- **[Roadmap](./roadmap.md)** - Future migration plans
-
----
-
-## 🔧 Common Migration Tasks
-
-### **Kubernetes Migration**
-```bash
-# 1. Assess current infrastructure
-kubectl get nodes
-kubectl get pods --all-namespaces
-
-# 2. Plan migration strategy
-# See K8S_MIGRATION_QUICK_GUIDE.md
-
-# 3. Execute migration
-# Follow step-by-step procedures
-```
-
-### **Service Consolidation**
-```bash
-# 1. Identify consolidation opportunities
-# See CONSOLIDATION_IMPLEMENTATION_GUIDE.md
-
-# 2. Plan consolidation strategy
-# Analyze dependencies and impact
-
-# 3. Execute consolidation
-# Follow implementation guide
-```
-
----
-
-## 📊 Migration Status
-
-### **Completed Migrations**
-- **Kubernetes Migration**: ✅ Complete
-- **Service Consolidation**: ✅ In Progress
-- **Data Migration**: ✅ Complete
-
-### **In Progress**
-- **Platform Optimization**: 🔄 Active
-- **Performance Improvements**: 🔄 Active
-
-### **Planned**
-- **Advanced Features**: ⏳ Next Quarter
-- **Security Enhancements**: ⏳ Next Quarter
-
----
-
-## 📞 Support
-
-- **Documentation**: See individual migration guides
-- **Issues**: GitLab Issues with `migration` label
-- **Help**: #migration channel
+### ☸️ Kubernetes
+- **[K8S Migration Quick Guide](./K8S_MIGRATION_QUICK_GUIDE.md)** — k3d config standardization templates
 
 ---
 
 ## 🔗 Related Documentation
 
-### **Platform Documentation**
-- **[Operations](../06-operations/README.md)** - Platform operations
-- **[Development](../07-development/README.md)** - Development standards
-- **[Architecture](../01-architecture/README.md)** - System architecture
-
-### **Service Documentation**
-- **[Services](../03-services/README.md)** - Individual service documentation
-- **[APIs](../04-apis/README.md)** - API specifications
+- **[Architecture](../01-architecture/README.md)** — System architecture
+- **[Operations](../06-operations/README.md)** — Platform operations  
+- **[Development](../07-development/README.md)** — Development standards
+- **[Services](../03-services/README.md)** — Individual service documentation
 
 ---
 
-**Last Updated**: February 3, 2026  
-**Review Cycle**: Monthly migration review  
+**Last Updated**: March 2, 2026  
 **Maintained By**: Platform Engineering Team

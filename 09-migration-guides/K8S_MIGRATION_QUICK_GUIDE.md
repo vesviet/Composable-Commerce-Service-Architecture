@@ -2,7 +2,7 @@
 
 > **Quick guide** cho việc chuẩn hóa config của microservices
 > 
-> **Full checklist:** `K8S_CONFIG_STANDARDIZATION_CHECKLIST.md`
+> Templates and procedures for standardizing K8s configs across all services
 
 ---
 
@@ -414,4 +414,4 @@ kubectl delete -f deploy/local/ -n development
 
 ---
 
-**For full details, see:** `K8S_CONFIG_STANDARDIZATION_CHECKLIST.md`
+**For full details, see the templates in this guide above.

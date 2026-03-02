@@ -28,7 +28,7 @@ This guide provides a comprehensive **3-phase migration approach** for migrating
 > **This migration has 3 non-trivial technical challenges** that must be addressed before starting:
 > 1. **EAV schema** — Magento stores attributes (firstname, price, description…) in `*_varchar`, `*_int`, `*_decimal` sub-tables. Naive `SELECT *` queries will be missing all attributes. See `data-migration-guide.md` Step 1.2.
 > 2. **Integer → UUID ID mapping** — Magento uses `entity_id` (int), microservices use UUIDs. A `magento_id_map` cross-reference table must be established before any data is migrated. See `data-migration-guide.md` Step 1.4.
-> 3. **True CDC vs. polling** — Real-time sync uses Debezium (MySQL binlog), NOT `updated_at` polling. Polling misses DELETEs and is clock-skew sensitive. See `sync-service-implementation.md`.
+> 3. **True CDC vs. polling** — Real-time sync can use Debezium (MySQL binlog) or Dapr PubSub events. Our platform uses **Dapr PubSub + Transactional Outbox** for event-driven sync. See `sync-service-implementation.md`.
 
 ---
 
@@ -54,7 +54,7 @@ This guide provides a comprehensive **3-phase migration approach** for migrating
 
 #### **[Phase 1: Read-Only Migration](./phase-1-read-only.md)**
 - **Smart Routing**: API Gateway routes read APIs to microservices
-- **Real-time CDC**: Debezium MySQL binlog sync (Magento → Microservices)
+- **Real-time CDC**: MySQL binlog sync via Debezium (Magento → Microservices)
 - **Automatic Fallback**: Feature flags disable on failures
 - **Zero Risk**: Magento remains source of truth for writes
 
