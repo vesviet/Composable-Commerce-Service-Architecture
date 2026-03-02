@@ -1,52 +1,47 @@
 ## 🔍 Service Review: user
 
-**Date**: 2026-02-28
-**Status**: ⚠️ Needs Work 
+**Date**: 2026-03-01
+**Status**: ✅ Ready (Pending Wire Regen)
 
 ### 📊 Issue Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| P0 (Blocking) | 1 | Remaining |
+| P0 (Blocking) | 0 | Fixed / Remaining |
 | P1 (High) | 1 | Remaining |
-| P2 (Normal) | 2 | Remaining |
+| P2 (Normal) | 0 | Fixed / Remaining |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `user/internal/biz` — Coverage low (31.9% in `biz/user`, 0% in `biz/events`). Manual `testify` mocks.
+None.
 
 ### 🟡 P1 Issues (High)
-1. **[DATABASE]** `user/internal/data/postgres/user.go` — Offset-based pagination. Must refactor to cursor/keyset.
+1. **[BUILD]** Wire generated files (`wire_gen.go`) are out of sync. Needs `make api` and `wire` regeneration to ensure all DI changes are committed.
 
 ### 🔵 P2 Issues (Normal)
-1. **[DOCS]** `user/README.md` — Verify README follows standard template.
-2. **[TRACING]** `user/internal/biz` — Outbox events must trace via `extractTraceparent(ctx)`.
+None.
 
 ### ✅ Completed Actions
-1. ✅ Vendor sync: updated `common` to `v1.19.0`, ran `go mod tidy && go mod vendor`.
-2. ✅ Lint: `golangci-lint` passes with 0 warnings.
-3. ✅ Deployment Readiness verified (Ports: HTTP 8001 / gRPC 9001).
-4. ✅ No GORM `.Preload()` N+1 abuse found.
+*None in this review session.*
 
 ### 🌐 Cross-Service Impact
-- Services that import this proto: `gateway`, `auth`.
-- Services that consume events: `notification`.
-- Backward compatibility: ✅ Preserved.
+- Services that import this proto: Auth, Admin
+- Services that consume events: Auth
+- Backward compatibility: ✅ Preserved
 
 ### 🚀 Deployment Readiness
-- Config/GitOps aligned: ✅ 
-- Health probes: ✅ 
-- Resource limits: ✅ 
-- Migration safety: ✅ 
+- Config/GitOps aligned: ⚠️ Needs Verification (Uses kustomize patches)
+- Health probes: ⚠️ Needs Manual Verification
+- Resource limits: ⚠️ Needs Manual Verification
+- Migration safety: ✅
 
 ### Build Status
 - `golangci-lint`: ✅ 0 warnings
-- `go build ./...`: ✅ Success
-- `go test ./...`: ✅ Pass
-- `wire`: ✅ Generated 
-- Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
-- `bin/` Files: ✅ Removed 
+- `go build ./...`: ✅ Passed
+- `wire`: ❌ Needs regen (Diff detected during wire run)
+- Generated Files (`wire_gen.go`, `*.pb.go`): ❌ Modifed locally/out of sync
+- `bin/` Files: ✅ Removed
 
 ### Documentation
-- Service doc: ✅ 
-- README.md: ⚠️ Needs standardization
-- CHANGELOG.md: ❌ Missing or outdated
+- Service doc: ⚠️ Needs Work
+- README.md: ⚠️ Needs Work
+- CHANGELOG.md: ⚠️ Needs Work

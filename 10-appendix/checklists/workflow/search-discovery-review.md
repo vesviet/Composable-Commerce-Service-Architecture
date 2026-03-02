@@ -360,7 +360,7 @@ All consumers and cron workers are registered in `workers.go`. No missing regist
 
 | Document | Path |
 |----------|------|
-| Previous review (Sprint 1–3) | [search-discovery-flow-review.md](search-discovery-flow-review.md) |
-| Catalog flow checklist | [catalog-product-flow-checklist.md](catalog-product-flow-checklist.md) |
+| Previous review (Sprint 1–3) | [search-discovery-review.md](search-discovery-review.md) |
+| Catalog flow checklist | [catalog-product-review.md](catalog-product-review.md) |
 | eCommerce platform flows reference | [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) |
 | DLQ replay runbook | [runbooks/dlq-replay-runbook.md](../../runbooks/dlq-replay-runbook.md) |

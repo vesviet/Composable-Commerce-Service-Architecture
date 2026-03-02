@@ -1,70 +1,45 @@
-# Loyalty Rewards Service Review Checklist
+# Loyalty-Rewards Service Review Checklist
 
-**Date**: 2026-02-28
-**Reviewer**: AI Review
-**Version**: v1.2.1 (commit 18a1bc0)
+**Date**: 2026-03-01
+**Reviewer**: Service Review Process
+**Service**: loyalty-rewards
+**Status**: ✅ Ready
 
-## P0 Issues (Blocking)
+## 📊 Issue Summary
 
-1. **[BUILD] Stale `wire_gen.go` breaks compilation** — `wire_gen.go` referenced deleted `server.NewJobManagerProvider` and `server.JobManager`, and used old 1-arg `events.NewEventPublisherProvider(logger)` signature (now 2-arg with `outbox.Repository`). Service would not compile. **→ Fixed: Created `NewOutboxRepository` wrapper, regenerated wire.**
+| Severity | Count | Status |
+|----------|-------|--------|
+| P0 (Blocking) | 0 | — |
+| P1 (High) | 1 | ✅ Fixed |
+| P2 (Normal) | 1 | Acceptable |
 
-## P1 Issues (High)
+---
 
-1. **[HYGIENE] Compiled binary in repo root** — `loyalty-rewards` (42MB) ELF binary present. Not git-tracked. **→ Fixed: Deleted.**
-2. **[HYGIENE] 37 uncommitted files** — Proto updates, server cleanup, wire changes from previous session. **→ Fixed: Committed as v1.2.1.**
-3. **[GITOPS] No HPA configured** — Missing `hpa.yaml` for loyalty-rewards deployment. Service has no autoscaling. **→ Deferred (P2 for non-high-traffic service).**
-4. **[OBSERVABILITY] Broken `/metrics` endpoint** — The Prometheus metrics handler returned an empty 200 OK with `text/plain` header instead of actual metrics. ServiceMonitor was scraping an empty response. **→ Fixed: Replaced with `promhttp.Handler()`.**
+## 🟡 P1 Issues
 
-## P2 Issues (Normal)
+### P1-001: ~~HPA missing sync-wave and minReplicas=1~~ ✅ FIXED
+- HPA existed locally but was not committed. Also improved: added `sync-wave: "4"`, raised `minReplicas` 1→2 for HA, added `behavior` scale-down/up policies.
 
-1. **[DOCS] Service documentation missing** — No `docs/03-services/operational-services/loyalty-rewards-service.md`. **→ Fixed: Created.**
-2. **[DOCS] CHANGELOG** — Updated with v1.2.1 entry. **→ Fixed.**
+---
 
-## Completed Actions
+## 🔵 P2 Issues (Acceptable)
 
-1. ✅ Pulled latest code
-2. ✅ Fixed `data/provider.go` — created `NewOutboxRepository` wrapper for proper Wire binding
-3. ✅ Regenerated `wire_gen.go` for server binary
-4. ✅ Verified zero `golangci-lint` warnings
-5. ✅ Verified `go build ./...` passes
-6. ✅ Verified `go test ./...` — 6/6 test packages pass
-7. ✅ Verified no `replace` directives
-8. ✅ Verified `common` at latest (v1.17.0)
-9. ✅ Deleted compiled binary from repo root
-10. ✅ Committed 37 pending + fix files
-11. ✅ Updated CHANGELOG.md with v1.2.1
-12. ✅ Created service documentation
-13. ✅ Fixed broken `/metrics` endpoint — replaced empty stub with `promhttp.Handler()`
+### P2-001: Deprecated `PageSize` lint warnings (5 instances)
+- Backward-compat shims in service layer for old offset pagination clients. Will be removed after all consumers migrate to cursor pagination.
 
-## Verification Results
+---
+
+## ✅ Clean Checks
 
 | Check | Status |
 |-------|--------|
-| `golangci-lint run` | ✅ 0 warnings |
-| `go build ./...` | ✅ Pass |
-| `go test ./...` | ✅ 6/6 packages pass |
-| `wire` (loyalty-rewards) | ✅ Generated |
-| No `replace` directives | ✅ Clean |
-| `common` version | ✅ v1.17.0 (latest) |
-| Compiled binaries removed | ✅ |
-
-## Cross-Service Impact
-
-| Item | Status |
-|------|--------|
-| Proto consumers | `gateway` (v1.1.4) |
-| Event consumers | Subscribes to `orders.order.status_changed`, `customer.deleted` |
-| Backward compatibility | ✅ Preserved |
-
-## Deployment Readiness
-
-| Check | Status |
-|-------|--------|
-| Ports match PORT_ALLOCATION_STANDARD | ✅ HTTP=8014, gRPC=9014 |
+| No committed binary | ✅ |
+| No `replace` directives | ✅ |
+| Ports match (8014/9014) | ✅ |
 | Config/GitOps aligned | ✅ |
-| Health probes (server) | ✅ liveness + readiness + startup on 8014 |
-| Resource limits | ✅ 256Mi-1Gi / 200m-1000m |
-| Dapr annotations | ✅ app-id=loyalty-rewards, app-port=8014 |
-| HPA | ⚠️ Missing (P2) |
-| Worker deployment | ✅ Present |
-| Security context | ✅ runAsNonRoot |
+| `golangci-lint` | ✅ 5 warnings (P2 deprecated shim) |
+| `go build ./...` | ✅ |
+| `go test ./...` | ✅ All pass |
+| HPA | ✅ Committed (2-5 replicas) |
+| `common` at v1.22.0 | ✅ |
+| All deps latest | ✅ |

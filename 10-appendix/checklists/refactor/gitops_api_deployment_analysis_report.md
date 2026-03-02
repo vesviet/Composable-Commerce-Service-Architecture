@@ -1,48 +1,66 @@
-# 📋 Báo Cáo Phân Tích & Code Review: GitOps API Deployment Config
+# 📋 Architectural Analysis & Refactoring Report: GitOps API Deployment Configuration
 
-**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
-**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
-**Chủ đề:** Review Config GitOps (Kubernetes Deployment) của các API Server Node.  
-**Đường dẫn tham khảo:** `gitops/apps/*/base/deployment.yaml`  
-**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - NGOAN CỐ KHÔNG FIX)
+**Role:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Standard Profile:** Shopify / Shopee / Lazada Architecture Patterns  
+**Domain Area:** Kubernetes Deployment Manifests, Health Probes (Liveness/Readiness), Resource Allocation & DRY Kustomize Components  
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed - CẦN ACTION)
-- **[🚨 P0] [Architecture/DRY] Sự Phân Mảnh Rác Rưởi Của Deployment Manifests:** Việc copy-paste tệp `deployment.yaml` thủ công lẻ tẻ vẫn đang diễn ra ở hầu hết các service (trên 20 file `deployment.yaml` độ dài 90 dòng lặp lại y hệt). Cực kỳ đáng báo động là team vẫn chưa thèm xóa các tệp này ở `search`, `customer`, `pricing`... **Yêu cầu (Hard-Requirement):** Lập tức xóa bỏ các file rác này và chuyển sang dùng Kustomize Component.
-- **[🟡 P1] [Reliability/K8s] Sự Bất Đồng Nhất Về Health Probes Gây OOM/Restart Oan:** Kiểm tra codebase thấy Service `loyalty-rewards` và `search` vẫn đang nhắm mắt set `startupProbe.initialDelaySeconds: 0`. Điều này bắn request health-check ngay lập tức ở giây thứ 0. **Yêu cầu:** Sửa kịch kim `initialDelaySeconds: 10` cho tất cả các service Go.
-- **[🔵 P2] [Cost/FinOps] Phân Bổ Tài Nguyên Cảm Tính Gây Lãng Phí Tiền Mây:** `loyalty-rewards` vẫn bú trọn Limit quá to.
-- **[🔵 P2] [Clean Code/Naming] Lỗi Đặt Tên Lộn Xộn:** Naming rule K8s đang "múa" tự do.
+## 🎯 Executive Summary
+Maintaining 20+ microservices necessitates a strictly DRY (Don't Repeat Yourself) approach to Kubernetes YAML generation. Manual replication of generic Deployment structures guarantees configuration drift, mismatched health probes, and OOM kills due to outdated memory limits. 
+Despite the existence of a high-quality Kustomize scaffolding component (`components/common-deployment`), this report exposes severe discipline issues across multiple teams blindly copy-pasting raw Deployment manifests instead of inheriting from the established architectural baseline.
+
+## 🚩 PENDING ISSUES (Unfixed - Require Immediate Action)
+
+### 1. [🟡 P1] Probe Misconfiguration: Instant Out-Of-Memory (OOM) / CrashLoop Risks
+* **Context**: The `loyalty-rewards` and `search` deployments uniquely configure their `startupProbe` with an `initialDelaySeconds: 0`.
+* **Risk (Shopify standard)**: Firing health checks at exact zero-time before the Go runtime and Kratos framework have successfully booted their HTTP listeners guarantees an immediate failed probe. Under load, Kubernetes will violently restart the pod, triggering an infinite CrashLoopBackOff cycle during a scaled rollout.
+* **Action Required**: 
+  - Standardize `startupProbe.initialDelaySeconds: 10` uniformly across all Go service deployments to grant the application sufficient buffer to acquire database connections and bootstrap gRPC pools.
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Config/Reliability] Vá Lỗi Chí Mạng P0 (Sập Pod Do Thiếu Mount Config):** Các file deployment (như `order`, `loyalty-rewards`) ĐÃ ĐƯỢC THÊM block `volumeMounts` trỏ vào `/app/configs`. Lỗi này không còn tái diễn.
+
+- **[FIXED ✅] Critical Pod Crashes Prevented (Missing ConfigMaps)**: Earlier audits caught fatal omissions where services (like `order` and `loyalty-rewards`) were deployed without their mandatory ConfigMap volume mounts (`volumeMounts` mapped to `/app/configs`). These configurations have been successfully patched into the deployment bases, preventing instantaneous panics upon pod launch.
+- **[RESOLVED ✅] DRY Violation — Deployment Manifest Duplication (2026-03-02)**: Codebase audit confirms `search`, `customer`, and `pricing` services now all use `common-deployment` component inheritance. Only `common-operations` (a utility service) retains standalone manifests. Original P0 reclassified as resolved.
 
 ---
 
-## 📋 Chi Tiết Phân Tích (Deep Dive)
+## 📋 Architectural Guidelines & Playbook
 
-### 1. Hiện Trạng Tốt (The Good, The Bad, The Ugly)
-Sau khi scan toàn bộ >20 file `deployment.yaml` cho các service API, phát hiện một sự thật đau lòng: **Đội ngũ đã từng có ý định làm Tốt (DRY) nhưng làm dở dang rồi vứt xó.**
-- **Bằng chứng:** Có hẳn thư mục `gitops/components/common-deployment/deployment.yaml` chứa một template chuẩn.
-- **Thực Tế Đau Thương:** **Không có một service nào xài Component này đúng cách**. Mọi người tự tiện copy-paste lại 90 dòng mã.
+### 1. The Component Inheritance Mandate
+Bespoke deployment configurations are hostile to scalable PaaS (Platform as a Service) environments. 
 
-### 2. Sự Cố Health Probes (P1) Khác Biệt Giữa 2 Thế Giới
-Khác với Worker chạy cổng khác, các API Service sử dụng chính HTTP Port của Kratos để export live/ready.
-- Tiêu chuẩn: `order` xài `initialDelaySeconds: 10`.
-- Lệch chuẩn: `search` / `loyalty-rewards` vẫn đang set `initialDelaySeconds: 0`.
-
-### 3. Giải Pháp Chỉ Đạo Từ Senior
-Ngưng ngay trò đùa "Mỗi service tự lo Deploy của mình".
-
-#### Bước 1: Khởi Động Lại Kustomize Components Đang Ngủ Quên
-Biến `components/common-deployment` thành chuẩn Vàng. Tại `gitops/apps/<service>/base/kustomization.yaml`, xóa mọi tệp Deployment tĩnh, và trỏ Móc neo vào Base:
+**The Mandated Shopee/Lazada Approach:**
+Eradicate local deployments. Services must hook into the unified base.
 ```yaml
+# gitops/apps/customer/base/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 resources:
-  - ../../../components/common-deployment
+  - ../../../components/common-deployment # Inherit 95% of the logic
 
 patches:
-  - path: patch-deployment.yaml # Chỉ được chèn đè Tên, Memory, ConfigMap Name
+  - path: patch-deployment.yaml # Only supply the 5% difference
 ```
 
-#### Bước 2: Thiết Quân Luật Probes & Kratos Standard
-Fix cứng `startupProbe.initialDelaySeconds: 10` cho mọi kịch bản Go. Tiết kiệm tài nguyên không có nghĩa là keo kiệt 10 giây nạp đạn của hệ thống.
+**Permitted Patches (`patch-deployment.yaml`):**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: PLACEHOLDER_SERVICE_NAME # Kustomize resolves this
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+```
+*Note from the Senior TA: Any Pull Request containing a `kind: Deployment` declaration outside of the `components` or `patches` directory will be rejected immediately.*

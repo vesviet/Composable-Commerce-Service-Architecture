@@ -3,7 +3,7 @@
 **Date**: 2026-02-26  
 **Pattern Reference**: Shopify, Shopee, Lazada  
 **Scope**: `checkout` service + `order` service — Cart & Checkout Flows (Section 5)  
-**Status**: ⚠️ Needs Work — Several P1/P2 gaps found
+**Status**: ✅ P0/P1 Fixed — P2 gaps remaining (loyalty points, promo expiry edge case)
 
 ---
 

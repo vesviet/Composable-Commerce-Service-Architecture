@@ -1,50 +1,48 @@
 ## 🔍 Service Review: catalog
 
-**Date**: 2026-02-28
-**Status**: ❌ Not Ready 
+**Date**: 2026-03-01
+**Status**: ❌ Not Ready
 
 ### 📊 Issue Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| P0 (Blocking) | 1 | Remaining |
-| P1 (High) | 2 | Remaining |
-| P2 (Normal) | 0 | Fixed |
+| P0 (Blocking) | 2 | Remaining |
+| P1 (High) | 0 | Fixed / Remaining |
+| P2 (Normal) | 0 | Fixed / Remaining |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `catalog/internal/biz` — Unit Test coverage is critically low (0%). Product catalog logic, search filters, category trees, and brand logic have no safety net.
+1. **[API/BUILD]** `api/product/v1/product.pb.go` — Fails to compile due to `undefined: v1.CursorRequest` and `v1.CursorResponse`. Proto definitions must be updated to correctly reference the new pagination payload and rebuilt with `make api`.
+2. **[TEST/BUILD]** Test suite failures (e.g., `s.Logger undefined`, `s.T undefined` in `brand_test.go`, `category_test.go`, etc.). Test files are broken and must be fixed to pass the build and lint steps.
 
 ### 🟡 P1 Issues (High)
-1. **[DATABASE PERFORMANCE]** `catalog/internal/data/postgres/product.go` — Severe N+1 query problem. Massive chains of `.Preload()` on every list query. Must refactor to `.Joins()` with `Select()`.
-2. **[DATABASE PERFORMANCE]** `catalog/internal/data/postgres` — Rampant offset-based pagination. Must refactor to cursor-based (keyset) pagination.
+None.
 
 ### 🔵 P2 Issues (Normal)
-*All resolved.*
+None.
 
 ### ✅ Completed Actions
-1. ✅ Vendor sync: updated `common` to `v1.19.0`, ran `go mod tidy && go mod vendor`.
-2. ✅ Deployment Readiness verified (Ports: HTTP 8015 / gRPC 9015).
+*None in this review session.*
 
 ### 🌐 Cross-Service Impact
-- Services that import this proto: `gateway`, `order`, `warehouse`, `search`.
-- Services that consume events: `search` (sync ES), `warehouse` (sync stock).
-- Backward compatibility: ✅ Preserved.
+- Services that import this proto: Order, Checkout, Search, Pricing
+- Services that consume events: Search, Analytics
+- Backward compatibility: ❌ Breaking (Currently broken build)
 
 ### 🚀 Deployment Readiness
-- Config/GitOps aligned: ✅ 
-- Health probes: ✅ 
-- Resource limits: ✅ 
+- Config/GitOps aligned: ⚠️ Needs Verification
+- Health probes: ⚠️ Needs Verification
+- Resource limits: ⚠️ Needs Verification
 - Migration safety: ✅ 
 
 ### Build Status
-- `golangci-lint`: ⚠️ 2 minor warnings (unused field in test, fmt.Sscanf)
-- `go build ./...`: ✅ Success
-- `go test ./...`: ✅ Pass
-- `wire`: ✅ Generated 
-- Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
-- `bin/` Files: ✅ Removed 
+- `golangci-lint`: ❌ 150 warnings (Typecheck and missing fields in tests)
+- `go build ./...`: ❌ Failed 
+- `wire`: ❌ Needs regen
+- Generated Files (`wire_gen.go`, `*.pb.go`): ❌ Modifed locally/out of sync
+- `bin/` Files: ✅ Removed
 
 ### Documentation
-- Service doc: ✅ 
-- README.md: ⚠️ Needs standardization
-- CHANGELOG.md: ❌ Missing or outdated
+- Service doc: ⚠️ Needs Work
+- README.md: ⚠️ Needs Work
+- CHANGELOG.md: ⚠️ Needs Work

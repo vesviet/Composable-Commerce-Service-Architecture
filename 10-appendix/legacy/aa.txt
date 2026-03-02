@@ -78,4 +78,6 @@ nohup kubectl port-forward svc/argocd-server -n argocd --address 0.0.0.0 8090:44
 
 nohup kubectl port-forward svc/traefik -n kube-system --address 0.0.0.0 8081:80 > traefik-pf-8081.log 2>&1 &
 
-architect technical
+Technical Architect
+
+Let's plan the remaining parts.

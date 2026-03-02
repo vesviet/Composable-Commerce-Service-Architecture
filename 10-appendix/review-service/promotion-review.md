@@ -1,51 +1,47 @@
 ## 🔍 Service Review: promotion
 
-**Date**: 2026-02-28
-**Status**: ❌ Not Ready 
+**Date**: 2026-03-01
+**Status**: ❌ Not Ready
 
 ### 📊 Issue Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| P0 (Blocking) | 1 | Remaining |
+| P0 (Blocking) | 0 | Fixed / Remaining |
 | P1 (High) | 1 | Remaining |
-| P2 (Normal) | 0 | Fixed |
+| P2 (Normal) | 0 | Fixed / Remaining |
 
 ### 🔴 P0 Issues (Blocking)
-1. **[TESTING]** `promotion/internal/biz` — Test suite fails to compile. `MockOutboxRepo` missing `ResetStuckProcessing` method due to manual mocks. Must enforce `gomock` generation.
+None.
 
 ### 🟡 P1 Issues (High)
-1. **[DATABASE PERFORMANCE]** `promotion/internal/data/X.go` — Widespread offset-based pagination across campaigns, coupons, usage logs. Must migrate to cursor/keyset.
+1. **[BUILD]** Inconsistent vendoring error: `gitlab.com/ta-microservices/common@v1.21.0` is required in `go.mod` but not synced in `vendor/modules.txt`. Run `go mod vendor` before building.
 
 ### 🔵 P2 Issues (Normal)
-*All resolved.*
+None.
 
 ### ✅ Completed Actions
-1. ✅ Vendor sync: updated `common` to `v1.19.0`, ran `go mod tidy && go mod vendor`.
-2. ✅ Lint: `golangci-lint` passes with 0 warnings.
-3. ✅ Deployment Readiness verified (Ports: HTTP 8011 / gRPC 9011).
-4. ✅ No GORM `.Preload()` N+1 misuse detected.
+*None in this review session.*
 
 ### 🌐 Cross-Service Impact
-- Services that import this proto: `gateway`, `payment`, `order`.
-- Services that consume events: `order` (campaign discounts).
-- Backward compatibility: ✅ Preserved.
+- Services that import this proto: Checkout, Order
+- Services that consume events: Analytics
+- Backward compatibility: ✅ Preserved
 
 ### 🚀 Deployment Readiness
-- Config/GitOps aligned: ✅ 
-- Health probes: ✅ 
-- Resource limits: ✅ 
-- Migration safety: ✅ 
+- Config/GitOps aligned: ⚠️ Needs Verification
+- Health probes: ⚠️ Needs Verification
+- Resource limits: ⚠️ Needs Verification
+- Migration safety: ✅
 
 ### Build Status
-- `golangci-lint`: ✅ 0 warnings
-- `go build ./...`: ✅ Success
-- `go test ./...`: ❌ Fails to compile (manual mock missing `ResetStuckProcessing` method)
-- `wire`: ✅ Generated 
-- Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
-- `bin/` Files: ✅ Removed 
+- `golangci-lint`: ❌ Failed due to vendoring mismatch
+- `go build ./...`: ❌ Failed due to vendoring mismatch
+- `wire`: ⚠️ Blocked
+- Generated Files (`wire_gen.go`, `*.pb.go`): ⚠️ Needs Validation
+- `bin/` Files: ✅ Removed
 
 ### Documentation
-- Service doc: ✅ 
-- README.md: ⚠️ Needs standardization
-- CHANGELOG.md: ❌ Missing or outdated
+- Service doc: ⚠️ Needs Work
+- README.md: ⚠️ Needs Work
+- CHANGELOG.md: ⚠️ Needs Work

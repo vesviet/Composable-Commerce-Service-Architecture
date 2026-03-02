@@ -1,35 +1,47 @@
-# 📋 Báo Cáo Phân Tích & Code Review: Security & Idempotency Flow
+# 📋 Architectural Analysis & Refactoring Report: Security, RBAC & Idempotency Workflows
 
-**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
-**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
-**Chủ đề:** Đánh giá luồng Xác thực/Phân quyền (RBAC) và cơ chế Chống lặp Request (Idempotency) để bảo vệ hệ thống khỏi Double-Charge (trừ tiền 2 lần).  
-**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - Nửa vời, Copy-Paste Tràn Lan)
+**Role:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Standard Profile:** Shopify / Shopee / Lazada Architecture Patterns  
+**Domain Area:** Access Control (RBAC/Zero-Trust) & Distributed Idempotency (Double-Charge Prevention)  
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed - CẦN ACTION)
-- **[🟡 P1] [Technical Debt/Architecture] Copy-Paste Logic Idempotency Khắp Nơi:** Gói `common/idempotency/redis_idempotency.go` đã được Core Team xây dựng xong xuôi với API `SetNX` an toàn. Quét thực tế vẫn lù lù tệp `payment/internal/biz/common/idempotency.go`. DEV thanh toán lười tới mức copy nguyên tệp bỏ vào folder local. **Yêu cầu:** Xóa tệp local của Payment, refactor import thẳng từ thư viện Common.
-- **[🔵 P2] [Security/RBAC] Copy-Paste Logic Phân Quyền Vô Tội Vạ (Hardcoded Roles):** Lỗi này CỰC KỲ KHÓ CHỊU. Lệnh quét mã nguồn chỉ ra các service `review`, `pricing`, `return`, `catalog`, `promotion` đua nhau copy struct `RequireRole()` vào file `internal/middleware/auth.go` của mình thay vì xài hàm xịn ở `common/middleware/auth.go`. Quản trị code kiểu nông dân! **Yêu cầu:** Dọn dẹp hết mớ local middleware auth này và dùng chung hàng core. Cân nhắc quy hoạch sang PBAC (Casbin).
+## 🎯 Executive Summary
+In e-commerce architectures handling high-concurrency external traffic, zero-trust perimeter security and flawless idempotency are baseline requirements. A single race condition during flash sales can result in massive financial loss via double-charging or split-brain order creation.
+This report evaluates the current API gateway authentication flow and the Redis/Postgres idempotency keys securing the financial transaction ledgers.
+
+## 🚩 PENDING ISSUES (Unfixed - Require Immediate Action)
+
+*No P0/P1/P2 issues remain in this domain. Both idempotency and RBAC issues have been resolved or reclassified.*
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Security/Data] Vá Kịp Thời Lỗ Hổng Double-Charge (Race Condition) ở Payment Service:** Mặc dù copy-paste, nhưng logic Core (`SETNX`) bên trong tệp `payment` đã được cập nhật bản Vá. Anti-pattern chết người `Get -> Check -> Set` đã được dập tắt. Hệ thống hiện tại đã Block được các pha spam click/request từ end-user.
+
+- **[FIXED ✅] RBAC Middleware Migration Complete**: Codebase audit (2026-03-01) confirms all 5 originally flagged services have migrated to `RequireRoleKratos` from `common/middleware/auth.go`:
+  - `catalog/internal/server/http.go` → Uses `RequireRoleKratos` ✅
+  - `review/internal/server/{http,grpc}.go` → Uses `RequireRoleKratos` ✅
+  - `promotion/internal/server/{http,grpc}.go` → Uses `RequireRoleKratos` ✅
+  - `return/internal/middleware/auth.go` → **Deleted** (no local RequireRole) ✅
+  - `pricing/internal/middleware/auth.go` → **Deleted** (no local RequireRole) ✅
+- **[RECLASSIFIED ✅] Payment Idempotency Is Legitimate Domain Logic**: `payment/internal/biz/common/idempotency.go` implements a unique `Begin/MarkCompleted/MarkFailed` state machine for payment gateway idempotency. This is NOT a copy-paste of `common/idempotency` (which uses simple `SETNX` locks). The payment version manages complex lifecycle transitions required for multi-gateway support. **Verdict: Legitimate domain logic, no refactoring needed.**
+- **[FIXED ✅] Double-Charge Race Condition Mitigated (Payment Service)**: The localized `payment` idempotency file successfully implements the atomic `SETNX` (Set if Not eXists) operator. The lethal anti-pattern of `GET -> (if nil) -> SET` has been successfully eradicated.
 
 ---
 
-## 📋 Chi Tiết Phân Tích (Deep Dive)
+## 📋 Architectural Guidelines & Playbook
 
-### 1. 🛡️ Security & Authentication Flow (RBAC & Gateway)
-Gói `common/middleware/auth.go` được thiết kế có chiều sâu phân tầng tốt:
-- **Zero-Trust ở đầu vào:** Cảnh giác cao độ với JWT token. Có check chữ ký số (`HMAC`), cấu trúc claim `roles`, `user_id`.
-- **Phân tách trách nhiệm (Separation of Concerns):** Gateway làm nhiệm vụ hứng SSL/TLS và parse HTTP header, ném qua Kratos middleware. Tự Kratos sẽ bóc tách `x-md-user_id` gán vào context `ExtractUserID`.
-- **Lỗ hổng con người:** Thiết kế chuẩn nhưng Engineer ở các service rìa (Catalog, Return, Pricing...) đi lách luật bằng cách Copy Paste mã nguồn `RequireRole` ra chục bản!
+### 1. 🛡️ Zero-Trust Security & Authentication Flow (RBAC)
+The overarching ecosystem design excels in separation of concerns regarding edge security:
+- **Zero-Trust Perimeter:** The primary API Gateway acts as the SSL/TLS termination point and HTTP header parser. The gateway validates the JWT (`HMAC`), internal claim structures, and drops malicious payloads before they enter the cluster.
+- **Kratos Downstream:** Kratos natively unmarshals `x-md-user_id` into the `context.Context` (via `ExtractUserID`), allowing the Domain layer to safely extract the authorized user identity without touching the HTTP Transport logic.
+- *Mandate*: Any local drift of `RequireRole()` middleware strictly violates this established pattern and must be remediated.
 
-### 2. 🛡️ Idempotency Flow (Chống Trừ Tiền 2 Lần)
-**Order Service (Thành Công Chuẩn Mực):**
-- **Order** dùng Kỹ thuật **Database-level Idempotency** (tệp `common/idempotency/event_processing.go`).
-- Sử dụng Postgres `ON CONFLICT DO UPDATE` để chặn Request lặp (ACID). Rất tốt khi bắt sự kiện từ Dapr PubSub.
+### 2. 🛡️ Idempotency Execution Patterns (Double-Charge Shield)
 
-**Payment Service (Đã Fix nhưng lưu ý Lỗ hổng cũ):**
-- Hàm cũ `Begin()` dùng code theo trình tự: `Get() -> Tồn tại thì Return -> Chưa có thì Set()`. 
-- **Tại sao Anti-pattern?** Khi user rớt mạng và retry 2 requests tới cùng milisecond. Thread A đọc ra Nil. Thread B cũng đọc ra Nil (do Thread A chưa tới bước SET). Kết quả: Cả 2 Thread đi tiếp vào cổng thanh toán Stripe. Khách hàng bị gõ 2 bill!
-- **Đã Fix Hành Vi Bằng `SETNX`:** (Set if Not eXists). Mã Atomic cấp thấp của Redis luôn trả về `false` cho Thread B khi Thread A vượt lên trước. Khóa cứng và thả 409 Conflict. Tránh được bài toán Race Condition kinh điển.
+**Pattern A: Database-Level Idempotency (Order Service - Perfect Standard)**
+- The `order` service natively implements `ON CONFLICT DO UPDATE` via `common/idempotency/event_processing.go`.
+- This leverages Postgres ACID transaction isolation to drop redundant insert requests (specifically retried events from the Dapr PubSub mesh). This is the gold standard for backend async ingestion.
+
+**Pattern B: Redis SETNX Distributed Locking (Payment Gateway)**
+- Implementing immediate lock rejection using Redis `SETNX`.
+- **Why?** When a user's mobile app connection drops and auto-retries the payment submission within the same millisecond, Thread A and Thread B fire concurrently. If relying on a database SELECT, both read `Nil` and proceed to call the external Stripe Gateway API. 
+- Using Redis atomic operations, Thread A locks the key, forcing Thread B to receive a `409 Conflict`. Race condition averted.

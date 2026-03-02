@@ -1,37 +1,66 @@
-# 📋 Báo Cáo Phân Tích & Code Review: Unit Test Coverage & Mocking
+# 📋 Architectural Analysis & Refactoring Report: Unit Test Coverage & Mocking Strategies
 
-**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
-**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
-**Chủ đề:** Đánh giá văn hóa viết Test, mức độ bao phủ mã nguồn (Coverage), và tính tuân thủ quy tắc `testcase.md`.  
-**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - CHƯA FIX - TÌNH TRẠNG BÁO ĐỘNG)
+**Role:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Standard Profile:** Shopify / Shopee / Lazada Architecture Patterns  
+**Domain Area:** Quality Assurance, Test-Driven Architecture & Domain Coverage  
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed - KHẨN CẤP)
-- **[🚨 P0] [Code Quality/Test] Cấu Trúc Viết Test Vẫn Dùng Manual Mocks Rác Khối Lượng Lớn:** Kiểm tra thực tế cho thấy DEV vẫn làm lơ lệnh dùng gomock.
-  - **Order Service:** File `internal/biz/mocks.go` chứa một cục tảng đá Mock viết tay dài hơn **700 dòng** ( `MockOrderRepo`, `MockOrderItemRepo`, in-memory Maps...). 
-  - **Payment Service:** Code `payment_p0_test.go` và `usecase_test.go` ngập tràn các struct kế thừa `testify/mock.Mock` thủ công tốn hàng khối code.
-  **Yêu cầu Khẩn (Lần 2):** CẤM VIẾT TAY MOCK cho các Interface lớn! Sử dụng thư viện `go.uber.org/mock/mockgen` lập tức. Sinh tự động `mock_repository.go` trong `internal/biz/<package>/mocks/`.
-- **[🚨 P0] [Coverage] Độ Phủ Tầng Business Bị Bỏ Rơi:** 
-  Khi chạy Audit (`go test -cover`) tại nhánh `internal/biz/...` của Order và Payment, lệnh còn vướng dependency lỗi (`vendor drift`), đồng thời Coverage nhiều mảng cốt lõi như `order/biz/status`, `payment/biz/refund` rỗng testcode. 
-  **Yêu cầu:** Mở campaign Coverage, lấp ngay lỗ hổng logic Tài chính/Kho vận, tối thiểu 60%.
-- **[🟡 P1] [CI/CD] Trống rỗng cơ chế báo cáo Coverage tự động:** Pipeline Gitlab chưa chặn merge khi coverage tụt. **Suggested Fix:** Thêm rule `go test -coverprofile=coverage.out ./internal/biz/...` vào thư mục `gitlab-ci-templates`.
+## 🎯 Executive Summary
+Robust unit test coverage is non-negotiable for enterprise e-commerce platforms processing financial data (Orders, Payments, Refunds). A major anti-pattern in the current repository is the heavy reliance on massive, manually constructed mock files instead of adopting standardized code-generation tools. 
+This report mandates the immediate migration to `go.uber.org/mock/mockgen` for interface mocking and enforces strict coverage minimums for core business transaction pipelines.
+
+## 🚩 PENDING ISSUES (Unfixed - Require Immediate Action)
+
+### 1. [🚨 P0] Massive Technical Debt via Manually Hand-Written Mocks
+* **Context**: Current testing suites (specifically within the Order and Payment domains) rely on handwritten struct implementations that implement `testify/mock.Mock`. 
+  * Examples: `order/internal/biz/mocks.go` contains over **700 lines** of manual mocks (`MockOrderRepo`, `MockOrderItemRepo`, in-memory Maps). `payment_p0_test.go` and `usecase_test.go` exhibit the same anti-pattern.
+* **Risk (Lazada standard)**: Handwritten mocks are brittle. A single domain signature change (e.g., adding a context parameter to an interface) breaks hundreds of lines of test code. This discouraging maintenance overhead causes developers to abandon writing tests.
+* **Action Required**: 
+  - **BAN** the manual creation of large interface mocks.
+  - Implement automated mocking using `go.uber.org/mock/mockgen`.
+  - Add `//go:generate mockgen -destination=mocks/mock_<name>.go -package=mocks . <InterfaceName>` commands at the top of every repository and client interface definition in `internal/biz`.
+
+### 2. [🚨 P0] Dangerously Low Test Coverage in Financial Core Domains
+* **Context**: A coverage audit (`go test -cover ./internal/biz/...`) reveals that critical state machine operations, such as `order/biz/status` and `payment/biz/refund`, are lacking comprehensive unit tests.
+* **Risk (Shopee standard)**: Deploying order status transitions or payment refund flows without strict matrix-tested coverage introduces unacceptable risks of financial calculation errors or stuck orders.
+* **Action Required**: 
+  - Launch an immediate campaign to backfill unit tests for financial transactions.
+  - Minimum coverage requirement for `biz/status`, `biz/refund`, and `biz/checkout` is strictly set to **≥60%**.
+
+### 3. [🟡 P1] Missing Automated CI Coverage Gates
+* **Context**: The current GitLab CI pipelines do not block merges based on test coverage drops.
+* **Risk**: Technical debt will accumulate as new, untested code gets merged into `main`.
+* **Action Required**: 
+  - Sub-task: Inject a step into the `gitlab-ci-templates` to enforce a hard coverage floor: `go test -coverprofile=coverage.out ./internal/biz/...`.
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Structure] Cấu trúc Table-Driven Test và Assertions:** Các test đã có trong hệ thống đúng là đã dùng mô hình `tests := []struct{}` và assert chuẩn. Form dáng đúng, nhưng ruột/mock sai.
+
+- **[FIXED ✅] Table-Driven Testing Adherence**: The existing unit tests successfully utilize the Go standard table-driven testing pattern (`tests := []struct{}`). Assertions via `stretchr/testify/assert` are structurally sound, though their underlying mock dependencies (noted above) require replacement.
 
 ---
 
-## 📋 Hướng Dẫn Kỹ Thuật (Guidelines Từ Senior)
+## 📋 Architectural Guidelines & Playbook
 
-### 1. 📊 Hiện Trạng Khủng Hoảng Phủ Code (Red Alert)
-Mục tiêu của Clean Architecture là tập trung bảo vệ logic lõi tại `internal/biz`. Nhưng hiện tại:
-- **Hệ lụy:** Sập luồng Checkout/Refund bất cứ lúc nào khi thay đổi cấu trúc DB hoặc logic nâng cấp.
+### 1. 🏗️ Automated Mock Generation Framework
+Do not waste engineering cycles mimicking infrastructure dependencies in tests.
+**Anti-Pattern:**
+```go
+// Creating massive structs manually
+type MockOrderRepo struct { mock.Mock }
+func (m *MockOrderRepo) Create(ctx context.Context, o *Order) error { ... }
+```
+**Shopify/Lazada Pattern (Mockgen):**
+Every external dependency interface inside the domain (`internal/biz`) must auto-generate its mocks:
+```go
+//go:generate mockgen -destination=mocks/mock_order_repo.go -package=mocks . OrderRepo
+type OrderRepo interface {
+    Create(ctx context.Context, order *Order) error
+    ListCursor(ctx context.Context, cursor *pagination.CursorRequest) (...)
+}
+```
 
-### 2. 🏗️ Phân Tích Sự Rủi Ro Của Mock Viết Tay
-Trong `testcase.md`, mặc dù cho phép dùng `testify/mock` cho simple cases, nhưng việc viết `mocks.go` dài 700 dòng là "Tự bắn vào chân".
-- **Tại sao việc này nguy hiểm?**
-  1. Đổi Struct ở Data Model là Mock vỡ nát, mất cả ngày đi sửa file `mocks.go`.
-  2. Bị đọa đầy bởi sự cồng kềnh, Dev đâm ra ghét viết thêm Test.
-- **Thực thi:**
-  Tiến hành ban hành lệnh `gomock` toàn hệ thống. Mọi interface từ `internal/biz/xyz` phải có `//go:generate mockgen -destination=mocks/mock_xyz.go -package=mocks . XyzRepo`.
+### 2. 📊 High-Value Target Coverage
+Clean Architecture dictates that `internal/biz` contains the pure, framework-independent business logic. 
+- Mocks must strictly isolate the Repo/Data layer.
+- Tests must focus entirely on testing domain combinations, status transitions (e.g., `PENDING` -> `PAID`), and failure fallbacks.

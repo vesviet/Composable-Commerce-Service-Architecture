@@ -1,36 +1,54 @@
-# 📋 Báo Cáo Phân Tích & Code Review: Kiến Trúc Dapr PubSub (Event-Driven)
+# 📋 Architectural Analysis & Refactoring Report: Dapr PubSub & Event-Driven Choreography
 
-**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
-**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
-**Chủ đề:** Review cách các microservice giao tiếp Bất Đồng Bộ (Async) thông qua Dapr Pub/Sub.  
-**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - Nửa vời, Đã fix một phần)
+**Role:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Standard Profile:** Shopify / Shopee / Lazada Architecture Patterns  
+**Domain Area:** Asynchronous Messaging, Dapr Sidecar Integration & Event Publishing Resiliency  
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed - CẦN ACTION)
-- **[🔵 P2] [Clean Code/Over-Engineering] Vẫn Giữ Các Local Wrapper Dư Thừa Tại Location:** Dù Location service đã bỏ dùng raw client, nó lại NGANG NHIÊN chế ra object trung gian `DaprPublisher` nằm ở `location/internal/event/publisher.go` chỉ để wrap lại `commonEvents.EventPublisher`. Việc đẻ ra class trung gian không thêm logic business nào là dư thừa và làm phình to Codebase. **Yêu cầu (Lần 2):** Xóa hẳn file này, Inject thẳng interface của common vào tầng Biz giống hệt Order và Payment đang làm.
+## 🎯 Executive Summary
+Event-driven architecture (EDA) is the circulatory system of a modern e-commerce platform. The integration of Dapr Pub/Sub as an abstracted sidecar guarantees robust message delivery (At-Least-Once), enabling resilient choreography between domains (e.g., Order completes -> Warehouse deducts stock -> Payment captures funds). 
+The core implementation (`common/events`) successfully provides a fault-tolerant gRPC publisher with Circuit Breaking capabilities. However, instances of localized wrapper classes obscure these benefits and add unnecessary bloat.
+
+## 🚩 PENDING ISSUES (Unfixed - Require Immediate Action)
+
+*No P0/P1/P2 issues remain. The superfluous publisher wrapper has been deleted.*
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Resilience/Architecture] Xóa Sổ Raw Client Tại Warehouse:** Báo cáo cũ chỉ ra `warehouse/internal/data/storage.go` gọi thẳng `dapr.NewClient()`. Hiện tại quét nguồn phát hiện kho đã đổi sang dùng DI (Wire) truyền qua biến. Khả năng chịu tải qua Circuit Breaker đã được phục hồi.
-- **[FIXED ✅] [Resilience] Kỷ Luật Hóa Shipping Service:** `shipping` đã xóa bỏ file rác `dapr_client.go`. Chặn bớt điểm yếu SPOF khi Dapr sidecar down.
+
+- **[FIXED ✅] Location Publisher Wrapper Deleted**: Codebase audit (2026-03-01) confirms `location/internal/event/publisher.go` has been **deleted**. The directory now contains only `provider.go` with a clean Wire DI configuration injecting the core `events.EventPublisher` interface directly. Commit `13aa392`.
+- **[FIXED ✅] Elimination of Single Point of Failure (SPOF) via Raw Clients**: Previous audits revealed that core backbone services (`warehouse` and `shipping`) were bypassing the resilient core library by instantiating raw `dapr.NewClient()` connections directly within their data mappings (`internal/data/storage.go` and `dapr_client.go`). This has been completely refactored. Both services successfully inject the core interface.
 
 ---
 
-## 📋 Chi Tiết Phân Tích (Deep Dive)
+## 📋 Architectural Guidelines & Playbook
 
-### 1. Hiện Trạng Tốt (The Good)
-Hệ thống thiết kế xoay quanh kiến trúc **Event-Driven** sử dụng sidecar **Dapr** một cách bài bản ở tầng Core:
-- **`DaprEventPublisherGRPC` (`common/events/dapr_publisher_grpc.go`):** Giao tiếp qua gRPC hiệu năng cao. Tích hợp sẵn **Circuit Breaker** vô cùng đắt giá (chống nghẽn khi dapr down), tự động **Retry**, và fallback NoOp ở local.
-- **`ConsumerClient` (`dapr_consumer.go`):** Tự động tạo gRPC Listener để hứng Event CloudEvents sang chuẩn Go Object, bơm sẵn Open-Telemetry tracing qua headers.
+### 1. The Core Event-Driven Backbone (The Good)
+The platform standardizes synchronous and asynchronous Dapr communication beautifully within the `common/events` package.
+- **`DaprEventPublisherGRPC`**: Communicates directly over high-performance gRPC channels to the sidecar. It features integrated, enterprise-critical **Circuit Breakers** (halting request storms if the sidecar is unresponsive), internal **Retry** backoffs, and NoOp fallbacks for local development environments without Dapr.
+- **`ConsumerClient`**: Automates the instantiation of listening endpoints, parses incoming CloudEvents payloads, and automatically injects distributed OpenTelemetry Context tracing into Go's `context.Context` pipeline.
 
-### 2. Sự Lệch Chuẩn Từ Kỹ Sư Location (P2)
-Mặc dù Core Team làm rất tốt, kĩ sư của Location service tự viết một Wrapper mỏng tang bọc lại Interface Core.
-Tại sao đây là Code Rác?
-- Nó không add thêm log, không map DTO, không check lỗi mới. 100% là pass-through function.
-- Việc phải define Type mới `DaprPublisher` khiến Codebase bị rác và làm rối mắt Dev mới vào dự án. Cần xoá ngay tệp `location/internal/event/publisher.go`.
+### 2. Dependency Injection Purity
+Dependency Injection exists to decouple domains from infrastructure, not to create endless layers of abstraction.
 
-### 3. Giải Pháp Chỉ Đạo Từ Senior
-Ngăn Junior copy-paste sau này:
-- Xóa `location/internal/event/publisher.go`.
-- Sửa lại `wire.go` đổi injection thành Interface của core team.
-Thay thế mọi constructor injection ở các tầng UseCase/Service thành interface `events.EventPublisher`. Lệnh này cấm trì hoãn.
+**Anti-Pattern (Hasty Abstraction in `Location`):**
+```go
+// Creating a useless wrapper struct
+type LocalPublisher struct {
+    core events.EventPublisher
+}
+func (p *LocalPublisher) Publish(ctx, topic, data) {
+    p.core.Publish(ctx, topic, data)
+}
+```
+
+**Shopee Standard (Direct Interface Injection):**
+Inject the highest-level abstraction directly where it is consumed (the Biz/UseCase layer).
+```go
+// biz/location.go
+type LocationUsecase struct {
+    repo      LocationRepo
+    publisher events.EventPublisher // Direct integration with the Core contract
+}
+```
+*Note from the Senior TA: Any PR adding a wrapper struct to a core library interface must justify its existence with measurable business logic (e.g., specific payload encryption). Othewise, it will be rejected.*

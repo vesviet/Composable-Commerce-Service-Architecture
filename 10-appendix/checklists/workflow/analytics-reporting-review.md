@@ -3,7 +3,7 @@
 **Date**: 2026-02-26  
 **Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + codebase analysis)  
 **Scope**: `analytics/` service — event ingestion, aggregation, reporting, real-time, worker, GitOps  
-**Baseline**: Previous checklist `analytics-reporting-flow-checklist.md` (2026-02-21)
+**Baseline**: Previous checklist `analytics-reporting-review.md` (2026-02-21)
 
 > This is a delta review against the first checklist. Many P0/P1 issues from the original review have been fixed.
 
@@ -456,8 +456,8 @@ Phase 4 (Next Sprint — P2 roadmap):
 
 | Document | Path |
 |----------|------|
-| Previous analytics checklist (v1) | [analytics-reporting-flow-checklist.md](analytics-reporting-flow-checklist.md) |
+| Previous analytics checklist (v1) | [analytics-reporting-review.md](analytics-reporting-review.md) |
 | eCommerce platform flows reference | [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) |
-| Return & Refund flow checklist | [return-refund-flow-checklist.md](return-refund-flow-checklist.md) |
-| Cart & Checkout flow review | [cart-checkout-flow-review.md](cart-checkout-flow-review.md) |
-| Payment flow checklist | [payment-flow-checklist.md](payment-flow-checklist.md) |
+| Return & Refund flow checklist | [return-refund-review.md](return-refund-review.md) |
+| Cart & Checkout flow review | [cart-checkout-deep-review.md](cart-checkout-deep-review.md) |
+| Payment flow checklist | [payment-review.md](payment-review.md) |

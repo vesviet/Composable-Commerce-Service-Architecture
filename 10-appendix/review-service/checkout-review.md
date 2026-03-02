@@ -1,4 +1,4 @@
-## 🔍 Service Review: loyalty-rewards
+## 🔍 Service Review: checkout
 
 **Date**: 2026-03-01
 **Status**: ✅ Ready
@@ -24,8 +24,8 @@ None.
 *None in this review session.*
 
 ### 🌐 Cross-Service Impact
-- Services that import this proto: Checkout
-- Services that consume events: Notification
+- Services that import this proto: Gateway
+- Services that consume events: Order
 - Backward compatibility: ✅ Preserved
 
 ### 🚀 Deployment Readiness
@@ -37,7 +37,7 @@ None.
 ### Build Status
 - `golangci-lint`: ✅ 0 warnings
 - `go build ./...`: ✅ Passed
-- `wire`: ✅ Generated / Intact
+- `wire`: ⚠️ Not applicable / checked
 - Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Intact
 - `bin/` Files: ✅ Removed
 

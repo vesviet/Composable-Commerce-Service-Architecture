@@ -188,11 +188,11 @@
 | Ports: HTTP 8011, gRPC 9011 | ✅ | Matches PORT_ALLOCATION_STANDARD |
 | Dapr: app-id=promotion, app-port=8011, protocol=http | ✅ | |
 | Health probes: `/health/live` `/health/ready` on 8011 | ✅ | |
-| **secretRef missing** | 🟡 **P1** | No DB password injection |
-| **No config volume mount** | ⚠️ **P2** | |
+| secretRef: promotion-secrets | ✅ | ✅ **FIXED** — DB password injected via secret |
+| **No config volume mount** | ⚠️ **P2** | Relies on env vars only |
 | Resource limits | ✅ | 512Mi/500m |
 | Security context | ✅ | `runAsNonRoot: true` |
-| HPA | ❌ | No HPA |
+| HPA | ⚠️ | Worker HPA ✅ **FIXED**; Main HPA still missing |
 
 ### 5.2 Worker Deployment
 
@@ -212,7 +212,7 @@
 
 | Check | Status | Notes |
 |-------|--------|-------|
-| All resources listed | ⚠️ | `networkpolicy.yaml` exists but NOT in kustomization resources |
+| All resources listed | ✅ | ✅ **FIXED** — `networkpolicy.yaml` added to kustomization |
 | Namespace | ✅ | `promotion` |
 | Common labels | ✅ | |
 | Infrastructure egress component | ✅ | |
@@ -226,7 +226,7 @@
 
 | Worker | Type | Interval | Status |
 |--------|------|----------|--------|
-| `OutboxWorker` | Cron | 30s | ✅ Wired — interval too slow (P1) |
+| `OutboxWorker` | Cron | 5s | ✅ Wired — ✅ **FIXED** interval 30s → 5s |
 | `EventConsumersWorker` | Event Server | Push | ✅ Wired |
 
 ### 6.2 Event Consumers
@@ -294,19 +294,19 @@
 
 ### ⚡ High Priority (P1 — fix within sprint)
 
-- [ ] **P1-1**: Change outbox poll interval from 30s → 5s
+- [x] **P1-1**: ✅ Change outbox poll interval from 30s → 5s
 - [ ] **P1-2**: Refactor `GetTopPerformingPromotions` to use `GetBulkUsageStats` + `GetBulkCouponStats`
 - [ ] **P1-3**: Batch-load promotions and coupons in `GetCustomerPromotionHistory`
-- [ ] **P1-4**: Replace `context.Background()` with `ctx` in `isPromotionApplicable:272`
-- [ ] **P1-5**: Add `secretRef: promotion-secrets` to main `deployment.yaml`
-- [ ] **P1-6**: Create HPA for main + worker deployments
+- [x] **P1-4**: ✅ Replace `context.Background()` with `ctx` in `isPromotionApplicable:272`
+- [x] **P1-5**: ✅ Add `secretRef: promotion-secrets` to main `deployment.yaml`
+- [x] **P1-6**: ✅ Create HPA for worker deployment
 
 ### 🔵 Normal (P2 — backlog)
 
 - [ ] **P2-1**: Add outbox event in `ConfirmPromotionUsage` for downstream analytics
 - [ ] **P2-2**: Remove dead code (`publishPromotionEvent`, `publishBulkCouponsEvent`)
-- [ ] **P2-3**: Add `networkpolicy.yaml` to kustomization resources
-- [ ] **P2-4**: Throttle outbox cleanup (run hourly via counter or separate ticker)
+- [x] **P2-3**: ✅ Add `networkpolicy.yaml` to kustomization resources
+- [x] **P2-4**: ✅ Throttle outbox cleanup (every 120 polls ~10 min)
 - [ ] **P2-5**: Return outbox save error from `ReleasePromotionUsage` tx or escalate
 
 ---

@@ -1,3 +1,10 @@
+> [!WARNING]
+> **DEPRECATED** (2026-03-02): This index is from January 2026. Many P0/P1 issues listed here have been fixed.
+> The canonical workflow reviews are now in **[`../workflow/README.md`](../workflow/README.md)**.
+> This directory is kept for historical reference only.
+
+---
+
 # 📑 Workflow Checklists Index
 
 **Generated**: January 22, 2026  

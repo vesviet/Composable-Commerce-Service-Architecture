@@ -417,6 +417,6 @@ It does NOT listen for `w.StopChan()`. Compare pricing's outbox worker which has
 
 | Document | Path |
 |----------|------|
-| Catalog flow checklist | [catalog-product-flow-checklist.md](catalog-product-flow-checklist.md) |
-| Search flow checklist | [search-discovery-flow-review.md](search-discovery-flow-review.md) |
+| Catalog flow checklist | [catalog-product-review.md](catalog-product-review.md) |
+| Search flow checklist | [search-discovery-review.md](search-discovery-review.md) |
 | eCommerce platform flows reference | [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) |

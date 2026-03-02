@@ -380,6 +380,6 @@ If the environment uses a different Dapr pubsub component name (e.g. `"pubsub-ka
 
 | Document | Path |
 |----------|------|
-| Previous review (Sprint 1–3) | [payment-flow-checklist.md](payment-flow-checklist.md) |
-| Pricing flow checklist | [pricing-promotion-tax-flow-checklist.md](pricing-promotion-tax-flow-checklist.md) |
+| Previous review (Sprint 1–3) | [payment-review.md](payment-review.md) |
+| Pricing flow checklist | [pricing-promotion-tax-review.md](pricing-promotion-tax-review.md) |
 | eCommerce platform flows reference | [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) |

@@ -1,37 +1,56 @@
-# 📋 Báo Cáo Phân Tích & Code Review: Database Pagination & N+1 Queries
+# 📋 Architectural Analysis & Refactoring Report: Database Pagination & N+1 Dependencies
 
-**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
-**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
-**Chủ đề:** Khảo sát hiệu năng truy xuất Database, nhận diện các vấn đề N+1 Query và Offset Pagination.  
-**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - Phần Lớn CHƯA FIX)
+**Role:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Standard Profile:** Shopify / Shopee / Lazada Architecture Patterns  
+**Domain Area:** Data Access Layer (GORM, PostgreSQL), Performance & Query Optimization  
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed - CẦN ACTION GẤP)
-- **[🚨 P0] [Performance/Database] Lạm dụng Preload sinh ra N+1 Query (Greedy Fetching):** Qua scan thực tế, `Preload` vẫn xuất hiện chi chít trong các hàm `List`. Điển hình: `warehouse.go` dòng 160 (`query.Preload("Locations").Find(&results)`), và `order.go` với một rổ các lệnh `Preload("Items")`, `Preload("ShippingAddress")`... Việc gọi `List` sinh ra hàng loạt câu SQL phụ, làm chậm API nghiêm trọng. **Yêu cầu Khẩn cấp:** Chuyển các hàm List lấy mảng sang dùng `db.Joins("...").Select("...")` hoặc tách Query, đặc biệt ở service `order` và `warehouse`.
-- **[🟡 P1] [Performance/Database] Hầu Hết Service Vẫn Dùng Offset Pagination Cho Bảng Lớn:** Khảo sát code `order.go` vẫn dậm chân tại chỗ với hàm `Offset().Limit()`. Chỉ duy nhất file `transaction.go` trong warehouse là có nhúc nhích refactor sang các hàm `ListCursor` sử dụng `pagination.NewCursorPaginator(cursorReq)`. **Yêu cầu:** Mở rộng ngay mô hình `CursorPaginator` của `transaction.go` sang `order.go` (ví dụ bảng `orders` phình to rất nhanh).
-- **[🔵 P2] [Performance/K8s] Trả Về Danh Sách Không Có Limit (OOM RAM Risk):** Kiểm tra `warehouse/internal/data/postgres/warehouse.go` (hàm `GetLocations`) và `transaction.go` (hàm `GetByReference`), thấy rõ đang dùng chuỗi `.Find(&results).Error` vô tội vạ mà KHÔNG CÓ `.Limit(X)`. Nếu nhét 100k records vào hàm `GetByReference`, Worker/API Pod sẽ nổ tung vì OOM (Out of Memory). **Yêu cầu:** Hardcode một giới hạn an toàn `.Limit(1000)` hoặc bắt buộc nhét Pagination vào các hàm lấy danh sách quan hệ nội bộ này.
+## 🎯 Executive Summary
+Offset-based pagination (`OFFSET/LIMIT`) and aggressive "greedy fetching" via ORM `Preload()` are two of the most critically severe performance bottlenecks in high-throughput e-commerce domains. At scale (Shopify/Lazada patterns), `OFFSET/LIMIT` degrades exponentially `O(N)` with deeper pages, and N+1 loading cascades into DB connection pool exhaustion. 
+This report outlines the mandatory shift toward Keyset (Cursor-based) Pagination and explicit `JOIN` aggregations.
+
+## 🚩 PENDING ISSUES (Unfixed - Require Immediate Action)
+
+### 1. [🚨 P0] Greedy Fetching (N+1 Query Explosions) via Unbounded `Preload()`
+* **Context**: Widespread use of `.Preload("Locations")` in warehouse and `.Preload("Items")` / `.Preload("ShippingAddress")` in orders.
+* **Risk**: GORM emits a separate `SELECT` statement mapping every ID loaded. A list API returning 100 orders with 3 preloads emits 301 distinct DB queries per request. Under flash-sale loads, this instantly stalls connection pooling.
+* **Current state**: 37 `.Preload()` calls across 6 services (warehouse 11, customer 11, fulfillment 10, location 3, shipping 1, catalog 1).
+* **Action Required**: 
+  - For `has_one` / `belongs_to` relationships (e.g., Addresses, Merchants): Replace `Preload()` with `.Joins("LEFT JOIN ...")` and selective `Select()`.
+  - For `has_many` relationships: Utilize aggregated arrays natively in PostgreSQL (`JSON_AGG`) or perform exactly 2 strictly bounded queries using an `IN (id1, id2...)` clause.
+
+### 2. [🟡 P1] Unbounded List Fetching (OOM Risk)
+* **Context**: Internal relationships like `GetByReference` and `GetLocations` perform `.Find(&results)` without a definitive `.Limit(X)`.
+* **Risk (Shopify standard)**: Internal sync protocols fetching relationships can hit Out Of Memory (OOM) pod crashes if an entity maps to tens of thousands of sub-records.
+* **Action Required**: 
+  - Enforce a hard cap (e.g., `.Limit(1000)`) on all internal `List*` or `Get*` relational data access scripts even if not explicitly requested by the caller.
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Framework] Hoàn thiện thuật toán Keyset/Cursor Paginator:** Gói utils `common/utils/pagination/cursor.go` đã được thiết kế thành công và Codebase ĐÃ BẮT ĐẦU sử dụng nó (Điểm sáng tại `warehouse/internal/data/postgres/transaction.go` -> Hàm `ListCursor` và `GetByWarehouseCursor`). Rất đáng khen cho nỗ lực thí điểm này.
-- **[FIXED ✅] [Performance/Database] Sửa Lỗi N+1 Tại Transaction Repo:** Hàm `List` trong `transaction.go` đã được đập đi xây lại, thay `Preload("Warehouse")` bằng `Joins("LEFT JOIN warehouses ON stock_transactions.warehouse_id = warehouses.id")`. Một bản Fix mẫu mực để các Repositories khác học tập.
+
+- **[FIXED ✅] Keyset Paginator Base Implementation**: The shared framework structure for cursor pagination (`common/utils/pagination/cursor.go`) has been validated via `transaction.go`.
+- **[FIXED ✅] N+1 Resolution Sandbox**: `transaction.go` successfully transitioned from multiple `.Preload()` statements to raw left joins (`Joins("LEFT JOIN warehouses...")`).
+- **[DONE ✅] Cursor Pagination Migration Complete (2026-03-02)**: All 16 services migrated to cursor-based pagination. 10 data files updated with cursor branches, 6 filter structs extended with `Cursor` field, 16 deps updated to `common@v1.23.0`. Warehouse offset `List` methods deprecated with `// Deprecated:` comments. Remaining `.Offset()` calls are intentionally kept (offset-fallback branches, raw-interface secondary methods, admin utilities, cron batch jobs).
 
 ---
 
-## 📋 Hướng Dẫn Kỹ Thuật (Guidelines Từ Senior)
+## 📋 Architectural Guidelines & Playbook
 
-### 1. 🗄️ Vấn Đề Phân Trang (Mệnh Lệnh Chuyển Đổi Sang Keyset)
-Offset-based Pagination (`LIMIT X OFFSET Y`) là Anti-pattern nghiêm trọng khi số lượng dòng vượt qua 100,000. PostgreSQL vất vả scan hàng ngàn dòng trước khi drop để trả đúng cái Offset đằng sau.
-- **Tình trạng:** Khá lẹt đẹt. Mới chỉ có `transaction.go` áp dụng Cursor.
-- **Lệnh:** Dev phụ trách `order` và `fulfillment` nhanh chóng nhân bản cấu trúc `ListCursor` của warehouse qua mảng Order.
+### 1. Keyset (Cursor) Pagination Execution
+Do not use `LIMIT X OFFSET Y` for any entity that scales over time (Events, Orders, Audit Logs, Products).
+* **Pattern**: Sort the dataset by a deterministic unique key (e.g., `(created_at, id)`). The client passes the absolute value of the last seen record, and the DB uses index leaps: `WHERE (created_at, id) < (cursor_time, cursor_id)`.
 
-### 2. 🐢 Cấm Khấn `Preload()` Đối Với Tập Dữ Liệu Lớn (List)
-Sự "dễ dãi" của GORM `Preload()` đã sản sinh mã độc N+1 Query.
-- Thay vì: `err := query.Preload("Locations").Find(&results).Error`
-- Bắt buộc Refactor thành (cho List API):
-  ```go
-  db.Table("warehouses w").
-     Select("w.id, w.name, l.location_code"). // Lấy vừa đủ dùng
-     Joins("LEFT JOIN warehouse_locations l ON w.id = l.warehouse_id").
-     Find(&dtos)
-  ```
+### 2. Eliminating `Preload()` for List APIs
+When serving list APIs, strict selective fetching must be enforced.
+**From Anti-Pattern:**
+```go
+err := query.Preload("Locations").Find(&results).Error
+```
+**To Shopify/Lazada Pattern:**
+```go
+db.Table("warehouses w").
+   Select("w.id, w.name, l.location_code"). // strictly projecting required fields
+   Joins("LEFT JOIN warehouse_locations l ON w.id = l.warehouse_id").
+   Find(&dtos)
+```
+*Note from the Senior TA: Any PR utilizing Preload() on a List API handler must be actively rejected during peer review.*

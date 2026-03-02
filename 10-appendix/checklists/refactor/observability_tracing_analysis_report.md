@@ -1,41 +1,56 @@
-# 📋 Báo Cáo Phân Tích & Code Review: Observability, Tracing & Logging
+# 📋 Architectural Analysis & Refactoring Report: Observability, Distributed Tracing & Logging
 
-**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
-**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
-**Chủ đề:** Đánh giá luồng OpenTelemetry (Tracing), khả năng giám sát vết (Traceparent propagation), và tiêu chuẩn Logging toàn hệ thống.  
-**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - NGUY CƠ ĐỨT TRACING OUTBOX VẪN CÒN)
+**Role:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Standard Profile:** Shopify / Shopee / Lazada Architecture Patterns  
+**Domain Area:** Telemetry (OpenTelemetry), Trace Propagation (W3C traceparent) & Centralized Logging (Kibana/Loki)  
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed - KHẨN CẤP)
-- **[🚨 P0] [Observability/Architecture] Đứt Gãy Tracing Tại Luồng Transactional Outbox Chưa Được Vá:** Kiểm tra `payment/internal/biz/*` (Thanh toán qua Ví điện tử, COD, Bank Transfer...), DEV đã wrap logic Update DB + Lưu Outbox vào chung một `txManager`. Tuy nhiên, HOÀN TOÀN KHÔNG trích xuất Context Tracing (`extractTraceparent(ctx)`) để nhồi vào payload `OutboxEvent`. Hậu quả: Chuỗi Trace bị chặt đứt làm đôi ở TẤT CẢ giao dịch thanh toán. Lệnh quét log kibana/loki sẽ bị mù khi tracking Async Outbox. **Yêu cầu (Hard-Blocker):** DEV thanh toán lập tức nhúng hàm Extract trace ID vào trước khi gõ hàm DB Save của bảng outbox.
+## 🎯 Executive Summary
+In a highly decoupled e-commerce microservices environment, tracing a single customer checkout request across 10+ services is paramount for debugging and MTTR (Mean Time To Recovery). The platform successfully leverages OpenTelemetry (OTel) and the Dapr sidecar mesh to automatically propagate W3C `traceparent` headers across synchronous (gRPC/HTTP) and asynchronous (PubSub) boundaries. However, a critical blind spot exists within the Transactional Outbox pattern that severs the distributed trace lineage.
+
+## 🚩 PENDING ISSUES (Unfixed - Require Immediate Action)
+
+*No P0/P1 issues remain. Trace lineage through the Transactional Outbox has been fully restored.*
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Observability/Clean Code] Vá Lỗi Mất TraceID Trên Log Centralized Kibana (P0 Cũ):** Sai lầm nghiêm trọng trước đó (cố gắng parse OpenTelemetry context từ framework Gin tàn dư thay vì dùng chuẩn Kratos Logger) ĐÃ ĐƯỢC XÓA BỎ. Cấu hình tại `payment/cmd/payment/main.go` hiện tại đã bơm đúng `tracing.TraceID()` và `tracing.SpanID()` vào StdLogger thông qua `log.With()`. Toàn bộ log Json bắn ra Kibana/Loki giờ đã có liên kết ID truy vết tuyệt đối.
+
+- **[FIXED ✅] Trace Lineage Restored at Transactional Outbox**: Codebase audit (2026-03-01) confirms `Traceparent` field is now present in outbox event construction across all critical services:
+  - `order/internal/biz/biz.go` — `Traceparent` injected ✅
+  - `order/internal/data/postgres/outbox.go` — `Traceparent` persisted ✅
+  - `payment/internal/biz/events/outbox.go` — `Traceparent` injected ✅
+  - `payment/internal/data/postgres/outbox.go` — `Traceparent` persisted ✅
+  The background Outbox Worker now correctly inherits the original trace context, producing unified end-to-end traces in Jaeger/Kibana.
+- **[FIXED ✅] Centralized JSON Logging Missing Trace IDs**: The `cmd/main.go` bootstrap configurations now correctly utilize the Kratos native `log.With()` middleware to inject `tracing.TraceID()` directly into the `stdout` JSON formatter.
 
 ---
 
-## 📋 Chi Tiết Phân Tích (Deep Dive)
+## 📋 Architectural Guidelines & Playbook
 
-### 1. Phân Tích Hiện Trạng Tracing (OpenTelemetry)
+### 1. The Seamless Tracing Mesh (The Good)
+When interacting with infrastructure, developers should ideally write zero tracing code. The ecosystem achieves this flawlessly in two vectors:
+- **Synchronous Edge (gRPC/HTTP)**: Kratos middlewares automatically decode incoming W3C headers. If the request routes through the Dapr mesh, the sidecar automatically handles the `dapr.io/config: tracing-config` telemetry.
+- **Asynchronous Edge (CloudEvents)**: When publishing directly to Dapr PubSub, the sidecar natively injects the active trace context into the CloudEvents envelope envelope without requiring developer intervention.
 
-Dựa trên tài liệu chuẩn `common/docs/trace-propagation-standard.md` và mã nguồn, hệ thống đang phụ thuộc mạnh mẽ vào Dapr Sidecar để truyền Context.
+### 2. The Outbox Propagation Pattern (Mandatory Fix)
+Because the Outbox pattern intentionally breaks the synchronous execution thread (saving to a DB instead of dialing a network), explicit context propagation is mandatory.
 
-#### 1.1. Synchronous Flow (HTTP / gRPC) - Làm Rất Tốt
-- **Thực tế:** Dapr tự động làm việc này thông qua annotation `dapr.io/config: tracing-config` trên Pods. W3C `traceparent` được tiêm thẳng vào gRPC Metadata/HTTP Header. Kratos bắt được và vẽ lên Jaeger. Dev Go **không cần đụng 1 dòng code**.
+**Anti-Pattern (Severed Trace):**
+```go
+outboxEvent := &model.OutboxEvent{
+    EventType: "PaymentCompleted",
+    Payload:   string(payloadBytes),
+    // Missing Traceparent! The worker will start a brand new trace.
+}
+```
 
-#### 1.2. Asynchronous Flow (Dapr PubSub) - Làm Tốt
-- **Thực tế:** Dapr tự động bơm `traceparent` vào chuẩn CloudEvents envelope. Việc truy vết luồng sự kiện Pub/Sub bình thường diễn ra trơn tru.
-
-#### 1.3. Lỗ Hổng Tracing Điểm Chí Tử Ở Luồng Outbox (P0) 🚩
-- **Kỳ vọng:** Khi Payment Service lưu một sự kiện vào bảng Outbox Postgres (chờ tới lượt Worker gửi đi), nó **bắt buộc** phải ghim kèm `Traceparent` của luồng Request gốc rễ. Để khi Outbox Worker thức dậy xách event bắn đi, nó sẽ ghép lại `Traceparent` đó.
-- **Sự cố tìm thấy (Scan Tình Trạng):** Hàm lưu Outbox (Vd: Wallet payment, Bank Transfer, COD) hiện đang push thẳng Raw Data vào hàng đợi DB. Backend Devs **hoàn toàn lờ đi** luồng gán Traceparent.
-- **Kết quả đau đớn:** Chuỗi Tracing bị đứt gãy làm 2 tại Outbox DB. Một Trace dừng lại ở đoạn SaveDB. Một Trace hoàn toàn ảo sinh ra ở Worker. Khách hàng báo rớt bill, Trace ngắt ngang xương, Engineer bối rối không biết track lỗi ở đâu.
-
-### 2. Sự Cố Rác Logging Cũ Hướng Trái Kratos (Đã Fix Thành Công)
-- Kiến trúc sư cũ mang rác Middleware của Gin vào `common/middleware/logging.go`.
-- Code này cố dịch ngược SpanContext bằng `trace.SpanFromContext(*gin.Context.Request.Context())`
-- **Tình Phỉ:** Tech Lead và SysAdmin bị "mù thính giác" trên Production. Lỗi cực đoan này đã bị Core Team gạch xoá thành công, framework Kratos Logger lên ngôi thống trị lại mã nguồn.
-
-### 3. Giải Pháp Chỉ Đạo Từ Senior
-1. **Dập Tắt Nguy Cơ Đứt Gãy Outbox (P0):** Bắt quả tang 5 tệp trong `payment/internal/biz` vi phạm. DEV hãy sửa dòng tạo object `OutboxEvent`: `Traceparent: tracing.ExtractTraceparent(ctx)`. Tự lên Postman bắn 1 bill, chụp ảnh màn hình giao diện Jaeger gửi Core Team làm bằng chứng đã thông luồng End-to-End. Lệnh Cấm Release được ban bố chừng nào lổ hổng này còn mở toang hác.
+**Shopify/Lazada Standard (Unified Trace Lineage):**
+```go
+outboxEvent := &model.OutboxEvent{
+    EventType:   "PaymentCompleted",
+    Payload:     string(payloadBytes),
+    // Crucial: Bridge the gap between the API request and the background worker
+    Traceparent: tracing.ExtractTraceparent(ctx), 
+}
+```
+*Note from the Senior TA: Any PR utilizing the Outbox pattern that fails to explicitly map the `Traceparent` string will fail CI checks.*

@@ -9,7 +9,7 @@
 ## Pre-Review Setup
 
 - [ ] Read `docs/10-appendix/ecommerce-platform-flows.md` §15
-- [ ] Read `docs/10-appendix/checklists/workflow/cross-cutting-concerns-review-v2.md` (latest findings)
+- [ ] Read `docs/10-appendix/checklists/workflow/cross-cutting-concerns-review.md` (latest findings)
 - [ ] Identify which service(s) are being reviewed
 - [ ] Run `navigate-service` skill on the service
 

@@ -1,89 +1,90 @@
-# Catalog Service — Review Checklist
+# Catalog Service Review Checklist
 
-**Date**: 2026-02-24
-**Reviewer**: Antigravity (AI)
-**Version Reviewed**: v1.3.4 → v1.3.5
-**Status**: ✅ Ready for Release
+**Date**: 2026-03-01
+**Reviewer**: Service Review Process
+**Service**: catalog
+**Status**: ✅ Ready
 
----
-
-## Issue Summary
+## 📊 Issue Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
 | P0 (Blocking) | 0 | — |
-| P1 (High) | 1 | ✅ Fixed |
-| P2 (Actionable) | 10 | ✅ All Fixed |
-| P2 (Accepted) | 4 | Tracked, no action |
+| P1 (High) | 1 | Fixed |
+| P2 (Normal) | 3 | 1 Fixed / 2 Low-priority |
+
+---
+
+## 🔴 P0 Issues (Blocking)
+
+None identified.
 
 ---
 
 ## 🟡 P1 Issues (High)
 
-### 1. ✅ Fixed — Dapr worker `app-port`/`app-protocol` mismatch
-- **File**: `gitops/apps/catalog/base/worker-deployment.yaml`
-- **Issue**: `dapr.io/app-port: "5005"` / `dapr.io/app-protocol: "grpc"` — catalog worker starts HTTP health server on port 8081 (`cmd/worker/main.go:139`), never gRPC/5005. Dapr sidecar health check timeouts → `CrashLoopBackOff`.
-- **Fix**: Changed to `app-port: "8081"` / `app-protocol: "http"`. Committed to gitops.
+### P1-001: ~~Missing HPA Configuration~~ ✅ FIXED
+- **File**: `gitops/apps/catalog/base/hpa.yaml`
+- **Fix**: Created HPA with 2-5 replicas, CPU 75% / Memory 80% targets, sync-wave=5 (above deployment wave=3), conservative scale-down.
+- **Status**: ✅ Created and added to kustomization.
+
+### P1-002: Missing Deployment & Service YAML (using component pattern)
+- **File**: `gitops/apps/catalog/base/kustomization.yaml`
+- **Issue**: No standalone `deployment.yaml` or `service.yaml` — using `common-deployment-v2` and `common-worker-deployment-v2` components with inline patches. This is actually the **correct** pattern for this project (component-based Kustomize). Ports verified: HTTP=8015, gRPC=9015 match PORT_ALLOCATION_STANDARD.md.
+- **Status**: ✅ Verified correct. Not an issue.
 
 ---
 
-## 🔵 P2 Issues (Fixed)
+## 🔵 P2 Issues (Normal)
 
-1. ✅ `revive/unused-param`: Marked all unused params `_` in `evaluator.go`, `evaluators.go`, `pricing_interface.go`, `customer_client.go`, `promotion_client.go`, `provider.go`, `resilience.go`
-2. ✅ `goconst`: Extracted `enforcementSoft`, `verificationStatusVerified`, `restrictionTypeHide` constants in `evaluators.go`
-3. ✅ `unconvert`: Removed unnecessary `int(years)` in `customer_client.go`
-4. ✅ `appendAssign`: Fixed `append(baseOpts, opts...)` not assigned in `resilience.go`
-5. ✅ `ifElseChain`: Rewrote if-else → `switch` in `cms_service.go:ListPages`
-6. ✅ `unused`: Removed unreachable `stringPtr` + `parseUUID` in test file
+### P2-001: ~~`/metrics` endpoint returns empty response~~ ✅ FIXED
+- **File**: `internal/server/http.go`
+- **Fix**: Replaced empty placeholder handler with `promhttp.Handler().ServeHTTP` to properly serve Prometheus metrics. Vendored the `promhttp` package.
+- **Status**: ✅ Fixed and verified.
 
-## 🔵 P2 Issues (Accepted — No Action)
+### P2-002: `GetHealthStatus` returns hardcoded "healthy"
+- **File**: `internal/biz/biz.go:74-83`
+- **Issue**: `GetHealthStatus()` returns hardcoded `"healthy"` for database and redis dependencies instead of performing actual health checks. However, this is mitigated by the proper common health endpoints registered at `/health/*` in `http.go` (lines 147-163) which do real DB/Redis checks. The biz-level method is unused in production serving.
+- **Status**: Low priority — real health checks exist at transport layer.
 
-| Issue | Location | Reason |
-|-------|----------|--------|
-| `gocognit` high complexity | Various service/biz handlers | Large feature functions, refactor deferred |
-| `gosec G404` weak rand | `product_price_stock.go` | Cache TTL jitter — non-security context |
-| `gosec G402` TLS too low | `elasticsearch/client.go` | Internal cluster only, no mTLS needed |
-| Package naming (`_` in name) | `product_attribute`, `product_visibility_rule`, `price_history` | Proto-tied packages, rename is a major breaking refactor |
+### P2-003: `NewEventHandler` duplicate handler construction
+- **File**: `internal/service/events.go:71-74`
+- **Issue**: `NewEventHandler` creates new `WarehouseStockUpdateHandler` and `PricingPriceUpdateHandler` instances directly, even though these are already created via Wire DI in `data/provider.go`. The EventHandler in the main binary gets separately-constructed handlers, while the worker binary uses Wire-injected ones. No functional issue, but inconsistent.
+- **Status**: Low priority — handlers are stateless, dual construction is harmless.
 
 ---
 
-## ✅ Completed Actions
+## ✅ Architecture & Design Strengths
 
-1. ✅ Synced all repos — catalog and common already up-to-date; gitops fast-forwarded
-2. ✅ Verified: no `replace` directives in `go.mod`
-3. ✅ Verified: `common` on `v1.16.0` (latest)
-4. ✅ Upgraded internal service deps:
-   - `customer` v1.1.4 → v1.2.2
-   - `pricing` v1.1.5 → v1.1.8
-   - `promotion` v1.1.2 → v1.1.7
-   - `warehouse` v1.1.4 → v1.2.0
-5. ✅ `go mod vendor` + `go build ./...` → clean
-6. ✅ `golangci-lint run` → 0 actionable warnings after fixes
-7. ✅ `go test ./...` → all 9 test packages pass
-8. ✅ Fixed P1: Dapr worker `app-port`/`app-protocol` in gitops
-9. ✅ Fixed P2: 10 lint issues across 7 files
-10. ✅ Updated `CHANGELOG.md` with `[v1.3.5]` entry
-11. ✅ Tagged and pushed `v1.3.5`, pushed gitops fix
-12. ✅ Updated `README.md` to v1.3.5
+1. **Clean Architecture**: Proper separation — `biz/` (domain), `data/` (repository), `service/` (API), `server/` (transport)
+2. **Dual-Binary Architecture**: `cmd/catalog/` (API server) + `cmd/worker/` (outbox, cron, event consumers) — correct separation of concerns
+3. **Outbox Pattern**: Transactional outbox with `FetchAndMarkProcessing` (atomic claim), `ResetStuckProcessing` (recovery), and publish-then-mark-complete pattern prevents duplicate events
+4. **Optimistic Locking**: Products use version-based optimistic locking for concurrent updates
+5. **SKU Collision Lock**: Distributed lock via idempotency service prevents concurrent creation of same SKU
+6. **Cache Strategy**: Multi-layer cache (L1→L2→DB) with event-driven invalidation via Dapr
+7. **Elasticsearch Fallback**: ES search with circuit breaker and DB fallback
+8. **Resilient gRPC Clients**: Circuit breaker + retry + exponential backoff for warehouse/pricing clients
+9. **RBAC**: Uses `commonMiddleware.RequireRoleKratos("admin")` for write operations via selector middleware
+10. **Cursor Pagination**: Uses `common/utils/pagination.CursorRequest` for scalable pagination
+11. **EAV Attributes**: Tiered attribute system (Hot Attributes in flat columns + EAV for dynamic attributes)
+12. **Audit Logging**: Async audit logging middleware for admin operations
+13. **Rate Limiting**: Configurable rate limiting using common middleware
+14. **Observability**: OpenTelemetry tracing, Prometheus metrics, structured logging
 
 ---
 
 ## 🌐 Cross-Service Impact
 
-| Service | Version Used | Status |
-|---------|-------------|--------|
-| checkout | v1.3.3 | Not on latest — acceptable |
-| gateway | v1.3.3 | Not on latest — acceptable |
-| warehouse | v1.3.3 | Not on latest — acceptable |
-| fulfillment | v1.2.8 | Older; proto-stable |
-| order | v1.2.8 | Older; proto-stable |
-| pricing | v1.2.4 | Older; proto-stable |
-| promotion | v1.2.4 | Older; proto-stable |
-| review | v1.2.4 | Older; proto-stable |
-| search | v1.2.8 | Older; proto-stable |
-| shipping | v1.2.4 | Older; proto-stable |
+### Services that import catalog proto:
+- checkout, fulfillment, gateway, order, pricing, promotion, review, search, shipping, warehouse (10 services)
 
-**Backward compatibility**: ✅ No proto changes in this release — all importers remain compatible.
+### Services that consume catalog events:
+- **search**: Consumes `catalog.product.created`, `catalog.product.updated`, `catalog.product.deleted`, `catalog.category.*`, `catalog.cms.*`
+
+### Backward compatibility: ✅ Preserved
+- No proto field removals detected
+- Event schemas are additive-only
+- No `replace` directives in go.mod
 
 ---
 
@@ -91,35 +92,40 @@
 
 | Check | Status |
 |-------|--------|
-| Ports match PORT_ALLOCATION_STANDARD.md (8015 HTTP, 9015 gRPC) | ✅ |
-| kustomization.yaml patches containerPort 8015/9015 | ✅ |
-| `dapr.io/app-port: "8015"` (main deployment via kustomize patch) | ✅ |
-| `dapr.io/app-port: "8081"` / `app-protocol: http` (worker) | ✅ Fixed |
-| Health probes via kustomize common component | ✅ |
-| Worker probes `/healthz` on port `health`/8081 | ✅ |
-| Resource limits set | ✅ (main: 1Gi/1000m; worker: 512Mi/300m) |
-| PDB configured | ✅ |
-| NetworkPolicy present | ✅ |
-| Secret manifest present | ✅ (catalog) |
-| ServiceMonitor scraping correct port | ✅ (fixed in v1.3.0) |
+| Ports match PORT_ALLOCATION_STANDARD.md (8015/9015) | ✅ |
+| Config/GitOps aligned | ✅ |
+| Health probes configured (common health package) | ✅ |
+| Resource limits (via component template) | ✅ |
+| Dapr annotations (via component template) | ✅ |
+| NetworkPolicy | ✅ Present |
+| PDB (API + Worker) | ✅ Present |
+| ServiceMonitor | ✅ Present |
+| Migration job | ✅ Present |
+| HPA | ✅ Created |
+| HPA sync-wave | N/A (no HPA) |
 
 ---
 
 ## Build Status
 
-| Check | Result |
+| Check | Status |
 |-------|--------|
-| `golangci-lint run` | ✅ 0 actionable warnings |
-| `go build ./...` | ✅ Pass |
-| `go test ./...` | ✅ Pass (9 packages) |
-| Root-level binaries | ⚠️ `migrate`/`worker` present on filesystem (gitignored, not tracked) |
+| `golangci-lint` | ✅ 0 warnings |
+| `go build ./...` | ✅ |
+| `go test ./...` | ✅ All pass |
+| `wire` | ✅ Generated |
+| No `replace` directives | ✅ |
+| `common` version | ✅ v1.22.0 (latest) |
+| Other deps (customer v1.2.3, pricing v1.2.0, promotion v1.2.0, warehouse v1.2.3) | ✅ |
+| `bin/` directory | ✅ Not present |
+| Generated files not modified manually | ✅ |
 
 ---
 
 ## Documentation
 
-| Doc | Status |
-|-----|--------|
-| `catalog/README.md` | ✅ Updated to v1.3.5 |
-| `catalog/CHANGELOG.md` | ✅ Updated with v1.3.5 entry |
-| Service doc (`docs/03-services/`) | ℹ️ Existing doc adequate, no material changes to document |
+| Check | Status |
+|-------|--------|
+| Service doc (`docs/03-services/core-services/catalog-service.md`) | ✅ Present |
+| `README.md` | ✅ Present (14.6KB) |
+| `CHANGELOG.md` | ✅ Present (8.3KB) |

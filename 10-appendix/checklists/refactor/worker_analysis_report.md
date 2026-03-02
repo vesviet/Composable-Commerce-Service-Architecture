@@ -1,59 +1,58 @@
-# 📋 Báo Cáo Phân Tích & Code Review: Kiến Trúc Worker
+# 📋 Architectural Analysis & Refactoring Report: Worker Node Architecture
 
-**Vai trò:** Senior Fullstack Engineer (Virtual Team Lead)  
-**Dự án:** E-Commerce Microservices (Go 1.25+, Kratos v2.9.1, GORM)  
-**Chủ đề:** Đánh giá cấu trúc Worker Component (Cronjobs, Event Consumers, Outbox Processors) của toàn bộ các services.  
-**Trạng thái Review:** Lần 2 (Đã đối chiếu với Codebase Thực Tế - Worker LÊNH LÁNG SẠCH SẼ)
+**Role:** Senior Fullstack Engineer (Virtual Team Lead)  
+**Standard Profile:** Shopify / Shopee / Lazada Architecture Patterns  
+**Domain Area:** Asynchronous Processing (Cronjobs, Outbox Processors, Event Consumers), Dual-Binary Topologies & Framework Standardization  
 
 ---
 
-## 🚩 PENDING ISSUES (Unfixed - CẦN ACTION)
-- *(Tất cả issue ở Worker khởi tạo (main.go) đã được dọn sạch).*
+## 🎯 Executive Summary
+High-throughput e-commerce platforms mandate strict isolation between synchronous user-facing API traffic and heavy asynchronous background tasks. The ecosystem successfully employs a **Dual-Binary Architecture**, compiling separate executables (e.g., `cmd/server/main.go` and `cmd/worker/main.go`) from the same codebase. This allows independent Kubernetes Horizontal Pod Autoscaling (HPA)—for example, scaling up Outbox Workers during high-volume message queue spikes without stealing CPU from the Checkout API.
+This report lauds the successful eradication of rampant boilerplate duplication and the 100% adoption of the standardized `common/worker` application framework.
+
+## 🚩 PENDING ISSUES (Unfixed - Require Immediate Action)
+
+*No pending architectural issues remain in the Worker Bootstrap layer. The `main.go` entrypoints are 100% pristine.*
 
 ## ✅ RESOLVED / FIXED
-- **[FIXED ✅] [Code Quality/Clean Code] Tồn Dư Logic Filter Mode Đã Bị Tiêu Diệt:** Quét mã nguồn `order/cmd/worker/main.go` cho thấy hàm `shouldRunWorker` (dùng string if-else rác rưởi) đã bị CHÉM ĐỨT hoàn toàn. Hiện tại các service đã tuân thủ chuẩn `ParseMode()` và Enum Mode của Kratos App.
-- **[FIXED ✅] [Architecture/DRY] Xóa Bỏ Phân Mảnh Bootstrap Logic Ở File `main.go`:** Đã triển khai struct `commonWorker.NewWorkerApp` thành công tại 15+ service (`analytics`, `search`, `location`, `customer`, `payment`, v.v.). Hơn 150 dòng Boilerplate (Logger, Viper config, Signal trap) copy-paste bừa bãi ĐÃ BỊ XÓA BỎ toàn diện.
-- **[FIXED ✅] [Technical Debt] Rèn Giũa Service `loyalty-rewards` Chạy Lệch Chuẩn:** Kẻ nổi loạn duy nhất `loyalty-rewards` (trước đây bypass Wire, tự gọi `.Start()` manually cho từng job) đã quy hàng. Hiện tại service này đã được refactor hoàn chỉnh, sử dụng Wire DI và `NewWorkerApp` y chang các anh em cùng cha (Core Team).
+
+- **[FIXED ✅] Technical Debt: Eradication of 150+ Line Boilerplate Duplication**: Previously, every microservice’s worker entrypoint (`cmd/worker/main.go`) suffered from massive Go application bootstrapping copy-paste (Logger setup, Viper config parsing, OS Signal trapping for graceful shutdown). This severe *Code Smell* has been totally eradicated across 15+ services (including `analytics`, `search`, `location`, `customer`, and `payment`). The codebase now exclusively utilizes the `commonWorker.NewWorkerApp` core structure, reducing 150 lines of boilerplate down to a clean ~15 lines per service.
+- **[FIXED ✅] Rogue Service Remediation (`loyalty-rewards`)**: The `loyalty-rewards` service, the sole prior holdout that manually executed `.Start()` on its jobs bypassing Dependency Injection (Wire), has capitulated. It has been successfully refactored to utilize Wire DI and the common `NewWorkerApp`, bringing it into absolute compliance with the Core Team's architectural blueprints.
+- **[FIXED ✅] String-Based Conditional Filtering Dismantled**: The `order` service’s `cmd/worker/main.go` previously relied on fragile, hardcoded string `if-else` blocks (`shouldRunWorker`) to toggle job types. This has been purged entirely in favor of the standardized Kratos `ParseMode()` enum configuration.
 
 ---
 
-## 📋 Chi Tiết Phân Tích (Deep Dive)
+## 📋 Architectural Guidelines & Playbook
 
-### 1. Hiện Trạng Tốt (The Good)
-Toàn bộ hệ thống kiến trúc theo chuẩn **Dual-Binary**:
-- Worker được build thành một tiến trình (Process) độc lập (`cmd/worker/main.go`), không chạy chung lộn xộn với API Server. Cách ly hoàn toàn tài nguyên CPU/RAM, dễ dàng scale riêng rẽ trên K8s (HPA).
-- Dùng chung bộ não `gitlab.com/ta-microservices/common/worker`. Cung cấp sẵn cơ chế vòng đời (`ContinuousWorkerRegistry`) cực kì ổn định để ngắt điện (Graceful Shutdown) mượt mà mà không ném lỗi Panic.
+### 1. The Dual-Binary Topology (The Good)
+Deploying background processes inside the API HTTP Server process is a severe anti-pattern in high-scale environments. The separation achieves:
+- **Resource Isolation**: A heavy daily Cron Aggregation job running at 2:00 AM cannot spike the CPU and degrade the latency of concurrent API checkouts.
+- **Graceful Lifecycle Management**: The `gitlab.com/ta-microservices/common/worker` library natively implements the `ContinuousWorkerRegistry`. When Kubernetes sends a `SIGTERM` during a rolling update, the framework halts new message ingestion and waits for current tasks to drain securely without throwing panics or dropping half-processed events.
 
-### 2. Hành Trình Tới Clean Architecture (Tại sao phải gò ép `NewWorkerApp`?)
-Trước khi có `NewWorkerApp` nằm ở Lõi, hệ thống gặp các "Mùi Code" (Code Smells) nặng nề:
-- **Code Duplication Khủng Khiếp:** Ở hàm `main()` của mỗi Worker, các anh Dev đều phải tốn 150 dòng mở port làm liveness probe, đón tín hiệu `SIGINT/SIGTERM`. Dài dòng và vô nghĩa.
-- **Thiếu Tính Nhất Quán (Inconsistency):** Sự xuất hiện của các ngoại lệ cho thấy framework worker version cũ quá dễ dãi.
+### 2. The Standardized Worker Bootstrap Template
+The Core Team mandates the following pristine structure for all `cmd/worker/main.go` files globally.
+*Note: Any deviation or addition of custom signal trapping in this file represents an architectural regression and will be rejected.*
 
-**KẾT THÚC CÓ HẬU TỪ CORE TEAM:**
-Core Team đã ép mọi hàm `main()` của Worker rút gọn lại đúng chừng này:
-
+**Shopee/Lazada Standard (Mandatory `NewWorkerApp` utilization):**
 ```go
 func main() {
-    // 1. Load Cấu hình
+    // 1. Initialize Configuration (Viper)
     cfg := config.Init(configPath)
     
-    // 2. Wire DI trích xuất mảng các Workers
+    // 2. Extract worker arrays via Wire Dependency Injection
     workers, cleanup, _ := wireWorkers(cfg, logger)
     defer cleanup()
 
-    // 3. Khởi tạo Kẻ Quản Trò (App) từ Common
+    // 3. Instantiate the Core Framework Worker App
     app := commonWorker.NewWorkerApp(
         commonWorker.WithName(Name),
         commonWorker.WithLogger(logger),
-        commonWorker.WithWorkers(workers...), // Truyền tất cả cấu trúc Job vào đây
+        commonWorker.WithWorkers(workers...), // Inject all configured Jobs/Consumers
     )
 
-    // Run và phó thác sinh mệnh tiến trình cho Core Team xử lý!
+    // 4. Delegate process lifecycle entirely to the Framework
     if err := app.Run(); err != nil {
-        log.Fatalf("Worker app sập tivi: %v", err)
+        log.Fatalf("Fatal worker application failure: %v", err)
     }
 }
 ```
-
-### 3. Đánh Giá Trạng Thái Hiện Tại
-Clean Architecture ở bề mặt Node Khởi Chạy (Main/App) đã đạt 100% tỷ lệ tái sử dụng. Không còn bất kỳ sự copy-paste Boilerplate nào tồn tại. Đánh giá: **XUẤT SẮC**. Lần Review Worker Main tiếp theo là không cần thiết.
