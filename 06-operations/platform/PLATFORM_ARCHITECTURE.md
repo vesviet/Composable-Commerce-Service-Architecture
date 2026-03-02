@@ -1,7 +1,7 @@
 # 🏗️ Platform Architecture
 
 **Purpose**: Complete platform architecture and design documentation  
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Status**: ✅ Active - Production-ready platform architecture
 
 ---
@@ -305,22 +305,23 @@ task_lifecycle:
 
 ## 🌐 Service Mesh Integration
 
-### **Service Mesh Architecture**
+### **Service Mesh Architecture (Dapr)**
+
+Our platform uses **Dapr** as the service mesh, providing sidecar-based service invocation, pub/sub, and mTLS.
 
 ```mermaid
 graph TB
-    subgraph "Service Mesh (Istio)"
-        A[Ingress Gateway]
-        B[Pilot]
-        C[Citadel]
-        D[Galley]
+    subgraph "Dapr Control Plane"
+        A[Dapr Operator]
+        B[Sentry - mTLS CA]
+        C[Placement Service]
     end
     
-    subgraph "Data Plane"
-        E[Envoy Proxy]
-        F[Envoy Proxy]
-        G[Envoy Proxy]
-        H[Envoy Proxy]
+    subgraph "Data Plane - Dapr Sidecars"
+        E[Dapr Sidecar]
+        F[Dapr Sidecar]
+        G[Dapr Sidecar]
+        H[Dapr Sidecar]
     end
     
     subgraph "Services"
@@ -330,32 +331,28 @@ graph TB
         L[Customer Service]
     end
     
-    A --> E
-    E --> I
-    E --> F
-    F --> J
-    F --> G
-    G --> K
-    G --> H
-    H --> L
+    E <--> I
+    F <--> J
+    G <--> K
+    H <--> L
+    
+    E <--> F
+    F <--> G
+    G <--> H
     
     B --> E
     B --> F
     B --> G
     B --> H
-    
-    C --> E
-    C --> F
-    C --> G
-    C --> H
 ```
 
 ### **Service Mesh Features**
-- **mTLS**: Mutual TLS for service-to-service communication
-- **Traffic Management**: Routing, load balancing, canary deployments
-- **Security**: Authentication, authorization, policy enforcement
-- **Observability**: Metrics, logs, tracing
-- **Resilience**: Circuit breaking, retries, timeouts
+- **mTLS**: Automatic mutual TLS via Dapr Sentry (certificate rotation)
+- **Service Invocation**: Service-to-service calls through Dapr sidecars
+- **Pub/Sub**: Event-driven communication via Redis Streams
+- **Observability**: Metrics, logs, distributed tracing via OpenTelemetry
+- **Resilience**: Built-in retries, timeouts, and circuit breaking
+
 
 ---
 
@@ -563,13 +560,12 @@ graph TB
     subgraph "GitOps"
         E[Git Repository]
         F[ArgoCD]
-        G[Helm Charts]
+        G[Kustomize Overlays]
         H[K8s Manifests]
     end
     
     subgraph "Kubernetes"
-        I[Development Cluster]
-        J[Staging Cluster]
+        I[Development - k3d]
         K[Production Cluster]
     end
     
@@ -582,15 +578,15 @@ graph TB
     F --> G
     G --> H
     H --> I
-    H --> J
     H --> K
 ```
 
 ### **Deployment Strategy**
-- **GitOps**: Declarative configuration with Git as source of truth
-- **Progressive Delivery**: Canary deployments and blue-green deployments
+- **GitOps**: Declarative Kustomize manifests with Git as source of truth
+- **ArgoCD**: Automated sync from Git repository to cluster
 - **Automated Testing**: Comprehensive test automation
-- **Rollback Capability**: Instant rollback to previous versions
+- **Rollback Capability**: Instant rollback to previous versions via `kubectl rollout undo`
+
 
 ---
 
@@ -608,6 +604,6 @@ graph TB
 
 ---
 
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Review Cycle**: Monthly  
 **Maintained By**: Platform Engineering Team

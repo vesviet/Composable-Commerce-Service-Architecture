@@ -175,7 +175,7 @@
 
 ---
 
-**Last Updated**: February 7, 2026  
+**Last Updated**: March 2, 2026  
 **Review Cycle**: Monthly operations review  
 **Maintained By**: DevOps, SRE & Platform Engineering Teams  
 **GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)

@@ -1,7 +1,7 @@
 # 🏗️ Security Architecture
 
 **Purpose**: Complete security framework and architecture design  
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Status**: 🔄 In Progress - Architecture defined, implementation ongoing
 
 ---
@@ -248,36 +248,40 @@ spec:
       port: 8080
 ```
 
-#### **Service Mesh Security**
+#### **Service Mesh Security (Dapr)**
+
+Our platform uses **Dapr** as the service mesh for inter-service communication. Dapr sidecars handle mTLS, access control, and service invocation.
+
 ```yaml
-# Istio Service Mesh Configuration
-apiVersion: security.istio.io/v1beta1
-kind: PeerAuthentication
+# Dapr sidecar mTLS is enabled by default when Dapr is installed
+# with mtls.enabled=true in the Dapr system configuration.
+#
+# Service-to-service communication is secured via:
+# 1. Dapr sidecar-to-sidecar mTLS (automatic certificate rotation)
+# 2. Dapr access control policies (app-level authorization)
+# 3. Kubernetes Network Policies (network-level isolation)
+
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
 metadata:
-  name: default
+  name: dapr-config
   namespace: production
 spec:
   mtls:
-    mode: STRICT
-
----
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: order-service-authz
-  namespace: production
-spec:
-  selector:
-    matchLabels:
-      app: order-service
-  rules:
-  - from:
-    - source:
-        principals: ["cluster.local/ns/production/sa/api-gateway"]
-  - to:
-    - operation:
-        methods: ["GET", "POST", "PUT", "DELETE"]
+    enabled: true
+    workloadCertTTL: "24h"
+    allowedClockSkew: "15m"
+  accessControl:
+    defaultAction: deny
+    policies:
+    - appId: order-service
+      defaultAction: deny
+      operations:
+      - name: /api/*
+        httpVerb: ["GET", "POST", "PUT", "DELETE"]
+        action: allow
 ```
+
 
 ---
 
@@ -285,41 +289,39 @@ spec:
 
 ### **API Security Architecture**
 
-#### **API Gateway Security**
-```yaml
-# Kong API Gateway Configuration
-services:
-  - name: order-service
-    url: http://order-service.production.svc.cluster.local
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 100
-          hour: 1000
-      - name: jwt
-        config:
-          secret_is_base64: false
-      - name: acl
-        config:
-          whitelist:
-            - admin
-            - order-manager
+#### **Custom API Gateway Security**
 
-routes:
-  - name: order-routes
-    service: order-service
-    paths:
-      - /api/orders
-    methods:
-      - GET
-      - POST
-      - PUT
-      - DELETE
-    plugins:
-      - name: request-size-limiting
-        config:
-          allowed_payload_size: 10
+Our platform uses a **custom Go-based API gateway** (not Kong). The gateway handles JWT validation, RBAC, rate limiting, and request routing.
+
+```yaml
+# Gateway security configuration (configs/config.yaml)
+gateway:
+  port: 8080
+  timeout: 30s
+
+authentication:
+  jwt:
+    issuer: "auth-service"
+    algorithms: ["RS256"]
+    public_key_path: "/etc/gateway/jwt-public.pem"
+
+rate_limiting:
+  default:
+    requests_per_second: 100
+    burst: 200
+  per_user:
+    requests_per_second: 50
+    burst: 100
+
+routing:
+  services:
+    - name: order-service
+      prefix: /api/v1/orders
+      methods: [GET, POST, PUT, DELETE]
+      auth_required: true
+      roles: [admin, order-manager]
 ```
+
 
 #### **Input Validation**
 ```go
@@ -421,9 +423,12 @@ spec:
 
 ### **Key Management**
 
-#### **HashiCorp Vault Integration**
+#### **HashiCorp Vault Integration (🔄 Planned)**
+
+> **Note**: Vault integration is planned but not yet deployed. Currently, secrets are managed via Kubernetes Sealed Secrets.
+
 ```yaml
-# Vault Configuration
+# Target Vault Configuration (planned)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -475,9 +480,12 @@ graph LR
     J --> L[Incident Response]
 ```
 
-#### **Falco Security Rules**
+#### **Falco Security Rules (🔄 Planned)**
+
+> **Note**: Falco is planned for runtime container security monitoring but not yet deployed.
+
 ```yaml
-# Falco Rules for Container Security
+# Target Falco Rules for Container Security (planned)
 - rule: Detect shell in container
   desc: >
     A shell was spawned by a process in a container.
@@ -583,36 +591,50 @@ data:
 
 ### **Kubernetes Security**
 
-#### **Pod Security Policies**
+#### **Pod Security Standards**
+
+We use **Pod Security Standards** (which replaced the deprecated PodSecurityPolicy in K8s 1.25+) to enforce security baselines at the namespace level.
+
 ```yaml
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
+# Enforce restricted Pod Security Standards on production namespace
+apiVersion: v1
+kind: Namespace
 metadata:
-  name: restricted-psp
-spec:
-  privileged: false
-  allowPrivilegeEscalation: false
-  requiredDropCapabilities:
-    - ALL
-  volumes:
-    - 'configMap'
-    - 'emptyDir'
-    - 'projected'
-    - 'secret'
-    - 'downwardAPI'
-    - 'persistentVolumeClaim'
-  runAsUser:
-    rule: 'MustRunAsNonRoot'
-  seLinux:
-    rule: 'RunAsAny'
-  fsGroup:
-    rule: 'RunAsAny'
-  readOnlyRootFilesystem: true
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    fsGroup: 1000
+  name: production
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
 ```
+
+All deployments must comply with the restricted profile:
+- Containers run as non-root (`runAsNonRoot: true`)
+- No privilege escalation (`allowPrivilegeEscalation: false`)
+- All capabilities dropped (`drop: ["ALL"]`)
+- Read-only root filesystem (`readOnlyRootFilesystem: true`)
+- Restricted volume types only
+
+```yaml
+# Example compliant pod security context
+spec:
+  template:
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: order-service
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+```
+
 
 #### **RBAC Configuration**
 ```yaml
@@ -675,17 +697,10 @@ roleRef:
 
 ### **Implementation Guides**
 - [Authentication & Authorization](./AUTH_AUTHZ.md) - Identity management
-- [Network Security](./NETWORK_SECURITY.md) - Network isolation
-- [Data Protection](./DATA_PROTECTION.md) - Encryption and data security
-- [Security Monitoring](./SECURITY_MONITORING.md) - Threat detection
-
-### **Operations**
 - [Incident Response](./INCIDENT_RESPONSE.md) - Security incidents
-- [Compliance](./COMPLIANCE.md) - Regulatory compliance
-- [Security Testing](./SECURITY_TESTING.md) - Security assessments
 
 ---
 
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Review Cycle**: Monthly  
 **Maintained By**: Security & Platform Engineering Teams

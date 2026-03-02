@@ -1,7 +1,7 @@
 # 📊 Monitoring & Observability
 
 **Purpose**: Complete monitoring, logging, and observability strategy  
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Status**: 🔄 In Progress - Setting up comprehensive monitoring
 
 ---
@@ -12,12 +12,8 @@ This section contains comprehensive documentation for monitoring, logging, and o
 
 ### 🎯 What You'll Find Here
 
-- **[Monitoring Architecture](./MONITORING_ARCHITECTURE.md)** - Complete observability stack
-- **[Metrics Collection](./METRICS.md)** - Prometheus metrics and dashboards
-- **[Logging Strategy](./LOGGING.md)** - Centralized logging with ELK stack
-- **[Distributed Tracing](./TRACING.md)** - Jaeger tracing implementation
-- **[Alerting](./ALERTING.md)** - Alert rules and notification channels
-- **[Health Checks](./HEALTH_CHECKS.md)** - Service health monitoring
+- **[Monitoring Architecture](./MONITORING_ARCHITECTURE.md)** - Complete observability stack design
+- **[Alerting](./ALERTING.md)** - Alert rules, notification channels, and escalation policies
 
 ---
 
@@ -244,26 +240,11 @@ This section contains comprehensive documentation for monitoring, logging, and o
 
 ## 📚 Documentation Structure
 
-### 📖 **Getting Started**
-- **[Quick Start](./QUICK_START.md)** - Get monitoring running in 30 minutes
-- **[Installation Guide](./INSTALLATION.md)** - Detailed setup instructions
-- **[Configuration](./CONFIGURATION.md)** - Monitoring configuration
-
 ### 🏗️ **Architecture & Design**
-- **[Monitoring Architecture](./MONITORING_ARCHITECTURE.md)** - Complete system design
-- **[Data Model](./DATA_MODEL.md)** - Metrics, logs, and traces schema
-- **[Best Practices](./BEST_PRACTICES.md)** - Monitoring best practices
+- **[Monitoring Architecture](./MONITORING_ARCHITECTURE.md)** - Complete observability stack design
 
-### 🔧 **Implementation**
-- **[Metrics](./METRICS.md)** - Prometheus metrics and exporters
-- **[Logging](./LOGGING.md)** - ELK stack and structured logging
-- **[Tracing](./TRACING.md)** - Jaeger and OpenTelemetry
-- **[Alerting](./ALERTING.md)** - Alert rules and notifications
-
-### 📊 **Operations**
-- **[Dashboards](./DASHBOARDS.md)** - Grafana dashboard catalog
-- **[Troubleshooting](./TROUBLESHOOTING.md)** - Common monitoring issues
-- **[Maintenance](./MAINTENANCE.md)** - Monitoring system maintenance
+### 🔧 **Implementation & Operations**
+- **[Alerting](./ALERTING.md)** - Alert rules, notification channels, and escalation
 
 ---
 
@@ -340,6 +321,6 @@ func init() {
 
 ---
 
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Review Cycle**: Monthly  
 **Maintained By**: Platform Engineering & SRE Teams

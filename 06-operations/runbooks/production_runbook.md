@@ -21,16 +21,16 @@
 **Symptoms**: APM shows p99 latency > 1s, Users report "spinners", High `context deadline exceeded` logs.
 **Immediate Actions**:
 1. Check Database Load: `kubectl logs -l app=postgresql --tail=100` (High CPU/Memory?)
-2. Check Pod Health: `kubectl get pods -n microservices` (CrashLoopBackOff? OOMKilled?)
+2. Check Pod Health: `kubectl get pods -n production` (CrashLoopBackOff? OOMKilled?)
 3. **Mitigation**:
    - Limit traffic (Rate Limiting): Apply tighter Ingress rate limits.
-   - Scale Up: `kubectl scale deployment <service-name> --replicas=5 -n microservices`
+   - Scale Up: `kubectl scale deployment <service-name> --replicas=5 -n production`
 
 ### 2. Payment Gateway Failure (SAGA-001)
 **Symptoms**: Checkout failures with `payment authorization failed` errors, high `failed_compensation` logs.
 **Investigation**:
 - Check Gateway Status Page (Stripe/PayPal).
-- Check Checkout Service Logs: `kubectl logs -l app=checkout -n microservices | grep "payment"`
+- Check Checkout Service Logs: `kubectl logs -l app=checkout -n production | grep "payment"`
 **Mitigation**:
 - **Switch Provider**: Update feature flag `ENABLE_STRIPE=false`, `ENABLE_PAYPAL=true` (if dynamic switching supported).
 - **Disable Checkout**: If severe, put site in "Maintenance Mode" via CDN or Ingress.
@@ -42,7 +42,7 @@
 - Identify culprit service: `SELECT application_name, count(*) FROM pg_stat_activity GROUP BY application_name;`
 **Mitigation**:
 - Kill idle connections: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state='idle' AND query_start < NOW() - INTERVAL '5 minutes';`
-- Restart culprit service pod to release pool: `kubectl delete pod -l app=<culprit> -n microservices`
+- Restart culprit service pod to release pool: `kubectl delete pod -l app=<culprit> -n production`
 
 ### 4. Promotion Abuse (Unlimited Coupons)
 **Symptoms**: Unusual spike in `DiscountTotal`, inventory depletion for specific items.
@@ -61,20 +61,20 @@
 If a new deployment causes P0/P1 issues:
 ```bash
 # Check revision history
-kubectl rollout history deployment/<service-name> -n microservices
+kubectl rollout history deployment/<service-name> -n production
 
 # Undo to previous revision
-kubectl rollout undo deployment/<service-name> -n microservices
+kubectl rollout undo deployment/<service-name> -n production
 ```
 
 ### Feature Flag Toggles (via ConfigMap)
 1. Edit ConfigMap:
    ```bash
-   kubectl edit configmap <service-config> -n microservices
+   kubectl edit configmap <service-config> -n production
    ```
 2. Restart Pods (to pick up changes if not hot-reloaded):
    ```bash
-   kubectl rollout restart deployment/<service-name> -n microservices
+   kubectl rollout restart deployment/<service-name> -n production
    ```
 
 ### Debugging in Production (Restricted)
@@ -85,7 +85,7 @@ kubectl rollout undo deployment/<service-name> -n microservices
    ```
 2. **Port Forward** for private admin endpoints (only from secure bastion):
    ```bash
-   kubectl port-forward svc/<service-name> 8080:8080 -n microservices
+   kubectl port-forward svc/<service-name> 8080:8080 -n production
    ```
 
 ---

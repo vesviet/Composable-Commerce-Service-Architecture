@@ -1,7 +1,7 @@
 # 🔐 Authentication & Authorization
 
 **Purpose**: Comprehensive identity and access management strategy  
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Status**: 🔄 In Progress - Core auth implemented, advanced features in progress
 
 ---
@@ -732,73 +732,57 @@ func (s *SecurityMonitor) detectSuspiciousActivity(event *SecurityEvent) {
 
 ### **API Gateway Authentication**
 
-#### **Kong Plugin Configuration**
-```yaml
-# JWT Plugin
-apiVersion: configuration.konghq.com/v1
-kind: KongPlugin
-metadata:
-  name: jwt-auth
-  namespace: production
-plugin: jwt
-config:
-  secret_is_base64: false
-  key_claim_name: "iss"
-  algorithm: "RS256"
-  run_on_preflight: true
+#### **Custom Gateway JWT Authentication**
 
----
-# ACL Plugin
-apiVersion: configuration.konghq.com/v1
-kind: KongPlugin
-metadata:
-  name: acl-plugin
-  namespace: production
-plugin: acl
-config:
-  whitelist:
+Our platform uses a **custom Go-based API gateway** that handles JWT validation, RBAC, and rate limiting via middleware. Authentication is configured in the gateway's `config.yaml`.
+
+```yaml
+# Gateway authentication configuration
+authentication:
+  jwt:
+    issuer: "auth-service"
+    algorithms: ["RS256"]
+    public_key_path: "/etc/gateway/jwt-public.pem"
+    token_expiry: 15m
+
+authorization:
+  rbac_enabled: true
+  default_deny: true
+  roles:
     - admin
     - order-manager
     - customer-service
 
----
-# Rate Limiting Plugin
-apiVersion: configuration.konghq.com/v1
-kind: KongPlugin
-metadata:
-  name: rate-limiting
-  namespace: production
-plugin: rate-limiting
-config:
-  minute: 100
-  hour: 1000
+rate_limiting:
+  enabled: true
+  default:
+    requests_per_second: 100
+    burst: 200
   policy: redis
 ```
 
+
 ### **Service-to-Service Authentication**
 
-#### **mTLS Configuration**
+#### **Dapr mTLS Configuration**
+
+Service-to-service authentication uses **Dapr sidecar mTLS** (automatic certificate rotation). No application-level TLS configuration is required.
+
 ```yaml
-# Istio Destination Rule
-apiVersion: networking.istio.io/v1beta1
-kind: DestinationRule
+# Dapr mTLS configuration (system-level)
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
 metadata:
-  name: order-service
+  name: dapr-config
   namespace: production
 spec:
-  host: order-service.production.svc.cluster.local
-  trafficPolicy:
-    tls:
-      mode: ISTIO_MUTUAL
-    connectionPool:
-      tcp:
-        maxConnections: 100
-      http:
-        http1MaxPendingRequests: 50
-        maxRequestsPerConnection: 10
+  mtls:
+    enabled: true
+    workloadCertTTL: "24h"
+    allowedClockSkew: "15m"
 
 ---
-# Service Account
+# Service Account (for Kubernetes RBAC)
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -816,15 +800,14 @@ spec:
       serviceAccountName: order-service
 ```
 
+
 ---
 
 ## 📚 Related Documentation
 
 ### **Implementation Guides**
 - [Security Architecture](./SECURITY_ARCHITECTURE.md) - Overall security framework
-- [Network Security](./NETWORK_SECURITY.md) - Network isolation and mTLS
-- [Data Protection](./DATA_PROTECTION.md) - Encryption and key management
-- [Security Monitoring](./SECURITY_MONITORING.md) - Threat detection
+- [Incident Response](./INCIDENT_RESPONSE.md) - Security incident procedures
 
 ### **External Resources**
 - [OAuth 2.0 and OpenID Connect](https://openid.net/connect/)
@@ -833,6 +816,6 @@ spec:
 
 ---
 
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Review Cycle**: Monthly  
 **Maintained By**: Security & Platform Engineering Teams

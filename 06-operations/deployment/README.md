@@ -284,17 +284,22 @@ argocd app get order-service
 
 ### **Deploy New Service**
 ```bash
-# 1. Create service directory
-mkdir -p apps/new-service
+# 1. Create Kustomize directory structure
+mkdir -p apps/new-service/base
+mkdir -p apps/new-service/overlays/dev
+mkdir -p apps/new-service/overlays/production
 
-# 2. Add application manifest
-cp templates/application.yaml apps/new-service/
+# 2. Create base manifests (deployment.yaml, service.yaml, kustomization.yaml)
+# Copy from an existing service and modify as needed
+cp -r apps/order-service/base/* apps/new-service/base/
 
-# 3. Configure values
-cp templates/values.yaml apps/new-service/
+# 3. Create environment overlays
+cp -r apps/order-service/overlays/dev/* apps/new-service/overlays/dev/
 
-# 4. Deploy
-kubectl apply -f apps/new-service/
+# 4. Commit and push — ArgoCD auto-syncs
+git add apps/new-service/
+git commit -m "feat(new-service): add Kustomize manifests"
+git push origin main
 
 # 5. Monitor deployment
 argocd app get new-service
@@ -469,7 +474,7 @@ kubectl describe nodes
 
 ---
 
-**Last Updated**: 2026-02-07  
+**Last Updated**: 2026-03-02  
 **Review Cycle**: Monthly deployment review  
 **Maintained By**: DevOps & Platform Engineering Teams  
 **GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)

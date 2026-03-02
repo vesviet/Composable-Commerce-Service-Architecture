@@ -1,7 +1,7 @@
 # 🔧 Operations Runbooks
 
 **Purpose**: Comprehensive runbooks for incident response and system operations  
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Status**: ✅ Active - 18 service runbooks available
 
 ---
@@ -13,9 +13,9 @@ This section contains comprehensive runbooks for managing and troubleshooting th
 ### 🎯 What You'll Find Here
 
 - **[SRE Runbooks](./sre-runbooks/)** - Service-specific troubleshooting guides
+- **[Production Runbook](./production_runbook.md)** - Day 2 SRE operations and common incidents
 - **[Incident Response Runbooks](./incident-response/)** - Security incident procedures
 - **[Maintenance Runbooks](./maintenance/)** - Regular maintenance procedures
-- **[Emergency Procedures](./emergency/)** - Critical incident response
 
 ---
 
@@ -328,7 +328,7 @@ kubectl exec -it REDIS-POD -- redis-cli MONITOR
 
 ---
 
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Review Cycle**: Monthly  
 **Maintained By**: SRE & Platform Engineering Teams  
 **Total Runbooks**: 18 service runbooks + incident response procedures

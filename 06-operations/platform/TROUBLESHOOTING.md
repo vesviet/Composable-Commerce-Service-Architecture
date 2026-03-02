@@ -1,7 +1,7 @@
 # 🔧 Platform Troubleshooting Guide
 
 **Purpose**: Comprehensive troubleshooting procedures for platform issues  
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Status**: ✅ Active - Common issues and solutions documented
 
 ---
@@ -623,11 +623,11 @@ kubectl logs -f deployment/auth-service -n production &
 
 ### **Operational Documentation**
 - [Monitoring Overview](../monitoring/README.md) - Monitoring and alerting
-- [Incident Response](../incident-response/README.md) - Incident procedures
+- [Incident Response](../security/INCIDENT_RESPONSE.md) - Incident procedures
 - [Security Operations](../security/README.md) - Security procedures
 
 ---
 
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Review Cycle**: Monthly  
 **Maintained By**: Platform Engineering Team

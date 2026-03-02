@@ -1,7 +1,7 @@
 # 🚨 Incident Response
 
 **Purpose**: Comprehensive security incident response procedures  
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Status**: 🔄 In Progress - Framework defined, procedures being implemented
 
 ---
@@ -158,7 +158,7 @@ detection_rules:
 - [ ] **Evidence Collection**: Begin evidence preservation
 ```
 
-#### **Triage Process**
+#### **Triage Process (🔄 Design Proposal — not yet implemented)**
 ```go
 type IncidentTriage struct {
     incidentStore IncidentStore
@@ -331,7 +331,7 @@ containment_actions:
 
 ### **Eradication Process**
 
-#### **Root Cause Analysis**
+#### **Root Cause Analysis (🔄 Design Proposal — not yet implemented)**
 ```go
 type RootCauseAnalyzer struct {
     logAnalyzer    LogAnalyzer
@@ -657,7 +657,7 @@ The [Company Name] Team
 
 ### **Continuous Improvement**
 
-#### **Improvement Tracking**
+#### **Improvement Tracking (🔄 Design Proposal — not yet implemented)**
 ```go
 type ImprovementTracker struct {
     incidentStore IncidentStore
@@ -738,8 +738,7 @@ func (i *ImprovementTracker) generateRecommendations(incident *Incident) []Recom
 
 ### **Implementation Guides**
 - [Security Architecture](./SECURITY_ARCHITECTURE.md) - Overall security framework
-- [Security Monitoring](./SECURITY_MONITORING.md) - Threat detection and monitoring
-- [Compliance](./COMPLIANCE.md) - Regulatory compliance requirements
+- [Authentication & Authorization](./AUTH_AUTHZ.md) - Identity management
 
 ### **External Resources**
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
@@ -748,6 +747,6 @@ func (i *ImprovementTracker) generateRecommendations(incident *Incident) []Recom
 
 ---
 
-**Last Updated**: 2026-02-03  
+**Last Updated**: 2026-03-02  
 **Review Cycle**: Monthly  
 **Maintained By**: Security & Platform Engineering Teams
