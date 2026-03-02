@@ -114,7 +114,7 @@ service/
 
 ## Implementation Guidelines
 
-- Use Viper for configuration loading and management
+- Use go-kratos `config` package (`kratos/v2/config`) for configuration loading
 - Implement comprehensive configuration validation
 - Use environment-specific config files
 - Store secrets in environment variables, never in Git
@@ -125,7 +125,7 @@ service/
 
 ## References
 
-- [Viper Configuration Library](https://github.com/spf13/viper)
+- [go-kratos Config Documentation](https://go-kratos.dev/docs/component/config)
 - [Twelve-Factor App - Configuration](https://12factor.net/config)
 - [Consul KV Store](https://www.consul.io/docs/dynamic-app-config/kv)
 - [Configuration Best Practices](https://microservices.io/patterns/configuration/index.html)

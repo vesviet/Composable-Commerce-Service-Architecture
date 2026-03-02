@@ -22,10 +22,10 @@ We evaluated several logging approaches:
 
 ## Decision
 
-We will use **structured logging with Logrus** and **centralized aggregation with ELK stack**.
+We will use **structured logging with go-kratos `log` package** and **centralized aggregation with ELK stack**.
 
 ### Logging Architecture:
-1. **Logrus**: Structured logging library in all services
+1. **go-kratos `log`**: Structured logging via `kratos/v2/log` in all services
 2. **Filebeat**: Log shipping from services to Logstash
 3. **Logstash**: Log processing and transformation
 4. **Elasticsearch**: Log storage and indexing
@@ -130,7 +130,7 @@ We will use **structured logging with Logrus** and **centralized aggregation wit
 
 ## References
 
-- [Logrus Documentation](https://github.com/sirupsen/logrus)
+- [go-kratos Log Documentation](https://go-kratos.dev/docs/component/log)
 - [ELK Stack Documentation](https://www.elastic.co/guide/)
 - [Structured Logging Best Practices](https://brandur.org/structured-logging)
 - [Distributed Logging Patterns](https://microservices.io/patterns/logging/)

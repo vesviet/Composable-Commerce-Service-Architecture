@@ -54,7 +54,7 @@ common/
 - **Events**: Dapr event publishing utilities
 - **Logging**: Structured logging with correlation IDs
 - **Metrics**: Prometheus metrics collection
-- **Configuration**: Viper-based configuration utilities
+- **Configuration**: go-kratos config utilities
 - **Validation**: Input validation and sanitization
 
 ### Version Management:

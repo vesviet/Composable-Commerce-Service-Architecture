@@ -74,7 +74,5 @@ We need a consistent approach for maintainability and portability.
 
 ## References
 
-- See `/docs/backup-2025-11-17/DAPR_VS_REDIS_STREAMS_COMPARISON.md` for detailed comparison
 - [Dapr Pub/Sub](https://docs.dapr.io/developing-applications/building-blocks/pubsub/)
 - [Redis Streams](https://redis.io/docs/data-types/streams/)
-

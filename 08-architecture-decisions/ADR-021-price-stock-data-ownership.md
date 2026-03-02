@@ -1,6 +1,8 @@
 # ADR-021: Price & Stock Data Ownership Between Catalog and Search
-Date: 2026-02-12
-Status: Accepted
+
+**Date:** 2026-02-12
+**Status:** Accepted
+**Deciders:** Architecture Team, Search Team, Catalog Team
 
 ## Context
 
