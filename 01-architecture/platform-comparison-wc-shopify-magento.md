@@ -1,6 +1,6 @@
 # Platform Comparison: TA Microservices vs WooCommerce vs Shopify vs Magento
 
-> **Date**: 2026-02-14 | **Version**: v1.1
+> **Date**: 2026-03-02 | **Version**: v1.2
 
 ---
 
@@ -8,7 +8,7 @@
 
 | Criteria | 🟠 TA Microservices | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento (Adobe Commerce) |
 |----------|---------------------|----------------|------------|------------------------------|
-| **Architecture** | Microservices (21 Go services) | Monolith (WordPress plugin) | SaaS / Monolith hosted | Monolith (PHP, modular) |
+| **Architecture** | Microservices (21 Go + 2 frontends) | Monolith (WordPress plugin) | SaaS / Monolith hosted | Monolith (PHP, modular) |
 | **Language** | Go, React, Next.js | PHP (WordPress) | Ruby on Rails (closed) | PHP (Magento Framework) |
 | **Database** | PostgreSQL per service | MySQL (shared) | MySQL (managed, closed) | MySQL (shared) |
 | **Hosting** | Self-hosted K8s (K3d/ArgoCD) | Self-hosted / Any hosting | Shopify Cloud (managed) | Self-hosted / Adobe Cloud |
@@ -53,7 +53,7 @@ graph TB
 | **Database isolation** | ✅ Separate DB per service | ❌ Shared DB, 60+ tables | ❌ No DB access | ❌ Shared DB, 300+ tables |
 | **Independent deploy** | ✅ Deploy 1 service without affecting others | ❌ Deploy = update all of WP | ✅ Shopify handles deploys | ❌ Deploy = full downtime |
 | **Fault isolation** | ✅ Payment crash ≠ Catalog down | ❌ Plugin crash = site down | ✅ Shopify manages | ❌ Module crash = site down |
-| **Complexity** | 🔴 Very high (21 services + event flows + K8s) | 🟢 Low | 🟢 Lowest | 🟡 Medium–High |
+| **Complexity** | 🔴 Very high (23 services + event flows + K8s) | 🟢 Low | 🟢 Lowest | 🟡 Medium–High |
 
 ---
 
@@ -111,7 +111,7 @@ graph TB
 | Aspect | 🟠 TA | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
 |--------|-------|----------------|------------|------------|
 | **Event system** | Dapr PubSub (Redis Streams) — async, decoupled | WordPress Hooks (sync, in-process) | Webhooks (HTTP callback) | Magento Events/Observers (sync, in-process) |
-| **Transactional outbox** | ✅ 8 services (order, payment, warehouse, fulfillment, shipping, pricing, loyalty, return) | ❌ | ❌ | ❌ |
+| **Transactional outbox** | ✅ 17 services use outbox pattern | ❌ | ❌ | ❌ |
 | **Event idempotency** | ✅ DB-level per consumer | ❌ | ❌ (webhook retry is "at least once") | ❌ |
 | **Saga pattern** | ✅ Multi-phase payment saga with DLQ + compensation | ❌ | ❌ (internal, closed) | ❌ |
 | **Dead Letter Queue** | ✅ Failed events tracked + alert | ❌ | ❌ | ❌ |
@@ -144,7 +144,7 @@ graph TB
 |----------|--------|---------------------|
 | 🔴 **No plugin ecosystem** | All features must be custom-built | ✅ WC: 59,000+ plugins, Shopify: 8,000+ apps |
 | 🔴 **No CMS/Content** | No blog, landing pages | ✅ WC = WordPress CMS, Shopify has Online Store |
-| 🔴 **Very high complexity** | 21 services + event flows + K8s = large team required | ✅ One person can run WC/Shopify |
+| 🔴 **Very high complexity** | 23 services + event flows + K8s = large team required | ✅ One person can run WC/Shopify |
 | 🟡 **No POS** | No in-store sales support | ✅ Shopify POS, Magento POS extensions |
 | 🟡 **Email marketing** | Basic notification service only | ✅ Mailchimp/Klaviyo integrated |
 | 🟡 **SEO tools** | No built-in SEO | ✅ WC: Yoast SEO, Shopify: built-in |
