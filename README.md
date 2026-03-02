@@ -48,7 +48,7 @@ Off-the-shelf platforms (Shopify, WooCommerce, Magento) get you started fast —
 
 > **Bottom line**: This platform delivers what **Magento Enterprise charges $200K+/year** for — payment saga, event-driven architecture, multi-warehouse WMS, fraud detection — with **zero license fees** and **full source ownership**.
 
-📄 [Full comparison: TA Microservices vs Shopify vs WooCommerce vs Magento](01-architecture/platform-comparison-wc-shopify-magento.md)
+📄 [Full comparison: Composable Commerce Platform vs Shopify vs WooCommerce vs Magento](01-architecture/platform-comparison-wc-shopify-magento.md)
 
 ---
 

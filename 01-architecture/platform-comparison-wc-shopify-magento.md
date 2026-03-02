@@ -1,4 +1,4 @@
-# Platform Comparison: TA Microservices vs WooCommerce vs Shopify vs Magento
+# Platform Comparison: Composable Commerce Platform vs WooCommerce vs Shopify vs Magento
 
 > **Date**: 2026-03-02 | **Version**: v1.2
 
@@ -6,7 +6,7 @@
 
 ## 1. Platform Overview
 
-| Criteria | 🟠 TA Microservices | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento (Adobe Commerce) |
+| Criteria | 🟠 Composable Commerce Platform | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento (Adobe Commerce) |
 |----------|---------------------|----------------|------------|------------------------------|
 | **Architecture** | Microservices (21 Go + 2 frontends) | Monolith (WordPress plugin) | SaaS / Monolith hosted | Monolith (PHP, modular) |
 | **Language** | Go, React, Next.js | PHP (WordPress) | Ruby on Rails (closed) | PHP (Magento Framework) |
@@ -24,7 +24,7 @@
 
 ```mermaid
 graph TB
-    subgraph "TA Microservices"
+    subgraph "Composable Commerce Platform"
         GW[API Gateway] --> AUTH[Auth :8000]
         GW --> CAT[Catalog :8015]
         GW --> ORD[Order :8004]
@@ -47,7 +47,7 @@ graph TB
     end
 ```
 
-| Aspect | 🟠 TA Microservices | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
+| Aspect | 🟠 Composable Commerce Platform | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
 |--------|---------------------|----------------|------------|------------|
 | **Per-module scaling** | ✅ Scale Order and Payment independently | ❌ Scale entire WordPress | ✅ Shopify manages (no control) | ❌ Scale entire app (limited horizontal) |
 | **Database isolation** | ✅ Separate DB per service | ❌ Shared DB, 60+ tables | ❌ No DB access | ❌ Shared DB, 300+ tables |
@@ -61,7 +61,7 @@ graph TB
 
 ### 3.1 Checkout & Order Flow
 
-| Feature | 🟠 TA | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
+| Feature | 🟠 Ours | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
 |---------|-------|----------------|------------|------------|
 | **Cart management** | ✅ RDBMS + Redis session | ✅ WP Session/Cookie | ✅ Cart API | ✅ Quote system |
 | **Multi-step checkout** | ✅ Custom flow (validate → reserve → pay → order) | ✅ Via plugins | ✅ Checkout UI Extensions | ✅ Native multi-step |
@@ -72,7 +72,7 @@ graph TB
 
 ### 3.2 Payment Processing
 
-| Feature | 🟠 TA | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
+| Feature | 🟠 Ours | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
 |---------|-------|----------------|------------|------------|
 | **Payment gateways** | Stripe, VNPay, MoMo + COD | 100+ plugins (Stripe, PayPal, etc.) | Shopify Payments + 100+ providers | PayPal, Stripe, Braintree, etc. |
 | **VN-specific gateways** | ✅ VNPay, MoMo native | ⚠️ Via 3rd-party plugin | ⚠️ Limited VN support | ⚠️ Via extension |
@@ -85,7 +85,7 @@ graph TB
 
 ### 3.3 Inventory & Warehouse
 
-| Feature | 🟠 TA | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
+| Feature | 🟠 Ours | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
 |---------|-------|----------------|------------|------------|
 | **Multi-warehouse** | ✅ Full multi-warehouse | ❌ Single stock location | ✅ Multi-location | ✅ Multi-source inventory (MSI) |
 | **Stock reservation** | ✅ Transactional outbox + TTL expiry | ❌ | ✅ Basic | ✅ Reservation (MSI) |
@@ -96,7 +96,7 @@ graph TB
 
 ### 3.4 Search & Catalog
 
-| Feature | 🟠 TA | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
+| Feature | 🟠 Ours | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
 |---------|-------|----------------|------------|------------|
 | **Search engine** | Elasticsearch (full-text, faceted, autocomplete) | MySQL LIKE queries | Shopify Search & Discovery | Elasticsearch (native in 2.4+) |
 | **EAV attributes** | ✅ Custom EAV in Catalog service | ❌ WP meta (slow) | ❌ Metafields (limited query) | ✅ Full EAV (notoriously complex) |
@@ -108,7 +108,7 @@ graph TB
 
 ## 4. Event-Driven Architecture — Key Differentiator
 
-| Aspect | 🟠 TA | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
+| Aspect | 🟠 Ours | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
 |--------|-------|----------------|------------|------------|
 | **Event system** | Dapr PubSub (Redis Streams) — async, decoupled | WordPress Hooks (sync, in-process) | Webhooks (HTTP callback) | Magento Events/Observers (sync, in-process) |
 | **Transactional outbox** | ✅ 17 services use outbox pattern | ❌ | ❌ | ❌ |
@@ -120,13 +120,13 @@ graph TB
 > - WordPress hooks are **synchronous** — if one hook is slow, the entire request blocks
 > - Shopify webhooks can be **missed** if the endpoint is down — no replay mechanism
 > - Magento observers are **synchronous** and can cause performance bottlenecks
-> - TA Microservices: Events are **asynchronous**, auto-retried, idempotent, with outbox guaranteeing delivery
+> - Composable Commerce Platform: Events are **asynchronous**, auto-retried, idempotent, with outbox guaranteeing delivery
 
 ---
 
 ## 5. DevOps & Deployment
 
-| Aspect | 🟠 TA | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
+| Aspect | 🟠 Ours | 🟣 WooCommerce | 🟢 Shopify | 🔵 Magento |
 |--------|-------|----------------|------------|------------|
 | **Infrastructure** | K8s (K3d) + ArgoCD GitOps | cPanel / VPS / WP hosting | Shopify Cloud (managed) | Cloud / On-prem / Adobe Cloud |
 | **CI/CD** | GitLab CI + ArgoCD auto-sync | FTP / Git deploy plugins | Shopify CLI / GitHub integration | Self-managed CI/CD |
@@ -170,7 +170,7 @@ graph TB
 
 ## 8. Decision Matrix
 
-| Scenario | TA Microservices | WooCommerce | Shopify | Magento |
+| Scenario | Composable Commerce | WooCommerce | Shopify | Magento |
 |----------|-----------------|-------------|---------|---------|
 | **< 100 products, solo operator** | ❌ Overkill | ✅ | ✅✅ | ❌ |
 | **SMB, 1,000 products** | ❌ Overkill | ✅ | ✅✅ | ⚠️ |
