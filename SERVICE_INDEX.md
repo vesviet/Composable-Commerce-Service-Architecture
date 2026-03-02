@@ -1,39 +1,39 @@
 # 📦 Service Index
 
-> **Last Updated**: 2026-02-14 | **Total**: 21 Go services + 2 frontends  
+> **Last Updated**: 2026-03-02 (post P0/P1 audit fixes) | **Total**: 21 Go services + 2 frontends  
 > **Stack**: Go 1.25 · Kratos v2 · PostgreSQL · Redis · Dapr · Kubernetes
 
 ---
 
 ## Service Catalog
 
-| # | Service | Domain | HTTP | gRPC | Maturity | Outbox | Idempotency | DLQ |
-|---|---------|--------|------|------|----------|--------|-------------|-----|
-| 1 | **Auth** | Identity & Access | 8000 | 9000 | 🟢 Production | — | — | — |
-| 2 | **User** | Identity & Access | 8001 | 9001 | 🟢 Production | — | — | — |
-| 3 | **Customer** | CRM & Analytics | 8003 | 9003 | 🟡 Near-prod | ❌ | ❌ | ❌ |
-| 4 | **Catalog** | Product & Content | 8015 | 9015 | 🟡 Near-prod | ✅ | ❌ | ❌ |
-| 5 | **Pricing** | Product & Content | 8002 | 9002 | 🟡 Near-prod | ✅ | ❌ | ❌ |
-| 6 | **Promotion** | Product & Content | 8011 | 9011 | 🟡 Partial | ✅ | ❌ | ❌ |
-| 7 | **Checkout** | Commerce Flow | 8010 | 9010 | 🟢 Production | — | ✅ | ✅ |
-| 8 | **Order** | Commerce Flow | 8004 | 9004 | 🟢 Production | ✅ | ✅ | ✅ |
-| 9 | **Payment** | Commerce Flow | 8005 | 9005 | 🟢 Production | ✅ | ✅ | ✅ |
-| 10 | **Warehouse** | Inventory | 8006 | 9006 | 🟢 Production | ✅ | ✅ | ✅ |
-| 11 | **Fulfillment** | Order Fulfillment | 8008 | 9008 | 🟡 Partial | ✅ | ✅ | ❌ |
-| 12 | **Shipping** | Logistics | 8012 | 9012 | 🟡 Near-prod | ✅ | ✅ | ❌ |
-| 13 | **Return** | Post-Purchase | 8013 | 9013 | 🟡 Near-prod | ✅ | ❌ | ❌ |
-| 14 | **Loyalty** | Post-Purchase | 8014 | 9014 | 🟡 Near-prod | ✅ | ✅ | ❌ |
-| 15 | **Gateway** | Platform | 80 | — | 🟢 Production | — | — | — |
-| 16 | **Search** | Platform | 8017 | 9017 | 🟢 Near-prod | — | ✅ | ✅ |
-| 17 | **Analytics** | Platform | 8018 | 9018 | 🟠 Partial | — | — | — |
-| 18 | **Review** | Platform | 8016 | 9016 | 🟠 Partial | — | — | — |
-| 19 | **Common Ops** | Platform | 8019 | 9019 | 🟢 Production | ✅ | — | — |
-| 20 | **Notification** | Operations | 8009 | 9009 | 🟡 Functional | ❌ | ❌ | ❌ |
-| 21 | **Location** | Operations | 8007 | 9007 | 🟡 Near-prod | ✅ | — | — |
-| — | **Frontend** | UI (Next.js) | 3000 | — | ✅ | — | — | — |
-| — | **Admin** | UI (React) | 3001 | — | ✅ | — | — | — |
+| # | Service | Domain | HTTP | gRPC | Maturity | Worker | Outbox | Idempotency | DLQ |
+|---|---------|--------|------|------|----------|--------|--------|-------------|-----|
+| 1 | **Auth** | Identity & Access | 8000 | 9000 | 🟢 Production | ✅ | — | — | — |
+| 2 | **User** | Identity & Access | 8001 | 9001 | 🟢 Production | ✅ | ✅ | ✅ | — |
+| 3 | **Customer** | CRM & Analytics | 8003 | 9003 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 4 | **Catalog** | Product & Content | 8015 | 9015 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 5 | **Pricing** | Product & Content | 8002 | 9002 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 6 | **Promotion** | Product & Content | 8011 | 9011 | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
+| 7 | **Checkout** | Commerce Flow | 8010 | 9010 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 8 | **Order** | Commerce Flow | 8004 | 9004 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 9 | **Payment** | Commerce Flow | 8005 | 9005 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 10 | **Warehouse** | Inventory | 8006 | 9006 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 11 | **Fulfillment** | Order Fulfillment | 8008 | 9008 | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
+| 12 | **Shipping** | Logistics | 8012 | 9012 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 13 | **Return** | Post-Purchase | 8013 | 9013 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 14 | **Loyalty** | Post-Purchase | 8014 | 9014 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 15 | **Gateway** | Platform | 80 | — | 🟢 Production | ✅ | — | ✅ | ✅ |
+| 16 | **Search** | Platform | 8017 | 9017 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 17 | **Analytics** | Platform | 8019 | 9019 | 🟡 Near-prod | ✅ | — | ✅ | ✅ |
+| 18 | **Review** | Platform | 8016 | 9016 | 🟡 Near-prod | ✅ | ✅ | ✅ | — |
+| 19 | **Common Ops** | Platform | 8018 | 9018 | 🟢 Production | ✅ | ✅ | ✅ | — |
+| 20 | **Notification** | Operations | 8009 | 9009 | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
+| 21 | **Location** | Operations | 8007 | 9007 | 🟢 Production | ✅ | ✅ | — | — |
+| — | **Frontend** | UI (Next.js) | 3000 | — | — | — | — | — | — |
+| — | **Admin** | UI (React) | 3001 | — | — | — | — | — | — |
 
-**Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · ❌ Missing · — Not applicable
+**Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable
 
 ---
 
@@ -77,7 +77,7 @@
 | Service | Purpose | Key Dependencies |
 |---------|---------|-----------------|
 | **Gateway** | API routing, auth, rate limiting, circuit breaker, BFF | All services |
-| **Search** | Full-text search, autocomplete, event-driven indexing, alerts | Elasticsearch, Catalog (events) |
+| **Search** | Full-text search, autocomplete, event-driven indexing, DLQ reprocessing | Elasticsearch, Catalog (events) |
 | **Analytics** | Revenue, order, customer, fulfillment, shipping metrics (real event-based) | All services (events) |
 | **Review** | Product reviews, ratings, content moderation | Catalog, Customer |
 | **Common Ops** | Task orchestration, file operations, MinIO integration | MinIO |
@@ -90,40 +90,59 @@
 
 | Service | PostgreSQL | Redis | Elasticsearch | Dapr PubSub | External APIs |
 |---------|-----------|-------|---------------|-------------|---------------|
-| Auth | ✅ | ✅ | — | — | — |
-| User | ✅ | ✅ | — | — | — |
+| Auth | ✅ | ✅ | — | ✅ | — |
+| User | ✅ | ✅ | — | ✅ | — |
 | Customer | ✅ | ✅ | — | ✅ | — |
 | Catalog | ✅ | ✅ | ✅ | ✅ | — |
 | Pricing | ✅ | ✅ | — | ✅ | — |
 | Promotion | ✅ | ✅ | — | ✅ | — |
 | Checkout | ✅ | ✅ | — | ✅ | — |
 | Order | ✅ | ✅ | — | ✅ | — |
-| Payment | ✅ | ✅ | — | — | Stripe, PayPal, VNPay, MoMo, ip-api |
+| Payment | ✅ | ✅ | — | ✅ | Stripe, PayPal, VNPay, MoMo, ip-api |
 | Warehouse | ✅ | ✅ | — | ✅ | — |
 | Fulfillment | ✅ | ✅ | — | ✅ | — |
 | Shipping | ✅ | ✅ | — | ✅ | GHN, Grab |
 | Return | ✅ | ✅ | — | ✅ | — |
 | Loyalty | ✅ | ✅ | — | ✅ | — |
-| Gateway | — | ✅ | — | — | — |
+| Gateway | — | ✅ | — | ✅ | — |
 | Search | ✅ | ✅ | ✅ | ✅ | — |
 | Analytics | ✅ | ✅ | — | ✅ | — |
+| Review | ✅ | ✅ | — | ✅ | — |
+| Common Ops | ✅ | ✅ | — | ✅ | MinIO |
 | Notification | ✅ | ✅ | — | ✅ | SendGrid, Twilio |
+| Location | ✅ | ✅ | — | ✅ | — |
 | Frontend | — | — | — | — | Gateway |
 | Admin | — | — | — | — | Gateway |
 
 ---
 
-## Common Library (`common` v1.10.0)
+## Common Library (`common` v1.23.0)
 
-Shared packages used across services:
+Shared packages used across services (`gitlab.com/ta-microservices/common`):
 
-| Package | Purpose | Adopted by |
-|---------|---------|-----------|
-| `common/outbox` | `Event`, `GormRepository`, `Worker` for transactional outbox | Available (services use local impls, adoption planned) |
-| `common/idempotency` | `GormIdempotencyHelper` for event deduplication | Available (services use local impls, adoption planned) |
-| `common/observability` | Health checks, Prometheus, OpenTelemetry | All services |
-| `common/server` | Kratos server factory (HTTP + gRPC) | All services |
-| `common/conf` | Config loading (YAML + env vars) | All services |
+| Package | Purpose | Status |
+|---------|---------|--------|
+| `common/outbox` | `Event`, `GormRepository`, `Worker` for transactional outbox | ✅ Adopted |
+| `common/idempotency` | `GormIdempotencyHelper` for event deduplication | ✅ Adopted |
+| `common/events` | Dapr publisher/consumer, entity event helpers, validator | ✅ All services |
+| `common/client` | gRPC client factory, circuit breaker, service discovery | ✅ All services |
+| `common/config` | Config loading (YAML + env vars), Viper integration | ✅ All services |
+| `common/errors` | Error classifier, constructors, response types | ✅ All services |
+| `common/middleware` | Auth, logging, recovery, tracing middleware | ✅ All services |
+| `common/observability` | Health checks, Prometheus, OpenTelemetry | ✅ All services |
+| `common/security` | JWT, RBAC, permission helpers | ✅ All services |
+| `common/validation` | Request validation utilities | ✅ All services |
+| `common/worker` | Base worker infrastructure for background tasks | ✅ All workers |
+| `common/data` | Transaction context helpers | ✅ All services |
+| `common/repository` | Base repository patterns | ✅ All services |
+| `common/utils` | Common utilities (pagination, slugify, etc.) | ✅ All services |
+| `common/models` | Shared domain models and DTOs | ✅ All services |
+| `common/geoip` | GeoIP lookup utilities | Payment |
+| `common/migrate` | Database migration runner | ✅ All services |
+| `common/registry` | Service registry helpers | ✅ All services |
+| `common/constants` | Shared event topic constants | ✅ All services |
+| `common/grpc` | gRPC interceptors and helpers | ✅ All services |
+| `common/proto` | Shared proto definitions | ✅ All services |
 
 ---
 
@@ -148,4 +167,4 @@ curl http://localhost:<HTTP_PORT>/health
 
 ---
 
-*Maintainer: Platform Team · Source: [master-checklist.md](10-appendix/checklists/v5/master-checklist.md)*
+*Maintainer: Platform Team · Source: [PORT_ALLOCATION_STANDARD.md](../gitops/docs/PORT_ALLOCATION_STANDARD.md)*
