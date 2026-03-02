@@ -12,6 +12,23 @@ This section contains runbooks for regular maintenance tasks, system updates, an
 
 ---
 
+## 🆘 Disaster Recovery Metrics (RTO & RPO)
+
+To ensure business continuity, the following Recovery Time Objective (RTO) and Recovery Point Objective (RPO) metrics are strictly defined for different data domains. All maintenance and backup strategies must align with these requirements.
+
+### **Data Domains Classification**
+
+| Domain/Service | Data Type | RTO (Target Recovery Time) | RPO (Max Data Loss) | Backup & Recovery Strategy |
+|----------------|-----------|----------------------------|---------------------|----------------------------|
+| **Order / Payment** | Transactional (Critical) | **< 15 minutes** | **< 1 minute** (Near zero) | Continuous WAL Archiving (WAL-G/pgBackRest), Multi-AZ Replicas, Auto-Failover |
+| **User / Auth** | Profiles, Credentials (Core) | **< 30 minutes** | **< 5 minutes** | Hourly Incremental Backups, Daily Full Backups, Cross-Region Sync |
+| **Catalog / Pricing**| Product Data (High) | **< 1 hour** | **< 1 hour** | Hourly Incremental Backups, Daily Full Backups |
+| **Analytics / Logs** | Telemetry, Audit (Low) | **< 4 hours** | **< 24 hours** | Daily Full Backups, Asynchronous Archiving to Cold Object Storage (S3/GCS) |
+
+*Note: Disaster recovery testing is conducted quarterly (see Weekly Maintenance Window) to validate these metrics against real-world scenarios.*
+
+---
+
 ## 📅 Maintenance Schedule
 
 ### **Daily Tasks**

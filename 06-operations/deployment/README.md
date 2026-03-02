@@ -138,9 +138,34 @@ gitops/
 │   ├── imagepullsecret/
 │   └── infrastructure-egress/
 └── clusters/                 # Cluster-specific configs
+```
     ├── dev/
     └── production/
 ```
+
+---
+
+## 💻 Local Development vs. Production Infrastructure
+
+While this documentation focuses on **Production and Staging** environments (using GitOps, ArgoCD, and full Kubernetes clusters), local development relies on a lightweight stack to reduce onboarding friction.
+
+### **Local Environment (k3d / Docker Compose)**
+
+For day-to-day development, engineers do NOT need to run ArgoCD or full GitOps pipelines locally. Instead, use local tools:
+
+1. **Lightweight Kubernetes**: Use **k3d** or **k3s** to spin up a local cluster for testing deployments and GitOps manifests before pushing.
+   ```bash
+   # Example: Create a local k3d cluster with exposed ports
+   k3d cluster create dev-cluster --port "8080:80@loadbalancer"
+   ```
+2. **Infrastructure Dependencies**: Core dependencies (PostgreSQL, Redis, Dapr, Elasticsearch) should be spun up locally using Docker Compose or the provided Makefiles, rather than full Kubernetes manifests.
+   ```bash
+   make up-infra    # Starts local databases, caches, and message brokers via docker-compose
+   make run-dapr    # Starts Dapr sidecars locally
+   ```
+3. **Application Execution**: Run services natively via `go run` or using the dual-binary structure (API + Worker) connected directly to local infrastructure over `localhost`.
+
+For exact local setup instructions, refer to the [Development Guidelines](../../07-development/README.md).
 
 ---
 
