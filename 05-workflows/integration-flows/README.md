@@ -7,7 +7,7 @@
 
 ## 📋 **Overview**
 
-This section contains detailed documentation of system integration workflows that enable seamless communication and data synchronization across our 19-service microservices platform. These workflows focus on event-driven architecture, real-time data synchronization, external API integrations, and search indexing processes.
+This section contains detailed documentation of system integration workflows that enable seamless communication and data synchronization across our 23-service microservices platform. These workflows focus on event-driven architecture, real-time data synchronization, external API integrations, and search indexing processes.
 
 ### **🎯 Integration Scope**
 
@@ -23,10 +23,10 @@ Our integration flow documentation covers the critical system integration patter
 ## 📚 **Integration Flow Documents**
 
 ### **[Event Processing](event-processing.md)**
-**Event-driven architecture flows across 19 services**
+**Event-driven architecture flows across 23 services**
 
 - **Scope**: Complete event lifecycle from publishing to consumption
-- **Services**: All 19 services participate in event-driven architecture
+- **Services**: All 23 services participate in event-driven architecture
 - **Technology**: Dapr Pub/Sub with Redis Streams, PostgreSQL Event Store
 - **Key Features**: Event publishing, routing, consumption, saga orchestration, error handling
 
@@ -61,6 +61,16 @@ Our integration flow documentation covers the critical system integration patter
 - **Key Features**: Real-time indexing, search optimization, analytics, performance monitoring
 
 **Business Impact**: Search performance, product discovery, customer experience, business intelligence
+
+### **[3PL Delivery Webhook Flow](3pl-delivery-webhook-flow.md)**
+**Third-party logistics delivery webhook integration**
+
+- **Scope**: Processing delivery status updates from 3PL carriers via webhooks
+- **Services**: 4 services involved (Shipping, Order, Notification, Fulfillment)
+- **Technology**: HTTP Webhooks, Dapr Events
+- **Key Features**: Webhook processing, delivery status updates, auto-completion triggers
+
+**Business Impact**: Automated delivery tracking, order completion, customer notifications
 
 ---
 
@@ -221,8 +231,8 @@ graph TB
 
 ### **Data Synchronization Technologies**
 
-**Change Data Capture (CDC):**
-- **Debezium**: Open-source CDC platform
+**Outbox Pattern (Event-Driven Sync):**
+- **Dapr Pub/Sub + Outbox**: Event publishing via outbox table → Dapr sidecar
 - **PostgreSQL Logical Replication**: Native database replication
 - **Event Streaming**: Real-time change event streaming
 - **Conflict Resolution**: Automated conflict detection and resolution
@@ -236,7 +246,7 @@ graph TB
 ### **External Integration Technologies**
 
 **API Gateway:**
-- **Kong**: High-performance API gateway
+- **Gateway Service**: Custom Kratos-based API gateway
 - **Rate Limiting**: Configurable rate limiting per API
 - **Authentication**: OAuth2, JWT, API key authentication
 - **Monitoring**: Real-time API performance monitoring
@@ -265,7 +275,7 @@ graph TB
 
 ## 🚀 **Integration Optimization Roadmap**
 
-### **Current Capabilities (88% Complete)**
+### **Current Capabilities**
 
 **✅ Implemented Features:**
 - Event-driven architecture with Dapr and Redis Streams
@@ -381,6 +391,6 @@ graph TB
 
 ---
 
-**Last Updated**: January 30, 2026  
-**Platform Status**: 88% Complete, Integration Flows Production Ready  
+**Last Updated**: March 2, 2026  
+**Platform Status**: 23/23 Services Production Ready  
 **Maintained By**: Platform Integration & Architecture Team

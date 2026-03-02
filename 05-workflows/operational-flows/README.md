@@ -93,6 +93,38 @@ Our operational flow documentation covers the critical backend processes that en
 
 **Business Impact**: Product quality, customer satisfaction, return reduction, brand protection
 
+### **[Seller & Merchant Workflows](seller-merchant.md)**
+**Seller onboarding, operations, and performance management**
+
+- **Scope**: Complete seller lifecycle from KYC to payouts
+- **Services**: 7 services involved (User, Customer, Catalog, Order, Payment, Analytics, Notification)
+- **Key Features**: Seller onboarding, KYC, order ops, performance scoring, escrow/payout, B2B
+
+### **[Admin Operations](admin-operations.md)**
+**Platform administration and governance workflows**
+
+- **Scope**: RBAC, CS agent operations, seller governance, platform config
+- **Services**: 6 services involved (User, Auth, Customer, Order, Payment, Analytics)
+- **Key Features**: User management, CS tools, campaign management, platform configuration
+
+### **[Analytics & Reporting](analytics-reporting.md)**
+**Business intelligence and operational reporting**
+
+- **Scope**: Funnel analysis, RFM/cohort, A/B testing, payout reconciliation
+- **Services**: 3 services involved (Analytics, Order, Customer)
+- **Key Features**: Real-time dashboards, customer segmentation, tax reporting
+
+### **[Detailed Process Documents](processes/)**
+**Step-by-step operational process breakdowns**
+
+- [cart-management-process.md](processes/cart-management-process.md) — Cart lifecycle
+- [order-placement-process.md](processes/order-placement-process.md) — Order creation flow
+- [payment-processing-process.md](processes/payment-processing-process.md) — Payment lifecycle
+- [inventory-reservation-process.md](processes/inventory-reservation-process.md) — Stock reservation/release
+- [promotion-process.md](processes/promotion-process.md) — Promotion application flow
+- [fulfillment-process.md](processes/fulfillment-process.md) — Pick/pack/ship process
+- [shipping-process.md](processes/shipping-process.md) — Carrier selection & tracking
+
 ---
 
 ## 🔄 **Operational Flow Overview**
@@ -256,7 +288,7 @@ graph TB
 - **Prometheus**: Metrics collection and alerting
 - **Grafana**: Operational dashboards and visualization
 - **Jaeger**: Distributed tracing for performance analysis
-- **ELK Stack**: Centralized logging and log analysis
+- **Structured Logging**: Kratos log package with JSON output to stdout
 
 **Business Intelligence:**
 - **Real-time Analytics**: Live operational performance metrics
@@ -268,7 +300,7 @@ graph TB
 
 ## 🚀 **Operational Optimization Roadmap**
 
-### **Current Capabilities (88% Complete)**
+### **Current Capabilities**
 
 **✅ Implemented Features:**
 - Real-time inventory tracking across multiple warehouses
@@ -384,6 +416,6 @@ graph TB
 
 ---
 
-**Last Updated**: January 30, 2026  
-**Platform Status**: 88% Complete, Operational Flows Production Ready  
+**Last Updated**: March 2, 2026  
+**Platform Status**: 23/23 Services Production Ready  
 **Maintained By**: Operations & Process Excellence Team

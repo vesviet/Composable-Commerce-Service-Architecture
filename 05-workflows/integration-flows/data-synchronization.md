@@ -46,7 +46,7 @@ Real-time data synchronization patterns ensuring consistent data across services
 
 1. **Data Change Detection**
    - **Actor**: Data Producer Service
-   - **System**: Transactional Outbox (current) or CDC system (e.g. Debezium/PostgreSQL)
+   - **System**: Transactional Outbox (current implementation)
    - **Input**: Database transaction, changed records
    - **Output**: Change event generated
    - **Duration**: 10-50ms

@@ -2,7 +2,7 @@
 
 **Last Updated**: January 30, 2026  
 **Status**: Based on Actual Implementation  
-**Services Involved**: All 19 services participate in event-driven architecture  
+**Services Involved**: All 23 services participate in event-driven architecture  
 **Navigation**: [← Integration Flows](README.md) | [← Workflows](../README.md)
 
 ---

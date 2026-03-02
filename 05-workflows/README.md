@@ -2,7 +2,7 @@
 
 **Purpose**: Detailed business process flows and sequence diagrams based on actual implementation  
 **Last Updated**: February 7, 2026  
-**Platform Status**: 100% Complete, 24/24 Services Production Ready  
+**Platform Status**: 100% Complete, 23/23 Services Production Ready  
 **Navigation**: [← Business Domains](../02-business-domains/README.md) | [← Back to Main](../README.md) | [Services →](../03-services/README.md)
 
 ---
@@ -38,13 +38,14 @@ Internal business operations and processes
 
 #### **[Integration Flows](integration-flows/)**
 System integrations and data synchronization
-- **[event-processing.md](integration-flows/event-processing.md)** - Event-driven architecture flows across 24 services
-- **[data-synchronization.md](integration-flows/data-synchronization.md)** - Real-time data sync patterns (product, price, stock)
-- **[real-time-data-sync.md](integration-flows/real-time-data-sync.md)** - Advanced real-time synchronization patterns
+- **[event-processing.md](integration-flows/event-processing.md)** - Event-driven architecture flows across 23 services
+- **[data-synchronization.md](integration-flows/data-synchronization.md)** - Data sync patterns overview (product, price, stock)
+- **[real-time-data-sync.md](integration-flows/real-time-data-sync.md)** - Detailed real-time sync implementation (events, cache, search index)
 - **[external-apis.md](integration-flows/external-apis.md)** - Third-party integrations (payment gateways, shipping carriers)
 - **[search-indexing.md](integration-flows/search-indexing.md)** - Elasticsearch indexing and search workflows
 - **[reservation-release-flows.md](integration-flows/reservation-release-flows.md)** - Stock reservation and release workflows
 - **[idempotency-saga.md](integration-flows/idempotency-saga.md)** - Outbox pattern, Saga choreography/orchestration, DLQ retry, payment callback idempotency
+- **[3pl-delivery-webhook-flow.md](integration-flows/3pl-delivery-webhook-flow.md)** - 3PL carrier delivery webhook integration
 
 #### **[Sequence Diagrams](sequence-diagrams/)**
 Visual representations of system interactions
@@ -61,8 +62,8 @@ Visual representations of system interactions
 
 ## 🎯 **Platform Overview**
 
-### **Service Architecture (24 Deployable Services)**
-Our workflows span across 24 specialized microservices organized into clear categories:
+### **Service Architecture (23 Deployable Services)**
+Our workflows span across 23 specialized microservices organized into clear categories:
 
 **Core Business Services (13):**
 - 🔐 Auth Service (authentication, JWT, OAuth2, MFA)
@@ -264,9 +265,9 @@ Each workflow document includes:
 
 ### **Platform Completion: 100%**
 
-All 24 deployable services are production-ready and fully operational:
+All 23 deployable services are production-ready and fully operational:
 
-#### **✅ Core Business Services (13/13 - 100%)**
+#### **✅ Core Business Services (13/13)**
 - ✅ Auth Service - 100% (JWT, OAuth2, MFA)
 - ✅ User Service - 100% (RBAC, permissions)
 - ✅ Customer Service - 100% (profiles, segments)
@@ -281,24 +282,24 @@ All 24 deployable services are production-ready and fully operational:
 - ✅ Shipping Service - 100% (multi-carrier)
 - ✅ Return Service - 100% (returns, refunds)
 
-#### **✅ Platform Services (5/5 - 100%)**
-- ✅ Gateway Service - 100% (routing, security)
-- ✅ Search Service - 100% (Elasticsearch, analytics)
-- ✅ Analytics Service - 100% (BI, dashboards)
-- ✅ Review Service - 95% (ratings, moderation)
-- ✅ Common Operations - 100% (task orchestration)
+#### **✅ Platform Services (5/5)**
+- ✅ Gateway Service (routing, security)
+- ✅ Search Service (Elasticsearch, analytics)
+- ✅ Analytics Service (BI, dashboards)
+- ✅ Review Service (ratings, moderation)
+- ✅ Common Operations (task orchestration)
 
-#### **✅ Operational Services (5/5 - 100%)**
-- ✅ Notification Service - 90% (multi-channel)
-- ✅ Location Service - 90% (geographic hierarchy)
-- ✅ Loyalty Rewards - 100% (points, rewards)
-- ✅ Admin Service - 100% (React admin panel)
-- ✅ Frontend Service - 100% (Next.js customer site)
+#### **✅ Operational Services (5/5)**
+- ✅ Notification Service (multi-channel)
+- ✅ Location Service (geographic hierarchy)
+- ✅ Loyalty Rewards (points, rewards)
+- ✅ Admin Service (React admin panel)
+- ✅ Frontend Service (Next.js customer site)
 
 ### **Deployment Status**
 - **GitOps Migration**: ✅ Completed (February 2026)
 - **Kustomize-based**: ✅ All services migrated
-- **Production Deployment**: ✅ 24/24 services deployed
+- **Production Deployment**: ✅ 23/23 services deployed
 - **Monitoring**: ✅ Full observability stack
 - **Documentation**: ✅ 100% coverage
 
@@ -312,7 +313,7 @@ All 24 deployable services are production-ready and fully operational:
 
 ---
 
-**Last Updated**: 2026-02-21  
-**Platform Status**: 100% Complete, 24/24 Services Production Ready  
+**Last Updated**: 2026-03-02  
+**Platform Status**: 100% Complete, 23/23 Services Production Ready  
 **GitOps**: Kustomize-based deployment with ArgoCD  
 **Maintained By**: Business Process & Architecture Team

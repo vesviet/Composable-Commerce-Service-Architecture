@@ -72,6 +72,40 @@ Our sequence diagrams are organized by business workflow and complexity:
 - **Key Features**: Real-time search, filtering, personalization, analytics, caching
 - **Duration**: <1 second search response time
 
+### **[User Authentication Flow](user-authentication-flow.mmd)**
+**User authentication and authorization sequence**
+
+- **Scope**: Login, JWT issuance, token refresh, OAuth2 flows
+- **Services**: 4 services involved (Gateway, Auth, User, Customer)
+- **Key Features**: JWT authentication, OAuth2, session management, MFA
+
+### **[Inventory Management Flow](inventory-management-flow.mmd)**
+**Real-time inventory synchronization sequence**
+
+- **Scope**: Stock tracking, reservations, and cross-service sync
+- **Services**: 5 services involved (Warehouse, Order, Catalog, Search, Fulfillment)
+- **Key Features**: Stock reservation, release, real-time sync to search index
+
+### **[Notification Workflow](notification-workflow.mmd)**
+**Multi-channel notification processing sequence**
+
+- **Scope**: Event-triggered notifications across email, SMS, push, in-app
+- **Services**: 4 services involved (Notification, Order, Customer, Auth)
+- **Key Features**: Template rendering, channel routing, delivery tracking
+
+### **[Order Saga Pattern](order-saga-pattern.mmd)**
+**Distributed transaction management via Saga choreography**
+
+- **Scope**: Compensating transaction flows for order creation
+- **Services**: 6 services involved (Order, Payment, Warehouse, Fulfillment, Notification, Shipping)
+- **Key Features**: Event-driven saga, compensation logic, timeout handling
+
+### Supplementary Documents
+
+- **[complete-order-flow-validation.md](complete-order-flow-validation.md)** — Validation notes for complete order flow diagram
+- **[checkout-payment-flow-validation.md](checkout-payment-flow-validation.md)** — Validation notes for checkout payment flow
+- **[order-saga-pattern-validation.md](order-saga-pattern-validation.md)** — Detailed saga pattern analysis and validation
+
 ---
 
 ## 🎨 **Diagram Standards & Conventions**
@@ -319,6 +353,6 @@ sequenceDiagram
 
 ---
 
-**Last Updated**: January 30, 2026  
-**Platform Status**: 88% Complete, Core Sequence Diagrams Available  
+**Last Updated**: March 2, 2026  
+**Platform Status**: 23/23 Services Production Ready  
 **Maintained By**: Platform Architecture & Documentation Team

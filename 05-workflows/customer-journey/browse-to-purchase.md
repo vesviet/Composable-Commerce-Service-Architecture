@@ -9,7 +9,7 @@
 
 ## 📋 **Overview**
 
-This document describes the complete end-to-end customer journey from product discovery to order delivery, based on the actual implementation of our 19-service microservices platform. The workflow spans multiple services and includes all business logic, event flows, and integration points.
+This document describes the complete end-to-end customer journey from product discovery to order delivery, based on the actual implementation of our 23-service microservices platform. The workflow spans multiple services and includes all business logic, event flows, and integration points.
 
 ### **Business Context**
 - **Domain**: Complete E-Commerce Customer Experience
