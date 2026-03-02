@@ -1,11 +1,11 @@
 # 🚀 Enterprise E-Commerce Microservices Platform
 
-> **Composable commerce platform** built on 21 Go microservices with event-driven architecture.  
+> **Composable commerce platform** built on 21 Go microservices + 2 frontends (23 deployable services) with event-driven architecture.  
 > Handles the complete customer journey: **Browse → Search → Cart → Checkout → Pay → Fulfill → Ship → Return**.
 
 [![Go 1.25+](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://go.dev/)
 [![Kratos v2](https://img.shields.io/badge/Framework-Kratos_v2-blue)](https://go-kratos.dev/)
-[![Services](https://img.shields.io/badge/Services-21-green)]()
+[![Services](https://img.shields.io/badge/Services-23-green)]()
 [![GitOps](https://img.shields.io/badge/Deploy-GitOps_+_ArgoCD-orange)](https://argo-cd.readthedocs.io/)
 
 ---
@@ -67,6 +67,7 @@ graph TD
 
     subgraph "🔐 Identity"
         AUTH["Auth"]
+        USR["User"]
         CUST["Customer"]
     end
 
@@ -87,6 +88,7 @@ graph TD
         WH["Warehouse"]
         FF["Fulfillment"]
         SH["Shipping"]
+        LOC["Location"]
     end
 
     subgraph "🎁 Post-Purchase"
@@ -98,6 +100,7 @@ graph TD
     subgraph "📡 Platform"
         AN["Analytics"]
         NOTIF["Notification"]
+        OPS["Common-Operations"]
     end
 
     FE & ADMIN --> GW
@@ -168,7 +171,7 @@ make api            # Generate proto code
 
 | Section | Contents |
 |---------|----------|
-| [**Service Index**](SERVICE_INDEX.md) | All 21 services — ports, domains, maturity, architecture patterns |
+| [**Service Index**](SERVICE_INDEX.md) | All 23 services (21 Go + 2 frontends) — ports, domains, architecture patterns |
 | [**Architecture**](01-architecture/) | System design, event flows, data architecture |
 | [**Business Domains**](02-business-domains/) | DDD bounded contexts and domain models |
 | [**Service Docs**](03-services/) | Per-service implementation details |
@@ -176,8 +179,9 @@ make api            # Generate proto code
 | [**Workflows**](05-workflows/) | Order flow, payment flow, fulfillment flow |
 | [**Operations**](06-operations/) | Deployment, monitoring, incident response |
 | [**Dev Standards**](07-development/) | Coding standards, review process, commit conventions |
-| [**ADRs**](08-architecture-decisions/) | Architecture Decision Records |
-| [**Checklists**](10-appendix/checklists/v5/) | Master checklist, future sessions, session handoff |
+| [**ADRs**](08-architecture-decisions/) | Architecture Decision Records (24 ADRs) |
+| [**Migration Guides**](09-migration-guides/) | Magento migration, consolidation guide |
+| [**Appendix**](10-appendix/) | Checklists, service reviews, reference flows |
 
 ---
 
@@ -194,4 +198,4 @@ make api            # Generate proto code
 
 ---
 
-*Last Updated: February 15, 2026 · Platform Team*
+*Last Updated: March 2, 2026 · Platform Team*
