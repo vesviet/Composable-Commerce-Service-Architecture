@@ -1,7 +1,7 @@
 # Test Coverage Checklist — Target 60%+ All Services
 
-> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-03 19:10 (UTC+7)
-> **Platform**: 19 Go Services | **Current**: 8/19 above 60% (overall service-level)
+> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-03 19:22 (UTC+7)
+> **Platform**: 19 Go Services | **Current**: 10/19 above 60% (overall service-level)
 
 > [!IMPORTANT]
 > This checklist is the single source of truth for test coverage status.
@@ -16,10 +16,10 @@
 | 1 | **analytics** | **67.6%** | **~65%** | 60% | ✅ Done | biz 67.6%, service 61.1%, marketplace 73.2%, pii 96.2% |
 | 2 | **pricing** | **75.5% avg** | **~68%** | 60% | ✅ Done | All 8 biz packages >63%, avg 75.5% |
 | 3 | **gateway** | N/A | **~82%** | 60% | ✅ Done | All packages >56%, most >70% |
-| 4 | **review** | **63.9% avg** | **~50%** | 60% | ✅ Biz Done | All 4 biz packages >60%. Service build failed |
+| 4 | **review** | **63.9% avg** | **~55%** | 60% | ✅ Biz Done | All 4 biz packages >60%. Service build fixed |
 | 5 | **loyalty-rewards** | **75.6% avg** | **~55%** | 60% | ✅ Biz Done | All 6 biz packages >71%. Service 30.4% |
 | 6 | **auth** | **70.5% avg** | **~51%** | 60% | ⚡ Partial | login 79.1%, token 61.9%. Other layers 0% |
-| 7 | **location** | **62.2%** | **~50%** | 60% | ⚡ Partial | biz 62.2%, postgres 65.1%. Service build failed |
+| 7 | **location** | **62.2%** | **~64%** | 60% | ✅ Done | biz 62.2%, postgres 65.1%, service 65.3% |
 | 8 | **catalog** | **68.3% avg** | **~55%** | 60% | ⚡ Partial | 6/7 biz >62%, product 57.5%. Model 79.2%. Service 0% |
 | 9 | **search** | **92.3% avg** | **~40%** | 60% | ⚡ Partial | biz 77%, cms 100%, ml 100%. Service 19% |
 | 10 | **user** | **73.0%** | **~55%** | 60% | ⚡ Partial | biz 73.0%. Postgres 35.5% |
@@ -31,7 +31,7 @@
 | 16 | **warehouse** | **49.9% avg** | **~35%** | 60% | ⚡ Partial | warehouse 60.8%, txn 57.9%, inventory 55.7%, reservation 51.1%, throughput 23.8% |
 | 17 | **customer** | **45.4% avg** | **~35%** | 60% | ⚡ Partial | wishlist 68.4%, address 52.4%, customer 51.9%. Others 15-49% |
 | 18 | **notification** | **39.8% avg** | **~30%** | 60% | ⚡ Partial | message 52.4%, template 49.7%. Others 10-44% |
-| 19 | **return** | **N/A** | **N/A** | 60% | ❌ Build Failed | MockReturnRequestRepo missing CancelStaleReturns |
+| 19 | **return** | **65.1%** | **~65%** | 60% | ✅ Done | biz 65.1%. Build fixed (added CancelStaleReturns mock) |
 
 ---
 
@@ -90,7 +90,7 @@
 
 ---
 
-### 4. review — ✅ Biz Done, Service Build Failed
+### 4. review — ✅ Biz Done, Service Build Fixed
 
 | Package | Coverage | Status |
 |---------|----------|--------|
@@ -98,7 +98,7 @@
 | `biz/moderation` | **69.9%** | ✅ Done |
 | `biz/rating` | **61.7%** | ✅ Done |
 | `biz/review` | **60.3%** | ✅ Done |
-| `service` | build failed | ❌ Fix: `req.Rating` type mismatch (int32 vs nil) |
+| `service` | 0.0% | ✅ Build fixed (`req.Rating` type mismatch). [ ] Add gRPC handler tests |
 
 ---
 
@@ -129,13 +129,13 @@
 
 ---
 
-### 7. location — ⚡ Biz Done, Service Build Failed
+### 7. location — ✅ DONE (~64% overall)
 
 | Package | Coverage | Status |
 |---------|----------|--------|
 | `biz/location` | **62.2%** | ✅ Done |
 | `data/postgres` | **65.1%** | ✅ Done |
-| `service` | build failed | ❌ Needs fix |
+| `service` | **65.3%** | ✅ Done (build fixed — added DeleteLocation mock) |
 
 ---
 
@@ -286,13 +286,11 @@
 
 ---
 
-### 19. return — ❌ BUILD FAILED
+### 19. return — ✅ DONE (~65% overall)
 
 | Package | Coverage | Status |
 |---------|----------|--------|
-| `biz/return` | build failed | ❌ MockReturnRequestRepo missing `CancelStaleReturns` method |
-
-**Fix needed**: Regenerate mocks or add `CancelStaleReturns` to `MockReturnRequestRepo`.
+| `biz/return` | **65.1%** | ✅ Done (build fixed — added CancelStaleReturns mock) |
 
 ---
 
