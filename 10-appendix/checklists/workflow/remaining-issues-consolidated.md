@@ -159,8 +159,8 @@
 | Issue | Source |
 |-------|--------|
 | ~~Worker missing `volumeMounts` for `config.yaml`~~ | ~~[payment-review.md](payment-review.md) NEW-P2-01~~ ✅ Fixed (Sprint 1) |
-| Reconciliation alert cooldown in-memory — lost on pod restart | [payment-review.md](payment-review.md) NEW-P2-02 |
-| `OutboxWorker` hardcodes `pubsubName = "pubsub-redis"` | [payment-review.md](payment-review.md) NEW-P2-03 |
+| ~~Reconciliation alert cooldown using Redis (not in-memory)~~ | ~~[payment-review.md](payment-review.md) NEW-P2-02~~ ✅ Fixed |
+| ~~`OutboxWorker` reads `pubsubName` from AppConfig~~ | ~~[payment-review.md](payment-review.md) NEW-P2-03~~ ✅ Fixed |
 
 ### Pricing & Promotion (pricing-promotion-tax-review)
 

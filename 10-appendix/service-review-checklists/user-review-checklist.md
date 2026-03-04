@@ -1,6 +1,6 @@
 ## 🔍 Service Review: user
 
-**Date**: 2026-03-01
+**Date**: 2026-03-03
 **Status**: ✅ Ready
 
 ### 📊 Issue Summary
@@ -9,7 +9,7 @@
 |----------|-------|--------|
 | P0 (Blocking) | 0 | Fixed / Remaining |
 | P1 (High) | 0 | Fixed / Remaining |
-| P2 (Normal) | 2 | 0 Fixed / 2 Remaining |
+| P2 (Normal) | 0 | 2 Fixed / 0 Remaining |
 
 ### 🔴 P0 Issues (Blocking)
 *(None)*
@@ -18,14 +18,16 @@
 *(None)*
 
 ### 🔵 P2 Issues (Normal)
-1. **[Architecture]** `internal/biz` directly uses and returns `model.User` in some implementations (e.g. events, DTO bindings). A future migration should fully decouple `biz` domain types from data `model` types, similar to Track I refactoring.
-2. **[Pagination]** `PermissionRepo.ListUserIDsByService` still uses offset pagination (`page`, `limit`) instead of the standard cursor pagination, though the main `User` endpoints correctly use cursor pagination.
+1. ~~**[Architecture]** `internal/biz` directly uses and returns `model.User` in some implementations (e.g. events, DTO bindings).~~ ✅ **FIXED**: `internal/biz/user/events.go` and `UserUsecase` now use domain `User` entity for event publishing.
+2. ~~**[Pagination]** `PermissionRepo.ListUserIDsByService` still uses offset pagination (`page`, `limit`) instead of the standard cursor pagination.~~ ✅ **FIXED**: Refactored to use `pagination.CursorRequest` and `pagination.CursorResponse`.
 
 ### ✅ Completed Actions
 1. Fixed gitops sync-wave: added `argocd.argoproj.io/sync-wave: "2"` to `production/hpa.yaml`.
 2. Updated `common` library to `v1.22.0`.
 3. Verified port alignment (`HTTP: 8001`, `GRPC: 9001`) with GitOps configurations.
-4. Executed `golangci-lint`, `go build`, and `go test` with zero warnings and errors.
+4. Executed `golangci-lint`, `go build`, and `go test ./...` with zero warnings and errors.
+5. Decoupled `internal/biz` from `model` for event publishing.
+6. Refactored `PermissionRepo.ListUserIDsByService` to use cursor-based pagination.
 
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `auth`, `common-operations`, `gateway`, `location`, `order`, `review`, `warehouse`.
