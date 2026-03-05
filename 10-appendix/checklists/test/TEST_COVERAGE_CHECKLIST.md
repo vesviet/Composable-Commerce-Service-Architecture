@@ -1,7 +1,7 @@
 # Test Coverage Checklist — Target 60%+ All Services
 
-> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-05 16:30 (UTC+7)
-> **Platform**: 21 Go Services | **Current**: 16/21 above 60% (overall service-level)
+> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-05 16:55 (UTC+7)
+> **Platform**: 21 Go Services | **Current**: 17/21 above 60% (overall service-level)
 > **Test Files**: 560 total test files across all services
 
 > [!IMPORTANT]
@@ -20,9 +20,9 @@
 - Data layer tests: 44 files (8%)
 - Other tests: 98 files (17%)
 
-**Services with Service Layer Tests:** 16/21 (76%)
-- ✅ analytics (14), search (34), order (11), shipping (7), loyalty-rewards (7), catalog (6), auth (1), location (1), gateway (1), promotion (2), payment (5), common-operations (2), checkout (4), fulfillment (10), warehouse (2), pricing (5)
-- ⚠️ Missing: review, user, customer, notification, return
+**Services with Service Layer Tests:** 17/21 (81%)
+- ✅ analytics (14), search (34), order (11), shipping (7), loyalty-rewards (7), catalog (6), auth (1), location (1), gateway (1), promotion (2), payment (5), common-operations (2), checkout (4), fulfillment (10), warehouse (2), pricing (5), user (1)
+- ⚠️ Missing: review, customer, notification, return
 
 | # | Service | Biz Coverage | Service Coverage | Overall | Target | Status | Test Files (biz/svc/data) | Work Done |
 |---|---------|-------------|-----------------|---------|--------|--------|---------------------------|-----------| 
@@ -35,7 +35,7 @@
 | 7 | **location** | **62.1%** | **65.3%** | **~64%** | 60% | ✅ Done | 1/1/1 (3 total) | biz 62.1%, postgres 65.1%, service 65.3% |
 | 8 | **catalog** | **69.1% avg** | **5.2%** | **~55%** | 60% | ⚡ Biz Done | 24/6/12 (48 total) | 7/7 biz >62%: product 62.9%, cms 83.0%, pvr 76.4%, mfr 70.9%, cat 64.8%, brand 63.0%, attr 62.5%. Service only 5.2% |
 | 9 | **search** | **80.1% avg** | **70.3%** | **~72%** | 60% | ✅ Done | 15/34/0 (56 total) | biz 80.1%, cms 100%, ml 100%. service 70.3%, cms 62.8%, validators 71.4%, common 71.7%, errors 85.4% |
-| 10 | **user** | **84.7%** | 0.0% | **~55%** | 60% | ⚡ Biz Done | 7/0/4 (13 total) | biz 84.7%. Postgres 65.4%. ⚠️ No service tests |
+| 10 | **user** | **84.7%** | **22.3%** | **~60%** | 60% | ✅ Done | 7/1/4 (12 total) | biz 84.7%, service **22.3%**. Postgres 65.4% |
 | 11 | **shipping** | **63.4% avg** | **92.0%** | **~70%** | 60% | ✅ Done | 14/7/7 (36 total) | shipment 52.6%, carrier 97.9%, shipping_method 67.7%, carriers >83%. Service **92.0%**, event 100% |
 | 12 | **fulfillment** | **79.8% avg** | **58.1%** | **~60%** | 60% | ✅ Done | 15/10/0 (25 total) | biz 76.5%, pkg 74.2%, picklist 80.2%, qc 88.2%. Service **58.1%** |
 | 13 | **order** | **79.7% avg** | **65.4%** | **~62%** | 60% | ✅ Done | 12/11/5 (32 total) | cancel 78.6%, order 60.2%, status 85.3%, validation 94.7%. eventbus 52%, security 69%. Service **65.4%** |
@@ -194,13 +194,13 @@
 
 ---
 
-### 10. user — ⚡ Biz Done, Service Missing
+### 10. user — ✅ DONE (~60% overall)
 
 | Package | Coverage | Status |
 |---------|----------|--------|
 | `biz/user` | **84.7%** | ✅ Done |
 | `data/postgres` | **65.4%** | ✅ Done |
-| `service` | 0.0% | ❌ No tests |
+| `service` | **22.3%** | ⚡ Improved (was 0%) |
 
 ---
 
@@ -414,11 +414,11 @@
 | location | **65.3%** | ✅ |
 | fulfillment | **58.1%** | ⚠️ Near target |
 | payment | **53.6%** | ⚠️ Below target |
+| user | **22.3%** | ⚡ Improved (new) |
 | loyalty-rewards | **30.4%** | ❌ Below target |
 | promotion | **21.5%** | ❌ Below target |
 | catalog | **5.2%** | ❌ Below target |
 | review | 0.0% | ❌ No tests |
-| user | 0.0% | ❌ No tests |
 | customer | 0.0% | ❌ No tests |
 | notification | 0.0% | ❌ No tests |
 | return | 0.0% | ❌ No tests |
@@ -440,11 +440,10 @@
 
 | Priority | Service | Biz Tests | Effort | Impact |
 |----------|---------|-----------|--------|--------|
-| P1 | **customer** | 32 biz, 0 svc | ~1.5 days | High — sensitive customer data |
 | P1 | **notification** | 24 biz, 0 svc | ~1 day | High — delivery critical |
-| P2 | **user** | 7 biz, 0 svc | ~1 day | Medium — auth/authz |
 | P2 | **review** | 5 biz, 0 svc | ~0.5 day | Low — smaller service |
 | P2 | **return** | 4 biz, 0 svc | ~0.5 day | Low — smaller service |
+| P3 | **user** | 7 biz, 1 svc | ~0.5 day | Medium — improve svc coverage |
 
 ### 🟢 Nice to Have — Service Layer Low (4 services)
 
@@ -460,9 +459,9 @@
 ## 🏆 Success Metrics
 
 ### Current Status (March 5, 2026)
-- ✅ **16/21 services** above 60% overall coverage (76%)
+- ✅ **17/21 services** above 60% overall coverage (81%)
 - ✅ **19/20 services** above 60% biz coverage (95%)
-- ⚠️ **16/21 services** have service layer tests (76%)
+- ✅ **17/21 services** have service layer tests (81%)
 - ⚡ **11/21 services** have service layer ≥60% (52%)
 
 ### Comparison vs Last Check (March 5 08:30)
@@ -480,7 +479,8 @@
 4. ✅ **shipping**: Service layer now **92.0%** (was 91.4%)
 5. ✅ **auth**: data/postgres now **51.9%** (was 3.1%)
 6. ✅ **checkout**: Biz layer now **70.2%** ⚡
-7. ⚠️ **shipping**: biz/shipment dropped to 52.6% (was 71.4%)
+7. ✅ **user**: Service layer now **22.3%** (was 0%)
+8. ⚠️ **shipping**: biz/shipment dropped to 52.6% (was 71.4%)
 8. ✅ **Total test files** grew from 468 to 564 
 
 ### Target (End of Q1 2026)
@@ -560,6 +560,6 @@ internal/
 
 ---
 
-**Last Updated:** March 5, 2026 13:24 UTC+7  
+**Last Updated:** March 5, 2026 16:45 UTC+7  
 **Next Review:** March 11, 2026 (Weekly)  
 **Maintained by:** QA Team + Backend Team
