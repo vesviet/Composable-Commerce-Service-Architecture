@@ -1,8 +1,8 @@
 # Test Coverage Checklist — Target 60%+ All Services
 
-> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-05 17:10 (UTC+7)
+> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-05 18:18 (UTC+7)
 > **Platform**: 21 Go Services | **Current**: 17/21 above 60% (overall service-level)
-> **Test Files**: 560 total test files across all services
+> **Test Files**: 564 total test files across all services
 
 > [!IMPORTANT]
 > This checklist is the single source of truth for test coverage status.
@@ -14,8 +14,8 @@
 ## 📊 Dashboard
 
 **Test File Distribution:**
-- Total test files: 560
-- Biz layer tests: 290 files (52%)
+- Total test files: 564
+- Biz layer tests: 294 files (52%)
 - Service layer tests: 128 files (23%)
 - Data layer tests: 44 files (8%)
 - Other tests: 98 files (17%)
@@ -43,7 +43,7 @@
 | 15 | **payment** | **62.5% avg** | **53.6%** | **~50%** | 60% | ⚡ Improved | 28/5/1 (39 total) | pm 90.2%, txn 80.6%, settings 80.9%, refund 69.1%, payment 62.5%, fraud 36.6%, recon 17.1%. Service **53.6%** |
 | 16 | **warehouse** | **70.2% avg** | **70.6%** | **~65%** | 60% | ✅ Done | 28/2/0 (30 total) | warehouse 82.0%, txn 72.0%, inventory 70.5%, reservation 61.8%, throughput 64.9%. Service **70.6%** |
 | 17 | **customer** | **71.2% avg** | **26.7%** | **~52%** | 60% | ⚡ Improved | 32/1/0 (33 total) | wishlist 68.4%, group 82.3%, audit 68.8%, pref 68.0%, segment 64.8%, customer 67.9%, address 65.6%, analytics 73.8%. Service **26.7%** (was 0%) |
-| 18 | **notification** | **75.2% avg** | 0.0% | **~55%** | 60% | ⚡ Biz Done | 24/0/0 (27 total) | biz 100%, events 85.7%, message 89.7%, pref 82.2%, sub 75.9%, delivery 68.7%, template 63.4%, notification 65.5%. ⚠️ No service tests |
+| 18 | **notification** | **87.3% avg** | 0.0% | **~65%** | 60% | ✅ Biz Done | 28/0/0 (31 total) | biz 100%, sub **100%**, delivery **97.9%**, template **89.5%**, events 85.7%, message 89.7%, pref 82.2%, notification **72.0%**. ⚠️ No service tests |
 | 19 | **return** | **65.1%** | 0.0% | **~50%** | 60% | ⚡ Biz Done | 4/0/0 (4 total) | biz 65.1%. ⚠️ No service tests |
 | 20 | **common-operations** | **93.5% avg** | **78.4%** | **~82%** | 60% | ✅ Done | 8/2/0 (13 total) | biz 100%, audit 100%, settings 98.1%, message 90.5%, task 82.9%, security 90.7%, model 95.7%, constants 100%, service 78.4% |
 | 21 | **checkout** | **70.2% avg** | **73.1%** | **~71%** | 60% | ✅ Done | 15/4/0 (19 total) | cart 75.3%, checkout 66.8%. Service **73.1%** |
@@ -311,18 +311,18 @@
 
 ---
 
-### 18. notification — ⚡ Biz Done, Service/Providers Missing
+### 18. notification — ✅ Biz Done, Service/Providers Missing
 
 | Package | Coverage | Status |
 |---------|----------|--------|
 | `biz` | **100.0%** | ✅ Perfect |
+| `biz/subscription` | **100.0%** | ✅ Perfect (was 75.9%) |
+| `biz/delivery` | **97.9%** | ✅ Excellent (was 68.7%) |
 | `biz/message` | **89.7%** | ✅ Done |
+| `biz/template` | **89.5%** | ✅ Done (was 63.4%) |
 | `biz/events` | **85.7%** | ✅ Done |
 | `biz/preference` | **82.2%** | ✅ Done |
-| `biz/subscription` | **75.9%** | ✅ Done (was 75.6%) |
-| `biz/delivery` | **68.7%** | ✅ Done |
-| `biz/notification` | **65.5%** | ✅ Done (was 65.6%) |
-| `biz/template` | **63.4%** | ✅ Done |
+| `biz/notification` | **72.0%** | ✅ Done (was 65.5%) |
 | `provider/telegram` | **10.1%** | ⚠️ Low |
 | `provider/email` | 0.0% | ❌ No tests |
 | `provider/push` | 0.0% | ❌ No tests |
@@ -382,7 +382,7 @@
 | promotion | **77.3%** | ✅ |
 | pricing | **75.5%** | ✅ |
 | loyalty-rewards | **75.6%** | ✅ |
-| notification | **75.2%** | ✅ |
+| notification | **87.3%** | ✅ |
 | customer | **71.2%** | ✅ |
 | warehouse | **70.2%** | ✅ |
 | catalog | **69.1%** | ✅ |
@@ -473,15 +473,12 @@
 | Services with svc ≥60% | ~8 | **11/21** | +3 |
 
 ### Key Changes Since Last Update
-1. ✅ **pricing**: Service layer now **70.4%** (was 0%) — 5 new test files
-2. ✅ **search**: Service layer now **70.3%** (was 30.5%) — 34 service test files
-3. ✅ **warehouse**: Service layer now **70.6%** (was 68.3%)
-4. ✅ **shipping**: Service layer now **92.0%** (was 91.4%)
-5. ✅ **auth**: data/postgres now **51.9%** (was 3.1%)
-6. ✅ **checkout**: Biz layer now **70.2%** ⚡
-7. ✅ **user**: Service layer now **22.3%** (was 0%)
-8. ⚠️ **shipping**: biz/shipment dropped to 52.6% (was 71.4%)
-8. ✅ **Total test files** grew from 468 to 564 
+1. ✅ **notification**: biz/subscription now **100.0%** (was 75.9%) — 4 new coverage test files
+2. ✅ **notification**: biz/delivery now **97.9%** (was 68.7%) — webhook signature validation fully tested
+3. ✅ **notification**: biz/template now **89.5%** (was 63.4%) — i18n resolution, render error paths tested
+4. ✅ **notification**: biz/notification now **72.0%** (was 65.5%) — outbox path, status transitions tested
+5. ✅ **notification**: Overall biz avg now **87.3%** (was 75.2%)
+6. ✅ **Total test files** grew from 560 to 564
 
 ### Target (End of Q1 2026)
 - 🎯 **19/21 services** above 60% overall coverage (90%)
@@ -560,6 +557,6 @@ internal/
 
 ---
 
-**Last Updated:** March 5, 2026 16:45 UTC+7  
+**Last Updated:** March 5, 2026 18:18 UTC+7  
 **Next Review:** March 11, 2026 (Weekly)  
 **Maintained by:** QA Team + Backend Team
