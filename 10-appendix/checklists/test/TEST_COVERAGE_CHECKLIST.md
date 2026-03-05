@@ -1,8 +1,8 @@
 # Test Coverage Checklist — Target 60%+ All Services
 
-> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-05 18:18 (UTC+7)
+> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-05 19:35 (UTC+7)
 > **Platform**: 21 Go Services | **Current**: 17/21 above 60% (overall service-level)
-> **Test Files**: 564 total test files across all services
+> **Test Files**: 568 total test files across all services
 
 > [!IMPORTANT]
 > This checklist is the single source of truth for test coverage status.
@@ -14,8 +14,8 @@
 ## 📊 Dashboard
 
 **Test File Distribution:**
-- Total test files: 564
-- Biz layer tests: 294 files (52%)
+- Total test files: 568
+- Biz layer tests: 298 files (52%)
 - Service layer tests: 128 files (23%)
 - Data layer tests: 44 files (8%)
 - Other tests: 98 files (17%)
@@ -29,7 +29,7 @@
 | 1 | **analytics** | **67.6%** | **63.4%** | **~65%** | 60% | ✅ Done | 16/14/0 (31 total) | biz 67.6%, service 63.4%, marketplace 73.2%, pii 96.2% |
 | 2 | **pricing** | **75.5% avg** | **70.4%** | **~72%** | 60% | ✅ Done | 13/5/0 (18 total) | All 8 biz packages >63%, avg 75.5%. Service **70.4%** ✅ |
 | 3 | **gateway** | N/A | **64.8%** | **~82%** | 60% | ✅ Done | 0/1/0 (70 total) | All packages >55%, most >70% |
-| 4 | **review** | **62.0% avg** | 0.0% | **~50%** | 60% | ⚠️ Biz Done | 5/0/0 (5 total) | helpful 63.9%, moderation 72.4%, rating 51.8%, review 59.6%. ⚠️ No service tests |
+| 4 | **review** | **89.0% avg** | 0.0% | **~65%** | 60% | ✅ Biz Done | 9/0/0 (9 total) | rating **100%**, helpful **98.4%**, moderation **96.6%**, review **85.7%**. ⚠️ No service tests |
 | 5 | **loyalty-rewards** | **75.6% avg** | **30.4%** | **~55%** | 60% | ⚡ Biz Done | 6/7/8 (21 total) | All 6 biz packages >71%. Service 30.4% |
 | 6 | **auth** | **74.5% avg** | **89.7%** | **~80%** | 60% | ✅ Fully Done | 7/1/6 (21 total) | biz 71.0%, audit 91.7%, login 79.1%, token 67.2%, session 65.3%. Service **89.7%**. model 100%, middleware 79.2%, obs 94.4%, data/postgres 51.9% |
 | 7 | **location** | **62.1%** | **65.3%** | **~64%** | 60% | ✅ Done | 1/1/1 (3 total) | biz 62.1%, postgres 65.1%, service 65.3% |
@@ -106,14 +106,14 @@
 
 ---
 
-### 4. review — ⚠️ Biz Done, Service Missing
+### 4. review — ✅ Biz Done, Service Missing
 
 | Package | Coverage | Status |
 |---------|----------|--------|
-| `biz/helpful` | **63.9%** | ✅ Done |
-| `biz/moderation` | **72.4%** | ✅ Done |
-| `biz/rating` | **51.8%** | ⚠️ Below target |
-| `biz/review` | **59.6%** | ⚠️ Near target |
+| `biz/rating` | **100.0%** | ✅ Perfect (was 51.8%) |
+| `biz/helpful` | **98.4%** | ✅ Excellent (was 63.9%) |
+| `biz/moderation` | **96.6%** | ✅ Excellent (was 72.4%) |
+| `biz/review` | **85.7%** | ✅ Done (was 59.6%) |
 | `service` | 0.0% | ❌ No tests |
 
 **Production Review (2026-03-05)**: Fixed 3 P0 bugs (outbox TX bypass, external calls inside TX, IsVerified security), 4 P1 issues (rating N+1 → SQL aggregate, moderation offset pagination, tracing spans, outbox status case mismatch), 3 P2 issues (duplicate import, division-by-zero, pageSize default). All tests pass. Lint clean.
@@ -391,11 +391,11 @@
 | shipping | **63.4%** | ✅ |
 | auth | **74.5%** | ✅ |
 | location | **62.1%** | ✅ |
-| review | **62.0%** | ✅ |
+| review | **89.0%** | ✅ |
 | checkout | **70.2%** | ✅ |
 | gateway | N/A | ✅ (different structure) |
 
-**Biz Above 60%: 19/20 (95%)** — All target biz services are above 60%
+**Biz Above 60%: 20/20 (100%)** — All biz services are above 60%
 
 ### Service Layer Coverage
 
@@ -433,15 +433,14 @@
 
 | Priority | Service | Package | Current | Action |
 |----------|---------|---------|---------|--------|
-| P1 | **review** | `biz/rating` | 51.8% | Add rating aggregation tests |
 | P1 | **shipping** | `biz/shipment` | 52.6% | Coverage dropped — add tests for new code |
 
 ### 🟡 Important — Service Layer Missing (5 services)
 
 | Priority | Service | Biz Tests | Effort | Impact |
 |----------|---------|-----------|--------|--------|
-| P1 | **notification** | 24 biz, 0 svc | ~1 day | High — delivery critical |
-| P2 | **review** | 5 biz, 0 svc | ~0.5 day | Low — smaller service |
+| P1 | **notification** | 28 biz, 0 svc | ~1 day | High — delivery critical |
+| P2 | **review** | 9 biz, 0 svc | ~0.5 day | Low — smaller service |
 | P2 | **return** | 4 biz, 0 svc | ~0.5 day | Low — smaller service |
 | P3 | **user** | 7 biz, 1 svc | ~0.5 day | Medium — improve svc coverage |
 
@@ -460,7 +459,7 @@
 
 ### Current Status (March 5, 2026)
 - ✅ **17/21 services** above 60% overall coverage (81%)
-- ✅ **19/20 services** above 60% biz coverage (95%)
+- ✅ **20/20 services** above 60% biz coverage (100%)
 - ✅ **17/21 services** have service layer tests (81%)
 - ⚡ **11/21 services** have service layer ≥60% (52%)
 
@@ -473,12 +472,13 @@
 | Services with svc ≥60% | ~8 | **11/21** | +3 |
 
 ### Key Changes Since Last Update
-1. ✅ **notification**: biz/subscription now **100.0%** (was 75.9%) — 4 new coverage test files
-2. ✅ **notification**: biz/delivery now **97.9%** (was 68.7%) — webhook signature validation fully tested
-3. ✅ **notification**: biz/template now **89.5%** (was 63.4%) — i18n resolution, render error paths tested
-4. ✅ **notification**: biz/notification now **72.0%** (was 65.5%) — outbox path, status transitions tested
-5. ✅ **notification**: Overall biz avg now **87.3%** (was 75.2%)
-6. ✅ **Total test files** grew from 560 to 564
+1. ✅ **review**: biz/rating now **100.0%** (was 51.8%) — RecalculateAll, GetRating fully tested
+2. ✅ **review**: biz/helpful now **98.4%** (was 63.9%) — vote change, error paths fully tested
+3. ✅ **review**: biz/moderation now **96.6%** (was 72.4%) — reject/flag branches, score calculation
+4. ✅ **review**: biz/review now **85.7%** (was 59.6%) — HealthCheck, filter validation, seller response
+5. ✅ **review**: Overall biz avg now **89.0%** (was 62.0%) — all 4 packages above 85%
+6. ✅ **review**: biz/rating was below 60% target, now at 100% ✨
+7. ✅ **Total test files** grew from 564 to 568
 
 ### Target (End of Q1 2026)
 - 🎯 **19/21 services** above 60% overall coverage (90%)
@@ -557,6 +557,6 @@ internal/
 
 ---
 
-**Last Updated:** March 5, 2026 18:18 UTC+7  
+**Last Updated:** March 5, 2026 19:35 UTC+7  
 **Next Review:** March 11, 2026 (Weekly)  
 **Maintained by:** QA Team + Backend Team
