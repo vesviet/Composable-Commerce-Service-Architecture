@@ -81,3 +81,5 @@ nohup kubectl port-forward svc/traefik -n kube-system --address 0.0.0.0 8081:80 
 Technical Architect
 
 Let's plan the remaining parts.
+
+follow skill review service và helpme update for common-operations

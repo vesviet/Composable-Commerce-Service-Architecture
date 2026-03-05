@@ -1,16 +1,16 @@
 # ⭐ Review Service - Product Reviews & Moderation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-03-05  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8016/9016
 
 **Service Name**: Review Service
-**Version**: 1.1.0
-**Last Updated**: 2026-02-01
-**Review Status**: 🔄 In Review
-**Production Ready**: 95%  
-**Common Package**: v1.9.5  
+**Version**: 1.2.0
+**Last Updated**: 2026-03-05
+**Review Status**: ✅ Production Ready
+**Production Ready**: 98%  
+**Common Package**: v1.23.1  
 
 ---
 
@@ -42,6 +42,7 @@ Review Service quản lý product reviews, ratings, và content moderation cho e
 ```
 review/
 ├── cmd/review/                  # Main service entry point
+├── cmd/worker/                  # Worker binary (outbox, cron, events)
 ├── internal/
 │   ├── biz/                      # Business logic domains
 │   │   ├── review/              # Review CRUD operations
@@ -501,8 +502,7 @@ func updateHelpfulStats(reviewID string) error {
 - `product.rating.updated` - Product rating statistics updated
 
 ### Consumed Events
-- `order.completed` - Trigger review request emails
-- `customer.verified` - Update review verification status
+- `shipping.shipment.delivered` - Mark order eligible for review (90-day window)
 - `product.updated` - Handle product changes affecting reviews
 
 ---
@@ -553,7 +553,7 @@ reviews:
 
 ---
 
-**Service Status**: Near Production (85%)  
+**Service Status**: Production Ready (98%)  
 **Critical Path**: Review submission và product rating display  
 **Performance Target**: <200ms review submission, <50ms rating queries  
 **Review Volume**: Support 10,000+ reviews/month with moderation
@@ -562,20 +562,21 @@ reviews:
 
 ## 📋 Code Review Status
 
-**Last Review**: January 29, 2026  
-**Review Checklist**: `docs/10-appendix/checklists/v2/review_service_code_review.md`
+**Last Review**: March 5, 2026  
+**Review Checklist**: `docs/10-appendix/workflow/review-review-checklist.md`
 
-### ✅ Completed Actions
-- **Dependencies**: Updated `gitlab.com/ta-microservices/common` from `v1.7.3` to `v1.8.5`
-- **Linting**: ✅ golangci-lint passes with zero warnings
-- **TODOs**: Documented all TODO items in codebase
-- **Replace Directives**: ✅ No replace directives (using proper import)
-
-### ⚠️ Known Issues
-- **P0-1**: Missing Authentication & Authorization Middleware (Critical)
-- **P1-1**: Insufficient Test Coverage (High Priority)
-- **P1-2**: Incomplete External Client Implementations (High Priority)
-- **P2-1**: Documentation Improvements (Normal Priority)
-- **P2-3**: Enhanced Observability (Normal Priority)
+### ✅ Completed Actions (2026-03-05)
+- **P0 Fixed**: Outbox TX bypass → uses `transaction.ExtractTx(ctx)` for atomicity
+- **P0 Fixed**: External calls (order/catalog) moved outside DB transaction
+- **P0 Fixed**: `IsVerified` removed from client request mapping (security)
+- **P1 Fixed**: Rating N+1 → SQL aggregate query (`AggregateByProductID`)
+- **P1 Fixed**: Auto-moderation offset drift → always-fetch-page-1 pattern
+- **P1 Fixed**: OpenTelemetry tracing spans added to all key biz operations
+- **P1 Fixed**: Outbox status case mismatch standardized to lowercase
+- **P2 Fixed**: Duplicate import, division-by-zero guard, default pageSize
+- **Dependencies**: Updated to `common@v1.23.1`, `catalog@v1.3.9`, `order@v1.1.9`, `user@v1.0.14`
+- **Linting**: ✅ golangci-lint 0 warnings
+- **Wire**: ✅ Regenerated for both review and worker binaries
+- **Replace Directives**: ✅ None
 
 See full review checklist for detailed information.
