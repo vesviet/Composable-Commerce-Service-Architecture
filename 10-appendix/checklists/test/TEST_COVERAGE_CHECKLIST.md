@@ -1,6 +1,6 @@
 # Test Coverage Checklist — Target 60%+ All Services
 
-> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-05 16:55 (UTC+7)
+> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-05 17:10 (UTC+7)
 > **Platform**: 21 Go Services | **Current**: 17/21 above 60% (overall service-level)
 > **Test Files**: 560 total test files across all services
 
@@ -21,8 +21,8 @@
 - Other tests: 98 files (17%)
 
 **Services with Service Layer Tests:** 17/21 (81%)
-- ✅ analytics (14), search (34), order (11), shipping (7), loyalty-rewards (7), catalog (6), auth (1), location (1), gateway (1), promotion (2), payment (5), common-operations (2), checkout (4), fulfillment (10), warehouse (2), pricing (5), user (1)
-- ⚠️ Missing: review, customer, notification, return
+- ✅ analytics (14), search (34), order (11), shipping (7), loyalty-rewards (7), catalog (6), auth (1), location (1), gateway (1), promotion (2), payment (5), common-operations (2), checkout (4), fulfillment (10), warehouse (2), pricing (5), user (1), customer (1)
+- ⚠️ Missing: review, notification, return
 
 | # | Service | Biz Coverage | Service Coverage | Overall | Target | Status | Test Files (biz/svc/data) | Work Done |
 |---|---------|-------------|-----------------|---------|--------|--------|---------------------------|-----------| 
@@ -42,7 +42,7 @@
 | 14 | **promotion** | **77.3%** | **21.5%** | **~50%** | 60% | ⚡ Biz Done | 20/2/0 (22 total) | biz 77.3%. Service 21.5% |
 | 15 | **payment** | **62.5% avg** | **53.6%** | **~50%** | 60% | ⚡ Improved | 28/5/1 (39 total) | pm 90.2%, txn 80.6%, settings 80.9%, refund 69.1%, payment 62.5%, fraud 36.6%, recon 17.1%. Service **53.6%** |
 | 16 | **warehouse** | **70.2% avg** | **70.6%** | **~65%** | 60% | ✅ Done | 28/2/0 (30 total) | warehouse 82.0%, txn 72.0%, inventory 70.5%, reservation 61.8%, throughput 64.9%. Service **70.6%** |
-| 17 | **customer** | **71.2% avg** | 0.0% | **~48%** | 60% | ⚡ Biz Done | 32/0/0 (32 total) | wishlist 68.4%, group 82.3%, audit 68.8%, pref 68.0%, segment 64.8%, customer 67.9%, address 65.6%, analytics 73.8%. ⚠️ No service tests |
+| 17 | **customer** | **71.2% avg** | **26.7%** | **~52%** | 60% | ⚡ Improved | 32/1/0 (33 total) | wishlist 68.4%, group 82.3%, audit 68.8%, pref 68.0%, segment 64.8%, customer 67.9%, address 65.6%, analytics 73.8%. Service **26.7%** (was 0%) |
 | 18 | **notification** | **75.2% avg** | 0.0% | **~55%** | 60% | ⚡ Biz Done | 24/0/0 (27 total) | biz 100%, events 85.7%, message 89.7%, pref 82.2%, sub 75.9%, delivery 68.7%, template 63.4%, notification 65.5%. ⚠️ No service tests |
 | 19 | **return** | **65.1%** | 0.0% | **~50%** | 60% | ⚡ Biz Done | 4/0/0 (4 total) | biz 65.1%. ⚠️ No service tests |
 | 20 | **common-operations** | **93.5% avg** | **78.4%** | **~82%** | 60% | ✅ Done | 8/2/0 (13 total) | biz 100%, audit 100%, settings 98.1%, message 90.5%, task 82.9%, security 90.7%, model 95.7%, constants 100%, service 78.4% |
@@ -295,10 +295,10 @@
 
 ---
 
-### 17. customer — ⚡ Biz Done, Service Missing
+### 17. customer — ⚡ Improved (Service 26.7%)
 
 | Package | Coverage | Status |
-|---------|----------|--------|
+|---------|----------|---------|
 | `biz/customer_group` | **82.3%** | ✅ Done |
 | `biz/analytics` | **73.8%** | ✅ Done |
 | `biz/audit` | **68.8%** | ✅ Done |
@@ -307,7 +307,7 @@
 | `biz/customer` | **67.9%** | ✅ Done (was 68.3%) |
 | `biz/address` | **65.6%** | ✅ Done |
 | `biz/segment` | **64.8%** | ✅ Done |
-| `service` | 0.0% | ❌ No tests |
+| `service` | **26.7%** | ⚡ Improved (was 0%) — 21 tests covering mgmt CRUD, auth nil guards, event handlers, helpers |
 
 ---
 
