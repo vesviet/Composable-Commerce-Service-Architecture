@@ -1,7 +1,7 @@
 # Test Coverage Checklist — Target 60%+ All Services
 
-> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-04 22:00 (UTC+7)
-> **Platform**: 21 Go Services | **Current**: 13/21 above 60% (overall service-level)
+> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-05 08:30 (UTC+7)
+> **Platform**: 21 Go Services | **Current**: 14/21 above 60% (overall service-level)
 > **Test Files**: 468 total test files across all services
 
 > [!IMPORTANT]
@@ -22,14 +22,14 @@
 
 **Services with Service Layer Tests:** 12/21 (57%)
 - ✅ analytics (15), search (20), order (11), shipping (7), loyalty-rewards (7), catalog (6), auth (1), location (1), gateway (1), promotion (2), payment (5), common-operations (2), checkout (4)
-- ⚠️ Missing: pricing, review, user, warehouse, customer, notification, return
+- ⚠️ Missing: pricing, review, user, customer, notification, return
 
 | # | Service | Biz Coverage | Overall | Target | Status | Test Files (biz/svc/data) | Work Done |
 |---|---------|-------------|---------|--------|--------|---------------------------|-----------|
 | 1 | **analytics** | **67.6%** | **~65%** | 60% | ✅ Done | 16/15/0 (32 total) | biz 67.6%, service 61.1%, marketplace 73.2%, pii 96.2% |
 | 2 | **pricing** | **75.5% avg** | **~68%** | 60% | ✅ Done | 13/0/0 (13 total) | All 8 biz packages >63%, avg 75.5%. ⚠️ No service tests |
 | 3 | **gateway** | N/A | **~82%** | 60% | ✅ Done | 0/1/0 (68 total) | All packages >56%, most >70% |
-| 4 | **review** | **63.9% avg** | **~55%** | 60% | ✅ Biz Done | 5/0/0 (5 total) | All 4 biz packages >60%. ⚠️ No service tests |
+| 4 | **review** | **62.9% avg** | **~55%** | 60% | ✅ Biz Done | 5/0/0 (5 total) | helpful 63.9%, moderation 72.4%, rating 51.8%, review 59.6%. ⚠️ No service tests |
 | 5 | **loyalty-rewards** | **75.6% avg** | **~55%** | 60% | ✅ Biz Done | 6/7/8 (21 total) | All 6 biz packages >71%. Service 30.4% |
 | 6 | **auth** | **74.9% avg** | **~80%** | 60% | ✅ Fully Done | 7/1/3 (15 total) | biz 71.0%, audit 91.7%, login 79.1%, token 67.5%, session 65.3%. Service **89.6%**. Added model 100%, middle 79.2%, obs 94.4%, data ~3% |
 | 7 | **location** | **62.2%** | **~64%** | 60% | ✅ Done | 1/1/1 (3 total) | biz 62.2%, postgres 65.1%, service 65.3% |
@@ -41,7 +41,7 @@
 | 13 | **order** | **79.8% avg** | **~60%** | 60% | ✅ Service Improved | 13/11/5 (31 total) | cancel 78.6%, order 60.2%, status 85.3%, validation 94.7%. eventbus 52%, security 69%. Service **65.5%** |
 | 14 | **promotion** | **77.3%** | **~50%** | 60% | ✅ Biz Done | 20/2/0 (22 total) | biz 77.3%. Service 21.3% |
 | 15 | **payment** | **62.5% avg** | **~50%** | 60% | ✅ Service Improved | 28/5/1 (34 total) | pm 90.2%, txn 80.6%, settings 80.9%, refund 69.1%, payment 62.5%, fraud 36.6%, recon 17.1%. Gateways 18-24%. Service **53.6%** (was 0%) |
-| 16 | **warehouse** | **65.6% avg** | **~50%** | 60% | ✅ Biz Improved | 28/0/0 (28 total) | warehouse 60.8%, txn 72.0%, inventory 70.5%, reservation 61.8%, throughput 64.9%. ⚠️ No service tests |
+| 16 | **warehouse** | **68.2% avg** | **~60%** | 60% | ✅ Service Done | 28/2/0 (30 total) | warehouse 82.0%, txn 72.0%, inventory 70.5%, reservation 61.8%, throughput 64.9%. Service **68.3%** (was 0%) |
 | 17 | **customer** | **71.6% avg** | **~48%** | 60% | ✅ Biz Done | 32/0/0 (32 total) | wishlist 68.4%, group 82.3%, audit 68.8%, pref 68.0%, segment 64.8%, customer 68.3%, address 65.6%, analytics 73.8%. ⚠️ No service tests |
 | 18 | **notification** | **75.2% avg** | **~55%** | 60% | ✅ Biz Done | 24/0/0 (27 total) | biz 100%, events 85.7%, message 89.7%, pref 82.2%, sub 75.6%, delivery 68.7%, template 63.4%, notification 65.6%. ⚠️ No service tests |
 | 19 | **return** | **65.1%** | **~65%** | 60% | ✅ Done | 4/0/0 (4 total) | biz 65.1%. Build fixed. ⚠️ No service tests |
@@ -105,15 +105,17 @@
 
 ---
 
-### 4. review — ✅ Biz Done, Service Build Fixed
+### 4. review — ✅ Biz Done, Production Review Complete
 
 | Package | Coverage | Status |
 |---------|----------|--------|
 | `biz/helpful` | **63.9%** | ✅ Done |
-| `biz/moderation` | **69.9%** | ✅ Done |
-| `biz/rating` | **61.7%** | ✅ Done |
-| `biz/review` | **60.3%** | ✅ Done |
+| `biz/moderation` | **72.4%** | ✅ Done (was 69.9%) |
+| `biz/rating` | **51.8%** | ⚠️ Below target (refactored N+1 → SQL aggregate) |
+| `biz/review` | **59.6%** | ⚠️ Near target |
 | `service` | 0.0% | ✅ Build fixed (`req.Rating` type mismatch). [ ] Add gRPC handler tests |
+
+**Production Review (2026-03-05)**: Fixed 3 P0 bugs (outbox TX bypass, external calls inside TX, IsVerified security), 4 P1 issues (rating N+1 → SQL aggregate, moderation offset pagination, tracing spans, outbox status case mismatch), 3 P2 issues (duplicate import, division-by-zero, pageSize default). All tests pass. Lint clean.
 
 ---
 
@@ -299,12 +301,12 @@
 
 | Package | Coverage | Status |
 |---------|----------|--------|
-| `biz/warehouse` | **60.8%** | ✅ Done |
-| `biz/transaction` | **72.0%** | ✅ Done (was 57.9%) |
-| `biz/throughput` | **64.9%** | ✅ Done (was 23.8%) |
-| `biz/reservation` | **61.8%** | ✅ Done (was 51.1%) |
-| `biz/inventory` | **70.5%** | ✅ Done (was 55.7%) |
-| `service` | 0.0% | [ ] Add gRPC handler tests |
+| `biz/warehouse` | **82.0%** | ✅ Done (was 60.8%) |
+| `biz/transaction` | **72.0%** | ✅ Done |
+| `biz/throughput` | **64.9%** | ✅ Done |
+| `biz/reservation` | **61.8%** | ✅ Done |
+| `biz/inventory` | **70.5%** | ✅ Done |
+| `service` | **68.3%** | ✅ Done (was 0%) |
 
 **Work Done**: Added coverage_extended_test.go for transaction (GetTransaction, ListTransactions, GetByWarehouse, GetByProduct, GetByReference, validators), inventory (calculateVolume, ValidateBulkTransferStockRequest, ValidateProductDimensions, ValidateTransferStockRequest, ValidateCreate/UpdateInventoryRequest, updatePhysicalUtilization, RestoreInventoryFromReturn gap coverage, HandleFulfillmentStatusChanged gap coverage), throughput (all passthrough methods, getDefaultMax* config, GetCapacityUtilization, getEffectiveCapacity), reservation (GetReservation, ListReservations, GetReservationsByOrderID, GetExpiredReservations, FindExpiredReservations, ReleaseReservationsByOrderID, GetExpiryDuration with 6 payment methods).
 
@@ -464,8 +466,7 @@
 Priority order based on service complexity and usage:
 
 1. **pricing** (13 biz tests, 0 service) - High priority, complex pricing logic
-2. **warehouse** (28 biz tests, 0 service) - High priority, inventory critical
-3. **customer** (32 biz tests, 0 service) - High priority, customer data sensitive
+2. **customer** (32 biz tests, 0 service) - High priority, customer data sensitive
 4. **user** (7 biz tests, 0 service) - Medium priority, auth/authz
 5. **notification** (24 biz tests, 0 service) - Medium priority, delivery critical
 6. **review** (5 biz tests, 0 service) - Low priority, smaller service
@@ -567,6 +568,6 @@ internal/
 
 ---
 
-**Last Updated:** March 4, 2026 22:00 UTC+7  
+**Last Updated:** March 5, 2026 08:30 UTC+7  
 **Next Review:** March 11, 2026 (Weekly)  
 **Maintained by:** QA Team + Backend Team
