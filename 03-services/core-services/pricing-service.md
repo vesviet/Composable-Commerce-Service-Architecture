@@ -1,13 +1,13 @@
 # 💰 Pricing Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-03-05  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8002/9002
 
 **Service Name**: Pricing Service  
-**Version**: 1.1.4  
-**Last Updated**: 2026-02-06  
+**Version**: 1.5.0  
+**Last Updated**: 2026-03-05  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: ✅ 100%
 
@@ -427,17 +427,22 @@ pricing:
 ## 🧪 Testing
 
 ### Current Status
-- **Test Coverage**: < 5% (Target: 80%+)
-- **Unit Tests**: 2 test files (`price_test.go`, `currency_converter_test.go`)
-- **Integration Tests**: None
-- **Service Tests**: None
-- **Status**: ⏸️ Test coverage improvement skipped per user request (can be added later)
+- **Biz Layer Coverage**: 63-93% across all 8 packages
+- **Service Layer Coverage**: **70.4%**
+- **Test Files**: 18 test files (13 biz + 5 service)
+- **Status**: ✅ Above 60% target for all packages
 
-### Test Requirements (Future)
-- [ ] Unit tests for business logic (80%+ coverage)
-- [ ] Service layer tests with mocked dependencies
-- [ ] Integration tests with Testcontainers
-- [ ] Repository tests with real database
+| Package | Coverage | Status |
+|---------|----------|--------|
+| `biz/calculation` | **74.1%** | ✅ Done |
+| `biz/currency` | **72.5%** | ✅ Done |
+| `biz/discount` | **93.3%** | ✅ Excellent |
+| `biz/dynamic` | **77.1%** | ✅ Done |
+| `biz/price` | **63.5%** | ✅ Done |
+| `biz/rule` | **80.2%** | ✅ Done |
+| `biz/tax` | **63.1%** | ✅ Done |
+| `biz/worker` | **82.5%** | ✅ Done |
+| `service` | **70.4%** | ✅ Done |
 
 ---
 
@@ -552,12 +557,11 @@ make wire
 
 ## 🔍 Code Review Status
 
-**Last Review**: January 31, 2026  
+**Last Review**: March 5, 2026  
 **Review Standard**: [`docs/07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md`](../../07-development/standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md)  
 **Status**: 🟢 Production Ready - 100% Complete
 
-**Review Checklist**: [`docs/10-appendix/checklists/v3/pricing_service_checklist_v3.md`](../../10-appendix/checklists/v3/pricing_service_checklist_v3.md)  
-**TODO List**: [`docs/10-appendix/checklists/v2/pricing_service_todos.md`](../../10-appendix/checklists/v2/pricing_service_todos.md)
+**Review Checklist**: `docs/10-appendix/workflow/pricing-review-checklist.md`
 
 ### Summary
 - ✅ **Architecture**: Clean separation of concerns, proper DI
@@ -567,27 +571,19 @@ make wire
 - ✅ **Security**: Authentication and authorization middleware implemented
 - ✅ **API**: gRPC error code mapping implemented (`mapErrorToGRPC`)
 - ✅ **Validation**: Standardized input validation across all handlers
-- ✅ **Rate Limiting**: Redis-based rate limiting middleware
-- ✅ **Request ID**: Request ID propagation middleware
-- ✅ **Linting**: All violations fixed, golangci-lint passes
-- ✅ **Dependencies**: Updated to latest tags from gitlab.com/ta-microservices
-- ⏸️ **Testing**: Test coverage skipped per user request (can be added later)
+- ✅ **Linting**: 0 warnings, all violations fixed
+- ✅ **Dependencies**: Updated to latest tags (catalog v1.3.9, warehouse v1.2.6)
+- ✅ **Testing**: 9 packages above 60% target, service layer at 70.4%
 
-### Recent Improvements (v1.1.3)
-- ✅ **Idempotency**: Refactored to use Redis for reliable distributed idempotency.
-- ✅ **Worker Check**: Verified worker binary build pipeline.
-- ✅ **Code Cleanup**: Removed memory-leak prone in-memory maps.
-- ✅ **Full Compliance**: Resolved all P1/P2 issues.
-
-### Recent Improvements (v1.1.2)
-- ✅ **Concurrency Fix**: `BulkUpdatePriceAsync` background task clarified.
-- ✅ **Context Key Fix**: `contextKey` changed to `int` for safety.
-- ✅ **Cache TTL Fix**: `updatePriceCache` now uses dynamic TTL from `price.GetCacheTTL()`.
-- ✅ **ArgoCD Security**: Removed hardcoded secrets from `values-base.yaml`.
-- ✅ **Transaction Integrity**: `UpdateOutboxEvent` now respects transaction context.
+### Recent Improvements (v1.5.0 — 2026-03-05)
+- ✅ **P0 CRITICAL: TX bypass fixed**: `GetByID`, `Update`, `Delete` repo methods now use `getDB(ctx)` for transaction-aware DB access, ensuring outbox atomicity
+- ✅ **Lint fixes**: errcheck in currency test, ineffassign in dynamic test
+- ✅ **Dependencies**: catalog v1.3.9, warehouse v1.2.6
+- ✅ **Wire**: Regenerated for both pricing and worker binaries
+- ✅ **Cleanup**: Removed stale `coverage.out`, added to `.gitignore`
 
 ---
 
-**Last Updated**: 2026-02-01  
-**Version**: 1.1.2  
+**Last Updated**: 2026-03-05  
+**Version**: 1.5.0  
 **Maintainer**: Pricing Service Team
