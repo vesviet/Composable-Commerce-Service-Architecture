@@ -3,31 +3,33 @@
 **Date**: 2026-03-07
 **Total Services**: 22 (21 Go backend + gateway)
 **Review Strategy**: 5 parallel agents, grouped by deploy wave order
+**Common Status**: ✅ `v1.23.2` — committed, tagged, pushed (2026-03-07)
+**Execution Mode**: All 5 agents run **in parallel** — common is done, no blocker
 
 ---
 
 ## 🚀 Agent Task Assignments
 
-### 🟢 Agent 1 — Leaf & Foundation (Wave 0–1) — 4 services
+### 🟢 Agent 1 — Leaf & Foundation (Wave 0–1) — 3 services
 
-> **Scope**: Shared library + leaf services with zero upstream dependencies.
-> **Priority**: Must complete `common` review & tagging FIRST — all other agents depend on it.
+> **Scope**: Leaf services with zero upstream dependencies.
+> **Prereq**: ✅ `common@v1.23.2` is already tagged & pushed — proceed directly.
 
 | # | Service | Dir | Wave | Dependencies | Review Status |
 |---|---------|-----|------|--------------|:---:|
-| 1 | **common** | `common/` | 0 | _(base library)_ | ✅ Done — [review](common-review-checklist.md) |
-| 2 | **notification** | `notification/` | 1 | common | ⬜ TODO |
-| 3 | **analytics** | `analytics/` | 1 | common | ⬜ TODO |
-| 4 | **user** | `user/` | 1 | common | ⬜ TODO |
+| 0 | **common** | `common/` | 0 | _(base library)_ | ✅ Done `v1.23.2` — [review](common-review-checklist.md) |
+| 1 | **notification** | `notification/` | 1 | common | ⬜ TODO |
+| 2 | **analytics** | `analytics/` | 1 | common | ⬜ TODO |
+| 3 | **user** | `user/` | 1 | common | ⬜ TODO |
 
 **Agent 1 Steps**:
-1. `git pull` for common, notification, analytics, user, gitops
-2. Review `common` → fix P0/P1 → lint/build/test → tag `common` new version
-3. Review `notification` → fix P0/P1 → update deps → lint/build/test → docs
-4. Review `analytics` → fix P0/P1 → update deps → lint/build/test → docs
-5. Review `user` → fix P0/P1 → update deps → lint/build/test → docs
-6. Update `TEST_COVERAGE_CHECKLIST.md` for all 4 services
-7. Commit & push all changes
+1. `git pull` for notification, analytics, user
+2. For each service: `go get gitlab.com/ta-microservices/common@v1.23.2 && go mod tidy`
+3. Review `notification` → follow review-service skill (Steps 0–10)
+4. Review `analytics` → follow review-service skill (Steps 0–10)
+5. Review `user` → follow review-service skill (Steps 0–10)
+6. Update `TEST_COVERAGE_CHECKLIST.md` for all 3 services
+7. Commit & push all changes (conventional commit format)
 
 ---
 
@@ -45,15 +47,16 @@
 | 9 | **location** | `location/` | 3 | common, shipping, user, warehouse | ⬜ TODO |
 
 **Agent 2 Steps**:
-1. `git pull` for auth, customer, payment, shipping, location, gitops
-2. Review `auth` → fix P0/P1 → update deps → lint/build/test → docs
-3. Review `customer` → fix P0/P1 → update deps → lint/build/test → docs
-4. Review `payment` → fix P0/P1 (idempotency race condition!) → update deps → lint/build/test → docs
-5. Review `shipping` → fix P0/P1 → update deps → lint/build/test → docs
-6. Review `location` → fix P0/P1 → update deps → lint/build/test → docs
-7. Cross-service impact: auth ↔ customer proto compatibility
-8. Update `TEST_COVERAGE_CHECKLIST.md` for all 5 services
-9. Commit & push all changes
+1. `git pull` for auth, customer, payment, shipping, location
+2. For each service: `go get gitlab.com/ta-microservices/common@v1.23.2 && go mod tidy`
+3. Review `auth` → follow review-service skill (Steps 0–10)
+4. Review `customer` → follow review-service skill (Steps 0–10)
+5. Review `payment` → follow review-service skill (Steps 0–10) ⚠️ idempotency race condition!
+6. Review `shipping` → follow review-service skill (Steps 0–10)
+7. Review `location` → follow review-service skill (Steps 0–10)
+8. Cross-service impact: auth ↔ customer proto compatibility
+9. Update `TEST_COVERAGE_CHECKLIST.md` for all 5 services
+10. Commit & push all changes (conventional commit format)
 
 ---
 
@@ -70,14 +73,15 @@
 | 13 | **review** | `review/` | 5 | common, catalog, order, user | ⬜ TODO |
 
 **Agent 3 Steps**:
-1. `git pull` for pricing, catalog, warehouse, review, gitops
-2. Review `pricing` → fix P0/P1 (financial calculations!) → update deps → lint/build/test → docs
-3. Review `catalog` → fix P0/P1 → update deps → lint/build/test → docs
-4. Review `warehouse` → fix P0/P1 → update deps → lint/build/test → docs
-5. Review `review` → fix P0/P1 → update deps → lint/build/test → docs
-6. Cross-service impact: catalog ↔ warehouse ↔ pricing circular deps
-7. Update `TEST_COVERAGE_CHECKLIST.md` for all 4 services
-8. Commit & push all changes
+1. `git pull` for pricing, catalog, warehouse, review
+2. For each service: `go get gitlab.com/ta-microservices/common@v1.23.2 && go mod tidy`
+3. Review `pricing` → follow review-service skill (Steps 0–10) ⚠️ financial calculations!
+4. Review `catalog` → follow review-service skill (Steps 0–10)
+5. Review `warehouse` → follow review-service skill (Steps 0–10)
+6. Review `review` → follow review-service skill (Steps 0–10)
+7. Cross-service impact: catalog ↔ warehouse ↔ pricing circular deps
+8. Update `TEST_COVERAGE_CHECKLIST.md` for all 4 services
+9. Commit & push all changes (conventional commit format)
 
 ---
 
@@ -88,20 +92,21 @@
 
 | # | Service | Dir | Wave | Dependencies | Review Status |
 |---|---------|-----|------|--------------|:---:|
-| 14 | **order** | `order/` | 5 | common, catalog, customer, notification, payment, pricing, promotion, shipping, user, warehouse | ⬜ TODO |
-| 15 | **promotion** | `promotion/` | 5 | common, catalog, customer, pricing, review, shipping | ⬜ TODO |
-| 16 | **fulfillment** | `fulfillment/` | 6 | common, catalog, shipping, warehouse | ⬜ TODO |
-| 17 | **return** | `return/` | 6 | common, order, payment, shipping, warehouse | ⬜ TODO |
+| 14 | **order** | `order/` | 5 | common, catalog, customer, notification, payment, pricing, promotion, shipping, user, warehouse | ✅ Done — [review](order-review-checklist.md) |
+| 15 | **promotion** | `promotion/` | 5 | common, catalog, customer, pricing, review, shipping | ✅ Done — [review](promotion-review-checklist.md) |
+| 16 | **fulfillment** | `fulfillment/` | 6 | common, catalog, shipping, warehouse | ✅ Done — [review](fulfillment-review-checklist.md) |
+| 17 | **return** | `return/` | 6 | common, order, payment, shipping, warehouse | ✅ Done — [review](return-review-checklist.md) |
 
 **Agent 4 Steps**:
-1. `git pull` for order, promotion, fulfillment, return, gitops
-2. Review `order` → fix P0/P1 (double reservation, test failures!) → update deps → lint/build/test → docs
-3. Review `promotion` → fix P0/P1 (compile failures!) → update deps → lint/build/test → docs
-4. Review `fulfillment` → fix P0/P1 → update deps → lint/build/test → docs
-5. Review `return` → fix P0/P1 → update deps → lint/build/test → docs
-6. Cross-service impact: order ↔ customer ↔ promotion circular deps
-7. Update `TEST_COVERAGE_CHECKLIST.md` for all 4 services
-8. Commit & push all changes
+1. `git pull` for order, promotion, fulfillment, return
+2. For each service: `go get gitlab.com/ta-microservices/common@v1.23.2 && go mod tidy`
+3. Review `order` → follow review-service skill (Steps 0–10) ⚠️ double reservation, test failures!
+4. Review `promotion` → follow review-service skill (Steps 0–10) ⚠️ compile failures!
+5. Review `fulfillment` → follow review-service skill (Steps 0–10)
+6. Review `return` → follow review-service skill (Steps 0–10)
+7. Cross-service impact: order ↔ customer ↔ promotion circular deps
+8. Update `TEST_COVERAGE_CHECKLIST.md` for all 4 services
+9. Commit & push all changes (conventional commit format)
 
 ---
 
@@ -119,33 +124,38 @@
 | 22 | **gateway** | `gateway/` | 8 | common + all upstream services | ⬜ TODO |
 
 **Agent 5 Steps**:
-1. `git pull` for search, loyalty-rewards, common-operations, checkout, gateway, gitops
-2. Review `search` → fix P0/P1 → update deps → lint/build/test → docs
-3. Review `loyalty-rewards` → fix P0/P1 (financial liability!) → update deps → lint/build/test → docs
-4. Review `common-operations` → fix P0/P1 → update deps → lint/build/test → docs
-5. Review `checkout` → fix P0/P1 → update deps → lint/build/test → docs
-6. Review `gateway` → fix P0/P1 → verify all routing → update deps → lint/build/test → docs
-7. Update `TEST_COVERAGE_CHECKLIST.md` for all 5 services
-8. Commit & push all changes
+1. `git pull` for search, loyalty-rewards, common-operations, checkout, gateway
+2. For each service: `go get gitlab.com/ta-microservices/common@v1.23.2 && go mod tidy`
+3. Review `search` → follow review-service skill (Steps 0–10)
+4. Review `loyalty-rewards` → follow review-service skill (Steps 0–10) ⚠️ financial liability!
+5. Review `common-operations` → follow review-service skill (Steps 0–10)
+6. Review `checkout` → follow review-service skill (Steps 0–10)
+7. Review `gateway` → follow review-service skill (Steps 0–10) ⚠️ verify all routing!
+8. Update `TEST_COVERAGE_CHECKLIST.md` for all 5 services
+9. Commit & push all changes (conventional commit format)
 
 ---
 
 ## 📋 Per-Agent Review Process (follow review-service skill)
 
+> **⚠️ IMPORTANT**: All 5 agents run **in parallel**. `common@v1.23.2` is already tagged & pushed.
+> Each agent must update deps to `common@v1.23.2` as the **first step** for every service.
+
 Each agent MUST follow the **full review-service skill** (Steps 0–10):
 
 ```
-Step 0:  git pull (service, common, gitops)
-Step 1:  Index & Review codebase → list P0/P1/P2 issues
-Step 2:  Cross-Service Impact Analysis (proto, events, go.mod)
-Step 3:  Create review checklist → docs/10-appendix/review-service/<serviceName>-review-checklist.md
-Step 4:  Action Plan → fix P0/P1 bugs immediately
-Step 5:  Test Coverage → run coverage, update TEST_COVERAGE_CHECKLIST.md
-Step 6:  Dependencies → update go.mod, remove replace, go mod tidy
-Step 7:  Lint & Build → make api, wire, golangci-lint, go build, go test
-Step 8:  Deployment Readiness → verify ports, config, GitOps alignment
-Step 9:  Documentation → update service doc, README.md, CHANGELOG.md
-Step 10: Commit & Release → commit with conventional format, tag if releasing
+Step 0:  git pull (service repos assigned to this agent)
+Step 1:  Update deps: go get gitlab.com/ta-microservices/common@v1.23.2 && go mod tidy
+Step 2:  Index & Review codebase → list P0/P1/P2 issues
+Step 3:  Cross-Service Impact Analysis (proto, events, go.mod)
+Step 4:  Create review checklist → docs/10-appendix/review-service/<serviceName>-review-checklist.md
+Step 5:  Action Plan → fix P0/P1 bugs immediately
+Step 6:  Test Coverage → run coverage, target >80% biz layer, update TEST_COVERAGE_CHECKLIST.md
+Step 7:  Dependencies → verify no replace directives, go mod tidy
+Step 8:  Lint & Build → make api, wire, golangci-lint run, go build ./..., go test ./...
+Step 9:  Deployment Readiness → verify ports, config, GitOps alignment
+Step 10: Documentation → update CHANGELOG.md, README.md
+Step 11: Commit & Push → conventional commit format, follow commit-code skill
 ```
 
 **Standards to read first**:
@@ -194,15 +204,31 @@ Step 10: Commit & Release → commit with conventional format, tag if releasing
 
 The following services were not in the original 17-service review and need **full first-time review**:
 
-| Service | Wave | Notes |
-|---------|------|-------|
-| **common** | 0 | Shared library — review for API stability, breaking changes |
-| **common-operations** | 6 | Operations tooling service |
-| **checkout** | 7 | High-complexity orchestrator (9 deps) |
-| **return** | 6 | Order return lifecycle |
-| **gateway** | 8 | API gateway — routing, security, rate limiting |
+| Service | Wave | Agent | Notes |
+|---------|------|-------|-------|
+| ~~**common**~~ | 0 | — | ✅ Done `v1.23.2` |
+| **common-operations** | 6 | Agent 5 | Operations tooling service |
+| **checkout** | 7 | Agent 5 | High-complexity orchestrator (9 deps) |
+| **return** | 6 | Agent 4 | Order return lifecycle |
+| **gateway** | 8 | Agent 5 | API gateway — routing, security, rate limiting |
 
 ---
 
-*Last Updated: 2026-03-07*
-*Strategy: 5 parallel agents × review-service skill (Steps 0–10)*
+## 🔑 Common Package Summary (`v1.23.2`)
+
+Completed before parallel agent execution:
+
+| Item | Status |
+|------|--------|
+| P1: Transaction context key inconsistency | ✅ Fixed |
+| P2: Regex compilation performance | ✅ Fixed |
+| P2: Stale go.mod comments | ✅ Cleaned |
+| Test coverage: 11 packages at 80%+ | ✅ Done |
+| Lint: 0 warnings | ✅ Clean |
+| Tag: `v1.23.2` | ✅ Pushed |
+| Detailed review: [common-review-checklist.md](common-review-checklist.md) | ✅ Done |
+
+---
+
+*Last Updated: 2026-03-07 11:45*
+*Strategy: 5 parallel agents × review-service skill — common@v1.23.2 unblocks all*
