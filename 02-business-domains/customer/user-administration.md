@@ -125,4 +125,4 @@ Following the recent security refactoring, permissions have been broken down fro
 ## Security Considerations
 - **Password Storage**: Bcrypt with unique salt.
 - **Permission Caching**: User permissions are versioned (`permissions_version`) to allow effective cache invalidation at the Gateway/Auth layer.
-- **Audit**: All role changes and access grants should be logged (partially implemented in domain logic).
+- **Centralized Audit Logging (P2 FIX)**: To meet compliance (e.g., SOC2), all `PUT/PATCH/DELETE` requests at the API Gateway containing `Roles=Admin` MUST be mirrored via middleware to a Kafka Audit stream (Who, When, What Endpoint, Old Data, New Data) for tamper-evident activity tracking. Previous domain-level logging was incomplete.

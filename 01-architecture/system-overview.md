@@ -183,6 +183,8 @@ sequenceDiagram
     C->>W: Checkout
     W->>G: POST /checkout
     G->>CH: gRPC PlaceOrder
+    CH->>WH: gRPC ReserveStock (TTL 15m)
+    WH-->>CH: Stock reserved
     CH->>O: CreateOrder (gRPC)
     CH->>P: AuthorizePayment (gRPC)
     P-->>CH: Payment authorized
@@ -190,7 +192,6 @@ sequenceDiagram
     CH-->>W: Order confirmation
     
     Note over O,WH: Event-driven (async)
-    O->>WH: order.confirmed → Reserve stock
     O->>F: order.paid → Start fulfillment
     F->>S: fulfillment.completed → Arrange shipping
     S->>O: shipping.delivered → Complete order

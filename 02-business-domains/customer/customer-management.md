@@ -66,11 +66,11 @@ This document describes the flows for customer registration, authentication, and
 
 ## Identified Issues & Gaps
 
-### P1 - Security: Incomplete 2FA Implementation
+### P0 - Security: Incomplete 2FA Implementation (CRITICAL)
 
 -   **Description**: The `customer` service has logic for enabling/disabling 2FA and generating secrets. However, the core verification function (`Verify2FACode`) is a placeholder that always returns `true`.
--   **Impact**: If 2FA is enabled for an account, it provides no actual security, giving a false sense of protection.
--   **Recommendation**: Implement proper TOTP (Time-based One-Time Password) validation using a standard library. This verification must be integrated into the `Login` flow.
+-   **Impact**: If 2FA is enabled for an account, it provides no actual security, giving a false sense of protection. This is a critical security vulnerability for production.
+-   **Recommendation**: Implement proper TOTP (Time-based One-Time Password) validation using a standard library (e.g., `pquerna/otp`). This verification must be integrated into the `Login` flow before production release.
 
 ### P2 - Event Reliability: Missing Transactional Outbox
 **Status**: ✅ RESOLVED

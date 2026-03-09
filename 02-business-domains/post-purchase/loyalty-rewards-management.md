@@ -144,15 +144,15 @@ Complete customer loyalty and rewards journey covering account creation, points 
 4. Notify customer of correction
 5. Review and fix calculation rules
 
-#### Error Scenario 2: Reward Redemption Failure
-**Trigger**: Reward redemption fails due to system error
-**Impact**: Customer cannot redeem earned rewards
-**Resolution**:
-1. Preserve customer points balance
-2. Log redemption failure details
-3. Retry redemption automatically
-4. If retry fails, queue for manual processing
-5. Notify customer of status and resolution
+#### Error Scenario 2: Reward Redemption Failure & Checkout Saga Compensation
+**Trigger**: Reward redemption fails due to system error, OR the downstream Checkout process fails after points were successfully deducted.
+**Impact**: Customer loses earned rewards without receiving the order.
+**Resolution [P1 FIX - Distributed Transaction Saga]**:
+1. Reward deduction must be integrated into the Checkout **Saga Pattern**.
+2. If Checkout fails later in the flow (e.g., Payment Capture fails), the Checkout Orchestrator publishes a `checkout.failed` event.
+3. The Loyalty Service MUST subscribe to `checkout.failed` and execute a **Compensating Transaction** to refund/restore the deducted points.
+4. Log redemption failure/compensation details.
+5. Notify customer of status and resolution.
 
 #### Error Scenario 3: Tier Calculation Inconsistency
 **Trigger**: Customer tier not updated despite meeting requirements

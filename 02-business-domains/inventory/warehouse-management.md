@@ -581,7 +581,8 @@ sequenceDiagram
 
 ### 6.1 Transactional Outbox Implementation
 
-**Pattern**: All inventory changes publish events via outbox tables for guaranteed delivery
+**Pattern**: All inventory changes publish events via outbox tables for guaranteed delivery.
+*Note: High-priority events like Stock Update use an accelerated polling mechanism (1-2s interval, optionally leveraging logical replication/CDC) to ensure near real-time cache and ES synchronization, minimizing stale data during high-traffic events (Flash Sales).*
 
 ```mermaid
 sequenceDiagram

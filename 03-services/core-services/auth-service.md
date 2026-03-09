@@ -785,8 +785,8 @@ Gateway → Auth Service
 1. **Raw Goroutines Without Panic Recovery** 🔴
    - **Issue**: Use of raw `go func()` can cause the application to crash if a panic occurs.
    - **Location**: `cmd/worker/main.go:56`, `internal/client/user/user_client.go:106`
-   - **Impact**: Service instability
-   - **Fix**: Use `defer func() { recover() }` or `errgroup` for goroutines.
+   - **Impact**: Service instability and CrashLoopBackOff.
+   - **Fix**: Use `golang.org/x/sync/errgroup` to manage concurrent executions safely instead of raw `go func()`.
 
 ### P1 - High Priority Issues
 
@@ -797,16 +797,16 @@ Gateway → Auth Service
    - **Fix**: Implement proper session lifecycle management
 
 2. **Audit Logging Enhancement** 🟡
-   - **Issue**: Audit events logged locally, not to centralized system
+   - **Issue**: Audit events logged locally to pod files, which violates SOC2 compliance (audit logs must be immutable and centralized).
    - **Location**: `internal/biz/audit/`
-   - **Impact**: Security event correlation difficult
-   - **Fix**: Integrate with centralized audit service
+   - **Impact**: Security event correlation impossible if pod restarts.
+   - **Fix**: Integrate with centralized audit service (e.g., forward via FluentBit to Kafka/Elasticsearch).
 
-3. **Token Blacklist Scaling** 🟡
-   - **Issue**: Token revocation uses database, not optimal for high volume
-   - **Location**: `internal/data/postgres/token.go`
-   - **Impact**: Performance degradation under load
-   - **Fix**: Redis token blacklisting implementation (partially done in cache.go)
+3. **Token Blacklist Scaling & OOM Risk** 🟡
+   - **Issue**: Token revocation pushes tokens to Redis Blacklist but might keep them forever if no TTL is set, leading to Redis OOM (Out Of Memory).
+   - **Location**: `internal/data/postgres/token.go` and Redis Cache.
+   - **Impact**: Redis memory exhaustion.
+   - **Fix**: Set Redis `EXPIRE` command for each token added to the Blacklist using exactly the remaining TTL of that JWT token.
 
 4. **Integration Test Panics** 🟡
    - **Issue**: `TestCircuitBreakerWithMockService` panics due to a nil logger pointer dereference.

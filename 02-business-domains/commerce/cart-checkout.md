@@ -287,12 +287,11 @@ flowchart TD
 
 Based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
 
-### P1 - Atomicity: Manual Distributed Transaction
+### P0 - Atomicity & Resilience: Migrate to Checkout Saga (CRITICAL)
 
-- **Description**: The `Authorize -> Create Order -> Capture` sequence is a distributed transaction handled manually. This creates a risk of inconsistent states if the service crashes between these critical steps. For example, an order could be created but the payment never captured, leaving the order in a limbo state without a robust, automated recovery process.
-- **Recommendation**: Replace the manual sequence with a durable Saga orchestration pattern. A Saga would ensure that the entire process either completes successfully or is properly compensated (e.g., the order is cancelled if capture fails), even in the event of service restarts.
-
-### P1 - Resilience: Ignored Rollback Errors
-
-- **Description**: In the payment capture failure path, the error from the compensating action (`rollbackPaymentAndReservations`) is ignored (`_ = ...`). If voiding the payment authorization fails, the customer's funds could remain on hold for an order that was ultimately cancelled.
-- **Recommendation**: The error from compensating actions must be handled. A failed rollback is a critical event that should be sent to a Dead-Letter Queue (DLQ) and trigger an immediate alert for manual intervention.
+- **Description**: The `Authorize -> Create Order -> Capture` sequence is currently a manual distributed transaction. If `CapturePayment` fails, the order is immediately cancelled and the payment authorization is voided. However, rollback errors are ignored. If voiding the authorization fails, the customer's funds are held indefinitely. Additionally, immediate cancellation on capture failure is a bad business practice and can result in lost sales if the failure was a transient gateway timeout.
+- **Recommendation [P0 FIX]**: 
+  1. Replace the manual sequence with a **Message-Driven Saga Orchestration** pattern.
+  2. If `CapturePayment` fails, DO NOT cancel the order. Update the status to `Payment_Pending_Review` or `Capture_Failed`.
+  3. The Orchestrator must publish a `checkout.failed` event so downstream services (like Loyalty Service) can compensate (refund points).
+  4. Any failure in the compensation/rollback steps MUST be routed to a Dead-Letter Queue (DLQ) with a P0 alert for manual CS intervention.

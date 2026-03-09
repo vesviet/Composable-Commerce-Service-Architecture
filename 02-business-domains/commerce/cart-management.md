@@ -78,7 +78,8 @@ This is the primary entry point for all cart interactions.
 - **Logic**:
   1.  Finds the existing cart item by its ID.
   2.  **Always** calls `pricingService.CalculatePrice` with the new quantity to ensure price accuracy.
-  3.  Updates the item's quantity and pricing information in the database.
+  3.  **Concurrency Control (P1 FIX)**: Updates the item's quantity using **Optimistic Locking**. The `cart_items` table must include a `version` column. The update query must be `UPDATE cart_items SET quantity = ?, version = version + 1 WHERE id = ? AND version = ?` to prevent data corruption when a user updates the cart concurrently from multiple tabs.
+  4.  Updates the item's pricing information in the database.
 
 ### 4. Apply Coupon Flow (Quote Pattern)
 
@@ -145,7 +146,7 @@ This is the primary entry point for all cart interactions.
   1.  Calculates subtotal from the sum of `item.TotalPrice`.
   2.  Calls `shippingService.CalculateRates` to get shipping costs.
   3.  Calls `promotionService.ValidatePromotions` (again) to get the final discount amount based on the current cart state.
-  4.  Calls `pricingService.CalculateTax` to get the tax amount.
+  4.  Calls `pricingService.CalculateTax` to get the tax amount. **Compliance Rule (P2 FIX)**: If the Tax calculation service fails or times out, the cart MUST **Fail-Fast** and block checkout. It is illegal to silently assume 0 tax.
   5.  Sums all values to produce the final `TotalEstimate`.
 
 ### 10. Cart to Checkout Transition Flow

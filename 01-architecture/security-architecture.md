@@ -317,15 +317,28 @@ type DatabaseConfig struct {
 // Field-level encryption for PII
 type Customer struct {
     ID          string    `json:"id" db:"id"`
-    Email       string    `json:"email" db:"email"`
+    Email       string    `json:"email" db:"email_encrypted"`
+    EmailHash   string    `json:"-" db:"email_hash"` // Blind index for exact match search
     FirstName   string    `json:"first_name" db:"first_name_encrypted"`
     LastName    string    `json:"last_name" db:"last_name_encrypted"`
     Phone       string    `json:"phone" db:"phone_encrypted"`
+    PhoneHash   string    `json:"-" db:"phone_hash"` // Blind index for exact match search
     CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
 func (c *Customer) EncryptPII(encryptor *Encryptor) error {
     var err error
+    
+    // 1. Generate blind indexes for exact-match searchability BEFORE encryption
+    c.EmailHash = encryptor.GenerateBlindIndex(c.Email)
+    c.PhoneHash = encryptor.GenerateBlindIndex(c.Phone)
+
+    // 2. Encrypt actual values
+    c.Email, err = encryptor.Encrypt(c.Email)
+    if err != nil {
+        return err
+    }
+
     c.FirstName, err = encryptor.Encrypt(c.FirstName)
     if err != nil {
         return err

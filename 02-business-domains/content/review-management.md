@@ -22,10 +22,12 @@ This document describes the end-to-end review flow, from review creation through
 
 1. Client calls `CreateReview` with product, rating, content.
 2. Service extracts `customer_id` from auth context if not provided.
-3. If `order_id` provided, verify purchase and product in order.
+3. If `order_id` provided, verify purchase and product in order. Mark as `Verified Purchase`.
 4. Persist review with `pending` status.
 5. (Optional) Auto-moderation updates status to `approved` / `rejected` / `flagged`.
 6. Publish `review.created` event.
+
+> **P1 FIX - Fake Review Prevention**: If the customer completes a Return/Refund after leaving a verified review, the "Verified Purchase" tag must be revoked. The Review Service MUST subscribe to the `returns.return.completed` event published by the Return Service to automatically strip the verified status and update the review metadata.
 
 ```mermaid
 sequenceDiagram

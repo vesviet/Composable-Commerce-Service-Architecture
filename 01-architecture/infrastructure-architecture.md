@@ -179,9 +179,10 @@ dapr:
   configuration:
     name: appconfig
     tracing:
-      samplingRate: "1"
+      samplingRate: "0.01" # 1% for Production (use "1" only for Dev/Staging to prevent storage overflow)
       zipkin:
-        endpointAddress: "http://jaeger-collector.infrastructure.svc.cluster.local:9411/api/v2/spans"
+        # Route through OTel Collector for tail-based sampling
+        endpointAddress: "http://otel-collector.infrastructure.svc.cluster.local:9411/api/v2/spans"
 ```
 
 ### **Dapr Sidecar Configuration**
@@ -541,7 +542,7 @@ argocd:
         namespace: infrastructure
       sync_policy:
         automated:
-          prune: true
+          prune: false  # Critical: Prevent accidental deletion of stateful workloads (e.g., databases)
           self_heal: true
           
   sync_waves:

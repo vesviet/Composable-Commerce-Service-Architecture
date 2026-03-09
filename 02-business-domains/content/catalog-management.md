@@ -314,12 +314,12 @@ CheckProductVisibility(productID, customerContext):
   3. Return visible: bool + reason: string
 ```
 
-### 6.2 Fail-Open Strategy
+### 6.2 Fail-Open vs Fail-Closed Strategy
 
-If any error occurs during rule fetch or evaluation → product is **visible** by default.
+If any error occurs during rule fetch or evaluation, the system applies a dual-strategy based on product classification:
 
-- **Rationale**: Availability over restriction for commerce
-- **Exception**: Age-restricted or compliance categories should consider fail-safe
+- **General Products (Fail-Open)**: Product is **visible** by default. Rationale: Availability over restriction for standard commerce.
+- **Restricted Products (Fail-Closed) [P1 FIX]**: If the product category has an `is_strictly_restricted` flag (e.g., alcohol, prescription drugs), the product is **hidden** by default if the rule engine fails. This ensures legal compliance and prevents underage or unauthorized purchases during system outages.
 
 ### 6.3 Integration with Search
 

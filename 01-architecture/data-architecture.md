@@ -13,7 +13,9 @@ Our data architecture follows the **Database-per-Service** pattern, ensuring dat
 ## 🏗️ Database Architecture Principles
 
 ### 1. **Database-per-Service Pattern**
-Each microservice has its own dedicated database:
+Each microservice has its own dedicated (logical) database:
+
+> **Note**: While logically isolated (21 separate DBs), in production these should be physically deployed on a smaller number of robust PostgreSQL Clusters using separate logical databases and strict user role isolation to optimize infrastructure costs and K8s overhead.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -434,11 +436,24 @@ CREATE TABLE event_outbox (
   event_type VARCHAR(100) NOT NULL,
   event_data JSONB NOT NULL,
   event_version INTEGER NOT NULL,
+  processed_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Index for event replay
+-- Index for event replay and worker polling
 CREATE INDEX idx_event_outbox_aggregate ON event_outbox(aggregate_id, event_version);
+CREATE INDEX idx_event_outbox_unprocessed ON event_outbox(created_at) WHERE processed_at IS NULL;
+
+-- Worker Polling Strategy (Best Practice)
+-- Use SKIP LOCKED to prevent DB locks when scaling workers horizontally.
+-- Backoff exponentially (e.g., 100ms -> 5s) if no events are found to reduce DB load.
+-- 
+-- SELECT id, event_type, event_data 
+-- FROM event_outbox 
+-- WHERE processed_at IS NULL 
+-- ORDER BY created_at ASC 
+-- LIMIT 100 
+-- FOR UPDATE SKIP LOCKED;
 ```
 
 ---

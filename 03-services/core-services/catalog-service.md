@@ -1022,6 +1022,13 @@ Admin → Gateway → Catalog Service
 
 ### P2 - Medium Priority Issues
 
+1. **Cache Stampede Prevention at DB Layer** 🔵
+   - **Issue**: Despite API Gateway having `singleflight`, internal gRPC calls directly to Catalog Service could bypass the gateway cache and cause a Cache Stampede when fetching high-traffic products (e.g., during Flash Sales) when Redis cache expires.
+   - **Impact**: Database exhaustion.
+   - **Location**: `internal/biz/product/` and `internal/data/redis/`
+   - **Fix**: Implement `golang.org/x/sync/singleflight` lock at the Repository/Biz layer for product fetching.
+   - **Status**: ❌ **PENDING**
+
 1. **Materialized View Refresh Scheduling** 🔵
    - **Issue**: Views refreshed every 5 minutes via cron, not event-driven
    - **Impact**: Stale statistics between refresh cycles

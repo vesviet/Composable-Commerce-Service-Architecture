@@ -1225,7 +1225,13 @@ func (uc *PaymentUsecase) checkRateLimits(ctx context.Context, customerID string
 
 ### 🟠 HIGH PRIORITY (P1)
 
-3. **Stub Repository Methods** 🟠
+3. **Data Masking Overkill** 🟠
+   - **Issue**: The `mask_sensitive_data()` DB trigger replaces the entire `card.last4` with `****`, which breaks UX since the frontend needs the last 4 digits to display the payment method. PCI DSS allows storing the last 4 digits.
+   - **Impact**: Poor User Experience, unable to identify card.
+   - **Fix**: Update the DB trigger to keep the Last 4 digits visible and only mask PAN/CVV if they ever hit the DB (though gateway tokens shouldn't contain them anyway).
+   - **Status**: ❌ **PENDING**
+
+4. **Stub Repository Methods** 🟠
    - **Issue**: Multiple repository methods return empty/nil without implementation
    - **Impact**: Payment listing, reconciliation, reporting broken
    - **Location**: `internal/repository/payment/payment.go`
@@ -1254,6 +1260,13 @@ func (uc *PaymentUsecase) checkRateLimits(ctx context.Context, customerID string
    - **Status**: ❌ **PENDING** - See TODO list
 
 ### 🟡 MEDIUM PRIORITY (P2)
+
+7. **Batch Scheduled Refund API Limits** 🔵
+   - **Issue**: Cronjob processing batch refunds can hit Payment Provider rate limits (e.g., Stripe's 100 req/sec limit).
+   - **Impact**: Failed refunds due to 429 Too Many Requests from Gateways.
+   - **Location**: `internal/job/refund.go`
+   - **Fix**: Implement Token Bucket rate limiting (or Asynq queue rate limiting) for background refund workers instead of processing unlimited loops.
+   - **Status**: ❌ **PENDING**
 
 7. **COD Availability Check** 🟡
    - **Issue**: COD availability not checked via shipping service

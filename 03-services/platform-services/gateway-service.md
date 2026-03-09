@@ -379,6 +379,25 @@ routing:
 
 ## 🚨 Known Issues & TODOs
 
+### P0 - Blocking Issues
+
+1. **Rate Limiter Configuration Mismatch** 🔴
+   - **Issue**: The configuration `rate_limit: enabled` is still active in `gateway.yaml` but the middleware implementation was removed in v1.1.12, meaning the gateway might be running without rate limiting.
+   - **Impact**: API Gateway is completely vulnerable to volumetric DoS/DDoS attacks and brute force.
+   - **Fix**: Verify and restore a Redis-backed Rate Limiter middleware in the Wire DI chain.
+
+2. **Logout CSRF Vulnerability** 🔴
+   - **Issue**: `/api/v1/auth/logout` is listed as a CSRF Exempt Path. This allows attackers to force users to log out via cross-site requests (DoS).
+   - **Impact**: Degraded UX and potential chain of other attacks.
+   - **Fix**: Remove `/api/v1/auth/logout` from CSRF exemptions. Logout MUST require a valid CSRF token.
+
+### P1 - High Priority Issues
+
+1. **Warehouse Detection Boundary Violation** 🟡
+   - **Issue**: The gateway implements "Location-based routing for warehouse operations", mixing domain-specific logic (shipping/warehouse location) into the API Gateway.
+   - **Impact**: Tight coupling, violation of Clean Architecture / Microservice boundaries.
+   - **Fix**: Move location-based warehouse selection logic down to the Checkout or Fulfillment Service. Gateway should only route by HTTP URI/Resource.
+
 ### Enhancement Opportunities
 - [ ] Implement response compression (gzip)
 - [ ] Add GraphQL support for complex aggregation queries

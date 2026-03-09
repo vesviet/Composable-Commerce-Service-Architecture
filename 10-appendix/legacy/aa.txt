@@ -85,3 +85,7 @@ Let's plan the remaining parts.
 follow skill review service và helpme update for common-operations
 
 follow skill write-tests và helpme update testcase for customer
+
+follow skill commit, commit và push
+
+tổ chức Meeting Review 50 round chuyên sâu cho

@@ -51,11 +51,11 @@ The current architecture uses a direct-call pattern to trigger notifications.
 
 ## Identified Issues & Gaps
 
-### P1 - Concurrency / Reliability: Unmanaged Goroutine for Sending
+### P0 - Concurrency / Reliability: Unmanaged Goroutine for Sending (CRITICAL)
 
-- **Issue**: The `notification` service uses a "fire and forget" approach by launching an unmanaged goroutine to send the notification. 
+- **Issue**: The `notification` service uses a "fire and forget" approach by launching an unmanaged goroutine (`go func()`) to send the notification. 
 - **Impact**: This provides no guarantee of delivery. If the application crashes after the API call returns but before the goroutine completes, the notification is lost forever. There is no built-in mechanism for retrying failed sends.
-- **Recommendation**: Replace the goroutine with a durable job queue. The `SendNotification` API should only be responsible for creating the `Notification` record. A separate, persistent background worker should poll the database for `pending` notifications, attempt to send them, and implement a retry strategy with exponential backoff for transient failures.
+- **Recommendation**: Replace the goroutine with a persistent Message Queue (e.g., Asynq backed by Redis, or Dapr Pub/Sub bindings). The `SendNotification` API should only enqueue the job. A background worker will then process the queue, ensuring reliable delivery with retries and exponential backoff.
 
 ### P2 - Architecture: Tightly Coupled Integration
 

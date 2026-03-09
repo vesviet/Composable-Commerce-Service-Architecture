@@ -1,152 +1,96 @@
-# AGENT-16: Order Lifecycle Flows — Hardening P1 Issues
+# AGENT-16: Order Lifecycle Hardening
 
-> **Created**: 2026-03-08  
-> **Updated**: 2026-03-09 (All P1 verified, all P2 resolved)  
-> **Priority**: P1 (Fix In Sprint)  
-> **Sprint**: Tech Debt Sprint  
-> **Service**: `order`  
-> **Estimated Effort**: 3 days  
-> **Status**: ✅ ALL ISSUES RESOLVED  
-> **Source**: [4-Agent Order Lifecycle Review](file:///Users/tuananh/.gemini/antigravity/brain/e6ec6d1b-0796-4ea8-ab73-04c9d68be148/order_lifecycle_review.md)
+> **Created**: 2026-03-09
+> **Priority**: P0 (2), P1 (1), P2 (1)
+> **Sprint**: Tech Debt Sprint
+> **Services**: `order`, `fulfillment`
+> **Estimated Effort**: 3 days
+> **Source**: [10-Round Order Lifecycle Flows Meeting Review](file:///Users/tuananh/.gemini/antigravity/brain/1c5f3407-0d62-454d-a4b8-5f2e02595222/artifacts/order_lifecycle_meeting_review.md)
 
 ---
 
 ## 📋 Overview
 
-Order Lifecycle domain review phát hiện **7 P1** và **4 P2** issues. Không có P0 — release approved.
-
-> **Clean Summary (2026-03-09)**: Tất cả 7 P1 tasks đã verified implemented. Tất cả 4 P2 đã resolved.
+Đóng gói các issue phát hiện từ phiên họp review Order Lifecycle Flows tập trung vào xử lý lỗi nghiêm trọng P0 Phantom Stock trong hàm CancelOrder, và sửa lỗi trùng lặp/sai lệch trạng thái Saga ở quá trình xử lý Capture Payment. Khắc phục thêm các rủi ro Auto-Complete và làm sạch cấu trúc Dapr topic.
 
 ---
 
-## ✅ RESOLVED / FIXED
+## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [FIXED ✅] Task 1: Fix `"completed"` String Literal → Use Constant
+### [ ] Task 1: Fix Phantom Stock Leak in `CancelOrder` (Order Service)
 
-**File**: `order/internal/biz/order/update.go` — Lines 47, 87-89  
-**Verified**: `grep -rn '"completed"' order/internal/biz/order/update.go` → **0 results**  
-**Current code**: Uses `constants.OrderStatusCompleted` at both locations. Prometheus label fixed (`completed` not `delivered`).
+**File**: `order/internal/biz/order/cancel.go`
+**Focus**: Dòng xử lý khi `releaseErr` chứa `"not active"`
 
----
-
-### [FIXED ✅] Task 2: Fix `rollbackReservationsMap` — Add Retry + DLQ
-
-**File**: `order/internal/biz/order/reservation.go` — Lines 53-63  
-**Verified**: Uses `releaseReservationWithRetry(ctx, resID, 3)` + `writeReservationReleaseDLQ` — consistent with `cancel.go` pattern. No more `_ =` silent error discard.
+**Requirements**:
+- Hàm `CancelOrder` hiện tại có fallback: nếu `ReleaseReservation` trả về lỗi "not active" (đã trả hàng/giao hàng thành công), nó lập tức gọi `RestockItem` để nạp kho lại.
+- **Lỗi**: Nếu một lần Retry của Dapr gọi lại CancelOrder do DB Update bị timeout, nó gặp lỗi "not active" (do lần trước THỰC SỰ ĐÃ giải phóng thành công), sau đó nó mù quáng gọi `RestockItem`, vô tình in ra x2 tồn kho ảo.
+- **Solution**: Xóa bỏ cụm logic "blind fallback" gọi `RestockItem`. Chỉ gọi `RestockItem` nếu chắc chắn Reservation đó "không còn active" VÀ đơn hàng đã THỰC SỰ chuyển sang Fulfillment chứ không phải bị retry.
+- Tốt nhất: Check kỹ trạng thái Fulfillment của đơn hàng trước khi Restock. Nếu order chưa có Fulfillment, việc `"not active"` đồng nghĩa với ĐÃ RELEASE THÀNH CÔNG, KHÔNG ĐƯỢC RESTOCK.
 
 ---
 
-### [FIXED ✅] Task 3: Fix ProcessShipment Atomicity — Over-Ship Guard Before Save
+### [ ] Task 2: Fix Saga State Divergence Post-Capture (Order Service)
 
-**File**: `order/internal/biz/order/shipment.go`  
-**Verified**: Over-ship guard (lines 115-130) now runs **before** `CreateShipment` (line 133). Correct order:
-1. Map items + calculate quantities (lines 60-105)
-2. Calculate totalShipped including new shipment (lines 107-115)
-3. Over-ship guard → rejects before persisting (lines 117-130)
-4. Save shipment (line 133)
-5. Calculate aggregate status + update order (lines 135-183)
+**File**: `order/internal/data/eventbus/payment_consumer.go`
+**Focus**: `processPaymentCaptureRequested`
 
----
-
-### [FIXED ✅] Task 4: Fix ShippingConsumer — Accept Delivery from `partially_shipped`
-
-**File**: `order/internal/data/eventbus/shipping_consumer.go` — Line 129  
-**Verified**: Uses `deliverableStatuses` map with both `OrderStatusShipped` and `OrderStatusPartiallyShipped`.
+**Requirements**:
+- Khi `CapturePayment` thành công nhưng `orderRepo.Update()` bị lỗi, Event sẽ bị báo lỗi và redeliver.
+- Ở lần Retry, hệ thống THU THẦN gửi lại Request `CapturePayment` lên Gateway/Payment Service một lần nữa, đây là cực kỳ nguy hiểm.
+- **Solution**: Thêm một bước kiểm tra trạng thái capture trước khi gọi `CapturePayment`. Tra cứu Payment qua RPC xem authorization_id này đã thực sự bị capture hay chưa. Nếu Payment Gateway báo "Đã Capture", bỏ qua bước `CapturePayment` và ngay lập tức update DB Order thành `captured`.
 
 ---
 
-### [FIXED ✅] Task 5: Implement Order Auto-Completion Worker
+## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-**Files**:
-- `order/internal/worker/cron/completion_worker.go` — 90 lines
-- `order/internal/worker/cron/completion_worker_test.go`
-**Verified**: Worker uses `FindDeliveredBefore(ctx, cutoff, 100)`, batch processes up to 100 orders per cycle. Return window configurable via `ORDER_RETURN_WINDOW_DAYS` env var (default: 14 days). Runs hourly with `RunOnStart(true)`.
+### [ ] Task 3: Verify Payment Status before Auto-Complete (Fulfillment Service)
 
----
+**File**: `fulfillment/internal/worker/cron/auto_complete.go` (hoặc chức năng tương tự quét auto-completion)
+**Focus**: `AutoCompleteShippedWorker`
 
-### [FIXED ✅] Task 6: Fix Zero-Amount Guard Silent Update Error
-
-**File**: `order/internal/data/eventbus/payment_consumer.go` — Line 243  
-**Verified**: Uses `if updateErr := c.orderRepo.Update(...)` with `[DATA_CONSISTENCY]` error logging. No more `_ =` discard.
+**Requirements**:
+- Worker hiện tại dựa vào ngày ship (7 ngày) để auto-complete, nhưng KHÔNG check tình trạng bắt giữ tiền (`PaymentSagaState == captured` / `PaymentStatus == completed`).
+- **Lỗi**: Nếu đơn hàng COD hoặc Digital ship nhanh, nhưng tiền chưa thực thu, hệ thống Complete order sẽ mở khóa Escrow cho seller, trong khi sàn chưa nhận được tiền.
+- **Solution**: Khi `AutoCompleteShippedWorker` muốn đổi Order status thành Complete, cần verify `PaymentStatus == completed` của Order. Nếu chưa capture tiền, Skip!
 
 ---
 
-### [FIXED ✅] Task 7: Add Timeout to `validateStockForOrder`
+## 🔵 Checklist — P2 Issues (Nice To Have)
 
-**File**: `order/internal/data/eventbus/payment_consumer.go` — Line 266  
-**Verified**: Uses `context.WithTimeout(ctx, timeout)` with configurable timeout value.
+### [ ] Task 4: Dapr Topic Refactoring for Capture Requested
 
----
+**File**: `order/internal/biz/order/process.go` hoặc luồng phát sinh request capture
+**Focus**: Consolidate `orders.payment.capture_requested`
 
-### [FIXED ✅] Task 8 (P2): Unify Status Transition Validation
-
-**File**: `order/internal/biz/order/status_helpers.go`  
-**Verified**: `isValidStatusTransition` now delegates to `statusUtil.ValidateStatusTransition` from `common/utils/status` package. Single source of truth using `constants.OrderStatusTransitions` map. No more duplicate `canTransitionTo` package function.
-
----
-
-### [FIXED ✅] Task 9 (P2): Remove PascalCase Legacy Decode in `shipping_consumer.go` ✅ IMPLEMENTED
-
-**File**: `order/internal/data/eventbus/shipping_consumer.go` — Line 22  
-**Risk**: Low. The misleading comment claimed PascalCase support, but Go's `encoding/json` only unmarshals based on struct tags (which are all snake_case).
-**Solution Applied**: Removed the inaccurate comment about PascalCase support. The struct only uses `json:"snake_case"` tags — there was never actual PascalCase decoding logic, only a misleading comment.
-
-```go
-// BEFORE:
-// Uses snake_case for consistency with other events, but supports PascalCase from legacy publishers
-
-// AFTER:
-// Matches the ShipmentEvent payload from the shipping service (snake_case encoding)
-```
-
-**Files Modified**: `order/internal/data/eventbus/shipping_consumer.go`
-**Validation**:
-```bash
-cd order && go build ./...                       # ✅
-cd order && golangci-lint run --tests=false ./... # ✅
-```
-
----
-
-### [FIXED ✅] Task 10 (P2): Migrate `float64` → Decimal Money Fields
-
-**Handled by**: AGENT-22-DECIMAL-MONEY-MIGRATION.md (separate, cross-service initiative).
-
----
-
-### [FIXED ✅] Task 11 (P2): Add `validateStockForOrder` Timeout Configurable via AppConfig ✅ IMPLEMENTED
-
-**File**: `order/internal/data/eventbus/payment_consumer.go` — Lines 262-265  
-**Risk**: Low. Already implemented — timeout was already configurable.
-**Solution Applied**: Verified that the timeout is already configurable via `config.Business.Payment.ValidateStockTimeoutSeconds` (config.go L99). The config field uses `mapstructure:"validate_stock_timeout_seconds"` which maps to env var `STOCK_VALIDATION_TIMEOUT_SECONDS`. Default is 5 seconds.
-
-```go
-// payment_consumer.go L262-265 — already configurable
-timeout := 5 * time.Second
-if c.config != nil && c.config.Business.Payment.ValidateStockTimeoutSeconds > 0 {
-    timeout = time.Duration(c.config.Business.Payment.ValidateStockTimeoutSeconds) * time.Second
-}
-```
-
-**Validation**: Already verified in prior review. No changes needed.
+**Requirements**:
+- Gửi trực tiếp Outbox Event `payment.capture_requested` tới Payment thay vì tự subscribe chính mình rồi gọi qua gRPC, để hệ thống gọn gàng hơn.
 
 ---
 
 ## 🔧 Pre-Commit Checklist
 
 ```bash
-cd order && wire gen ./cmd/order/ ./cmd/worker/    # ✅
-cd order && go build ./...                          # ✅
-cd order && golangci-lint run --tests=false ./...   # ✅
+cd order && wire gen ./cmd/order/ ./cmd/worker/
+cd order && go build ./...
+cd order && go test -race ./...
+
+cd fulfillment && wire gen ./cmd/fulfillment/ ./cmd/worker/
+cd fulfillment && go build ./...
+cd fulfillment && go test -race ./...
 ```
 
 ---
 
-## 📊 Final Status
+## 📝 Commit Format
 
-| Category | Count | Status |
-|---|---|---|
-| P1 Issues | 7/7 | ✅ All Fixed |
-| P2 Issues | 4/4 | ✅ All Fixed |
-| Tests | Build passes | ✅ Verified |
-| Build | Clean | ✅ Verified |
+```text
+fix(order): resolve phantom inventory and payment saga bugs (AGENT-16)
+
+- fix(cancel): remove greedy RestockItem on missing reservation
+- fix(saga): verify gateway capture state on retry in payment consumer
+- feat(fulfillment): guard AutoComplete shipped orders with payment check
+- refactor: streamline payment capture topic routing
+
+Closes: AGENT-16
+```
