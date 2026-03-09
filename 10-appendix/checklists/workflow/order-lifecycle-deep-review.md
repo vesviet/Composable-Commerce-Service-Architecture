@@ -1,238 +1,208 @@
 # Order Lifecycle Flows — Business Logic Review Checklist
 
-**Date**: 2026-02-25 (v2 — full re-verification)
+**Date**: 2026-03-07 (v5 — all P0/P1/P2 fixes applied)
 **Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + codebase deep-dive)
 **Scope**: `order/`, `fulfillment/`, `payment/`, `warehouse/`, `shipping/`, `return/`, `checkout/`, `loyalty-rewards/`, `promotion/` — event coordination, saga, outbox, GitOps
 **Reference**: `docs/10-appendix/ecommerce-platform-flows.md` §6 (Order Lifecycle)
+**Previous Version**: `order-lifecycle-deep-review.md` (v4, 2026-03-07)
 
 ---
 
-## 📊 Summary
+## 📊 Summary (v4 Snapshot — 2026-03-07)
 
-| Category | Status |
-|----------|--------|
-| 🔴 P0 — Critical (data loss / financial risk) | **10 FIXED** ✅ |
-| 🟡 P1 — High (reliability) | **16 FIXED** ✅ + **1 ACCEPTED RISK** |
-| 🔵 P2 — Medium (edge case / observability) | **9 open (monitor/document)** + **1 FIXED** |
-| ✅ Verified Working | 40+ areas |
+| Category | Count | Status |
+|----------|-------|--------|
+| 🔴 P0 — Fixed this session (v5) | **2** | ✅ FIXED |
+| 🟡 P1 — Fixed this session (v5) | **3** | ✅ FIXED |
+| 🔵 P2 — Fixed this session (v5) | **3** | ✅ FIXED |
+| 🔴 P0 — Previously fixed (v3) | 1 (P0-2025-01) | ✅ |
+| 🟡 P1 — Previously fixed (v3) | 4 (P1-2025-01..04) | ✅ |
+| 🔵 P2 — Previously fixed (v3) | 8 | ✅ |
+| ✅ Verified Working | 50+ areas | — |
 
 ---
 
-## 🔴 NEW P0 — CRITICAL
+## ✅ P0 — CRITICAL (FIXED in v5)
 
-## 🔴 P0-2025-01: Loyalty Service Topic Mismatch ✅ FIXED
+### P0-2026-01: Payment Service Subscribes to Dead Topic `orders.order.completed`
 
-**Impact**: Loyalty points are **NEVER awarded** on order completion and **NEVER reversed** on order cancellation. Financial and customer trust risk.
+**Impact**: Escrow release and seller payout are **NEVER triggered** by event. Financial risk — sellers never receive payment.
 
 **Root Cause**:
-- Loyalty worker subscribes to `orders.order.completed` and `orders.order.cancelled` (file: `loyalty-rewards/internal/worker/event/consumer.go:72-79`)
-- Dapr subscription YAML confirms: `dapr-subscription.yaml` routes `orders.order.completed` and `orders.order.cancelled`
-- **BUT** the Order service only publishes `orders.order.status_changed` via outbox (`order/internal/biz/order/events.go:112`, `cancel.go:120`, `create.go:126`)
-- `PublishOrderCompleted()` and `PublishOrderCancelled()` methods **exist** in `events/publisher.go:78,88` but are **NEVER called** from any business logic — they only appear in test mocks
-- The `saveStatusChangedToOutbox()` writes ALL status changes to topic `orders.order.status_changed` only
+- Payment worker registers `OrderCompletedConsumer.ConsumeOrderCompleted()` → subscribes to topic `orders.order.completed`
+- Order service **ONLY** publishes `orders.order.status_changed` via outbox (`saveStatusChangedToOutbox`)
+- `PublishOrderCompleted()` was confirmed as dead code and **removed** in v1.1.9
+- The `orders.order.completed` topic is **NEVER published** by any service
+- `TopicOrderCompleted` constant still exists in `order/internal/constants/constants.go:14` but is unused in publishing
 
 **Evidence**:
 ```
-// Order publishes:
-Topic: "orders.order.status_changed" (outbox, always)
+// Payment subscribes to:
+Topic: "orders.order.completed" ← NEVER published by any service
 
-// Loyalty subscribes to:
-Topic: "orders.order.completed"  ← NEVER published
-Topic: "orders.order.cancelled"  ← NEVER published
+// Order only publishes:
+Topic: "orders.order.status_changed" (via outbox, always)
 ```
-
-**Fix Options**:
-1. **Option A (Recommended)**: Change Loyalty to subscribe to `orders.order.status_changed` and filter by `new_status == "delivered"/"completed"` for points award, and `new_status == "cancelled"` for points reversal. This aligns with how Promotion service works.
-2. **Option B**: Add outbox events in `UpdateOrderStatus` that publish BOTH `orders.order.status_changed` AND the specific `orders.order.completed`/`orders.order.cancelled` topics when the status is `delivered`/`cancelled`. This is the fan-out pattern.
 
 **Affected Files**:
-- `loyalty-rewards/internal/worker/event/consumer.go` — change topic subscriptions
-- `loyalty-rewards/internal/worker/event/order_events.go` — update event struct to match `OrderStatusChangedEvent`
-- `gitops/apps/loyalty-rewards/base/dapr-subscription.yaml` — update topics
-- `order/internal/events/publisher.go` — remove dead `PublishOrderCompleted`/`PublishOrderCancelled` methods (cleanup)
+- `payment/internal/data/eventbus/order_completed_consumer.go` — change topic to `orders.order.status_changed`, filter by `new_status == "delivered"/"completed"`
+- `payment/internal/worker/event/event_consumer_worker.go` — update registration
+- `gitops/apps/payment/base/` — add Dapr subscription YAML if needed (currently missing)
+
+**Fix**: ✅ **FIXED** — Merged `OrderCompletedConsumer` + `OrderConsumer` → unified `OrderStatusChangedConsumer` subscribing to `orders.order.status_changed`, routing by `new_status`:
+- `cancelled` → void payments
+- `delivered`/`completed` → escrow release
+- Added `GormIdempotencyHelper` with key `payment_order_status:{orderID}_{newStatus}`
+- Deleted `order_completed_consumer.go` and `order_consumer.go`
+- Wire regenerated, `go build ./...` clean
+- GitOps: `dapr-subscription.yaml` created with `orders.order.status_changed` + `orders.return.completed`
 
 ---
 
-## 🟡 NEW P1 — HIGH
+### P0-2026-02: Payment Service Subscribes to Dead Topic `orders.order.cancelled`
 
-### P1-2025-01: Promotion Worker Missing `startupProbe` + Config Volume
+**Impact**: Payment void on order cancellation is **NEVER triggered** by event. Authorized payments remain held on customer cards indefinitely.
 
-**Impact**: Promotion worker may be killed during slow startup; config file not mounted.
+**Root Cause**:
+- Payment worker registers `OrderConsumer.ConsumeOrderCancelled()` → subscribes to topic `orders.order.cancelled`
+- Order `cancel.go:120` calls `saveStatusChangedToOutbox()` with status `"cancelled"` → writes to `orders.order.status_changed`, NOT `orders.order.cancelled`
+- `PublishOrderCancelled()` was confirmed as dead code and **removed** in v1.1.9
+- Zero grep results for `HandleOrderCancelled` or `TopicOrderCancelled` being used in order's internal publishing logic
 
-**Current State** (`gitops/apps/promotion/base/worker-deployment.yaml`):
-- ❌ No `startupProbe` — K8s may kill pod during slow init
-- ❌ No `volumeMounts` / `volumes` for config file — command `exec /app/bin/worker -conf /app/configs/config.yaml` will fail if config isn't mounted
-- ❌ Probes use HTTP `:8081` — verify worker binary actually serves HTTP health on that port
-- ❌ Dapr `app-port: "8081"` + `app-protocol: "http"` — promotion worker event consumers use gRPC-based common library
+**Evidence**:
+```
+// Payment subscribes to:
+Topic: "orders.order.cancelled" ← NEVER published by Order service
 
-**Fix**: Add `startupProbe` (gRPC :5005), `volumeMounts`/`volumes` for `promotion-config`, switch Dapr to `app-protocol: "grpc"` if worker uses gRPC event server.
-
----
-
-### P1-2025-02: Loyalty Worker Missing Config Volume Mount
-
-**Impact**: Worker command `exec /app/bin/worker -conf /app/configs/config.yaml` won't find config file.
-
-**Current State** (`gitops/apps/loyalty-rewards/base/worker-deployment.yaml`):
-- ❌ No `volumeMounts` / `volumes` for config file
-- ✅ Has `startupProbe` (tcpSocket :9014) — OK
-- ⚠️ `livenessProbe` / `readinessProbe` use `kill -0 1` — not a real health check (only checks if PID 1 exists)
-- ⚠️ `secretRef: loyalty-rewards` — should be `loyalty-rewards-secrets` for naming consistency
-
-**Fix**: Add `volumeMounts`/`volumes` for `loyalty-rewards-config` ConfigMap at `/app/configs`.
-
----
-
-### P1-2025-03: Promotion `HandleOrderStatusChanged` Missing Idempotency
-
-**Impact**: Duplicate Dapr delivery will call `ReleasePromotionUsage` or `ConfirmPromotionUsage` twice. Could double-release promo quotas.
-
-**Current State** (`promotion/internal/data/eventbus/order_consumer.go:73-109`):
-- ❌ No `idempotencyHelper.CheckAndMark()` wrapper
-- `ReleasePromotionUsage` — if called twice, may incorrectly double-decrease usage count
-- `ConfirmPromotionUsage` — if called twice, second call is likely a no-op (depends on implementation)
-
-**Fix**: Add `IdempotencyHelper` field, wrap `HandleOrderStatusChanged` with `CheckAndMark` using key `DeriveEventID("order_status_changed", orderID + "_" + newStatus)`.
-
----
-
-### P1-2025-04: `publishStockCommittedEvent` Called Outside Transaction
-
-**Impact**: If `outboxRepo.Save` succeeds but the caller (`ConfirmOrderReservations`) is called from a context where it's expected to be transactional, the stock committed event could be saved even if the parent operation fails.
-
-**Current State** (`order/internal/biz/order/create.go:366-369`):
-- `publishStockCommittedEvent` saves to outbox but is called AFTER the loop that confirms individual reservations
-- If it fails, the error is logged but not returned (fire-and-forget with CRITICAL log)
-- This is documented as acceptable risk, but the outbox save is **outside any transaction** — the ConfirmOrderReservations is called from `processPaymentConfirmed` which runs inside an event handler, not inside `tm.WithTransaction`
-
-**Accepted Risk**: Log-only failure is intentional (stock is already committed). But the outbox event may be orphaned if the DB connection drops between the confirm loop and the save.
-
----
-
-## 🔵 NEW P2 — MEDIUM
-
-### P2-2025-01: Warehouse `StockCommittedConsumer` is Audit-Only (No Action)
-
-**Status**: ⚠️ By design — `processStockCommitted()` only logs. No actual reconciliation logic.
-
-**Current State** (`warehouse/internal/data/eventbus/stock_committed_consumer.go:112-119`):
-```go
-func (c StockCommittedConsumer) processStockCommitted(ctx context.Context, event *stockCommittedEvent) error {
-    for _, item := range event.Items {
-        c.log.WithContext(ctx).Infof("Stock committed: ...")
-    }
-    return nil
-}
+// Order publishes on cancel:
+cancel.go:120 → saveStatusChangedToOutbox(txCtx, order, oldStatus, "cancelled", req.Reason)
+→ Topic: "orders.order.status_changed" (not orders.order.cancelled)
 ```
 
-**Recommendation**: Implement actual reconciliation — compare committed quantities against warehouse stock records to detect discrepancies.
+**Affected Files**:
+- `payment/internal/data/eventbus/order_consumer.go` — change topic to `orders.order.status_changed`, filter by `new_status == "cancelled"`
+- `payment/internal/worker/event/event_consumer_worker.go` — update registration
+- `gitops/apps/payment/base/` — add Dapr subscription YAML
+
+**Fix**: ✅ **FIXED** — Same unified consumer as P0-2026-01. `OrderStatusChangedConsumer.HandleOrderStatusChanged()` filters `new_status == "cancelled"` and calls `voidAuthorizedPayments()`. Old `OrderConsumer` deleted.
+
+> [!CAUTION]
+> **Both P0-2026-01 and P0-2026-02** are the exact same class of bug as the previously fixed P0-2025-01 (Loyalty dead topic). The fix pattern is identical: subscribe to `orders.order.status_changed` and filter by `new_status`. This needs to be applied to ALL consumers of specific order lifecycle events.
 
 ---
 
-### P2-2025-02: Dead Code — `PublishOrderCompleted` and `PublishOrderCancelled` Never Called
+## ✅ P1 — HIGH (FIXED in v5)
 
-**Status**: Code hygiene issue. Methods exist in `events/publisher.go:78,88` and the interface, but are never invoked from business logic. All status changes go through `saveStatusChangedToOutbox` → topic `orders.order.status_changed`.
+### P1-2026-01: Order Status `completed` Not Reachable from `delivered`
 
-**Recommendation**: After fixing P0-2025-01, either:
-- Remove these methods if Option A (change loyalty to subscribe to `status_changed`) is chosen
-- Wire them up if Option B (fan-out publish) is chosen
+**Impact**: Orders can never reach `completed` status. Per Shopify/Shopee pattern (§6.6), delivered orders should auto-complete after N days (escrow release, loyalty points, review trigger).
 
----
-
-### P2-2025-03: Loyalty Worker Dapr App Port Mismatch Risk
-
-**Status**: `dapr.io/app-port: "9014"` in worker deployment, but common events library uses gRPC server on port 5005 by default. If the loyalty worker uses `events.NewConsumerClientWithLogger` (which creates a gRPC server on :5005), the Dapr sidecar won't route events to it because it's configured to send to :9014.
-
-**Current State** (`loyalty-rewards/internal/worker/event/consumer.go:32`):
+**Current State** (`order/internal/constants/constants.go:181`):
 ```go
-client, err := events.NewConsumerClientWithLogger(logger)
+OrderStatusDelivered: {OrderStatusPartiallyReturned, OrderStatusReturned, OrderStatusRefunded},
 ```
-- This creates a gRPC server — need to verify what port it listens on
-- Worker deployment has `containerPort: 9014` and `dapr.io/app-port: "9014"`
-- If client library defaults to :5005, events won't be delivered
+- ❌ `"completed"` is NOT in the allowed transitions from `delivered`
+- ❌ No `OrderStatusCompleted` constant defined (only `OrderStatusDelivered`)
+- Fulfillment `AutoCompleteShippedWorker` marks fulfillment as completed → triggers `fulfillments.fulfillment.status_changed` → mapped to order `shipped`, NOT `completed`
 
-**Recommendation**: Verify the port mapping. If using common library default, Dapr should target :5005.
+**Fix**: ✅ **FIXED** — Added `OrderStatusCompleted = "completed"` constant and added `OrderStatusCompleted` to `OrderStatusTransitions[OrderStatusDelivered]`. Also added to `StatusHierarchy` as terminal (`-1`). Removed dead constants `TopicOrderCompleted`/`TopicOrderCancelled` and dead event types. `go build ./...` clean.
 
 ---
 
-## ✅ Previously Fixed (All Prior P0s + Prior P1s)
+### P1-2026-02: Loyalty Dapr Subscription YAML Missing `orders.return.completed`
+
+**Impact**: Loyalty worker code subscribes to `orders.return.completed` via `ConsumeReturnCompleted()` (for points clawback on return), but the GitOps Dapr subscription YAML does NOT declare this topic. Event delivery depends on runtime programmatic subscription working correctly — no YAML-level routing guarantee.
+
+**Current State**:
+- `loyalty-rewards/internal/worker/event/consumer.go:64-74` — code calls `AddConsumerWithMetadata("orders.return.completed", ...)` ✅
+- `gitops/apps/loyalty-rewards/base/dapr-subscription.yaml` — only 3 topics: `customer.created`, `orders.order.status_changed`, `customer.deleted` ❌
+- Missing subscription for `orders.return.completed`
+- Also missing DLQ subscription `orders.return.completed.dlq` in YAML
+
+**Fix**: ✅ **FIXED** — Added `loyalty-rewards-return-completed` subscription entry for `orders.return.completed` with DLQ `dlq.orders.return.completed` and `maxRetryCount: "3"` to `gitops/apps/loyalty-rewards/base/dapr-subscription.yaml`.
+
+---
+
+### P1-2026-03: Payment Worker Missing Dapr Subscription YAML
+
+**Impact**: Payment worker subscribes to 3 topics programmatically (`orders.return.completed`, `orders.order.cancelled`, `orders.order.completed`) but has NO `dapr-subscription.yaml` file in GitOps. Relies entirely on programmatic subscription via `AddConsumer()`.
+
+**Current GitOps** (`gitops/apps/payment/base/`):
+- ❌ No `dapr-subscription.yaml` present
+- Worker uses common template with HTTP health on `:8081` but patches to `dapr.io/app-port: "5005"` + `grpc`
+- The Dapr sidecar will deliver events to `:5005` (gRPC), but common template health probes use HTTP `:8081`
+- Health probes and Dapr port are correctly separated (Dapr uses app-port, probes use container port)
+
+**Fix**: ✅ **FIXED** — Created `gitops/apps/payment/base/dapr-subscription.yaml` with subscriptions for `orders.order.status_changed` and `orders.return.completed` (with DLQs and `maxRetryCount: "3"`). Added to `kustomization.yaml` resources.
+
+---
+
+## ✅ P2 — MEDIUM (FIXED in v5)
+
+### P2-2026-01: Payment `HandleOrderCancelled` Missing Idempotency Guard
+
+**Status**: ✅ **FIXED** — `OrderStatusChangedConsumer` includes `GormIdempotencyHelper` with `CheckAndMark` wrapping all handler logic. Idempotency key: `payment_order_status:{orderID}_{newStatus}`.
+
+---
+
+### P2-2026-02: Payment `HandleOrderCompleted` Missing Idempotency Guard
+
+**Status**: ✅ **FIXED** — Same idempotency helper as P2-2026-01, keyed on `payment_order_status:{orderID}_{newStatus}` where `newStatus` is `delivered` or `completed`.
+
+---
+
+### P2-2026-03: Dead Constants — `TopicOrderCompleted` / `TopicOrderCancelled`
+
+**Status**: ✅ **FIXED** — Removed `TopicOrderCompleted`, `TopicOrderCancelled` from `order/internal/constants/constants.go`. Removed `EventTypeOrderCompleted`, `EventTypeOrderCancelled`. Removed backward-compat re-exports and dead event structs (`OrderCompletedEvent`, `OrderCancelledEvent`) from `order/internal/events/order_events.go`. `go build ./...` clean.
+
+---
+
+## ✅ Previously Fixed (All Prior P0s + P1s from v3)
 
 | ID | Issue | Fix Confirmed? |
 |----|-------|----------------|
-| OR-P0-01 | Order creation lacks transactional outbox | ✅ `create.go:77-134` wraps order + outbox in `tm.WithTransaction` |
-| OR-P0-02 | Double-confirmation of warehouse reservation at order creation | ✅ `create.go:210-219` removes `confirmOrderReservations` at creation; only confirmed on `payment.confirmed` |
-| ORD-P0-01/02 | Missing FulfillmentConsumer + wrong status mapping | ✅ `fulfillment.completed → "shipped"` confirmed |
-| OR-P1-01 | Order status transition validation | ✅ `canTransitionTo()` uses `constants.OrderStatusTransitions` |
-| OR-P1-02 | Cart cleanup worker missing | ✅ `order/internal/worker/cron/order_cleanup.go` operational |
-| PAY-P0-02 | Webhook idempotency missing | ✅ Redis state-machine idempotency service at `payment/internal/biz/webhook/handler.go:64-81` |
-| WH-P0-02 | FulfillReservation missing idempotency | ✅ Idempotency checks added in warehouse fulfillment handler |
-| FUL-P0-04/05 | Fulfillment events outside tx / batch picklist non-transactional | ✅ Both transactional outbox confirmed |
-| P1-5 (refund_restock) | DLQ missing `refund_restock` handler | ✅ `dlq_retry_worker.go:183` handles `refund_restock` case |
-| DLQ reservations | `release_reservations` DLQ lacked reservation IDs | ✅ `retryReleaseReservations()` reads from `CompensationMetadata["reservation_ids"]` |
-| COD pagination | COD auto-confirm used unbounded cursor | ✅ Offset-based pagination with `batchSize=100` |
-| Outbox worker PROCESSING | No atomic PROCESSING mark | ✅ `outbox/worker.go:118-122` marks PROCESSING before publish |
-| **NEW-P0-001** | `writeWarehouseDLQ` did not save reservation IDs | ✅ `payment_consumer.go:533-547` loads order items, populates `metadata["reservation_ids"]` |
-| **NEW-P0-002** | `processPaymentConfirmed` never called `confirmOrderReservations` | ✅ `payment_consumer.go:418` calls `c.orderUc.ConfirmOrderReservations(ctx, ord)` |
-| **OR-P0-04** | Stripe webhook signature validation missing | ✅ `payment/internal/biz/gateway/stripe.go` — `stripe.ValidateWebhookSignature` added |
-| **NEW-P1-001** | Worker health probes used HTTP `:8019` (no HTTP server in worker binary) | ✅ All 3 probes switched to `grpc: port: 5005` |
-| **NEW-P1-002** | COD auto-confirm had no auto-cancel for expired orders | ✅ `cod_auto_confirm.go` two-pass: confirm within 24h, cancel past window |
-| **NEW-P1-003** | `releaseWarehouseReservations` had no retry logic | ✅ `payment_consumer.go:468` — 3-retry with 100ms backoff per reservation |
-| **DLQ Drain topic drift** | DLQ drain consumer topics were hardcoded strings | ✅ Replaced with `fmt.Sprintf("%s.dlq", constants.TopicXxx)` |
-| **DLQ-SHIPPING-TOPIC** | DLQ drain slot 6 used wrong topic `TopicDeliveryConfirmed` | ✅ Fixed: slot 6 now uses `constants.TopicShipmentDelivered` |
-| **SHIPPING-CONSTANT** | `shipping_consumer.go:76` used bare string instead of constant | ✅ Added `constants.TopicShipmentDelivered` |
-| **RESERVATION-TTL-FALLBACK** | `reservation.go:35-40` silently fell back to no-TTL reservation | ✅ Removed fallback; both branches now fail-fast |
-| **P0-2024-01** | Return restock retry path — `return.restock_retry` outbox event has no consumer | ✅ **RESOLVED** — `return/internal/worker/compensation_worker.go` `ReturnCompensationWorker` polls outbox for `return.restock_retry` and `return.refund_retry`, retries warehouse/payment calls, updates return status on success |
-| **P0-2024-02** | Warehouse worker missing health probes + secret mount | ✅ GitOps FIXED |
-| **P1-2024-01** | Fulfillment worker GitOps startup probe + volume | ✅ FIXED |
-| **P1-2024-02** | Shipping `OrderCancelledConsumer` missing idempotency | ✅ FIXED |
-| **P1-2024-03** | Fulfillment auto-complete shipped cron | ✅ FIXED |
-| **P1-2024-04** | Fulfillment `OrderStatusConsumer` topic from config map key | ✅ FIXED — uses `constants.TopicOrderStatusChanged` |
-| **P1-2024-05** | Shipping worker missing `startupProbe` | ✅ FIXED |
-| **P1-2024-06** | Fulfillment `PicklistStatusConsumer` missing idempotency | ✅ FIXED |
-
----
-
-### OR-P0-03: Stock Reservation Created Outside Order Transaction *(Formally Accepted Risk)*
-
-**Status**: ✅ Option B accepted — `ReservationCleanupWorker` + TTL + `HandleReservationExpired` act as safety net.
-
-> Reservation flow confirmed updated: checkout now reserves with `payment-window TTL` at `ConfirmCheckout` step 6 (`confirm.go:405`), after payment auth, before order creation. If order creation fails, `RollbackReservationsMap` immediately releases all reserved stock. This is the correct Shopify/Shopee pattern.
+| **P0-2025-01** | Loyalty service topic mismatch (orders.order.completed/cancelled never published) | ✅ Loyalty now subscribes to `orders.order.status_changed` with `new_status` filter |
+| **P1-2025-01** | Promotion worker GitOps — startupProbe + volumeMounts + Dapr protocol | ✅ Fixed (common-worker-deployment-v2 + patch) |
+| **P1-2025-02** | Loyalty worker GitOps — config volumeMount | ✅ Fixed via kustomization patches |
+| **P1-2025-03** | Promotion `HandleOrderStatusChanged` — no idempotency | ✅ `GormIdempotencyHelper` added (commit `8837225`) |
+| **P1-2025-04** | `publishStockCommittedEvent` outside transaction — accepted risk | ✅ Documented |
+| **P2-2025-01** | `StockCommittedConsumer` audit-only | ✅ `StockReconciliationJob` added |
+| **P2-2025-02** | Dead code `PublishOrderCompleted`/`PublishOrderCancelled` methods | ✅ Removed from publisher.go |
+| **P2-CANCEL-QUERY** | `ReservationCleanupJob` unbounded query | ✅ Cursor-based pagination |
+| **P2-FULFILLED-IDEM** | `ShipmentDeliveredConsumerWorker` no idempotency | ✅ GormIdempotencyHelper added |
+| **No HPA for workers** | Order, warehouse, fulfillment workers missing HPA | ✅ HPA added |
+| **SLA breach cron** | No SLA breach monitoring | ✅ `SLABreachDetectorJob` added |
+| **P2-SCHEMA-DRIFT** | No shared event schema registry | ⚠️ Accepted risk |
 
 ---
 
 ## 📋 Event Publishing Necessity Check
 
-### Services That NEED to Publish (✅ Justified)
+### Services That PUBLISH Events — Justified?
 
-| Service | Event | Consumers | Justification |
-|---------|-------|-----------|---------------|
-| Order | `orders.order.status_changed` (outbox) | Fulfillment, Notification, Analytics, Promotion, Warehouse | **Essential** — drives entire downstream order lifecycle |
-| Order | `inventory.stock.committed` (outbox) | Warehouse (audit-only), Analytics | **Essential** — stock audit trail |
-| Order | `orders.payment.capture_requested` | Payment consumer (self-loop via Dapr) | **Essential** — async capture for auth-and-capture flow |
-| Order | `orders.order.completed` | **🔴 DEAD — never published** | See P0-2025-01 |
-| Order | `orders.order.cancelled` | **🔴 DEAD — never published** | See P0-2025-01 |
-| Payment | `payments.payment.confirmed` | Order (confirm), Notification, Analytics | **Essential** |
-| Payment | `payments.payment.failed` | Order (cancel + release), Analytics | **Essential** |
-| Fulfillment | `fulfillments.fulfillment.status_changed` | Order (status update), Warehouse (stock deduct) | **Essential** |
-| Fulfillment | `fulfillment.picklist_status_changed` | Fulfillment self (worker) | **Essential** — internal picklist state machine |
-| Warehouse | `warehouse.inventory.reservation_expired` | Order (auto-cancel on TTL) | **Essential** — prevents ghost reservations |
-| Return | `return.restock_retry` (outbox) | ✅ `ReturnCompensationWorker` | **RESOLVED** |
-| Return | `return.refund_retry` (outbox) | ✅ `ReturnCompensationWorker` | **RESOLVED** |
-| Return | `return.completed` | Warehouse (restock items) | **Essential** |
-| Checkout | `checkout.cart.converted` (outbox) | Analytics, CRM | **Essential** — conversion funnel tracking |
+| Service | Event Topic | Consumers | Status |
+|---------|-------------|-----------|--------|
+| Order | `orders.order.status_changed` (outbox) | Fulfillment, Warehouse, Loyalty, Promotion, Notification | ✅ Essential |
+| Order | `inventory.stock.committed` (outbox) | Warehouse (audit → reconciliation) | ✅ Justified |
+| Order | `orders.payment.capture_requested` | Order self-loop (Dapr consumer) | ✅ Essential |
+| Order | `orders.return.*` (requested/approved/rejected/completed) | Warehouse, Payment, Fulfillment | ✅ Essential |
+| Payment | `payment.payment.processed` | Order | ✅ Essential |
+| Payment | `payment.payment.failed` | Order | ✅ Essential |
+| Payment | `payment.payment.refunded` | Order | ✅ Essential |
+| Fulfillment | `fulfillments.fulfillment.status_changed` (outbox) | Order, Warehouse | ✅ Essential |
+| Fulfillment | `fulfillment.picklist_status_changed` | Fulfillment (self-loop) | ✅ Essential |
+| Fulfillment | `fulfillment.package_status_changed` | Shipping | ✅ Essential |
+| Warehouse | `warehouse.inventory.reservation_expired` | Order | ✅ Essential |
+| Shipping | `shipping.shipment.delivered` | Order, Fulfillment | ✅ Essential |
+| Promotion | — | — | N/A — consumer only |
+| Loyalty | — | — | N/A — consumer only |
 
-### Services That Subscribe But Might Not Need To (🔶 Review)
+### Dead Topics Still Defined
 
-| Service | Subscription | Verdict |
-|---------|-------------|---------|
-| Order | `orders.payment.capture_requested` (self-loop) | ✅ Correct pattern for 2-step auth-capture; COD correctly skipped |
-| Order | `warehouse.inventory.reservation_expired` | ✅ Correct — auto-cancels order when reservation TTL expires |
-| Order | `shipping.shipment.delivered` | ✅ Correct — sets order status to "delivered" |
-| Fulfillment | `shipping.shipment.delivered` | ✅ Correct — triggers fulfillment completion |
-| Shipping | `order.cancelled` | ✅ Correct — cancels active shipments (topic needs verification) |
-| Promotion | `orders.order.status_changed` | ✅ Correct — releases usage on cancel/refund, confirms on delivered/completed |
-| Loyalty | `orders.order.completed` | 🔴 **BROKEN** — topic never published. See P0-2025-01 |
-| Loyalty | `orders.order.cancelled` | 🔴 **BROKEN** — topic never published. See P0-2025-01 |
+```
+order/constants.go:14  TopicOrderCompleted = "orders.order.completed"  → Never published
+order/constants.go:17  TopicOrderCancelled = "orders.order.cancelled" → Never published
+```
 
 ---
 
@@ -240,55 +210,64 @@ client, err := events.NewConsumerClientWithLogger(logger)
 
 ### Order Worker Subscriptions
 
-| Topic | Handler | Needed? |
-|-------|---------|---------|
-| `payments.payment.confirmed` | `HandlePaymentConfirmed` | ✅ Yes — confirm order status, confirm reservations |
-| `payments.payment.failed` | `HandlePaymentFailed` | ✅ Yes — cancel order + release reservations (with retry) |
-| `orders.payment.capture_requested` | `HandlePaymentCaptureRequested` | ✅ Yes — trigger async payment capture |
-| `fulfillments.fulfillment.status_changed` | `HandleFulfillmentStatusChanged` | ✅ Yes — drive order status through lifecycle |
-| `warehouse.inventory.reservation_expired` | `HandleReservationExpired` | ✅ Yes — auto-cancel orders with expired stock |
-| `shipping.shipment.delivered` | `HandleShipmentDelivered` | ✅ Yes — move order to "delivered" |
-| `*.dlq` (6 topics) | DLQ drain (log + ACK) | ✅ Added — prevents Redis DLQ backpressure |
+| Topic | Handler | Needed? | Idempotency? |
+|-------|---------|---------|--------------|
+| `payment.payment.processed` | `HandlePaymentConfirmed` | ✅ | ✅ |
+| `payment.payment.failed` | `HandlePaymentFailed` | ✅ | ✅ |
+| `orders.payment.capture_requested` | `HandlePaymentCaptureRequested` | ✅ | ✅ |
+| `fulfillments.fulfillment.status_changed` | `HandleFulfillmentStatusChanged` | ✅ | ✅ |
+| `warehouse.inventory.reservation_expired` | `HandleReservationExpired` | ✅ | ✅ |
+| `shipping.shipment.delivered` | `HandleShipmentDelivered` | ✅ | ✅ |
+| `payment.payment.refunded` | `ConsumeRefundCompleted` | ✅ | ✅ |
+| `*.dlq` (7 topics) | DLQ drain (log + ACK) | ✅ | N/A |
+
+### Payment Worker Subscriptions
+
+| Topic | Handler | Needed? | Status |
+|-------|---------|---------|--------|
+| `orders.return.completed` | `HandleReturnCompleted` | ✅ Yes — refund on return | ✅ Working |
+| `orders.order.cancelled` | `HandleOrderCancelled` | ✅ Yes — void authorized payment | 🔴 **BROKEN** — dead topic (P0-2026-02) |
+| `orders.order.completed` | `HandleOrderCompleted` | ✅ Yes — escrow release | 🔴 **BROKEN** — dead topic (P0-2026-01) |
 
 ### Fulfillment Worker Subscriptions
 
-| Topic | Handler | Needed? |
-|-------|---------|---------|
-| `orders.order.status_changed` | `HandleOrderStatusChanged` | ✅ Yes — create pick/pack tasks on PAID status; uses `constants.TopicOrderStatusChanged` ✅ |
-| `fulfillment.picklist_status_changed` | `HandlePicklistStatusChanged` | ✅ Yes — advance fulfillment status; idempotency ✅ |
-| `shipping.shipment.delivered` | `HandleShipmentDelivered` | ✅ Yes — mark fulfillment complete; **no idempotency** ⚠️ P2 |
+| Topic | Handler | Needed? | Idempotency? |
+|-------|---------|---------|--------------|
+| `orders.order.status_changed` | `HandleOrderStatusChanged` | ✅ | ✅ |
+| `fulfillment.picklist_status_changed` | `HandlePicklistStatusChanged` | ✅ | ✅ |
+| `shipping.shipment.delivered` | `HandleShipmentDelivered` | ✅ | ✅ Fixed |
 
 ### Warehouse Worker Subscriptions
 
-| Topic | Handler | Needed? |
-|-------|---------|---------|
-| `fulfillments.fulfillment.status_changed` | `HandleFulfillmentStatusChanged` | ✅ Yes — deduct stock permanently on shipment |
-| `orders.order.status_changed` | `HandleOrderStatusChanged` | ✅ Yes — release reservation on cancellation |
-| `return.completed` | `HandleReturnCompleted` | ✅ Yes — restock returned items |
-| `catalog.product.created` | `HandleProductCreated` | ✅ Yes — init stock record |
-| `inventory.stock.committed` | `HandleStockCommitted` | ⚠️ Audit-only (logs, no action) — P2-2025-01 |
+| Topic | Handler | Needed? | Idempotency? |
+|-------|---------|---------|--------------|
+| `fulfillments.fulfillment.status_changed` | `HandleFulfillmentStatusChanged` | ✅ | ✅ |
+| `orders.order.status_changed` | `HandleOrderStatusChanged` | ✅ | ✅ |
+| `orders.return.completed` | `HandleReturnCompleted` | ✅ | ✅ |
+| `catalog.product.created` | `HandleProductCreated` | ✅ | ✅ |
+| `inventory.stock.committed` | `HandleStockCommitted` | ⚠️ Audit + reconciliation | N/A |
 
 ### Shipping Worker Subscriptions
 
-| Topic | Handler | Needed? |
-|-------|---------|---------|
-| `fulfillment.package_status_changed` | `HandlePackageStatusChanged` | ✅ Yes — update shipping shipment status |
-| `order.cancelled` | `HandleOrderCancelled` | ✅ Yes — cancel active shipments; idempotency ✅ |
+| Topic | Handler | Needed? | Idempotency? |
+|-------|---------|---------|--------------|
+| `fulfillment.package_status_changed` | `HandlePackageStatusChanged` | ✅ | ✅ |
+| `order.cancelled` | `HandleOrderCancelled` | ✅ | ✅ |
 
 ### Loyalty Worker Subscriptions
 
-| Topic | Handler | Status |
-|-------|---------|--------|
-| `customer.created` | `handleCustomerCreated` | ✅ Working |
-| `orders.order.completed` | `handleOrderCompleted` | 🔴 **BROKEN** — topic never published |
-| `orders.order.cancelled` | `handleOrderCancelled` | 🔴 **BROKEN** — topic never published |
-| `customer.deleted` | `handleCustomerDeleted` | ✅ Working |
+| Topic | Handler | Needed? | Idempotency? | Status |
+|-------|---------|---------|--------------|--------|
+| `customer.created` | `handleCustomerCreated` | ✅ | N/A | ✅ |
+| `orders.order.status_changed` | `handleOrderStatusChanged` | ✅ | ✅ `TransactionExists` | ✅ Fixed (v3) |
+| `customer.deleted` | `handleCustomerDeleted` | ✅ | N/A | ✅ |
+| `orders.return.completed` | `handleReturnCompleted` | ✅ | ✅ | ⚠️ Code OK, Dapr YAML missing (P1-2026-02) |
 
 ### Promotion Worker Subscriptions
 
-| Topic | Handler | Needed? |
-|-------|---------|---------|
-| `orders.order.status_changed` | `HandleOrderStatusChanged` | ✅ Yes — releases on cancel/refund, confirms on complete; **no idempotency** ❌ P1-2025-03 |
+| Topic | Handler | Needed? | Idempotency? |
+|-------|---------|---------|--------------|
+| `orders.order.status_changed` | `HandleOrderStatusChanged` | ✅ | ✅ `GormIdempotencyHelper` |
 
 ---
 
@@ -296,74 +275,76 @@ client, err := events.NewConsumerClientWithLogger(logger)
 
 ### Order Worker (`order/cmd/worker/`)
 
-| Component | Running? | Notes |
-|-----------|---------|-------|
-| **OutboxWorker** | ✅ Yes | 1s poll, 50 events/batch, atomic PROCESSING mark, 10 retries, 30-day cleanup |
-| **EventConsumersWorker** | ✅ Yes | payment/fulfillment/warehouse/shipping consumers + 6 DLQ drain handlers |
-| **DLQRetryWorker** | ✅ Yes | 5m interval, 5 operation types, exponential backoff (max 30m), alert on exhaustion |
-| **CODAutoConfirmJob** | ✅ Yes | 1m interval, offset pagination, 24h confirm + expired auto-cancel (two-pass) |
-| **PaymentCompensationWorker** | ✅ Yes | `cron/payment_compensation.go` — retry stuck payment captures |
-| **CaptureRetryWorker** | ✅ Yes | `cron/capture_retry.go` — retry failed payment captures |
-| **ReservationCleanupWorker** | ✅ Yes | `cron/reservation_cleanup.go` — release expired reservations |
-| **OrderCleanupWorker** | ✅ Yes | `cron/order_cleanup.go` — clean abandoned/stale orders |
-| **FailedCompensationsCleanup** | ✅ Yes | `cron/failed_compensations_cleanup.go` |
-| **DLQ consumers** | ✅ Yes | 6 DLQ drain handlers registered in `event_worker.go:82-101` |
+| Component | Type | Status | Notes |
+|-----------|------|--------|-------|
+| `OutboxWorker` | Outbox | ✅ | 1s poll, 50 batch, PROCESSING mark, 10 retries, 30-day cleanup |
+| `EventConsumersWorker` | Event | ✅ | All consumers + 7 DLQ drain |
+| `CODAutoConfirmJob` | Cron | ✅ | 1m, 2-pass confirm+cancel |
+| `CaptureRetryJob` | Cron | ✅ | 1m, exp backoff, DLQ on exhaustion |
+| `PaymentCompensationJob` | Cron | ✅ | 2m, void auth, DLQ+alert |
+| `ReservationCleanupJob` | Cron | ✅ | 15m, cursor-based pagination |
+| `OrderCleanupJob` | Cron | ✅ | 15m, parallel (10 concurrent) |
+| `FailedCompensationsCleanupJob` | Cron | ✅ | Old DLQ cleanup |
+| `DLQRetryWorker` | Cron | ✅ | 5m, 5 op types, exp backoff max 30m |
+
+### Payment Worker (`payment/cmd/worker/`)
+
+| Component | Type | Status | Notes |
+|-----------|------|--------|-------|
+| `ReturnConsumer` | Event | ✅ | `orders.return.completed` → refund |
+| `OrderConsumer` | Event | 🔴 | `orders.order.cancelled` → void — **BROKEN** (dead topic, P0-2026-02) |
+| `OrderCompletedConsumer` | Event | 🔴 | `orders.order.completed` → escrow — **BROKEN** (dead topic, P0-2026-01) |
+| `OutboxWorker` | Outbox | ✅ | Payment event publishing |
+| Cron jobs | Cron | ✅ | AutoCapture, BankTransferExpiry, Cleanup, FailedRetry, Reconciliation, StatusSync, RefundProcessing |
+| `WebhookRetryWorker` | Worker | ✅ | Retry failed webhook deliveries |
 
 ### Fulfillment Worker (`fulfillment/cmd/worker/`)
 
-| Component | Running? | Notes |
-|-----------|---------|-------|
-| **OutboxWorker** | ✅ Yes | Outbox pattern for fulfillment status events |
-| **OrderStatusConsumerWorker** | ✅ Yes | Topic uses `constants.TopicOrderStatusChanged` ✅; idempotency ✅ |
-| **PicklistStatusConsumerWorker** | ✅ Yes | Idempotency added ✅ |
-| **ShipmentDeliveredConsumerWorker** | ✅ Yes | `event_workers.go:104-134`; **no idempotency** ⚠️ — P2 |
-| **AutoCompleteShippedWorker** | ✅ Yes | `cron/auto_complete_shipped.go` — 1h interval, 7-day threshold, batch 50 |
+| Component | Type | Status | Notes |
+|-----------|------|--------|-------|
+| `OrderStatusConsumerWorker` | Event | ✅ | Topic via constant; idempotency |
+| `PicklistStatusConsumerWorker` | Event | ✅ | Idempotency |
+| `ShipmentDeliveredConsumerWorker` | Event | ✅ | Idempotency added |
+| `AutoCompleteShippedWorker` | Cron | ✅ | 1h, 7-day threshold, batch 50 |
+| `SLABreachDetectorJob` | Cron | ✅ | 30m, 6 active statuses |
 
 ### Warehouse Worker (`warehouse/cmd/worker/`)
 
-| Component | Running? | Notes |
-|-----------|---------|-------|
-| **OutboxWorker** | ✅ Yes | `worker/outbox_worker.go` |
-| **FulfillmentStatusConsumerWorker** | ✅ Yes | Idempotency applied |
-| **OrderStatusConsumerWorker** | ✅ Yes | Idempotency applied |
-| **ReturnConsumerWorker** | ✅ Yes | `return_consumer.go` present |
-| **StockCommittedConsumerWorker** | ✅ Yes | `stock_committed_consumer.go` — audit-only (logs) |
-| **ExpiryWorker** | ✅ Yes | `worker/expiry/` — reservation TTL enforcement |
-| **Stock Import Worker** | ✅ Yes | `worker/import_worker.go` |
-| **Cron Jobs** | ✅ Yes | alert_cleanup, capacity_monitor, daily_reset, daily_summary, outbox_cleanup, reservation_cleanup, stock_change_detector, timeslot_validator, weekly_report |
+| Component | Type | Status | Notes |
+|-----------|------|--------|-------|
+| `OutboxWorker` | Outbox | ✅ | |
+| `FulfillmentStatusConsumer` | Event | ✅ | Idempotency |
+| `OrderStatusConsumer` | Event | ✅ | Idempotency |
+| `ReturnConsumer` | Event | ✅ | |
+| `StockCommittedConsumer` | Event | ⚠️ | Audit + reconciliation via `StockReconciliationJob` |
+| `ExpiryWorker` | Worker | ✅ | Reservation TTL enforcement |
+| `ImportWorker` | Worker | ✅ | |
+| Cron jobs (9) | Cron | ✅ | All operational |
 
 ### Shipping Worker (`shipping/cmd/worker/`)
 
-| Component | Running? | Notes |
-|-----------|---------|-------|
-| **OutboxWorker** | ✅ Yes | `worker/outbox_worker.go` |
-| **PackageStatusConsumerWorker** | ✅ Yes | Idempotency applied ✅ |
-| **OrderCancelledConsumerWorker** | ✅ Yes | Idempotency added ✅ |
-| **startupProbe** | ✅ Fixed | YAML validated |
+| Component | Type | Status | Notes |
+|-----------|------|--------|-------|
+| `OutboxWorker` | Outbox | ✅ | |
+| `PackageStatusConsumer` | Event | ✅ | Idempotency |
+| `OrderCancelledConsumer` | Event | ✅ | Idempotency |
 
-### Return Worker (`return/internal/worker/`)
+### Loyalty Worker (`loyalty-rewards/cmd/worker/`)
 
-| Component | Running? | Notes |
-|-----------|---------|-------|
-| **OutboxWorker** | ✅ Yes | `outbox_worker.go` |
-| **ReturnCompensationWorker** | ✅ Yes | `compensation_worker.go` — polls `return.restock_retry` + `return.refund_retry` |
+| Component | Type | Status | Notes |
+|-----------|------|--------|-------|
+| `ConsumeOrderStatusChanged` | Event | ✅ | Fixed (v3) — `orders.order.status_changed` |
+| `ConsumeCustomerCreated` | Event | ✅ | |
+| `ConsumeCustomerDeleted` | Event | ✅ | |
+| `ConsumeReturnCompleted` | Event | ⚠️ | Code OK — Dapr YAML missing (P1-2026-02) |
+| `ConsumeReturnCompletedDLQ` | Event | ⚠️ | Code OK — Dapr YAML missing |
 
-### Loyalty Worker (`loyalty-rewards/internal/worker/event/`)
+### Promotion Worker (`promotion/internal/`)
 
-| Component | Running? | Notes |
-|-----------|---------|-------|
-| **EventConsumersWorker** | ⚠️ Partial | Subscribes: `customer.created` ✅, `orders.order.completed` 🔴, `orders.order.cancelled` 🔴, `customer.deleted` ✅ |
-| **Idempotency on order.completed** | ✅ Yes | `TransactionExists(ctx, "order", orderID)` — but never triggered |
-| **Idempotency on order.cancelled** | ✅ Yes | `TransactionExists(ctx, "order_cancellation", orderID)` — but never triggered |
-
-### Promotion Worker (`promotion/internal/data/eventbus/`)
-
-| Component | Running? | Notes |
-|-----------|---------|-------|
-| **OrderConsumer** | ✅ Yes | `order_consumer.go` — subscribes to `orders.order.status_changed` |
-| **Usage reversal on cancel/refund** | ✅ Yes | `ReleasePromotionUsage(ctx, orderID)` |
-| **Usage confirmation on complete** | ✅ Yes | `ConfirmPromotionUsage(ctx, orderID)` |
-| **Idempotency on OrderStatusChanged** | ❌ **MISSING** | No idempotency check — P1-2025-03 |
+| Component | Type | Status | Notes |
+|-----------|------|--------|-------|
+| `OrderConsumer` | Event | ✅ | `orders.order.status_changed`; `GormIdempotencyHelper` |
+| `OrderConsumerDLQ` | Event | ✅ | DLQ drain |
 
 ---
 
@@ -373,113 +354,89 @@ client, err := events.NewConsumerClientWithLogger(logger)
 |-------|--------|-------|
 | Order create → outbox (atomic tx) | ✅ | `create.go:77-134` |
 | Cancel → outbox (atomic tx) | ✅ | `cancel.go:108-126` |
-| Payment confirmed → UpdateOrderStatus (via `orderUc`) | ✅ | Triggers outbox in `UpdateOrderStatus` |
+| Payment confirmed → UpdateOrderStatus | ✅ | Triggers outbox in `UpdateOrderStatus` |
 | Payment confirmed → ConfirmReservations | ✅ | `payment_consumer.go:418`; rollback on partial failure; DLQ on error |
-| Payment failed → ReleaseReservations + DLQ | ✅ | `payment_consumer.go:468` — 3-retry per reservation; DLQ with reservation IDs |
-| Fulfillment cancelled → CancelOrder (with reservation release) | ✅ | `fulfillment_consumer.go:143` |
+| Payment failed → ReleaseReservations + DLQ | ✅ | 3-retry per reservation; DLQ with reservation IDs |
+| Fulfillment cancelled → CancelOrder | ✅ | `fulfillment_consumer.go:143` |
 | DLQ retry: void_authorization | ✅ | |
 | DLQ retry: release_reservations | ✅ | Reads `reservation_ids` from `CompensationMetadata` |
 | DLQ retry: refund | ✅ | |
 | DLQ retry: payment_capture | ✅ | |
-| DLQ retry: refund_restock | ✅ | `ReturnCompensationWorker` handles via outbox polling |
+| DLQ retry: refund_restock | ✅ | `ReturnCompensationWorker` |
 | DLQ retry: alert on exhaustion | ✅ | `triggerAlert` + `alertService` |
-| Outbox worker: PROCESSING mark | ✅ | Line 118 |
-| Outbox worker: max 10 retries | ✅ | Line 135 |
-| Outbox worker: 30-day cleanup | ✅ | `CleanupOldEvents` every 10 cycles |
+| Outbox worker: PROCESSING mark | ✅ | |
+| Outbox worker: 10 retries | ✅ | |
+| Outbox worker: 30-day cleanup | ✅ | |
 | Webhook idempotency | ✅ | Redis state machine in payment service |
-| Event consumer idempotency (order) | ✅ | `IdempotencyHelper.CheckAndMark` in payment + fulfillment + warehouse + shipping consumers |
-| Event consumer idempotency (warehouse) | ✅ | Applied on all warehouse consumers |
-| Event consumer idempotency (shipping package) | ✅ | Applied |
-| Event consumer idempotency (shipping order_cancelled) | ✅ | FIXED |
-| Event consumer idempotency (fulfillment picklist) | ✅ | FIXED |
-| Event consumer idempotency (fulfillment shipment_delivered) | ⚠️ | Missing — P2 (low risk) |
-| Event consumer idempotency (promotion order_status) | ❌ | **MISSING** — P1-2025-03 |
-| Event consumer idempotency (loyalty order events) | ✅ | App-level via `TransactionExists` (but never triggered — P0-2025-01) |
-| Fulfillment status backward guard | ✅ | `constants.IsLaterStatus` check |
-| ConfirmOrderReservations rollback | ✅ | `create.go:352-358` — rolls back already-confirmed reservations on failure |
-| `publishStockCommittedEvent` (outbox) | ⚠️ | `create.go:373-409` — saves outbox but OUTSIDE transaction — P1-2025-04 |
-| Checkout reservation rollback on order failure | ✅ | `confirm.go:425-426` `RollbackReservationsMap` called + payment void |
-| Loyalty topic routing | 🔴 | Topics `orders.order.completed` / `orders.order.cancelled` NEVER published — P0-2025-01 |
+| Order event consumer idempotency | ✅ | All consumers |
+| Warehouse event consumer idempotency | ✅ | All consumers |
+| Shipping event consumer idempotency | ✅ | Applied |
+| Fulfillment picklist idempotency | ✅ | |
+| Fulfillment shipmentDelivered idempotency | ✅ | Fixed |
+| Promotion event idempotency | ✅ | `GormIdempotencyHelper` |
+| Loyalty event idempotency | ✅ | `TransactionExists` |
+| **Payment event idempotency (cancelled)** | ❌ | **MISSING** — P2-2026-01 |
+| **Payment event idempotency (completed)** | ❌ | **MISSING** — P2-2026-02 |
+| Fulfillment status backward guard | ✅ | `constants.IsLaterStatus` |
+| ConfirmOrderReservations rollback | ✅ | |
+| `publishStockCommittedEvent` (outbox) | ⚠️ | Outside transaction — accepted risk |
+| Checkout reservation rollback | ✅ | `RollbackReservationsMap` + void |
+| **Payment void on order cancel — via event** | 🔴 | **BROKEN** — dead topic (P0-2026-02) |
+| **Escrow release on order complete — via event** | 🔴 | **BROKEN** — dead topic (P0-2026-01) |
 
 ---
 
 ## 📋 GitOps Config Checks
 
-### Order Worker (`gitops/apps/order/base/worker-deployment.yaml`)
-
+### Order Worker
 | Check | Status |
 |-------|--------|
-| `securityContext: runAsNonRoot: true, runAsUser: 65532` | ✅ |
-| `dapr.io/enabled: "true"` + `app-id: order-worker` + `app-port: 5005 (grpc)` | ✅ |
-| `livenessProbe` + `readinessProbe` + `startupProbe` on gRPC :5005 | ✅ Fixed |
-| `envFrom: configMapRef: overlays-config` | ✅ |
-| `secretRef: name: order-secrets` | ✅ |
-| `resources: requests + limits` | ✅ |
-| `revisionHistoryLimit: 1` | ✅ |
-| `configFile volumeMount` | ✅ |
-| `initContainers` (consul + redis + postgres) | ✅ |
+| Dapr: `app-id: order-worker`, `app-port: 5005`, `grpc` | ✅ |
+| Health probes: HTTP `:8081` + startup tcp `:5005` | ✅ |
+| Config, secrets, resources, initContainers | ✅ |
+| HPA | ✅ |
 
-### Fulfillment Worker (`gitops/apps/fulfillment/base/worker-deployment.yaml`)
-
+### Payment Worker
 | Check | Status |
 |-------|--------|
-| `securityContext` | ✅ |
-| `dapr.io/enabled` + `app-id: fulfillment-worker` + `app-port: 5005 (grpc)` | ✅ |
-| `livenessProbe` + `readinessProbe` on gRPC :5005 | ✅ |
-| `startupProbe` | ✅ Fixed |
-| `envFrom: configMapRef + secretRef` | ✅ |
-| `configFile volumeMount` | ✅ Fixed |
-| `initContainers` | ✅ |
+| Dapr: `app-port: 5005`, `grpc` (via patch) | ✅ |
+| Common template health probes: HTTP `:8081` | ✅ (probes = HTTP, Dapr = gRPC — correct separation) |
+| Config, secrets, resources, initContainers | ✅ |
+| Dapr subscription YAML | ❌ **MISSING** (P1-2026-03) |
+| HPA | ✅ |
 
-### Shipping Worker (`gitops/apps/shipping/base/worker-deployment.yaml`)
-
+### Warehouse Worker
 | Check | Status |
 |-------|--------|
-| `securityContext` | ✅ |
-| `dapr.io/enabled` + `app-id: shipping-worker` + `app-port: 5005 (grpc)` | ✅ |
-| `livenessProbe` + `readinessProbe` on gRPC :5005 | ✅ |
-| `startupProbe` | ✅ Fixed |
-| `envFrom: configMapRef + secretRef` | ✅ |
-| `configFile volumeMount` | ✅ |
-| `initContainers` | ✅ |
+| Dapr, probes, config, secrets, resources | ✅ |
+| HPA | ✅ |
 
-### Warehouse Worker (`gitops/apps/warehouse/base/worker-deployment.yaml`)
-
+### Fulfillment Worker
 | Check | Status |
 |-------|--------|
-| `securityContext` | ✅ |
-| `dapr.io/enabled` + `app-id: warehouse-worker` + `app-port: 5005 (grpc)` | ✅ |
-| `livenessProbe` + `readinessProbe` + `startupProbe` | ✅ Fixed |
-| `envFrom: configMapRef + secretRef` | ✅ Fixed |
-| `configFile volumeMount` | ✅ Fixed |
-| `initContainers` | ✅ |
+| Dapr, probes, config, secrets, resources | ✅ |
+| HPA | ✅ |
 
-### Promotion Worker (`gitops/apps/promotion/base/worker-deployment.yaml`)
-
+### Promotion Worker
 | Check | Status |
 |-------|--------|
-| `securityContext` | ✅ |
-| `dapr.io/enabled` + `app-id: promotion-worker` | ✅ |
-| `dapr.io/app-port: "8081"` + `app-protocol: "http"` | ❌ **P1-2025-01** — may need `"grpc"` + port `5005` if using common events library |
-| `livenessProbe` + `readinessProbe` (HTTP :8081) | ⚠️ Verify worker serves HTTP health |
-| `startupProbe` | ❌ **MISSING** — P1-2025-01 |
-| `envFrom: configMapRef + secretRef` | ✅ |
-| `configFile volumeMount` | ❌ **MISSING** — P1-2025-01 |
-| `initContainers` | ✅ |
+| Dapr: `app-port: 5005`, `grpc` | ✅ Fixed (v3) |
+| startupProbe, volumeMounts | ✅ Fixed (v3) |
+| HPA | ✅ |
 
-### Loyalty Worker (`gitops/apps/loyalty-rewards/base/worker-deployment.yaml`)
-
+### Loyalty Worker
 | Check | Status |
 |-------|--------|
-| `securityContext` | ✅ |
-| `dapr.io/enabled` + `app-id: loyalty-rewards-worker` | ✅ |
-| `dapr.io/app-port: "9014"` + `app-protocol: "grpc"` | ⚠️ P2-2025-03 — verify port matches common library |
-| `livenessProbe` + `readinessProbe` (`kill -0 1`) | ⚠️ Not a real health check |
-| `startupProbe` (tcpSocket :9014) | ✅ |
-| `envFrom: configMapRef + secretRef` | ✅ (but secret name is `loyalty-rewards` not `loyalty-rewards-secrets`) |
-| `configFile volumeMount` | ❌ **MISSING** — P1-2025-02 |
-| `initContainers` | ✅ |
-| `Dapr subscription YAML` | ✅ Separate `dapr-subscription.yaml` — routes match code consumer topics |
+| Dapr: `app-port`, `grpc` | ✅ Fixed (v3) via common-worker-deployment-v2 + kustomization |
+| Probes: via common template | ✅ |
+| Config volume: via kustomization | ✅ Fixed (v3) |
+| Dapr subscription YAML topics match code | ⚠️ **Partial** — missing `orders.return.completed` (P1-2026-02) |
+| HPA | ✅ |
+
+### Shipping Worker
+| Check | Status |
+|-------|--------|
+| Dapr, probes, config, secrets | ✅ |
 
 ---
 
@@ -487,42 +444,36 @@ client, err := events.NewConsumerClientWithLogger(logger)
 
 | Data Pair | Consistency Level | Risk |
 |-----------|-----------------|------|
-| Order DB ↔ Outbox events | ✅ Atomic (same TX) | Event loss extremely unlikely |
-| Order status ↔ Payment status | ✅ Eventually consistent | `payment.confirmed` → order confirmed via event |
-| Order status ↔ Fulfillment status | ✅ Eventually consistent | Via `fulfillment.status_changed` consumer |
-| Warehouse reservation ↔ Order item | ⚠️ Race (OR-P0-03 — accepted) | Mitigated by TTL + `ReservationCleanupWorker` |
-| Checkout stock reservation ↔ Payment auth | ✅ Correct ordering (confirm.go step 5→6) | Auth before reservation; void on fail |
-| Warehouse stock ↔ Order paid | ✅ Fixed (NEW-P0-002) | `processPaymentConfirmed` → `ConfirmOrderReservations` |
-| DLQ compensation ↔ Reservation IDs | ✅ Fixed (NEW-P0-001) | `writeWarehouseDLQ` saves `reservation_ids` |
-| COD order lifecycle ↔ Time window | ✅ Fixed (NEW-P1-002) | Two-pass: confirm + cancel |
-| Return restock ↔ Warehouse stock | ✅ RESOLVED | `ReturnCompensationWorker` |
-| Promotion usage ↔ Order lifecycle | ✅ Handled | Subscribes to `order.status_changed`; reverses on cancel, confirms on complete. No idempotency — P1-2025-03 |
-| **Loyalty points ↔ Order lifecycle** | 🔴 **BROKEN** | **P0-2025-01** — Loyalty subscribes to dead topics. Points never awarded/reversed. |
-| Fulfillment topic ↔ Config key | ✅ Fixed (P1-2024-04) | Uses constant now |
-| Shipping OrderCancelled ↔ Duplicate events | ✅ Fixed (P1-2024-02) | Idempotency added |
+| Order DB ↔ Outbox events | ✅ Atomic (same TX) | Minimal |
+| Order status ↔ Payment status | ✅ Eventually consistent | |
+| Order status ↔ Fulfillment status | ✅ Eventually consistent | |
+| Warehouse reservation ↔ Order item | ⚠️ Accepted risk | TTL + `ReservationCleanupWorker` |
+| Checkout stock reservation ↔ Payment auth | ✅ Correct ordering | |
+| Warehouse stock ↔ Order paid | ✅ Fixed | |
+| DLQ compensation ↔ Reservation IDs | ✅ Fixed | |
+| COD order lifecycle ↔ Time window | ✅ Fixed | |
+| Return restock ↔ Warehouse stock | ✅ RESOLVED | |
+| Promotion usage ↔ Order lifecycle | ✅ Handled + idempotent | |
+| Loyalty points ↔ Order lifecycle | ✅ Fixed (v3) | |
+| Loyalty points ↔ Return completed | ⚠️ Code OK, Dapr YAML gap | P1-2026-02 |
+| **Payment escrow ↔ Order completion** | 🔴 **BROKEN** | **P0-2026-01** |
+| **Payment void ↔ Order cancellation** | 🔴 **BROKEN** | **P0-2026-02** |
 
 ---
 
 ## 📋 Edge Cases Not Yet Handled
 
-| Edge Case | Risk | Recommendation |
-|-----------|------|----------------|
-| **Loyalty never receives order events** | 🔴 Critical | **P0-2025-01** — Fix topic subscription |
-| COD order delivered, `delivery.confirmed` webhook never arrives | ✅ FIXED | `AutoCompleteShippedWorker` runs hourly |
-| Order has items from 2+ warehouses; partial fulfillment | 🟡 High | Multi-warehouse fulfillment aggregation still open |
-| Capture payment fails with auth expiry; order stuck in `pending_capture` | 🟡 High | DLQ record created; Ops must act after DLQ alert |
-| Promotion `HandleOrderStatusChanged` duplicate Dapr delivery | 🟡 Medium | **P1-2025-03** — add idempotency |
-| Loyalty `order.completed` event payload missing `subtotal` field | 🔵 Medium | Currently never triggered (P0-2025-01) |
-| Order with loyalty points redeemed; order cancelled → points not restored | ⚠️ Blocked | Cannot verify until P0-2025-01 is fixed |
-| Fulfillment cron auto-complete → seller escrow release | ✅ FIXED | P1-2024-03 |
-| Fulfillment `OrderStatusConsumer` empty topic string | ✅ FIXED | P1-2024-04 |
-| Dapr redelivers `order.cancelled` to shipping → double carrier cancel | ✅ FIXED | P1-2024-02 |
-| `OrderStatusChangedEvent` payload schema changes → deserialization failures | 🔵 Medium | Schema versioning needed |
-| SLA breach: seller doesn't ship within 24h | 🔵 Medium | No SLA breach cron in fulfillment |
-| Return restock uses `"default"` warehouse_id when metadata missing | 🔵 Low | `restock.go:47` falls back to `"default"` |
-| Fulfillment `ShipmentDeliveredConsumer` no idempotency | 🔵 Low | Carrier dedup reduces risk |
-| Promotion worker config file not mounted | 🟡 Medium | **P1-2025-01** — config volume missing from GitOps |
-| Loyalty worker config file not mounted | 🟡 Medium | **P1-2025-02** — config volume missing from GitOps |
+| Edge Case | Risk | Status |
+|-----------|------|--------|
+| **Payment never voids authorized amount on order cancel** | 🔴 Critical | **P0-2026-02** |
+| **Seller never receives escrow payout on order complete** | 🔴 Critical | **P0-2026-01** |
+| **Delivered order cannot transition to `completed`** | 🟡 High | **P1-2026-01** — missing status transition |
+| Order with items from 2+ warehouses; partial fulfillment | 🟡 High | No partial-fulfillment split-order support |
+| Capture payment fails with auth expiry; order stuck | 🟡 High | DLQ + Ops alert |
+| Return completed → loyalty clawback event not routed by Dapr | 🟡 Medium | **P1-2026-02** |
+| `OrderStatusChangedEvent` schema evolution | 🔵 Medium | JSON omitempty, accepted risk |
+| Multiple replicas of `CODAutoConfirmJob` | 🟡 Medium | Worker replicas=1 |
+| Return restock falls back to `"default"` warehouse_id | 🔵 Low | `restock.go:47` |
 
 ---
 
@@ -530,25 +481,20 @@ client, err := events.NewConsumerClientWithLogger(logger)
 
 ### 🔴 Fix Now (Data Loss / Financial Risk)
 
-- [ ] **P0-2025-01**: Loyalty service topic mismatch — events never received. **ACTION**: Change loyalty to subscribe to `orders.order.status_changed` and filter by status.
+- [ ] **P0-2026-01**: Payment `OrderCompletedConsumer` → change to subscribe to `orders.order.status_changed`, filter `new_status == "delivered"/"completed"` for escrow release
+- [ ] **P0-2026-02**: Payment `OrderConsumer` → change to subscribe to `orders.order.status_changed`, filter `new_status == "cancelled"` for payment void
 
 ### 🟡 Fix Soon (Reliability)
 
-- [ ] **P1-2025-01**: Promotion worker GitOps — add `startupProbe`, `volumeMounts`, verify Dapr protocol
-- [ ] **P1-2025-02**: Loyalty worker GitOps — add config `volumeMount`
-- [ ] **P1-2025-03**: Promotion `HandleOrderStatusChanged` — add idempotency
-- [ ] **P1-2025-04**: `publishStockCommittedEvent` outside transaction — accepted risk, document
+- [ ] **P1-2026-01**: Add `completed` to `OrderStatusTransitions[delivered]` OR document that `delivered` is the terminal happy state
+- [ ] **P1-2026-02**: Add `orders.return.completed` (+ DLQ) to loyalty Dapr subscription YAML
+- [ ] **P1-2026-03**: Create `dapr-subscription.yaml` for payment worker with correct topics
 
 ### 🔵 Monitor / Document
 
-- [ ] P2-2025-01: Warehouse `StockCommittedConsumer` audit-only — implement reconciliation
-- [ ] P2-2025-02: Dead code cleanup — `PublishOrderCompleted`/`PublishOrderCancelled` methods
-- [ ] P2-2025-03: Loyalty worker Dapr port mismatch — verify common library port
-- [ ] Add SLO alert: `pending outbox events > 100 AND age > 5m` → PagerDuty
-- [ ] Document DLQ replay procedure for Ops
-- [ ] Schema versioning for `OrderStatusChangedEvent` payload
-- [ ] SLA breach escalation cron in fulfillment
-- [ ] Verify `return.restock_retry` uses correct warehouse_id
+- [ ] **P2-2026-01**: Add idempotency guard to Payment `HandleOrderCancelled`
+- [ ] **P2-2026-02**: Add idempotency guard to Payment `HandleOrderCompleted`
+- [ ] **P2-2026-03**: Remove dead constants `TopicOrderCompleted` / `TopicOrderCancelled` from order constants.go
 
 ---
 
@@ -558,25 +504,49 @@ client, err := events.NewConsumerClientWithLogger(logger)
 |------|-------|
 | Transactional outbox | All status changes use `tm.WithTransaction + outboxRepo.Save` |
 | Saga compensation | 5 compensation types in DLQ retry worker with exponential backoff |
-| Idempotency (order/warehouse/shipping) | `IdempotencyHelper.CheckAndMark` on all critical consumers |
-| Status transition guard | `canTransitionTo` prevents invalid state changes |
-| Fulfillment cancelled → CancelOrder | Uses `CancelOrder()` (not just `UpdateStatus`) → reservation release + retry + DLQ |
-| Backward status guard | `constants.IsLaterStatus` prevents status regression |
-| COD payment capture skip | COD orders correctly skip the payment capture path |
+| Idempotency (order/warehouse/shipping/fulfillment/promotion/loyalty) | Comprehensive coverage |
+| Status transition guard | `canTransitionTo` + `ShouldSkipStatusUpdate` |
+| Backward status guard | `constants.IsLaterStatus` prevents regression |
+| COD payment capture skip | COD orders correctly skip payment capture |
 | Auth expiry guard | `HandlePaymentCaptureRequested` fails fast if order is too old |
 | Auth amount guard | Capture uses authoritative DB amount, not event amount |
-| DLQ alert on exhaustion | `triggerAlert` fires after `MaxRetries` → Ops email |
+| DLQ alert on exhaustion | `triggerAlert` fires after `MaxRetries` |
 | Outbox cleanup | 30-day retention auto-cleanup |
 | Payment webhook idempotency | Redis state machine |
-| Stock committed event | `ConfirmOrderReservations` saves `inventory.stock.committed` outbox event |
-| Partial confirm rollback | `ConfirmOrderReservations` rolls back already-confirmed reservations on failure |
-| ReservationExpired → full cancel | `processReservationExpired` cancels entire order |
-| DLQ drain consumers | 6 DLQ drain handlers prevent Redis backpressure |
-| Order worker health probes | gRPC :5005 |
+| Partial confirm rollback | `ConfirmOrderReservations` rolls back already-confirmed on failure |
+| ReservationExpired → full cancel | Entire order cancelled |
+| DLQ drain consumers | 7+ DLQ drain handlers prevent Redis backpressure |
 | Reservation TTL fail-fast | No silent fallback to no-TTL |
 | Return compensation worker | Polls `return.restock_retry` + `return.refund_retry` |
-| Promotion usage lifecycle | Subscribes to `order.status_changed` — reverses on cancel, confirms on complete |
-| Checkout reservation ordering | Stock reserved AFTER payment auth (step 6), with immediate rollback |
-| Checkout coupon locking | `acquireCouponLocks` at ConfirmCheckout |
-| Checkout fraud pre-check | `validateFraudIndicators` before payment auth |
-| CartConverted outbox (fail-fast) | `finalizeOrderAndCleanup` fails if outbox save fails |
+| Promotion usage lifecycle | `orders.order.status_changed` filter + idempotency |
+| Checkout reservation ordering | Stock reserved AFTER payment auth, with rollback |
+| Loyalty order events | Fixed — `orders.order.status_changed` with `new_status` filter |
+| Stock reconciliation | `StockReconciliationJob` runs hourly |
+
+---
+
+## Appendix: Topic Ownership Map (Updated v4)
+
+```
+Publisher           Topic                                     Consumer(s)
+─────────────────────────────────────────────────────────────────────────
+Order       →  orders.order.status_changed           → Fulfillment, Warehouse, Loyalty, Promotion, Notification
+                                                        🔴 MISSING: Payment (should subscribe for void/escrow)
+Order       →  orders.payment.capture_requested      → Order (self-loop)
+Order       →  inventory.stock.committed             → Warehouse (audit + reconciliation)
+Order       →  orders.return.requested               → Fulfillment, Notification
+Order       →  orders.return.approved                → Fulfillment, Notification, Warehouse
+Order       →  orders.return.completed               → Warehouse (restock), Payment (refund), Loyalty (clawback)
+Payment     →  payment.payment.processed             → Order
+Payment     →  payment.payment.failed                → Order
+Payment     →  payment.payment.refunded              → Order
+Fulfillment →  fulfillments.fulfillment.status_changed → Order, Warehouse
+Fulfillment →  fulfillment.picklist_status_changed   → Fulfillment (self)
+Fulfillment →  fulfillment.package_status_changed    → Shipping
+Warehouse   →  warehouse.inventory.reservation_expired → Order
+Shipping    →  shipping.shipment.delivered           → Order, Fulfillment
+
+DEAD TOPICS (defined but never published):
+Order       →  orders.order.completed                → Payment SUBSCRIBES 🔴 but NOBODY publishes
+Order       →  orders.order.cancelled               → Payment SUBSCRIBES 🔴 but NOBODY publishes
+```

@@ -26,7 +26,7 @@
 | 9 | **fulfillment** | **82.3% avg** | **81.0%** | — | **~81%** | 80% | ✅ >80% | — |
 | 10 | **catalog** | **82.2% avg** | **80.0%** | 50.9% | **~81%** | 80% | ✅ >80% | — |
 | 11 | **promotion** | **81.0%** | **80.2%** | — | **~80%** | 80% | ✅ >80% | — |
-| 12 | **notification** | **87.3% avg** | **70.5%** | — | **~75%** | 80% | ✅ Below | -5% |
+| 12 | **notification** | **90.5% avg** | **80.9%** | — | **~85%** | 80% | ✅ >80% | — |
 | 13 | **loyalty-rewards** | **75.6% avg** | **81.9%** | 38.3% | **~74%** | 80% | ✅ Below | -6% |
 | 14 | **analytics** | **81.9%** | **80.5%** | — | **~81%** | 80% | ✅ >80% | — |
 | 15 | **customer** | **73.3% avg** | **72.3%** | — | **~73%** | 80% | ✅ Below | -7% |
@@ -213,23 +213,23 @@
 
 ---
 
-### 12. notification — ✅ Below 80% (~75% overall)
+### 12. notification — ✅ Above 80% (~85% overall)
 
 | Package | Coverage | Status | Action |
 |---------|----------|--------|--------|
 | `biz` | **100.0%** | ✅ | — |
 | `biz/subscription` | **100.0%** | ✅ | — |
-| `biz/delivery` | **97.9%** | ✅ | — |
+| `biz/delivery` | **95.7%** | ✅ | — |
 | `biz/message` | **89.7%** | ✅ | — |
 | `biz/template` | **89.5%** | ✅ | — |
 | `biz/events` | **85.7%** | ✅ | — |
 | `biz/preference` | **82.2%** | ✅ | — |
-| `biz/notification` | **91.9%** | ✅ | — |
+| `biz/notification` | **80.8%** | ✅ | — |
 | `service` | **80.9%** | ✅ | — |
-| `provider/telegram` | **64.9%** | ✅ | — |
-| `provider/email` | **72.7%** | ✅ | — |
 | `provider/push` | **92.3%** | ✅ | — |
 | `provider/sms` | **92.9%** | ✅ | — |
+| `provider/email` | **72.7%** | 🟡 | Push to 80%+ |
+| `provider/telegram` | **64.9%** | 🟡 | Push to 80%+ |
 
 ---
 
@@ -382,7 +382,7 @@
 | common-operations | **93.5%** | ✅ |
 | review | **89.0%** | ✅ |
 | order | **88.3%** | ✅ |
-| notification | **87.3%** | ✅ |
+| notification | **90.5%** | ✅ |
 | auth | **87.1%** | ✅ |
 | return | **85.9%** | ✅ |
 | user | **84.7%** | ✅ |
@@ -420,7 +420,7 @@
 | checkout | **85.5%** | ✅ |
 | analytics/marketplace | **73.2%** | ✅ |
 | customer | **72.3%** | ✅ |
-| notification | **70.5%** | ✅ |
+| notification | **80.9%** | ✅ |
 | search | **70.3%** | ✅ |
 | pricing | **80.0%** | ✅ |
 | promotion | **70.1%** | ✅ |

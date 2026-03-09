@@ -1,6 +1,6 @@
-# Notification Flows — Business Logic Review Checklist (v2)
+# Notification Flows — Business Logic Review Checklist (v3)
 
-**Date**: 2026-02-26 | **Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + full codebase audit)
+**Date**: 2026-03-07 | **Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + full codebase audit)
 **Scope**: `notification/` — channels, event consumers, worker, preference/opt-out, outbox, GitOps
 **Reference**: `docs/10-appendix/ecommerce-platform-flows.md` §11 (Notification Flows)
 
@@ -12,8 +12,9 @@
 |----------|--------|
 | 🔴 P0 — Critical (topic mismatch → dead consumers / data loss) | **✅ 3/3 fixed** |
 | 🟡 P1 — High (reliability / compliance / missing flows) | **✅ 4/4 fixed** |
-| 🔵 P2 — Medium (edge case / observability / cleanup) | **6 open** |
-| ✅ Verified Working | 28+ areas |
+| 🔵 P2 — Medium (edge case / observability / cleanup) | **2 fixed, 4 open** |
+| 🆕 New findings in v3 | **3 items** |
+| ✅ Verified Working | 32+ areas |
 
 ---
 
@@ -29,10 +30,10 @@
 | Daily rate limit enforcement | ✅ | `CountDailyNotifications` compared to `MaxNotificationsPerDay` in worker before send |
 | Retry with exponential backoff + jitter | ✅ | `nextRetryDelay`: base 5min, max 1h, 20% jitter |
 | Email SMTP fallback | ✅ | Falls back to `smtpProvider` when `emailProvider` is disabled/nil |
-| DLQ persistence for exhausted events | ✅ | All 4 consumers persist failed events to `dead_letter_events` table via `dlqRepo.Save` |
+| DLQ persistence for exhausted events | ✅ | All 5 consumers persist failed events to `dead_letter_events` table via `dlqRepo.Save` |
 | Idempotency via `processedEventRepo` | ✅ | All consumers check `IsEventProcessed` before processing |
 | 1-minute time-bucket dedup | ✅ | Prevents duplicate alerts for identical errors within 60s |
-| In-consumer 3-retry + exponential backoff | ✅ | All 4 consumers retry with 100ms base backoff |
+| In-consumer 3-retry + exponential backoff | ✅ | All 5 consumers retry with 100ms base backoff |
 | Permanent error early-exit (decode/invalid) | ✅ | `isPermanentError` breaks retry loop for JSON decode / invalid errors |
 | Delivery log creation per send attempt | ✅ | `deliveryUC.CreateDeliveryLog` called on each attempt with full response details |
 | Lifecycle events published after send | ✅ | `PublishNotificationDelivered` / `PublishNotificationFailed` on outcome |
@@ -40,288 +41,192 @@
 | Retry failed notifications every 5min | ✅ | Cron `"0 */5 * * * *"` |
 | Expired notification detection in worker | ✅ | Marks expired as `failed` before processing |
 | Default preferences: all channels on | ✅ | `getDefaultPreference` defaults ALL boolean fields to `true` |
-| Outbox worker registered + running | ✅ | `outboxWrk` appended in `newWorkers()` in `cmd/worker/wire.go` line 75 |
+| Outbox worker registered + running | ✅ | `outboxWrk` appended in `newWorkers()` |
 | `SendSystemError` uses outbox path | ✅ | Delegates to `SendNotification()` which uses the atomic tx path |
 | `FOR UPDATE SKIP LOCKED` on pending fetch | ✅ | `GetPendingNotifications` and `GetFailedNotifications` both use `SKIP LOCKED` |
-| Worker deployment secrets injected | ✅ | `secretRef: notification-secrets` present in worker-deployment.yaml |
+| Worker secrets injected | ✅ | `secretRef: secrets` present via patch-worker.yaml + common-worker-deployment-v2 |
 | Pubsub name config-driven | ✅ | All consumers read from `config.Data.Eventbus.DefaultPubsub` with `"pubsub-redis"` fallback |
 | Order status consumer handles all transitions | ✅ | `resolveNotificationSpec()` dispatch: created, confirmed, shipped, delivered, cancelled, failed, refunded |
+| Worker probes (startup+liveness+readiness) | ✅ | Provided by `common-worker-deployment-v2` component — HTTP `/healthz` on port 8081 |
+| Image tag placeholder in base | ✅ | `kustomization.yaml` uses `newName: registry-api.tanhdev.com/notification` with `newTag: latest` overridden per overlay |
+| External service endpoints K8s DNS | ✅ | All endpoints in `overlays/dev/patch-config.yaml` use K8s DNS: `<service>.<namespace>.svc.cluster.local:<port>` |
+| DLQ cleanup cron | ✅ | Daily at 3AM, deletes events older than 30 days via `deadLetterRepo.DeleteOlderThan` |
+| Processed events cleanup cron | ✅ | Daily at 3:30AM, deletes events older than 90 days via `processedEventRepo.DeleteOlderThan` |
+| Auth login consumer | ✅ | NEW — subscribes to `auth.login` topic, sends security notifications for login events |
+| Telegram group-based routing | ✅ | Separate groups for system_errors, orders, payments, general |
 
 ---
 
-## 🔴 P0 Issues — Critical (Topic Mismatch → Silent Event Loss)
+## ✅ RESOLVED / FIXED (from v2)
 
-### NOTIF-P0-001: `payment.confirmed` Topic Does Not Exist — Payment Service Publishes `payment.payment.processed`
+### [FIXED ✅] NOTIF-P0-001: Payment topic mismatch → `payment.payment.processed` / `payment.payment.failed`
+- **Fixed in**: `notification/internal/constants/constants.go:77-78`
+- **Verified**: `TopicPaymentProcessed = "payment.payment.processed"` matches `payment/internal/constants/constants.go:11`
+- **Verified**: `TopicPaymentFailed = "payment.payment.failed"` matches `payment/internal/constants/constants.go:12`
 
-**File**: `notification/internal/constants/constants.go:77`
-**File**: `notification/internal/data/eventbus/payment_event_consumer.go`
+### [FIXED ✅] NOTIF-P0-002: Return topic mismatch → `orders.return.approved`
+- **Fixed in**: `notification/internal/constants/constants.go:79`
+- **Verified**: `TopicReturnApproved = "orders.return.approved"` matches `return/internal/events/publisher.go:309-310`
 
-**Problem**: Notification subscribes to:
-```go
-TopicPaymentConfirmed = "payment.confirmed"
-```
+### [FIXED ✅] NOTIF-P0-003: Refund topic mismatch → `payment.payment.refunded`
+- **Fixed in**: `notification/internal/constants/constants.go:80`
+- **Verified**: `TopicPaymentRefunded = "payment.payment.refunded"` matches `payment/internal/constants/constants.go:13`
 
-But the Payment service publishes to a **different topic**:
-```go
-// payment/internal/constants/constants.go:11
-TopicPaymentProcessed = "payment.payment.processed"
-```
+### [FIXED ✅] NOTIF-P1-001: Removed unused `TopicInventoryLowStockAlert` constant
+- Warehouse uses gRPC client for low-stock alerts — no event consumer needed.
 
-There is **no** `payment.confirmed` topic published anywhere in the entire codebase. The notification worker's `PaymentEventConsumer.ConsumePaymentConfirmed()` subscribes to a topic **nobody publishes to** → **dead subscription, zero payment confirmation notifications are ever sent**.
+### [FIXED ✅] NOTIF-P1-002: Worker probes now provided by common component
+- `common-worker-deployment-v2` includes startup, liveness, and readiness probes on port 8081 `/healthz`.
 
-Similarly, `TopicPaymentFailed = "payment.failed"` in notification but the payment service publishes to `payment.payment.failed` (with `payment.` domain prefix).
+### [FIXED ✅] NOTIF-P1-003: NetworkPolicy restructured
+- Ingress: from `gateway` namespace only (Dapr sidecar handles event delivery from Redis, no direct pod-to-pod needed for consumers).
+- Egress: to `order`, `payment`, `customer`, `user`, `shipping` namespaces (for gRPC client calls).
 
-| Notification Subscribes To | Payment Actually Publishes | Match? |
-|---|---|---|
-| `payment.confirmed` | `payment.payment.processed` | ❌ **Mismatch** |
-| `payment.failed` | `payment.payment.failed` | ❌ **Mismatch** |
+### [FIXED ✅] NOTIF-P1-004: External service endpoints now use K8s DNS
+- All endpoints in `overlays/dev/patch-config.yaml` updated to `<svc>.<ns>.svc.cluster.local:<port>`.
 
-**Impact**: Customer never receives "Payment Confirmed" or "Payment Failed" notifications. Per §11.2 (Shopify/Shopee/Lazada), these are Email + Push required.
+### [FIXED ✅] NOTIF-P2-001: DLQ cleanup cron added
+- Daily at 3AM, deletes events older than 30 days.
 
-**Fix**: Update `notification/internal/constants/constants.go`:
-```go
-TopicPaymentProcessed = "payment.payment.processed"  // was: "payment.confirmed"
-TopicPaymentFailed    = "payment.payment.failed"      // was: "payment.failed"
-```
-
-**Resolution** ✅ **FIXED 2026-02-26**:
-- [x] Renamed `TopicPaymentConfirmed` → `TopicPaymentProcessed` = `"payment.payment.processed"`
-- [x] Updated `TopicPaymentFailed` = `"payment.payment.failed"`
-- [x] Updated all consumer function names and references
-- [x] Added `orderRef` fallback when `OrderNumber` is empty (payment events don't include it)
-- [x] Wire regenerated, build + vet passes
+### [FIXED ✅] NOTIF-P2-002: Processed events cleanup cron added
+- Daily at 3:30AM, deletes events older than 90 days.
 
 ---
 
-### NOTIF-P0-002: `return.approved` Topic Does Not Exist — Return Service Publishes `orders.return.approved`
-
-**File**: `notification/internal/constants/constants.go:78`
-**File**: `notification/internal/data/eventbus/return_event_consumer.go`
-
-**Problem**: Notification subscribes to:
-```go
-TopicReturnApproved = "return.approved"
-```
-
-But the Return service publishes to:
-```go
-// return/internal/events/publisher.go:294-295
-event.EventType = "orders.return.approved"
-return p.Publish(ctx, "orders.return.approved", event)
-```
-
-**Dead subscription** — nobody publishes to `return.approved`, notification never receives return approval events.
-
-**Impact**: Customer never gets "Return Approved" notification. Per §11.2.
-
-**Fix**: Update `notification/internal/constants/constants.go`:
-```go
-TopicReturnApproved = "orders.return.approved"  // was: "return.approved"
-```
-
-**Resolution** ✅ **FIXED 2026-02-26**:
-- [x] Updated `TopicReturnApproved` = `"orders.return.approved"`
-- [x] Added `orderRef` fallback for return events
-
----
-
-### NOTIF-P0-003: `refund.completed` Topic Does Not Exist — Payment Service Publishes `payments.refund.completed`
-
-**File**: `notification/internal/constants/constants.go:79`
-**File**: `notification/internal/data/eventbus/return_event_consumer.go`
-
-**Problem**: Notification subscribes to:
-```go
-TopicRefundCompleted = "refund.completed"
-```
-
-But per `order/internal/constants/constants.go:39`:
-```go
-TopicRefundCompleted = "payments.refund.completed"
-```
-
-and `checkout/internal/constants/constants.go:35`:
-```go
-TopicRefundCompleted = "payments.refund.completed"
-```
-
-The payment service events use the `payments.` domain prefix. **No service publishes `refund.completed`**.
-
-**Impact**: Customer never gets "Refund Processed" notification.
-
-**Fix**: Update `notification/internal/constants/constants.go`:
-```go
-TopicPaymentRefunded = "payment.payment.refunded"  // was: "refund.completed"
-```
-
-**Resolution** ✅ **FIXED 2026-02-26**:
-- [x] Renamed `TopicRefundCompleted` → `TopicPaymentRefunded` = `"payment.payment.refunded"`
-- [x] Updated all consumer references and source service attribution
-- [x] Added `orderRef` fallback for refund events
-
----
-
-## 🟡 P1 Issues — High (Missing Flows / Reliability)
-
-### NOTIF-P1-001: `TopicInventoryLowStockAlert` Defined But No Consumer Registered
-
-**File**: `notification/internal/constants/constants.go:80`
-
-**Problem**: Topic constant exists:
-```go
-TopicInventoryLowStockAlert = "warehouse.inventory.low_stock_alert"
-```
-But there is **no consumer** in `internal/data/eventbus/` for this topic, and it's not registered in `cmd/worker/wire.go`.
-
-The warehouse service does publish a low-stock event, but with topic `warehouse.inventory.low_stock` (not `low_stock_alert`).
-
-Additionally, warehouse uses **gRPC client** to call notification directly for low-stock alerts (via `notification_grpc_client.go`), so the event consumer may be redundant.
-
-**Impact**: If the gRPC call fails, there's no event fallback. The topic name also doesn't match.
-
-**Fix**: Either:
-- (A) Remove the unused constant if gRPC is the chosen path, OR
-- (B) Add a `LowStockConsumer` subscribing to `warehouse.inventory.low_stock` as fallback
-
-**Resolution** ✅ **FIXED 2026-02-26**:
-- [x] Removed unused `TopicInventoryLowStockAlert` constant from `constants.go`
-- [x] Warehouse uses gRPC client for low-stock alerts (confirmed in `notification_grpc_client.go`)
-
----
-
-### NOTIF-P1-002: Worker Deployment Missing Liveness + Readiness Probes
-
-**File**: `gitops/apps/notification/base/worker-deployment.yaml`
-
-**Problem**: Worker deployment only has `startupProbe` (TCP on port 5005). There is:
-- No `livenessProbe` → if worker cron scheduler hangs (stuck DB), pod won't restart
-- No `readinessProbe` → Dapr sidecar sends events before worker is fully initialized
-
-**Fix**: Add probes:
-```yaml
-livenessProbe:
-  httpGet:
-    path: /health
-    port: 8081
-  initialDelaySeconds: 60
-  periodSeconds: 30
-readinessProbe:
-  httpGet:
-    path: /health
-    port: 8081
-  initialDelaySeconds: 15
-  periodSeconds: 10
-```
-
-**Resolution** ✅ **FIXED 2026-02-26**:
-- [x] Added `livenessProbe` (HTTP `/health` on 8081, delay 60s, period 30s)
-- [x] Added `readinessProbe` (HTTP `/health` on 8081, delay 15s, period 10s)
-- [x] Changed base image tag from `latest` to `placeholder`
-
----
-
-### NOTIF-P1-003: NetworkPolicy Does Not Allow Ingress from Return/Customer/Loyalty Namespaces
-
-**File**: `gitops/apps/notification/base/networkpolicy.yaml:34-46`
-
-**Problem**: NetworkPolicy allows ingress from:
-`order-dev`, `payment-dev`, `fulfillment-dev`, `shipping-dev`, `auth-dev`, `warehouse-dev`
-
-But **missing**:
-- `return-dev` — return service sends notifications for return approval
-- `customer-dev` — may need to send welcome emails
-- `loyalty-rewards-dev` — sends tier upgrade/points expiry notifications (per service map: loyalty calls notification)
-- `common-operations-dev` — calls notification via event
-
-**Fix**: Add missing namespaces to the ingress allow list.
-
-**Resolution** ✅ **FIXED 2026-02-26**:
-- [x] Added `return-dev`, `customer-dev`, `loyalty-rewards-dev`, `promotion-dev` to NetworkPolicy ingress
-
----
-
-### NOTIF-P1-004: External Services Config Uses `localhost` — Unusable in K8s
-
-**File**: `gitops/apps/notification/overlays/dev/configmap.yaml:38-47`
-
-**Problem**: External service endpoints all use `localhost`:
-```
-NOTIFICATION_EXTERNAL_SERVICES_CUSTOMER_SERVICE_ENDPOINT: "http://localhost:8003"
-NOTIFICATION_EXTERNAL_SERVICES_ORDER_SERVICE_ENDPOINT: "http://localhost:8004"
-```
-
-In K8s, these must use service DNS names like `customer.customer-dev.svc.cluster.local:8003`.
-
-**Impact**: Any feature that needs to call Customer/Order/Payment service from notification will fail in K8s.
-
-**Fix**: Update to K8s service DNS or use Consul service discovery.
-
-**Resolution** ✅ **FIXED 2026-02-26**:
-- [x] Updated all external service endpoints to K8s DNS: `<service>.<namespace>.svc.cluster.local:<port>`
-- [x] customer, order, payment, shipping, user service endpoints all updated
-
----
-
-## 🔵 P2 Issues — Medium (Edge Cases / Observability / Cleanup)
-
-### NOTIF-P2-001: No DLQ Drain Cron — Dead Letter Events Accumulate Indefinitely
-
-No cron job exists to retry or alert on `dead_letter_events` records. DLQ can grow silently without operator awareness.
-
-**Fix**: Add a `DLQDrainJob` cron that:
-- Periodically checks `dead_letter_events WHERE resolved = false AND created_at < NOW() - INTERVAL '1h'`
-- Sends Telegram alert for unresolved DLQ events
-
----
-
-### NOTIF-P2-002: No `processed_events` TTL Cleanup
-
-The `processed_events` table grows unboundedly. Each consumed event adds a row that is never deleted.
-
-**Fix**: Add a cleanup cron: `DELETE FROM processed_events WHERE processed_at < NOW() - INTERVAL '7 days'`
-
----
+## 🔵 P2 Issues — Still Open (from v2)
 
 ### NOTIF-P2-003: `notification.created` / `notification.delivered` / `notification.failed` Events Have Zero Consumers
 
-Publisher exists (both Dapr and Outbox paths), but **no service subscribes** to these topics. These are orphan events currently.
+Publisher exists (both Dapr and Outbox paths), but **no service subscribes** to these topics.
 
-**Assessment**: Justified as infrastructure investment for future analytics/loyalty integration. No action needed now, but document this.
+**Assessment**: Infrastructure investment for future analytics/loyalty integration. Not harmful, but document this.
 
 ---
 
 ### NOTIF-P2-004: All Event Consumers Hardcode Telegram Channel — No Multi-Channel Routing
 
-Per §11.2, most notifications should use **Email + Push + SMS** (e.g., "Order shipped" → Email + Push + SMS). Currently:
-- `OrderStatusConsumer` → all transitions → `channel: "telegram"` only
-- `PaymentEventConsumer` → `channel: "telegram"` only
-- `ReturnEventConsumer` → `channel: "telegram"` only
+Per §11.2, most notifications should use **Email + Push + SMS** (e.g., "Order shipped" → Email + Push + SMS). Currently all consumers create Telegram-only notifications.
 
-Only Telegram notifications are created. No customer-facing email/push/SMS notifications are generated.
+| Consumer | Channel Used | §11.2 Required Channels |
+|----------|-------------|------------------------|
+| `OrderStatusConsumer` | `telegram` | Email + Push (+ SMS for shipped) |
+| `PaymentEventConsumer` | `telegram` | Email + Push |
+| `ReturnEventConsumer` | `telegram` | Email + Push |
+| `SystemErrorConsumer` | `telegram` (via `SendSystemError`) | Admin alert — telegram OK |
+| `AuthLoginConsumer` | `telegram` | SMS + Email (for suspicious login) |
 
-**Fix**: Consumers should create notifications for each required channel (e.g., create 3 notifications: telegram, email, push for "order shipped").
+**Fix**: Consumers should create notifications for each required channel per event type.
 
 ---
 
-### NOTIF-P2-005: `RecipientID` Always `nil` for Order/Payment/Return Notifications
+### NOTIF-P2-005: `RecipientID` Mostly `nil` for Business Notifications
 
-All event consumers create notifications with `RecipientID: nil`. This means:
-- User preference checks are bypassed (quiet hours, opt-out, rate limit)
+| Consumer | RecipientID Source | Status |
+|----------|-------------------|--------|
+| `OrderStatusConsumer` | `event.ChangedBy` (`*int64`) | ⚠️ `ChangedBy` is the *admin/system user* who changed the status, not the customer |
+| `PaymentEventConsumer` | `nil` | ❌ Missing |
+| `ReturnEventConsumer` | `nil` | ❌ Missing |
+| `SystemErrorConsumer` | N/A (system alert) | ✅ OK |
+| `AuthLoginConsumer` | `nil` (RecipientType: `system`) | ✅ OK for admin alert |
+
+When `RecipientID` is nil:
+- User preference checks (quiet hours, opt-out, rate limit) are bypassed
 - Customer-facing channels (email, push, SMS) can't resolve recipient contact info
 
-**Fix**: Consumers should parse `CustomerID` from the event and set `RecipientID` in the notification request.
+**Fix**: Parse `CustomerID` from event and set as `RecipientID` (requires mapping `CustomerID` string → `int64`).
 
 ---
 
-### NOTIF-P2-006: Worker Deployment Image Uses `latest` Tag in Base
+### NOTIF-P2-006: Worker Deployment Dapr `app-protocol` Is HTTP but Worker Uses gRPC Eventbus
 
-**File**: `gitops/apps/notification/base/worker-deployment.yaml:50`
+**File**: `gitops/components/common-worker-deployment-v2/deployment.yaml:27`
 
+The common component sets `dapr.io/app-protocol: "http"` and `dapr.io/app-port: "8081"`. The notification worker starts a gRPC eventbus server on port 5005 (via `commonEvents.ConsumerClient.Start()`), but there is **no kustomize patch** overriding the Dapr protocol to `grpc` or the port to `5005`.
+
+**Impact**: If Dapr is configured to deliver events via server-to-server push (direct gRPC call to the app), it will fail because:
+- Protocol is HTTP but the eventbus server is gRPC
+- Port is 8081 (health server) but eventbus listens on 5005
+
+**Current workaround**: If the eventbus client uses Dapr SDK's gRPC subscription internally, this may work regardless of the annotation. Verify by checking if events are actually delivered in dev.
+
+**Fix**: Add a kustomize patch in `notification/base/kustomization.yaml` to override worker Dapr annotations:
 ```yaml
-image: registry-api.tanhdev.com/notification:latest
+- target:
+    kind: Deployment
+    name: placeholder-worker
+  patch: |-
+    - op: replace
+      path: /spec/template/metadata/annotations/dapr.io~1app-protocol
+      value: "grpc"
+    - op: replace
+      path: /spec/template/metadata/annotations/dapr.io~1app-port
+      value: "5005"
 ```
 
-While the overlay patches this with `newTag`, the base should use `placeholder` (like the main deployment) to avoid accidental `latest` pulls.
+---
+
+## 🆕 Newly Discovered Issues (v3)
+
+### NOTIF-NEW-001: `AuthLoginConsumer` Missing Retry + DLQ Pattern
+
+**File**: `notification/internal/data/eventbus/auth_login_consumer.go`
+
+**Problem**: Unlike other consumers (order, payment, return, system_error) which all implement `handleWithRetry` → exponential backoff → DLQ fallback, the `AuthLoginConsumer.HandleAuthLogin` has **no retry loop and no DLQ fallback**. On failure, the error is returned directly to Dapr which handles retries nondeterministically.
+
+Additionally, after `markProcessed` failure at line 171, the error is logged but **swallowed** (no return). This means if the event was successfully sent as a notification but `CreateProcessedEvent` fails, the event will be re-delivered by Dapr and processed again (duplicate notification sent).
+
+**Impact**: Inconsistent resilience pattern across consumers. Auth login events may cause duplicate notifications on `processed_events` write failures.
+
+**Fix**: Add `handleWithRetry` + DLQ pattern consistent with other consumers. Return error from `CreateProcessedEvent` failure.
+
+**Priority**: 🟡 P1
+
+---
+
+### NOTIF-NEW-002: `OrderStatusConsumer.RecipientID` Uses `event.ChangedBy` Not `event.CustomerID`
+
+**File**: `notification/internal/data/eventbus/order_status_consumer.go:252`
+
+```go
+sendReq := &notification.SendNotificationRequest{
+    RecipientID: event.ChangedBy, // ← This is the admin/staff who changed status
+```
+
+The `ChangedBy` field is the **user/system who initiated the status change** (e.g., admin clicking "mark shipped"). The notification should go to the **customer** who placed the order. The event struct has `CustomerID` (string) but it's only stored in metadata, not used as `RecipientID`.
+
+**Impact**: Notifications are routed based on admin ID preference (quiet hours, rate limits), not customer preferences.
+
+**Fix**: Convert `event.CustomerID` to `*int64` and use as `RecipientID`:
+```go
+var recipientID *int64
+if event.CustomerID != "" {
+    if id, err := strconv.ParseInt(event.CustomerID, 10, 64); err == nil {
+        recipientID = &id
+    }
+}
+sendReq := &notification.SendNotificationRequest{
+    RecipientID: recipientID,
+```
+
+**Priority**: 🟡 P1
+
+---
+
+### NOTIF-NEW-003: `system.errors` Topic Only Published by Fulfillment Service
+
+**Problem**: The `SystemErrorConsumer` subscribes to `system.errors` expecting errors from **all services** (order, payment, warehouse, etc.), but in the entire codebase, only `fulfillment/internal/events/publisher.go` publishes to this topic.
+
+Other services that should publish to `system.errors` but don't:
+- `order` — order processing failures
+- `payment` — gateway communication failures
+- `warehouse` — stock sync failures
+- `shipping` — carrier API failures
+
+**Impact**: System error alerting is incomplete — only fulfillment errors trigger Telegram alerts, other service errors are invisible until someone checks logs.
+
+**Assessment**: This is an infrastructure gap across services, not a notification service bug. The consumer is correct; the publishers are missing.
+
+**Priority**: 🔵 P2 (notification service is not the fix point — each service needs to adopt `system.errors` publishing)
 
 ---
 
@@ -335,28 +240,29 @@ While the overlay patches this with `newTag`, the base should use `placeholder` 
 | `notification.delivered` | ✅ Sender | None | ⚠️ No consumer yet — future analytics |
 | `notification.failed` | ✅ Sender | None | ⚠️ No consumer yet — future alerting |
 
-**Verdict**: Event publishing is justified as infrastructure but has **zero downstream consumers** currently. Not harmful, but worth documenting.
+**Verdict**: Event publishing is justified as infrastructure but has **zero downstream consumers** currently. Not harmful.
 
 ---
 
 ## 📋 Event Subscription Necessity Check
 
-### Current Subscriptions
+### Current Subscriptions (All Verified ✅)
 
-| Topic in Code | Actual Publisher Topic | Match? | Needed? |
-|---------------|----------------------|--------|---------|
-| `orders.order.status_changed` | `orders.order.status_changed` (order svc) | ✅ | ✅ Yes |
-| `system.errors` | `system.errors` (fulfillment svc) | ✅ | ✅ Yes |
-| `payment.confirmed` | `payment.payment.processed` (payment svc) | ❌ **MISMATCH** | ✅ Yes but broken |
-| `payment.failed` | `payment.payment.failed` (payment svc) | ❌ **MISMATCH** | ✅ Yes but broken |
-| `return.approved` | `orders.return.approved` (return svc) | ❌ **MISMATCH** | ✅ Yes but broken |
-| `refund.completed` | `payments.refund.completed` (payment svc) | ❌ **MISMATCH** | ✅ Yes but broken |
+| Topic in Code | Actual Publisher | Match? | Needed? |
+|---------------|-----------------|--------|---------|
+| `orders.order.status_changed` | order service | ✅ | ✅ Yes |
+| `system.errors` | fulfillment service | ✅ | ✅ Yes |
+| `payment.payment.processed` | payment service | ✅ | ✅ Yes |
+| `payment.payment.failed` | payment service | ✅ | ✅ Yes |
+| `orders.return.approved` | return service | ✅ | ✅ Yes |
+| `payment.payment.refunded` | payment service | ✅ | ✅ Yes |
+| `auth.login` | auth service | ✅ | ✅ Yes (security alerting) |
 
 ### Missing Subscriptions (Should Exist per §11.2)
 
 | Topic | Required? | Priority |
 |-------|-----------|----------|
-| `warehouse.inventory.low_stock` | ⚠️ Handled via gRPC fallback | 🔵 P2 |
+| `warehouse.inventory.low_stock` | ⚠️ Handled via gRPC | 🔵 P2 |
 | Flash sale started | ❌ No publisher exists yet | — |
 | Price drop (wishlisted) | ❌ No publisher exists yet | — |
 | Loyalty tier upgrade / points expiring | ⚠️ loyalty-rewards → notification via gRPC | 🔵 P2 |
@@ -367,23 +273,25 @@ While the overlay patches this with `newTag`, the base should use `placeholder` 
 
 ### Workers Registered in `cmd/worker/wire.go`
 
-| Worker | Type | Running? | Notes |
-|--------|------|----------|-------|
-| `eventbus-server` | Dapr gRPC | ✅ | Starts gRPC server on port 5005 |
-| `system-error-consumer` | Event | ✅ | `system.errors` topic |
-| `order-status-consumer` | Event | ✅ | `orders.order.status_changed` topic |
-| `payment-event-consumer` | Event | ✅ | `payment.confirmed` + `payment.failed` (⚠️ wrong topics) |
-| `return-event-consumer` | Event | ✅ | `return.approved` + `refund.completed` (⚠️ wrong topics) |
-| `notification-worker` | Cron | ✅ | Process pending (30s) + retry failed (5min) |
-| `outbox-worker` (commonOutbox.Worker) | Outbox | ✅ | Polls outbox_events table for relay |
+| Worker | Type | Running? | Pattern Consistent? |
+|--------|------|----------|-------------------|
+| `eventbus-server` | Dapr gRPC | ✅ | ✅ |
+| `system-error-consumer` | Event | ✅ | ✅ Has retry + DLQ |
+| `order-status-consumer` | Event | ✅ | ✅ Has retry + DLQ |
+| `payment-event-consumer` | Event (×2 topics) | ✅ | ✅ Has retry + DLQ |
+| `return-event-consumer` | Event (×2 topics) | ✅ | ✅ Has retry + DLQ |
+| `auth-login-consumer` | Event | ✅ | ⚠️ **Missing retry + DLQ** (NOTIF-NEW-001) |
+| `notification-worker` | Cron (×4 jobs) | ✅ | ✅ |
+| `outbox-worker` | Outbox | ✅ | ✅ |
 
-### Missing Workers
+### Cron Jobs
 
-| Worker | Needed? | Notes |
-|--------|---------|-------|
-| DLQ drain cron | ✅ Yes | Alert on stale dead_letter_events |
-| Processed events cleanup | ✅ Yes | TTL-based cleanup of processed_events |
-| Low stock alert consumer | ⚠️ Optional | Already handled via gRPC |
+| Job | Schedule | Working? |
+|-----|----------|----------|
+| Process pending notifications | Every 30s | ✅ |
+| Retry failed notifications | Every 5min | ✅ |
+| DLQ cleanup (30-day TTL) | Daily at 3AM | ✅ |
+| Processed events cleanup (90-day TTL) | Daily at 3:30AM | ✅ |
 
 ---
 
@@ -394,63 +302,64 @@ While the overlay patches this with `newTag`, the base should use `placeholder` 
 | Notification record ↔ outbox event | ✅ Atomic (same TX) | Safe |
 | Notification `status` ↔ delivery log | ✅ Consistent | Delivery log created before status update |
 | `processed_events` ↔ notification send | ✅ Idempotent | Check + mark with event ID |
-| User preference ↔ channel enablement at send | ✅ Checked | Preference check at both API + worker |
-| **Payment event ↔ notification** | ❌ **Broken** | Topic mismatch → events silently lost |
-| **Return event ↔ notification** | ❌ **Broken** | Topic mismatch → events silently lost |
-| **Refund event ↔ notification** | ❌ **Broken** | Topic mismatch → events silently lost |
-| DLQ events ↔ ops awareness | ⚠️ Risk | No drain consumer → DLQ grows silently |
+| User preference ↔ channel enablement | ✅ Checked | Preference check at both API + worker |
+| Payment event ↔ notification | ✅ **Fixed** | Topics now match |
+| Return event ↔ notification | ✅ **Fixed** | Topics now match |
+| Refund event ↔ notification | ✅ **Fixed** | Topics now match |
+| Auth login event ↔ notification | ✅ Consistent | Topic `auth.login` matches both sides |
+| DLQ events ↔ ops awareness | ✅ Improved | DLQ cleanup cron exists; consider adding metrics/alerting on DLQ count |
 | `notification.*` events ↔ downstream | 🔵 Low | Published but no consumer exists |
+| **OrderStatus RecipientID ↔ actual customer** | ⚠️ **Mismatch** | `ChangedBy` ≠ CustomerID (NOTIF-NEW-002) |
 
 ---
 
 ## 📋 GitOps Config Checks
 
-### Main Deployment (`deployment.yaml`)
+### Main Deployment (via `common-deployment-v2` + `patch-api.yaml`)
 
 | Check | Status |
 |-------|--------|
-| `dapr.io/enabled: "true"` + `app-id: "notification"` | ✅ |
-| `securityContext: runAsNonRoot + runAsUser` | ✅ |
+| `dapr.io/enabled: "true"` + `app-id: "notification"` | ✅ (kustomize replacement) |
+| `securityContext: runAsNonRoot + runAsUser 65532` | ✅ |
 | `revisionHistoryLimit: 1` | ✅ |
-| `secretRef: notification-secrets` | ✅ |
-| `livenessProbe` + `readinessProbe` | ✅ |
-| Image placeholder (not latest) | ✅ (`placeholder`) |
+| ConfigMap + Secret refs | ✅ |
+| Startup + liveness + readiness probes | ✅ (HTTP on service port) |
+| Image placeholder, not hardcoded | ✅ |
 
-### Worker Deployment (`worker-deployment.yaml`)
+### Worker Deployment (via `common-worker-deployment-v2` + `patch-worker.yaml`)
 
 | Check | Status |
 |-------|--------|
-| `dapr.io/enabled: "true"` + `app-id: "notification-worker"` + `app-port: "5005"` | ✅ |
-| `dapr.io/app-protocol: "grpc"` | ✅ |
-| `securityContext: runAsNonRoot + runAsUser` | ✅ |
+| `dapr.io/enabled: "true"` + `app-id: "notification-worker"` | ✅ |
+| `dapr.io/app-protocol` | ⚠️ `http` — should be `grpc` for eventbus server (NOTIF-P2-006) |
+| `dapr.io/app-port` | ⚠️ `8081` — should be `5005` for eventbus gRPC server (NOTIF-P2-006) |
+| `securityContext: runAsNonRoot + runAsUser 65532` | ✅ |
 | `revisionHistoryLimit: 1` | ✅ |
-| `secretRef: notification-secrets` | ✅ |
-| `startupProbe` | ✅ (TCP 5005) |
-| `livenessProbe` | ❌ **MISSING** (NOTIF-P1-002) |
-| `readinessProbe` | ❌ **MISSING** (NOTIF-P1-002) |
-| Health server port exposed | ✅ (8081) |
-| Image tag | ⚠️ Uses `latest` in base (NOTIF-P2-006) |
-| `initContainers` (consul/redis/postgres) | ✅ |
+| ConfigMap + Secret refs | ✅ |
+| Startup + liveness + readiness probes | ✅ (HTTP `/healthz` on 8081) |
+| Init containers (postgres, redis) | ✅ |
+| Worker resource limits (256Mi/100m → 512Mi/300m) | ✅ |
 
 ### NetworkPolicy
 
 | Check | Status |
 |-------|--------|
-| Ingress from gateway | ✅ |
-| Ingress from order/payment/fulfillment/shipping/auth/warehouse | ✅ |
-| Ingress from return/customer/loyalty-rewards/common-operations | ❌ **MISSING** (NOTIF-P1-003) |
-| Egress to external APIs (443, 587, 465) | ✅ |
-| Infrastructure egress (DNS, DB, Redis, Consul) via component | ✅ |
+| Ingress: from gateway | ✅ (HTTP/gRPC ports 8009/9009) |
+| Egress: to order/payment/customer/user/shipping | ✅ |
+| Infrastructure egress (DNS, DB, Redis, Consul, Dapr) | ✅ (via `infrastructure-egress` component) |
 
-### Overlays / Secrets
+### Secrets & Config
 
 | Check | Status |
 |-------|--------|
-| Dev secrets file exists | ✅ |
-| DB password in secrets (not configmap) | ✅ |
+| DB connection string in secrets (not configmap) | ✅ |
 | Telegram bot token in secrets | ✅ (empty placeholder) |
 | Provider API keys in secrets | ✅ |
-| External service endpoints | ⚠️ All `localhost` (NOTIF-P1-004) |
+| External service endpoints | ✅ K8s DNS names |
+| SendGrid enabled (email) | ✅ |
+| Twilio enabled (SMS) | ✅ |
+| Firebase enabled (push) | ✅ |
+| Consul service name + address | ✅ |
 
 ---
 
@@ -466,34 +375,26 @@ While the overlay patches this with `newTag`, the base should use `placeholder` 
 | Telegram bot rate limit hit during system error flood | 🟡 | Add per-channel send rate limiting at worker level |
 | `processedEventRepo.IsEventProcessed` DB timeout | 🟡 | Standardize: return error (not skip) to trigger Dapr retry |
 | `MaxAttempts=3` + `retryBaseDelay=5min` = 15min total window | 🔵 | Too long for OTP/payment receipts; allow per-type override |
-| Webhook channel defined in config but no WebhookProvider in sender | 🔵 | `webhook` config exists but `sendWebhookNotification` is not implemented in sender |
-| `in_app` channel referenced in rate limits but no InAppProvider | 🔵 | Rate limit config for `in_app_per_minute: 500` but no in-app notification channel implemented |
+| Webhook channel defined in config but no WebhookProvider in sender | 🔵 | `webhook` config exists but `sendWebhookNotification` is not implemented |
+| `in_app` channel referenced in rate limits but no InAppProvider | 🔵 | Rate limit config for `in_app_per_minute: 500` but no in-app channel implemented |
+| Auth login events with `Success: true` flood Telegram | 🟡 | Every successful login sends a Telegram notification — high volume; consider only alerting failed logins or suspicious patterns |
 
 ---
 
 ## 🔧 Remediation Priority
 
-### 🔴 Fix Now (3 items — Silent Event Loss)
+### 🟡 Fix Soon (2 items — Consistency & Resilience)
 
-1. **NOTIF-P0-001**: Fix `TopicPaymentConfirmed` → `payment.payment.processed` and `TopicPaymentFailed` → `payment.payment.failed`
-2. **NOTIF-P0-002**: Fix `TopicReturnApproved` → `orders.return.approved`
-3. **NOTIF-P0-003**: Fix `TopicRefundCompleted` → `payments.refund.completed`
+1. **NOTIF-NEW-001**: Add retry + DLQ pattern to `AuthLoginConsumer` (consistent with other 4 consumers)
+2. **NOTIF-NEW-002**: Fix `OrderStatusConsumer.RecipientID` to use `CustomerID` instead of `ChangedBy`
 
-### 🟡 Fix Soon (4 items — Reliability / Security)
+### 🔵 Monitor / Plan (5 items)
 
-4. **NOTIF-P1-001**: Remove unused `TopicInventoryLowStockAlert` or add consumer with correct topic
-5. **NOTIF-P1-002**: Add liveness + readiness probes to worker deployment
-6. **NOTIF-P1-003**: Add `return-dev`, `customer-dev`, `loyalty-rewards-dev` to NetworkPolicy ingress
-7. **NOTIF-P1-004**: Update external service endpoints to K8s DNS names
-
-### 🔵 Monitor / Document (6 items)
-
-8. **NOTIF-P2-001**: Add DLQ drain cron
-9. **NOTIF-P2-002**: Add processed_events TTL cleanup
-10. **NOTIF-P2-003**: Document orphan events (notification.created/delivered/failed)
-11. **NOTIF-P2-004**: Plan multi-channel notification routing (currently hardcoded Telegram)
-12. **NOTIF-P2-005**: Set `RecipientID` from event's `CustomerID` in consumers
-13. **NOTIF-P2-006**: Change worker base image tag from `latest` to `placeholder`
+3. **NOTIF-P2-003**: Document orphan events (notification.created/delivered/failed) — no consumer
+4. **NOTIF-P2-004**: Plan multi-channel notification routing (currently hardcoded Telegram)
+5. **NOTIF-P2-005**: Set `RecipientID` from event's `CustomerID` in payment/return consumers
+6. **NOTIF-P2-006**: Verify worker Dapr protocol (HTTP vs gRPC) — add kustomize patch if events not delivered
+7. **NOTIF-NEW-003**: Adopt `system.errors` publishing across all services (not notification fix)
 
 ---
 
@@ -507,11 +408,14 @@ While the overlay patches this with `newTag`, the base should use `placeholder` 
 | Quiet hours with overnight support | Correctly handles 22:00–07:00 spans |
 | Daily frequency cap per channel | `CountDailyNotifications` enforced before every send |
 | Exponential backoff + jitter | 5min base → 1h max, 20% jitter prevents thundering herd |
-| DLQ persistence on exhaustion | All 4 consumers save failed events to `dead_letter_events` |
+| DLQ persistence on exhaustion | All 5 consumers save failed events to `dead_letter_events` |
+| DLQ + processed_events cleanup | Cron jobs clean old records (30d DLQ, 90d processed) |
 | Permanent failure detection | No-retry for: expired, opted-out, missing recipient, bad channel |
 | Delivery log on every attempt | Full response details (code, providerMessageID, error) |
 | SMTP fallback for email | Falls back to SMTP when primary email provider DOWN |
 | Telegram group-based routing | Separate groups for system_errors, orders, payments, general |
-| Metrics collection | `notification_send_total` + `notification_send_duration` per channel/status |
-| Health check server on 8081 | Worker exposes HTTP health endpoint for K8s probes |
+| Auth login security alerting | NEW — monitors login events for security |
+| Worker health check server on 8081 | Exposes HTTP `/healthz` for K8s probes |
 | Outbox worker running | `commonOutbox.Worker` registered and running for relay |
+| GitOps structured with kustomize v2 | Uses reusable components (common-deployment-v2, common-worker-deployment-v2) |
+| Secrets properly separated from configmap | DB password, API keys in secrets; config values in configmap |

@@ -28,7 +28,7 @@ hãy review logic nghiệp vụ của :
 - Check lại các service có thực sự cần subscribe event không?
 - Check config gitops
 - check event, consumer, cron job chạy trên worker
-tạo thêm checklist ở docs\10-appendix\checklists\workflow
+update checklist ở docs\10-appendix\checklists\workflow
 
 process all issue help me
 

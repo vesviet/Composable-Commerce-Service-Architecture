@@ -1,9 +1,9 @@
 # Admin & Operations Flow — Business Logic Checklist
 
-**Last Updated**: 2026-02-23
+**Last Updated**: 2026-03-07
 **Pattern Reference**: Shopify, Shopee, Lazada — `docs/10-appendix/ecommerce-platform-flows.md` §13
 **Services Reviewed**: `admin/` (frontend), `common-operations/`, `analytics/`
-**Reviewer**: Antigravity Agent (re-verified 2026-02-23)
+**Reviewer**: Antigravity Agent (deep-review 2026-03-07)
 
 ---
 
@@ -25,8 +25,8 @@
 | Service | Role | Backend? | Worker? |
 |---------|------|----------|---------|
 | `admin/` | React/Vite admin UI served by nginx | ❌ Frontend only | ❌ |
-| `common-operations/` | Go service: task queue, settings, export/import | ✅ | ✅ worker-deployment.yaml |
-| `analytics/` | Go service: 35 BI use cases | ✅ | ❌ No worker |
+| `common-operations/` | Go service: task queue, settings, audit, i18n messages, export/import | ✅ | ✅ worker-deployment.yaml |
+| `analytics/` | Go service: 35 BI use cases, event processing, DLQ | ✅ | ✅ 4 cron jobs (aggregation, alert-checker, retention, reconciliation) |
 | `gateway/` | BFF: routes admin API requests | ✅ | ❌ |
 
 ---
@@ -43,32 +43,35 @@
 | Optimistic locking via `version` field on `UpdateTask` | ✅ | `task.go:272` — `task.Version = current.Version + 1` |
 | MaxRetries enforced before retrying | ✅ | `task.go:332-334` — `RetryCount >= MaxRetries` check inside `RetryTask` |
 | Filename sanitization via `security.FilenameSanitizer` | ✅ | `task.go:144-148` |
-| `CancelTask` wrapped in `WithTransaction` — TOCTOU fixed | ✅ | `task.go:301` — reads + updates inside `txManager.WithTransaction`; **was ⚠️, now fixed** |
-| `RetryTask` wrapped in `WithTransaction` — TOCTOU fixed | ✅ | `task.go:326` — same fix; **was ⚠️, now fixed** |
-| `task_processor.go`: `processOrderTask`, `processNotificationTask`, `processDataSyncTask` are implemented | ✅ | `task_processor.go:110-234` — calls real gRPC clients (order, notification); **was 🔴 stub, now implemented** |
+| `CancelTask` wrapped in `WithTransaction` — TOCTOU fixed | ✅ | `task.go:301` — reads + updates inside `txManager.WithTransaction` |
+| `RetryTask` wrapped in `WithTransaction` — TOCTOU fixed | ✅ | `task.go:326` — same fix |
+| `task_processor.go`: `processOrderTask`, `processNotificationTask`, `processDataSyncTask` are implemented | ⚠️ | `processOrderTask` ✅, `processNotificationTask` ✅, `processDataSyncTask` **stub — logs only, no real sync** |
 | `consumer.go handleImport`: returns "not implemented" via `markNotImplemented()` | ⚠️ | `consumer.go:112-118` — marks task as failed (not retry storm); import still TODO |
 | Customer and Product export: `markNotImplemented` used, not returning error | ⚠️ | `consumer.go:98-107` — only order export is live; others mark failed gracefully |
 | `UpdateTask` publishes directly to Dapr (not via outbox) — event lost if Dapr unavailable | ⚠️ | `task.go:286-293` — `publishTaskEventSync` 30s timeout; no persistent outbox |
-| `CreateTask` does NOT publish `task.created` event — relies on polling fallback | ⚠️ | `task.go:194-219` — task + event record saved in TX; no Dapr publish. Polling fallback (5s latency) covers recovery |
-| `DetectTimeoutsJob`: publishes `EventTaskFailed` event after marking stuck tasks | ✅ | `detect_timeouts.go:106-114` — publisher.PublishTaskEvent called; **was ⚠️, now fixed** |
-| `RetryFailedTasksJob`: calls `UpdateTask` (not `RetryTask`) — bypasses MaxRetries guard | ⚠️ | `cron/retry_failed_tasks.go:87-94` — increments RetryCount locally then calls UpdateTask; if `GetRetryableTasks` filter is wrong, could retry past MaxRetries |
+| `CreateTask` does NOT publish `task.created` event — relies on polling fallback | ⚠️ | `task.go:194-219` — task + event record saved in TX but no Dapr publish; polling fallback (5s latency) covers recovery |
+| `DetectTimeoutsJob`: publishes `EventTaskFailed` event after marking stuck tasks | ✅ | `detect_timeouts.go:69-76` — publisher.PublishTaskEvent called |
+| **`CancelTask` publishes event with outer `ctx` instead of `txCtx`** | ⚠️ 🟡 | `task.go:317` — `publishTaskEventSync(ctx, ...)` is called inside `txManager.WithTransaction` but uses outer `ctx`. If the TX rolls back, the event is already published. Should use `txCtx` or publish AFTER TX commit |
+| **`RetryTask` publishes event with outer `ctx` instead of `txCtx`** | ⚠️ 🟡 | `task.go:347` — same issue as CancelTask. Event published even if TX rollback occurs |
+| **Outbox Publisher Job does NOT exist** | ⚠️ 🟡 | `TaskEventRepo.ListUnpublished` and `MarkPublished` interfaces exist (`task.go:49-50`) but **NO job polls this table**. Event records saved in CreateTask TX are never published by outbox. Polling consumer is the ONLY recovery path |
+| **`TaskProcessorWorker.Process` returns error for unknown types** | ⚠️ 🟡 | `task_processor.go:82-98` — unknown task type results in `processErr != nil`, UpdateTask marks it as `failed`, but `Process()` still returns `processErr` to the caller. If called from Dapr event handler, this causes a retry storm |
 
 ### 1.2 Scheduled Tasks
 
 | Check | Status | Notes |
 |-------|--------|-------|
-| `ProcessScheduledTasksJob`: transitions `scheduled → pending` every 1 min | ✅ | `cron/process_scheduled_tasks.go:71-99` |
+| `ProcessScheduledTasksJob`: transitions `scheduled → pending` every 1 min | ✅ | `cron/process_scheduled_tasks.go:22-55` |
 | Scheduled task is just moved to `pending` — actual processing delegated to consumer | ✅ | Correct design |
-| No limit on how many scheduled tasks are processed per tick — if 10,000 tasks fire simultaneously, all transition to pending at once | ⚠️ | `cron/process_scheduled_tasks.go:71` — no `LIMIT` in `GetScheduledTasks` query |
+| **No limit on how many scheduled tasks are processed per tick** | ✅ | ~~Potential issue~~ — `GetScheduledTasks` repo already has `LIMIT(100)` at DB layer |
 
 ### 1.3 Task Consumer
 
 | Check | Status | Notes |
 |-------|--------|-------|
-| `TaskConsumer.Start` polls every 5s, max concurrency 5 via errgroup | ✅ | `consumer.go:124,155` |
-| `HandleTaskCreated` from Dapr pubsub routes to export/import — unsupported types handled gracefully | ✅ | `consumer.go:77-87` — **was ⚠️, now fixed**: unsupported types call `markNotImplemented()` (return nil to ACK Dapr) |
-| Returning error for unsupported types — fixed, no longer retry storm | ✅ | `consumer.go:84-87` — returns `nil` + marks task failed; **was 🟡, now resolved** |
-| Idempotency check on task processing — status guard in place | ✅ | `consumer.go:72-75`, `consumer.go:182-185` — skips tasks not in pending status; **was ⚠️, now fixed** |
+| `TaskConsumer.Start` polls every 5s, max concurrency 5 via errgroup | ✅ | `consumer.go:129,162` |
+| `HandleTaskCreated` from Dapr pubsub routes to export/import — unsupported types handled gracefully | ✅ | `consumer.go:77-87` — returns `nil` + marks failed via `markNotImplemented` |
+| Returning error for unsupported types — fixed, no longer retry storm | ✅ | `consumer.go:84-87` — returns `nil` (ACK to Dapr) |
+| Idempotency check on task processing — status guard in place | ✅ | `consumer.go:72-75`, `consumer.go:182-185` — skips tasks not in pending status |
 
 ---
 
@@ -79,18 +82,47 @@
 | Check | Status | Notes |
 |-------|--------|-------|
 | `GetSettingByKey` — simple key-value retrieval | ✅ | `settings/usecase.go:35-41` |
-| `UpdateSettingByKey` — writes audit record before publishing event | ✅ | `settings/usecase.go:44-74` |
-| **Audit trail for settings changes** | ✅ | `usecase.go:55-64` + `settings_audit_repo.go:26-28` — immutable record with old/new value and updatedBy; **was 🟡, now implemented** |
-| **`settings.changed` event published on update** | ✅ | `settings_publisher.go:24-39` — publishes key, old/new value, updatedBy, timestamp; **was 🟡, now implemented** |
-| **No validation on setting value** | ⚠️ | `settings/usecase.go:44` — accepts any `json.RawMessage`; no per-key schema validation |
-| **No version/optimistic locking on settings** | ⚠️ | Two concurrent admins updating the same setting — last write wins |
+| `UpdateSettingByKey` — validates value, writes audit record, publishes event | ✅ | `settings/usecase.go:46-53` |
+| **Audit trail for settings changes** | ✅ | `usecase.go:101-118` — `recordAuditAndPublish()` records old/new value with `updatedBy` |
+| **`settings.changed` event published on update** | ✅ | `PublishSettingsChanged()` called from `recordAuditAndPublish()` |
+| **Schema validation per setting key** | ✅ | `settings.go:64-87` — `schemaRegistry` with `requireBool`/`requireNonEmptyString` for payment keys |
+| **Optimistic locking on settings** | ✅ | `UpdateSettingByKeyWithVersion()` — CAS via `UpdateWithVersion()`, returns `ErrVersionConflict` on mismatch |
 | **No RBAC check inside settings usecase** | ⚠️ | Relies entirely on HTTP middleware at gateway layer |
+| **Settings audit + event publish are non-transactional with the DB write** | ⚠️ 🔵 | `usecase.go:100-101` comment: "non-fatal: failures are logged but do not roll back the DB write". If audit/event fail silently, admin has no visibility |
 
 ---
 
-## 3. Admin Frontend (`admin/`)
+## 3. Admin Audit (`common-operations/internal/biz/audit`)
 
-### 3.1 Admin UI Assessment
+### 3.1 Admin Audit Log
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| `AdminAuditUseCase.RecordAction` — immutable append-only audit log | ✅ | `audit/admin_audit.go:44-71` — records actorID, actorRole, action, entity, old/new state, metadata |
+| `ListByActor` and `ListByEntity` queries | ✅ | `admin_audit.go:74-81` — pagination support |
+| **Audit repo enforces append-only** | ✅ | Interface comment: "no UPDATE/DELETE" semantics per `admin_audit.go:17` |
+| **No event published on audit record creation** | ⚠️ 🔵 | `RecordAction()` only writes to DB. No event for external alerting/compliance systems |
+
+---
+
+## 4. Message (i18n) Management (`common-operations/internal/biz/message`)
+
+### 4.1 Message System
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| `GetMessage` with language fallback | ✅ | `message.go:40-60` — returns key as fallback if translation missing |
+| `GetMessages` batch retrieval | ✅ | `message.go:63-109` — batch with per-key variable replacement |
+| `UpsertMessage` with event publish | ✅ | `message.go:112-161` — publishes `message_updated` event |
+| `DeleteMessage` with event publish | ✅ | `message.go:169-184` — publishes `message_deleted` event |
+| **Template variable injection — no escaping** | ⚠️ 🔵 | `message.go:187-194` — `strings.ReplaceAll` without HTML escaping. If admin-provided templates are rendered in HTML, XSS risk |
+| **No RBAC on message CRUD** | ⚠️ | Same as settings — relies on gateway middleware |
+
+---
+
+## 5. Admin Frontend (`admin/`)
+
+### 5.1 Admin UI Assessment
 
 | Check | Status | Notes |
 |-------|--------|-------|
@@ -98,73 +130,101 @@
 | All API calls go through gateway BFF | ✅ | `VITE_API_GATEWAY_URL` from ConfigMap |
 | Health probes on nginx (liveness + readiness) | ✅ | `deployment.yaml:55-66` |
 | Security context: non-root nginx (uid 101) | ✅ | `deployment.yaml:26-33` |
-| `readOnlyRootFilesystem: false` needed for nginx tmp writes | ✅ | Expected for nginx |
 | No secrets in admin deployment — only configmap | ✅ | Correct (frontend should not have secrets) |
 | No Dapr sidecar on admin (frontend doesn't need pubsub) | ✅ | Correct |
 
 ---
 
-## 4. Analytics Service (`analytics/`)
+## 6. Analytics Service (`analytics/`)
 
-### 4.1 Analytics Assessment
+### 6.1 Analytics Assessment
 
 | Check | Status | Notes |
 |-------|--------|-------|
 | 35 business use cases covering: revenue, customer, fulfillment, inventory, order, product, real-time, A/B testing, alerts | ✅ | Comprehensive coverage |
-| Has HPA (Horizontal Pod Autoscaler) | ✅ | `gitops/apps/analytics/base/hpa.yaml` — scales on load |
+| Has HPA (Horizontal Pod Autoscaler) | ✅ | `gitops/apps/analytics/base/hpa.yaml` |
 | Has Prometheus alerting rules | ✅ | `gitops/apps/analytics/base/prometheusrule.yaml` |
-| **No worker-deployment.yaml** — analytics has no async worker | ⚠️ | `gitops/apps/analytics/base/` — 12 files, no worker. If analytics needs background event consumption (e.g., consuming order events to build dashboards), there's no worker to do so |
-| Analytics service subscribes to no events (no consumer worker) | ⚠️ | All 35 usecases read from DB on demand (synchronous queries). High-volume reports (daily GMV, cohort analysis) may timeout on large datasets. No pre-aggregation |
-| `event_processing_usecase.go` exists — may have consumer logic | ⚠️ | Need to verify if analytics actually needs event-driven ingestion or only pulls from data warehouse |
+| **Worker binary exists** | ✅ | `analytics/cmd/worker/main.go` — runs 4 cron jobs |
+| **Worker GitOps configured** | ✅ | `patch-worker.yaml`, `worker-pdb.yaml`, `common-worker-deployment-v2` component |
+| `event_processing_usecase.go` — full event processing with idempotency + DLQ | ✅ | `event_processing_usecase.go:32-138` — dedup by event ID and data hash, DLQ after 3 retries |
+| **Analytics event processing is API-driven, not event-driven** | ⚠️ 🔵 | `ProcessIncomingEvent()` is a usecase method called via gRPC/HTTP API. No Dapr consumer subscribes to platform events (order, payment, etc.) to feed analytics in real-time. Reports rely on DB queries |
+| **Worker runs cron jobs only — no event consumers** | ⚠️ | Worker has 4 cron jobs: `AggregationCronJob`, `AlertCheckerCronJob`, `RetentionCronJob`, `ReconciliationCronJob`. No Dapr event subscriptions |
+
+### 6.2 Analytics Worker Cron Jobs
+
+| Worker | Type | Purpose | Status |
+|--------|------|---------|--------|
+| `AggregationCronJob` | Cron | Pre-aggregate metrics for dashboards | ✅ |
+| `AlertCheckerCronJob` | Cron | Check alert thresholds, fire notifications | ✅ |
+| `RetentionCronJob` | Cron | Purge old analytics data | ✅ |
+| `ReconciliationCronJob` | Cron | Reconcile analytics data across sources | ✅ |
 
 ---
 
-## 5. Events Assessment
+## 7. Events Assessment
 
-### 5.1 Events Published by Admin/Operations Services
+### 7.1 Events Published by Admin/Operations Services
 
 | Event | Publisher | Topic | Needed? | Via Outbox? | Status |
 |-------|-----------|-------|---------|-------------|--------|
-| `task.created` | common-operations | `task.created` | ⚠️ Internal only — to trigger async processing | ❌ Not published (polling fallback used) | ⚠️ 5s latency via polling |
+| `task.created` | common-operations | `operations.task.created` | ⚠️ Internal only — to trigger async processing | ❌ Event record saved in TX but NOT published by outbox job | ⚠️ Polling fallback (5s) is the primary path |
 | `task.completed` | common-operations | `task.operations` | ⚠️ Notify admin user | ❌ Direct Dapr (publishTaskEventSync) | ⚠️ Lost on Dapr downtime |
 | `task.failed` | common-operations | `task.operations` | ⚠️ Notify admin user | ❌ Direct Dapr | ⚠️ Lost on Dapr downtime |
-| `settings.changed` | common-operations | `settings.changed` | ✅ Yes — pricing/tax/promotion cache invalidation | ❌ Direct Dapr | ✅ **Now published** (was ❌ Missing) |
-| `admin.action.audit` | — | — | ✅ Yes — compliance audit trail | ❌ **Never published** | ❌ Missing |
+| `settings.changed` | common-operations | `settings.changed` | ✅ Yes — pricing/tax/promotion cache invalidation | ❌ Direct Dapr | ✅ Published |
+| `message_updated` | common-operations | message events | ✅ Yes — i18n cache invalidation | ❌ Direct Dapr | ✅ Published |
+| `message_deleted` | common-operations | message events | ✅ Yes — i18n cache invalidation | ❌ Direct Dapr | ✅ Published |
+| `admin.action.audit` | — | — | 🔵 Optional — compliance alerting | ❌ **Never published** | 🔵 DB-only audit is sufficient for now |
 
-### 5.2 Events That Should Be Subscribed To
+### 7.2 Events That Should Be Subscribed To
 
 | Event | Service | Currently Subscribed | Needed? | Assessment |
 |-------|---------|---------------------|---------|------------|
-| `orders.order_status_changed` | analytics | ❌ | ⚠️ Optional — streaming for real-time dashboard | ❌ No worker |
-| `payment.payment_processed` | analytics | ❌ | ⚠️ Optional — streaming GMV | ❌ No worker |
-| `task.created` | common-operations consumer | ✅ (via Dapr pubsub + polling fallback) | ✅ Yes | ✅ |
+| `orders.order_status_changed` | analytics | ❌ | 🔵 Optional — streaming for real-time dashboard | Analytics uses cron aggregation instead (batch approach) |
+| `payment.payment_processed` | analytics | ❌ | 🔵 Optional — streaming GMV | Same — batch aggregation cron |
+| `task.created` | common-operations consumer | ✅ (via Dapr pubsub + polling fallback) | ✅ Yes | ✅ DaprHandler subscribes to `operations.task.created` |
+
+### 7.3 Verdict: Do These Services Actually NEED PubSub?
+
+| Service | Publish Events? | Subscribe Events? | Verdict |
+|---------|----------------|-------------------|---------|
+| **common-operations** | ✅ Yes (task state, settings, messages) | ✅ Yes (task.created for async processing) | ✅ Correct use of PubSub |
+| **analytics** | ❌ Does not publish | ❌ Does not subscribe | ⚠️ Currently batch-only approach via cron jobs. Real-time event consumption is deferred (P2). Acceptable if SLA allows minutes-level data freshness |
+| **admin** | ❌ N/A (frontend) | ❌ N/A | ✅ Correct — no PubSub needed for SPA |
 
 ---
 
-## 6. GitOps Configuration
+## 8. GitOps Configuration
 
-### 6.1 common-operations GitOps
+### 8.1 common-operations GitOps
 
 | Check | Status | Notes |
 |-------|--------|-------|
 | `worker-deployment.yaml` exists | ✅ | `gitops/apps/common-operations/base/worker-deployment.yaml` |
-| MinIO credentials injected via `secretKeyRef` | ✅ | `worker-deployment.yaml:69-78` |
-| DB credentials via `overlays-config` configmap only | ⚠️ | No `secretRef`, relies on overlays-config for DB DSN. Verify overlays-config doesn't embed plaintext DB password |
-| Worker Dapr: HTTP protocol, port 8018 | ✅ | `worker-deployment.yaml:26-27` — HTTP not gRPC |
-| **No liveness/readiness probes on worker** | ⚠️ | `worker-deployment.yaml` — port 8018 exists but no `livenessProbe`/`readinessProbe` defined |
+| MinIO credentials injected via `secretKeyRef` | ✅ | `worker-deployment.yaml:72-81` |
+| Worker Dapr: HTTP protocol, app-port 8019 | ✅ | `worker-deployment.yaml:26-27` |
+| Liveness/readiness probes on worker | ✅ | `worker-deployment.yaml:95-112` — `/healthz` on port 8019 |
 | `revisionHistoryLimit: 1` | ✅ | `worker-deployment.yaml:13` |
-| Config mounted as volume | ✅ | `worker-deployment.yaml:86-93` |
+| Config mounted as volume | ✅ | `worker-deployment.yaml:90-93,114-117` |
+| Security context: non-root (uid 65532) | ✅ | `worker-deployment.yaml:30-33,47-48` |
+| Init containers wait for console/redis/postgres | ✅ | `worker-deployment.yaml:34-43` |
+| **Worker runs all modes**: `/app/bin/worker -mode all` | ✅ | `worker-deployment.yaml:54` |
+| **Health port mismatch with Dapr app-port** | ⚠️ 🔵 | `app-port=8019` (Dapr), health probes on `port 8019`. OK — both use the same internal HTTP server. But `containerPort: 8081` (line 60) is declared for health but probes target 8019. **Dead port declaration** — port 8081 is never used |
 
-### 6.2 Analytics GitOps
+### 8.2 Analytics GitOps
 
 | Check | Status | Notes |
 |-------|--------|-------|
-| `secret.yaml` exists | ✅ | `gitops/apps/analytics/base/secret.yaml` |
-| `hpa.yaml` exists | ✅ | Proper autoscaling for query load |
-| `prometheusrule.yaml` exists | ✅ | Alerting rules configured |
-| **No `worker-deployment.yaml`** | ⚠️ | No async worker; all processing is synchronous per request |
+| Worker deployment via `common-worker-deployment-v2` component | ✅ | `kustomization.yaml:17` |
+| `patch-worker.yaml` exists | ✅ | Adds configmap/secret envFrom and resource limits |
+| `worker-pdb.yaml` exists | ✅ | `minAvailable: 1` — ensures availability during disruptions |
+| Worker command: `/app/bin/worker -conf /app/configs/config.yaml` | ✅ | `kustomization.yaml:63-64` |
+| HPA configured | ✅ | `hpa.yaml` |
+| ServiceMonitor configured | ✅ | Prometheus scraping |
+| PrometheusRule configured | ✅ | Alerting rules |
+| Secret configured | ✅ | `secret.yaml` |
+| Dapr enabled with app-id `analytics-worker` | ✅ | `kustomization.yaml:193-200` |
 
-### 6.3 Admin GitOps
+### 8.3 Admin GitOps
 
 | Check | Status | Notes |
 |-------|--------|-------|
@@ -175,7 +235,7 @@
 
 ---
 
-## 7. Worker & Cron Summary
+## 9. Worker & Cron Summary
 
 ### common-operations Workers
 
@@ -183,63 +243,96 @@
 |--------|------|----------|---------|--------|
 | `TaskConsumer` (polling) | Polling fallback | 5s, batch 10, concurrency 5 | Process pending tasks | ✅ routing + idempotency guard |
 | `TaskConsumer` (Dapr push) | Event-driven | Push | Handle `task.created` from Dapr | ✅ unsupported types ACK + mark failed |
-| `ProcessScheduledTasksJob` | Cron | 1 min | Move `scheduled → pending` | ✅; ⚠️ no LIMIT on query |
-| `RetryFailedTasksJob` | Cron | 5 min | Retry failed tasks within MaxRetries | ⚠️ bypasses `RetryTask()` UseCase; no MaxRetries re-check |
-| `DetectTimeoutsJob` | Cron | 1 hour | Mark 2h+ tasks as failed + publish event | ✅ publisher added |
-| `CleanupOldTasksJob` | Cron | Daily? | Purge old completed tasks + files | ✅ (verify schedule) |
-| `CleanupOldFilesJob` | Cron | Daily? | Purge old export files from MinIO | ✅ (verify schedule) |
-| `TaskProcessorWorker` (order) | Event-driven | Push | Cancel/fulfill orders via order service gRPC | ✅ **implemented** |
-| `TaskProcessorWorker` (notification) | Event-driven | Push | Send notifications via notification gRPC | ✅ **implemented** |
-| `TaskProcessorWorker` (data_sync) | Event-driven | Push | Log data sync request (analytics handles aggregation) | ⚠️ stub — logs only, no real sync |
+| `TaskProcessorWorker` | Event-driven | Push | Process order/notification/data-sync tasks | ⚠️ data_sync is stub; returns error for unknown types |
+| `ProcessScheduledTasksJob` | Cron | 1 min | Move `scheduled → pending` | ✅ |
+| `RetryFailedTasksJob` | Cron | 5 min | Retry failed tasks within MaxRetries | ✅ delegates to `RetryTask()` UseCase |
+| `DetectTimeoutsJob` | Cron | 1 hour | Mark 2h+ tasks as failed + publish event | ✅ |
+| `CleanupOldTasksJob` | Cron | Daily | Purge old completed tasks | ✅ |
+| `CleanupOldFilesJob` | Cron | Daily | Purge old export files from MinIO | ✅ |
+
+### analytics Workers
+
+| Worker | Type | Interval | Purpose | Status |
+|--------|------|----------|---------|--------|
+| `AggregationCronJob` | Cron | Periodic | Pre-aggregate metrics for dashboards | ✅ |
+| `AlertCheckerCronJob` | Cron | Periodic | Check alert thresholds, fire notifications | ✅ |
+| `RetentionCronJob` | Cron | Periodic | Purge old analytics data | ✅ |
+| `ReconciliationCronJob` | Cron | Periodic | Reconcile analytics data across sources | ✅ |
 
 ---
 
-## 8. Edge Cases & Risk Items
+## 10. Edge Cases & Risk Items
+
+### 🚩 PENDING ISSUES (Unfixed)
 
 | # | Risk | Severity | Location |
-|---|------|----------|-----------|
-| E1 | **Task processor subtypes implemented** — `order_processing` calls `order.CancelOrder`, `notification_send` calls `notification.SendNotification`, `data_sync` logs (analytics aggregates) | ✅ **RESOLVED** | `task_processor.go:110-234` |
-| E2 | **`HandleTaskCreated` unsupported types → ACK + mark failed** — no more Dapr retry storm | ✅ **RESOLVED** | `consumer.go:83-87` |
-| E3 | **`settings.UpdateSettingByKey` publishes `settings.changed` event** — pricing/promotion/tax can invalidate cache | ✅ **RESOLVED** | `event/settings_publisher.go` |
-| E4 | **Settings audit trail implemented** — old/new value, updated_by, timestamp persisted | ✅ **RESOLVED** | `settings_audit_repo.go`, `model/settings_audit.go` |
-| E5 | **`CreateTask` does NOT publish `task.created` event** — polling fallback (5s) covers it; event record saved in TX | ⚠️ P1 low | `task.go:194-219` — polling fallback sufficient but adds latency |
-| E6 | **`CancelTask` and `RetryTask` TOCTOU fixed** — both wrapped in `WithTransaction` | ✅ **RESOLVED** | `task.go:301, 326` |
-| E7 | **`DetectTimeoutsJob` publishes event** — `EventTaskFailed` sent via publisher | ✅ **RESOLVED** | `detect_timeouts.go:106-114` |
-| E8 | **`ProcessScheduledTasksJob` has no LIMIT** — repo `GetScheduledTasks` already has `LIMIT(100)` | ✅ **RESOLVED** | `data/postgres/task_repo.go:239` — LIMIT 100 applied at DB layer |
-| E9 | **Settings value schema validation** — `ValidateSettingValue(key, value)` enforcer + `schemaRegistry` for per-key validators | ✅ **RESOLVED** | `biz/settings/settings.go` — boolean/string validators for payment keys |
-| E10 | **Analytics has no event consumer** — real-time dashboards read stale data | 🔵 P2 deferred | `gitops/apps/analytics/base/` — requires analytics service scope |
-| E11 | **Settings optimistic locking** — `UpdateSettingByKeyWithVersion` + `version` column + `UpdateWithVersion` repo method | ✅ **RESOLVED** | `model/setting.go`, `data/postgres/settings_repo.go`, `migration 010` |
-| E12 | **Admin action audit log** — `admin_audit_log` table + `AdminAuditUseCase.RecordAction` + `AdminAuditRepo` | ✅ **RESOLVED** | `biz/audit/admin_audit.go`, `data/postgres/admin_audit_repo.go`, `migration 011` |
-| E13 | **Worker deployment liveness/readiness probes added** | ✅ **RESOLVED** | `worker-deployment.yaml:86-101` — probes on port 8019 (`/healthz`) |
-| E14 | **Task consumer idempotency guard in place** — status check before routing | ✅ **RESOLVED** | `consumer.go:72-75, 182-185` |
-| E15 | **`RetryFailedTasksJob` now delegates to `RetryTask()` UseCase** — MaxRetries enforced; state transition validated; version locked | ✅ **RESOLVED** | `cron/retry_failed_tasks.go:87` — `taskUsecase.RetryTask(ctx, t.ID)` |
+|---|------|----------|----------|
+| E16 | **`CancelTask`/`RetryTask` publish event with outer `ctx` not `txCtx`** — event may be published even if TX rolls back | 🟡 P1 | `task.go:317,347` — `publishTaskEventSync(ctx, ...)` uses `ctx` from outer scope, not `txCtx` from `WithTransaction`. Should either use `txCtx` or move publish AFTER TX commit |
+| E17 | **Outbox Publisher Job NOT implemented** — `TaskEventRepo.ListUnpublished`/`MarkPublished` interfaces defined but no cron job polls them. Event records saved in `CreateTask` TX are orphaned. Checklist previously marked this resolved — reverting | 🟡 P1 | `task.go:46-51` defines interface; `find outbox` returns 0 results in codebase. No `outbox_publisher.go` file exists |
+| E18 | **`TaskProcessorWorker.Process()` returns error for unknown types** — may cause Dapr retry storm | 🟡 P1 | `task_processor.go:82-98` — unknown type sets `processErr`, marks task as `failed` via `UpdateTask`, but `Process()` returns `processErr`. If this handler is invoked by a Dapr event push, returning error = infinite retry |
+| E19 | **`processDataSyncTask` is stub** — only logs, no real data synchronization | 🔵 P2 | `task_processor.go:220-234` — logs "Data sync requested" but does nothing. Task is marked completed despite no actual work |
+| E20 | **Message template variable injection has no HTML escaping** | 🔵 P2 | `message.go:187-194` — `strings.ReplaceAll` without escaping. XSS risk if admin-defined templates rendered in browser |
+| E21 | **Worker deployment declares unused port 8081** | 🔵 P2 | `worker-deployment.yaml:59-61` — `containerPort: 8081 (health)` is declared but probes use port 8019. Dead declaration — harmless but confusing |
+| E22 | **Settings + Audit publish are non-transactional** | 🔵 P2 | `settings/usecase.go:100-101` — audit and event publish are fire-and-forget after DB write. If both fail, settings change is invisible to audit trail and downstream caches |
+| E23 | **No RBAC enforcement inside biz layer** | 🔵 P2 | Settings, messages, and audit rely entirely on gateway middleware for authorization. If any internal service calls these usecases directly (e.g., via gRPC), RBAC is bypassed |
+| E5 | **`CreateTask` does NOT publish `task.created` event** via Dapr — polling fallback is the only path | 🔵 P2 low | `task.go:194-219` — polling every 5s compensates; acceptable latency for admin tasks |
+| E10 | **Analytics event consumers are deferred** — worker runs cron jobs (aggregation, alerting, retention, reconciliation) but no event-driven real-time ingestion | 🔵 P2 deferred | `analytics/cmd/worker/main.go:67-78` — batch approach is valid if SLA allows minutes-level freshness |
+
+### ✅ RESOLVED / Fixed
+
+| # | Resolution |
+|---|-----------|
+| E1 | Task processor subtypes implemented — `processOrderTask` calls `order.CancelOrder`, `processNotificationTask` calls `notification.SendNotification` |
+| E2 | `HandleTaskCreated` unsupported types → ACK + mark failed — no Dapr retry storm |
+| E3 | `settings.UpdateSettingByKey` publishes `settings.changed` event |
+| E4 | Settings audit trail implemented — old/new value, updated_by, timestamp persisted |
+| E6 | `CancelTask` and `RetryTask` TOCTOU fixed — both wrapped in `WithTransaction` |
+| E7 | `DetectTimeoutsJob` publishes event — `EventTaskFailed` sent via publisher |
+| E8 | `ProcessScheduledTasksJob` has `LIMIT(100)` at repo layer |
+| E9 | Settings value schema validation — `ValidateSettingValue` with `schemaRegistry` |
+| E11 | Settings optimistic locking — `UpdateSettingByKeyWithVersion` + `version` column |
+| E12 | Admin action audit log — `admin_audit_log` table + `AdminAuditUseCase.RecordAction` |
+| E13 | Worker deployment liveness/readiness probes added on port 8019 `/healthz` |
+| E14 | Task consumer idempotency guard — status check before routing |
+| E15 | `RetryFailedTasksJob` delegates to `taskUsecase.RetryTask()` — MaxRetries enforced |
 
 ---
 
-## 9. Summary of Findings
+## 11. Summary of Findings
 
 | Priority | Count | Key Items |
 |----------|-------|-----------|
 | 🔴 P0 | 0 | All P0 items resolved ✅ |
-| 🟡 P1 | 1 | E5: `task.created` not published (polling fallback via OutboxPublisherJob now compensates – E5 effectively resolved) |
-| 🔵 P2 | 0 | All P2 items resolved ✅ |
+| 🟡 P1 | 3 | E16 (event publish outside TX), E17 (outbox job missing), E18 (TaskProcessor returns error) |
+| 🔵 P2 | 6 | E5, E10, E19, E20, E21, E22, E23 |
 
 ---
 
-## 10. Action Items
+## 12. Action Items
 
-- [x] **[P0 → RESOLVED]** Task processor subtypes implemented: `processOrderTask` calls `order.CancelOrder`, `processNotificationTask` calls `notification.SendNotification`
-- [x] **[P1 → RESOLVED]** Fix `HandleTaskCreated`: returns `nil` for unsupported types (ACK) + marks task failed — no more Dapr retry storm
-- [x] **[P1 → RESOLVED]** `settings.changed` event implemented in `event/settings_publisher.go`; called by `UpdateSettingByKey`
-- [x] **[P1 → RESOLVED]** Settings audit log implemented: `SettingsAuditRepo.Record()` + `model.SettingsAudit` with old/new value and updatedBy
-- [x] **[P1 → RESOLVED]** `CancelTask` and `RetryTask` wrapped in `WithTransaction` — TOCTOU fixed
-- [x] **[P1 → RESOLVED]** Idempotency guard: `task.Status != pending` check before routing in both Dapr and polling paths
-- [x] **[P2 → RESOLVED]** `DetectTimeoutsJob` publishes `EventTaskFailed` event via `publisher` after marking stuck tasks
-- [x] **[P2 → RESOLVED]** E8: `GetScheduledTasks` already has `LIMIT(100)` at repository layer — no memory overload risk
-- [x] **[P2 → RESOLVED]** E13: Liveness + readiness probes added to worker deployment on port 8019 (`/healthz`)
-- [x] **[P1 new → RESOLVED]** E15: `RetryFailedTasksJob` delegates to `taskUsecase.RetryTask()` — MaxRetries enforced via UseCase
-- [x] **[wire → RESOLVED]** `NewOutboxPublisherJob` created in `cron/outbox_publisher.go` — polls `task_events.published_at IS NULL`, publishes via Dapr, marks published; completes E5 transactional outbox pattern
-- [x] **[P2 → RESOLVED]** E9: `ValidateSettingValue(key, value)` + `schemaRegistry` map; boolean and non-empty-string validators for all payment settings keys
-- [x] **[P2 → RESOLVED]** E11: `version` column on `settings` table + `UpdateSettingByKeyWithVersion(ctx, key, val, updatedBy, expectedVersion)` — returns `ErrVersionConflict` on CAS failure
-- [x] **[P2 → RESOLVED]** E12: `admin_audit_log` table (migration 011) + `AdminAuditUseCase.RecordAction` + `AdminAuditRepo` — immutable append-only log for order cancels, account unlocks, manual refunds
-- [ ] **[P2 deferred]** E10: Analytics event consumer worker — requires analytics service scope; not blocking
+### Resolved
+- [x] **E1** Task processor subtypes implemented
+- [x] **E2** HandleTaskCreated returns nil for unsupported types
+- [x] **E3** `settings.changed` event published
+- [x] **E4** Settings audit trail implemented
+- [x] **E6** CancelTask/RetryTask TOCTOU fixed
+- [x] **E7** DetectTimeoutsJob publishes event
+- [x] **E8** GetScheduledTasks has LIMIT(100)
+- [x] **E9** Settings value schema validation
+- [x] **E11** Settings optimistic locking
+- [x] **E12** Admin action audit log
+- [x] **E13** Worker probes added
+- [x] **E14** Task consumer idempotency guard
+- [x] **E15** RetryFailedTasksJob delegates to UseCase
+
+### Open
+- [ ] **[🟡 P1] E16**: Move `publishTaskEventSync` calls in `CancelTask`/`RetryTask` to AFTER `WithTransaction` returns, or pass `txCtx`
+- [ ] **[🟡 P1] E17**: Implement `OutboxPublisherJob` cron that polls `TaskEventRepo.ListUnpublished()` and publishes via Dapr, then marks published
+- [ ] **[🟡 P1] E18**: `TaskProcessorWorker.Process()` should return `nil` after marking unknown types as failed (prevent Dapr retry)
+- [ ] **[🔵 P2] E19**: Implement real data sync logic in `processDataSyncTask` or remove the feature
+- [ ] **[🔵 P2] E20**: Add HTML escaping to message template variable replacement
+- [ ] **[🔵 P2] E21**: Remove unused port 8081 declaration from worker-deployment.yaml
+- [ ] **[🔵 P2] E22**: Wrap settings update + audit + event publish in a transaction
+- [ ] **[🔵 P2] E23**: Add RBAC validation inside biz-layer usecases (defense in depth)
+- [ ] **[🔵 P2] E5**: Add outbox pattern for `CreateTask` events (currently polling only)
+- [ ] **[🔵 P2] E10**: Add event consumers to analytics worker for real-time dashboard data ingestion

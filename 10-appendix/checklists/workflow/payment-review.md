@@ -1,378 +1,415 @@
 # Payment Flow — Business Logic Review Checklist
 
-**Date**: 2026-02-24 (v2 — full re-audit following Shopify/Shopee/Lazada patterns)
+**Date**: 2026-03-07 (v3 — full re-audit following Shopify/Shopee/Lazada patterns)
 **Reviewer**: AI Review (deep code scan — payment service)
 **Scope**: `payment/` — payment processing, refund, webhook, reconciliation, workers, GitOps
 **Reference**: `docs/10-appendix/ecommerce-platform-flows.md` §7 (Payment Flows)
 
-> Previous sprint fixes preserved as `✅ Fixed`. New issues from this audit use `[NEW-*]` tags.
+> v2 issues **all resolved**. New issues from this audit use `[V3-*]` tags.
 
 ---
 
-## 📊 Summary (v2)
+## 📊 Summary (v3)
 
-| Category | Sprint 1–3 | This Audit |
-|----------|-----------|------------|
-| 🔴 P0 — Critical | 3 found → 3 fixed | 1 new |
-| 🟡 P1 — High | 6 found → 6 fixed | 3 new |
-| 🔵 P2 — Medium | 6 found → 6 fixed | 3 new |
-
----
-
-## 1. Data Consistency
-
-### 1.1 Previously Fixed — Confirmed in Code
-
-| Issue | Status | Evidence |
-|-------|--------|----------|
-| `PublishPaymentStatusChanged` runtime PANIC via unsafe type assertion | ✅ Fixed | Adapter pattern introduced |
-| `order.cancelled` consumer missing — authorized payments never voided | ✅ Fixed | `event_consumer_worker.go:49–51` — `ConsumeOrderCancelled` registered |
-| `UpdatePaymentStatus` publishes directly outside `InTx` | ✅ Fixed | Wrapped in `InTx` alongside DB update |
-| Outbox cleanup never called | ✅ Fixed | `outbox_worker.go:56,64–65` — `cleanupTicker` every 24h |
-| Outbox `MaxRetries` not enforced | ✅ Fixed | `FindRetryable` SQL filters by `max_retries` |
-| `GetTotalRefundedAmount` TOCTOU in `ProcessRefund` | ✅ Fixed | Moved inside `InTx` |
-| `ProcessPayment` saga compensation uses request ctx | ✅ Fixed | Uses `context.Background()` |
-| Dispute events stub no-ops | ✅ Fixed | `PublishDisputeCreated/Responded/StatusChanged` implemented |
-| HPA missing for payment main | ✅ Fixed | `gitops/apps/payment/base/hpa.yaml` added (2–8 replicas) |
-
-### 1.2 Still Open from Sprint Review
-
-| Issue | Severity | Notes |
-|-------|----------|-------|
-| `CreatePaymentFromGatewayData` reads `payment_provider` from metadata, fallback `"stripe"` | ⚠️ P1 | Correct now — but verify non-Stripe gateways include `payment_provider` metadata key |
-| `handleRefundSucceeded` now uses `FindByGatewayRefundID` | ✅ Fixed | Direct lookup |
+| Category | Sprint 1–3 | v2 Audit | This Audit (v3) |
+|----------|-----------|----------|-----------------|
+| 🔴 P0 — Critical | 3 → 3 fixed | 1 → ✅ fixed | 0 new |
+| 🟡 P1 — High | 6 → 6 fixed | 3 → ✅ fixed | 3 new |
+| 🔵 P2 — Medium | 6 → 6 fixed | 3 → ✅ fixed | 5 new |
 
 ---
 
-## 2. Event Consumers — DLQ Coverage
+## 1. v2 Issues — All Resolved ✅
 
-### 2.1 Registered Consumers in `event_consumer_worker.go`
+### 1.1 DLQ Drain Handlers [v2 NEW-01] → ✅ FIXED
 
-| Consumer | Topic | DLQ Handler | Status |
-|----------|-------|------------|--------|
-| `ReturnConsumer.ConsumeReturnCompleted` | `returns.return_completed` | ❌ None registered | ⚠️ [NEW-01] |
-| `OrderConsumer.ConsumeOrderCancelled` | `orders.order_cancelled` | ❌ None registered | ⚠️ [NEW-01] |
-| `OrderCompletedConsumer.ConsumeOrderCompleted` | `orders.order_completed` | ❌ None registered | ⚠️ [NEW-01] |
+| Consumer | DLQ Method | Registered In Worker | Evidence |
+|----------|-----------|---------------------|----------|
+| `ReturnConsumer` | `ConsumeReturnCompletedDLQ` | ✅ `event_consumer_worker.go:59–61` | `return_consumer.go:108–121` |
+| `OrderConsumer` | `ConsumeOrderCancelledDLQ` | ✅ `event_consumer_worker.go:62–64` | `order_consumer.go:93–106` |
+| `OrderCompletedConsumer` | `ConsumeOrderCompletedDLQ` | ✅ `event_consumer_worker.go:65–67` | `order_completed_consumer.go:85–98` |
 
-No DLQ drain handlers exist for any of the 3 payment event consumers. When Dapr exhausts retries on these topics, events go to unacknowledged DLQ streams.
+All 3 DLQ handlers implemented and registered. DLQ messages are ACK'd with `[DLQ_DRAIN]` log warning.
+
+### 1.2 Reconciliation Job Lifecycle [v2 NEW-02] → ✅ FIXED
+
+Reconciliation job now wraps `worker.CronWorker` (line 18, 42–45) instead of raw goroutine. `Start()` delegates to the CronWorker which handles the ticker loop and context cancellation correctly.
+
+**Evidence**: `payment_reconciliation.go:18` — `type PaymentReconciliationJob struct{ *worker.CronWorker }`
+
+### 1.3 WebhookRetryWorker Busy-Wait [v2 NEW-03] → ✅ FIXED
+
+Uses `time.NewTicker(30 * time.Second)` with blocking `select` (line 48–62). No more `time.Sleep` busy-wait.
+
+**Evidence**: `webhook_retry.go:48–62`
+
+### 1.4 Worker Probes [v2 NEW-04] → ✅ FIXED
+
+Payment now uses `common-worker-deployment-v2` component (via `kustomization.yaml:16`). The component defines `httpGet /healthz` probes with proper `startupProbe`, `livenessProbe`, `readinessProbe`. No more `tcpSocket`.
+
+**Evidence**: `gitops/components/common-worker-deployment-v2/deployment.yaml:85–105`
+
+### 1.5 Worker Volume Mounts [v2 NEW-P2-01] → ✅ FIXED
+
+`common-worker-deployment-v2` component embeds the worker startup command with `-conf /app/configs/config.yaml`. Config is baked into the Docker image at build time via `Dockerfile`. No separate ConfigMap volume mount needed — consistent with all other services.
+
+### 1.6 Reconciliation Alert Cooldown [v2 NEW-P2-02] → ✅ FIXED
+
+Alert cooldown now uses Redis-backed keys with TTL (`SETNX EX`). No more in-memory map.
+
+**Evidence**: `payment_reconciliation.go:49–69` — `isAlertCoolingDown()` checks Redis, `setAlertCooldown()` writes Redis key with TTL.
+
+### 1.7 Outbox pubsubName Hardcoded [v2 NEW-P2-03] → ✅ FIXED
+
+`OutboxWorker` reads `pubsubName` from `cfg.Data.Eventbus.DefaultPubsub` with fallback to `commonConstants.DaprDefaultPubSub`.
+
+**Evidence**: `internal/worker/event/outbox_worker.go:31–34`
 
 ---
 
-## 3. Outbox Pattern — Confirmed Working ✅
+## 2. NEW Issues Found in This Audit (v3)
 
-| Check | Status |
-|-------|--------|
-| Outbox worker runs immediately on start | ✅ `outbox_worker.go:53` |
-| Outbox worker: 5s tick, batches 100 events | ✅ `outbox_worker.go:55,43` |
-| 24h cleanup of published events > 7 days | ✅ `outbox_worker.go:56,140–149` |
-| `ProcessPayment` — outbox inside `InTx` | ✅ `usecase.go:214–258` |
-| `CapturePayment`/`VoidPayment` — `InTx` | ✅ `usecase.go:511–521,569–579` |
-| Outbox `MarkFailed` is atomic (single UPDATE) | ✅ Fixed (Sprint 3) |
-| DaprEventPublisher created at construction time, `pubsubName` hardcoded `"pubsub-redis"` | ⚠️ See [NEW-P2-03] |
+### 🟡 V3-01: `ConfirmCODCollection` Skips `CanTransitionTo` — Bypasses State Machine
 
----
+**File**: `payment/internal/biz/payment/cod.go:159`
 
-## 4. NEW Issues Found in This Audit
+**Problem**: `ConfirmCODCollection` directly sets `payment.Status = PaymentStatusCaptured` without calling `payment.CanTransitionTo(PaymentStatusCaptured)`. Every other status update in the payment service (`ProcessPayment`, `CapturePayment`, `VoidPayment`, `MarkPaymentCompleted`, `expireBankTransferPayment`) properly validates the transition first.
 
-### 🔴 NEW-01: No DLQ Drain Handlers for Any Payment Event Consumer
+If a COD payment is in a non-transitional state (e.g., already `cancelled` or `failed`), this bypasses the state machine and creates an invalid status transition.
 
-**File**: `payment/internal/data/eventbus/return_consumer.go`, `order_consumer.go`, `order_completed_consumer.go`
+Shopify/Lazada enforce state machine validation on every status change, including COD confirmation.
 
-**Problem**: All 3 event consumers register Dapr subscriptions with `deadLetterTopic` metadata, but `event_consumer_worker.go` never registers a corresponding DLQ drain consumer for any of them.
-
-Consequences when events exhaust Dapr retries:
-- `returns.return_completed.dlq` accumulates → refunds for returned items **never triggered** → customers not refunded.
-- `orders.order_cancelled.dlq` accumulates → authorized payments **never voided** → gateway holds customer funds indefinitely.
-- `orders.order_completed.dlq` accumulates → seller escrow/payout never triggered.
-
-These are financial safety issues. Shopify, Shopee, and Lazada all implement DLQ monitoring + drain consumers for payment-related topics.
-
-**Fix**: Add DLQ handler methods to each consumer and register them in `EventConsumerWorker.Start`:
+**Fix**:
 ```go
-// In event_consumer_worker.go Start():
-if err := w.returnConsumer.ConsumeReturnCompletedDLQ(ctx); err != nil {
-    return fmt.Errorf("failed to register return DLQ consumer: %w", err)
+if !payment.CanTransitionTo(PaymentStatusCaptured) {
+    return nil, fmt.Errorf("invalid status transition from %s to captured for COD collection", payment.Status)
 }
-if err := w.orderConsumer.ConsumeOrderCancelledDLQ(ctx); err != nil {
-    return fmt.Errorf("failed to register order cancelled DLQ consumer: %w", err)
-}
-if err := w.orderCompletedConsumer.ConsumeOrderCompletedDLQ(ctx); err != nil {
-    return fmt.Errorf("failed to register order completed DLQ consumer: %w", err)
-}
+payment.Status = PaymentStatusCaptured
 ```
 
 ---
 
-### 🟡 NEW-02: `PaymentReconciliationJob.Start()` Spawns Goroutine and Returns Immediately — Worker Lifecycle Broken
+### 🟡 V3-02: `voidAuthorizedPayments` Only Voids `authorized` — Misses `pending` Payments
 
-**File**: `payment/internal/worker/cron/payment_reconciliation.go:46–97`
+**File**: `payment/internal/data/eventbus/order_consumer.go:139`
 
-**Problem**: `Start()` spawns the actual reconciliation loop in a background `goroutine` and then blocks only on a `select{ctx.Done()/stopSignal}`. The goroutine uses its own context reference but is NOT the blocking call. Consequence:
+**Problem**: When `order.cancelled` event is received, `voidAuthorizedPayments` only processes payments with `PaymentStatusAuthorized` (line 139). But orders can be cancelled before payment completes (e.g., user cancels during 3DS challenge). Payments in `pending` or `requires_action` status are orphaned — they remain open and may eventually succeed after the order is already cancelled.
 
-1. `Start()` returns `nil` when `ctx` or `stopSignal` fires — **before the goroutine completes its current reconciliation run**.
-2. A pending `processReconciliation(ctx)` run may be mid-flight when the pod receives SIGTERM, resulting in a partial reconciliation with potentially half-committed alerts.
-3. `j.stopSignal` is closed in `Stop()` — but the goroutine reads from `j.stopSignal` too. After `Stop()` closes the channel, both the outer select and inner goroutine select will fire simultaneously, causing a double-read on a closed channel (safe in Go, but the goroutine exits independently of `Start()`'s return).
+Shopee pattern: cancel/void all non-final payments for the order (pending, requires_action, authorized).
 
-*Shopify/Lazada pattern*: cron job `Start()` should run the ticker loop directly (blocking), similar to the `OutboxWorker` pattern.
-
-**Fix**: Remove the goroutine; run the initial delay + ticker loop directly in `Start()` as a blocking call. Move context-cancel and stop-signal checks into the same select:
+**Fix**:
 ```go
-func (j *PaymentReconciliationJob) Start(ctx context.Context) error {
-    select {
-    case <-time.After(initialDelay):
-        j.processReconciliation(ctx)
-    case <-ctx.Done():
-        return nil
+for _, p := range payments {
+    // Void/cancel all non-final payments
+    if p.IsFinalStatus() {
+        continue
     }
-    ticker := time.NewTicker(24 * time.Hour)
-    defer ticker.Stop()
-    for {
-        select {
-        case <-ticker.C:
-            j.processReconciliation(ctx)
-        case <-ctx.Done():
-            return nil
-        }
+    switch p.Status {
+    case payment.PaymentStatusAuthorized:
+        // Void authorized payments via gateway
+        _, err := c.paymentUc.VoidPayment(ctx, &payment.VoidPaymentRequest{...})
+    case payment.PaymentStatusPending, payment.PaymentStatusRequiresAction:
+        // Cancel pending/in-progress payments directly (no gateway void needed)
+        _, err := c.paymentUc.UpdatePaymentStatus(ctx, p.PaymentID, payment.PaymentStatusCancelled, ...)
     }
 }
 ```
 
 ---
 
-### 🟡 NEW-03: `WebhookRetryWorker` Uses Busy-Wait (`time.Sleep(1s)`) Instead of Ticker — CPU-Inefficient
+### 🟡 V3-03: `capturePayment` (Scheduled) Skips `CanTransitionTo` on Capture Failure
 
-**File**: `payment/internal/worker/event/webhook_retry.go:45–57`
+**File**: `payment/internal/biz/payment/usecase.go:864`
 
-**Problem**: The webhook retry loop uses `time.Sleep(1 * time.Second)` in a tight loop with a `default:` case. This means:
-- `processRetryQueue` is called ~once/second continuously with no backpressure.
-- If the queue is empty, it still issues a DB query every second.
-- CPU spin on idle pods (no exponential backoff, no adaptive interval).
+**Problem**: When scheduled auto-capture fails at the gateway, the internal `capturePayment` method directly sets `payment.Status = PaymentStatusFailed` (line 864) without calling `CanTransitionTo(PaymentStatusFailed)`. The public `CapturePayment` method (line 529) correctly validates the transition, but the scheduled capture code path bypasses it.
 
+This can cause an invalid transition if the payment has already been moved to a different state (e.g., voided by a concurrent `order.cancelled` event).
+
+**Fix**: Add `CanTransitionTo` check before setting failed status:
 ```go
-for {
-    select {
-    case <-ctx.Done(): ...
-    case <-w.stopSignal: ...
-    default:
-        w.processRetryQueue(ctx)
-        time.Sleep(1 * time.Second) // busy-wait
-    }
+if !payment.CanTransitionTo(PaymentStatusFailed) {
+    return fmt.Errorf("cannot transition payment %s from %s to failed", payment.PaymentID, payment.Status)
+}
+payment.Status = PaymentStatusFailed
+```
+
+---
+
+### 🔵 V3-P2-01: Duplicate OutboxWorker Implementations — Confusing
+
+**Files**:
+- `payment/internal/worker/event/outbox_worker.go` (156 lines, uses Dapr publisher, 5s interval, 7-day cleanup)
+- `payment/internal/worker/outbox/worker.go` (161 lines, uses `events.EventPublisher`, 1s interval, 30-day cleanup)
+
+**Problem**: Two distinct `OutboxWorker` implementations exist with different intervals, cleanup policies, retry logic, and publisher types. Only one can be wired into the worker binary. This creates maintenance confusion — developers may edit the wrong file.
+
+The `internal/worker/event/outbox_worker.go` version is the correctly wired one (uses Dapr publisher with config-based pubsub). The `internal/worker/outbox/worker.go` appears to be an older version that was superseded.
+
+**Fix**: Remove or archive `internal/worker/outbox/worker.go` if it is not wired. Add a comment to the active worker explaining it is the canonical implementation.
+
+---
+
+### 🔵 V3-P2-02: `getBankTransferProvider` Always Returns `nil` — Bank Transfer Non-Functional
+
+**File**: `payment/internal/biz/payment/bank_transfer.go:422`
+
+**Problem**: After successfully selecting a bank transfer provider from config, `getBankTransferProvider` still returns `nil` (line 422) with a comment "TODO: Create actual provider instance". This means `CreateBankTransferPayment` will always fail at line 70–71 with `"bank transfer provider not available"`.
+
+Bank transfer is a critical payment method for SEA markets (Shopee, Lazada). The selection logic is correctly implemented but the provider instantiation is missing.
+
+**Fix**: Implement a provider factory that instantiates the actual `BankTransferProvider` from `selectedProvider` config. Until then, this feature should be disabled in config to avoid confusing errors.
+
+---
+
+### 🔵 V3-P2-03: COD Amount Mismatch Proceeds Without Flag
+
+**File**: `payment/internal/biz/payment/cod.go:152–155`
+
+**Problem**: `ConfirmCODCollection` logs a warning when `collectedAmount != expectedAmount` but continues processing. In Shopify/Lazada, COD amount mismatches are flagged for investigation (either short collection or overpayment). The current code silently accepts any amount.
+
+**Fix**: Store the mismatch flag in metadata and optionally publish an alert event:
+```go
+if collectedAmount != expectedAmount {
+    payment.Metadata["amount_mismatch"] = true
+    payment.Metadata["expected_amount"] = expectedAmount
+    payment.Metadata["mismatch_diff"] = collectedAmount - expectedAmount
 }
 ```
 
-**Fix**: Replace with `time.NewTicker(interval)` where `interval` is configurable (e.g., 30 seconds). Use blocking select on the ticker channel. Add exponential backoff when the queue is empty.
-
 ---
 
-### 🟡 NEW-04: Payment Worker GitOps — `tcpSocket` Probes Not Upgraded to gRPC (Claimed Fixed, Still Broken)
+### 🔵 V3-P2-04: Commission Rate Hardcoded in `MarkPaymentCompleted`
 
-**File**: `gitops/apps/payment/base/worker-deployment.yaml:72–81`
+**File**: `payment/internal/biz/payment/usecase.go:931`
 
-**Problem**: The previous sprint checklist claims this was fixed:
-> **[P2]** Fix worker liveness/readiness probes to use gRPC health check → **Fixed**
+**Problem**: `const defaultCommissionRate = 0.10` is hardcoded. The TODO references `TA-1075` for making it configurable per seller/category. Until seller service is implemented, this should at minimum be read from `config.AppConfig` to allow environment-level override.
 
-But the **current `worker-deployment.yaml`** still uses `tcpSocket`:
-```yaml
-livenessProbe:
-  tcpSocket:
-    port: 5005
-readinessProbe:
-  tcpSocket:
-    port: 5005
-```
-
-A `tcpSocket` probe only verifies the port is open — it cannot detect a hung gRPC server. The fix was documented but **not applied**. The payment worker's health is invisible to Kubernetes if the gRPC server accepts connections but stops processing.
-
-**Fix**: Replace with gRPC probe (as in pricing and search worker-deployment.yaml):
-```yaml
-livenessProbe:
-  grpc:
-    port: 5005
-  initialDelaySeconds: 30
-  periodSeconds: 10
-readinessProbe:
-  grpc:
-    port: 5005
-  initialDelaySeconds: 10
-  periodSeconds: 5
-```
-
----
-
-### 🔵 NEW-P2-01: Payment Worker GitOps — Missing `volumeMounts` for `config.yaml`
-
-**File**: `gitops/apps/payment/base/worker-deployment.yaml`
-
-**Problem**: The worker binary starts with `-conf /app/configs/config.yaml` but there is no `volumes` or `volumeMounts` section mounting the ConfigMap to `/app/configs`. The binary will fail to load `config.yaml` on startup unless the config is embedded in the image.
-
-Compare: search worker has explicit `volumes` + `volumeMounts` mounting `search-config` ConfigMap to `/app/configs`.
-
-**Fix**: Add:
-```yaml
-volumeMounts:
-- mountPath: /app/configs
-  name: config
-  readOnly: true
-volumes:
-- name: config
-  configMap:
-    name: payment-config
-```
-
----
-
-### 🔵 NEW-P2-02: Reconciliation Alert Cooldown (`lastAlertTime` Map) Is In-Memory — Resets on Pod Restart
-
-**File**: `payment/internal/worker/cron/payment_reconciliation.go:24,172–177`
-
-**Problem**: Alert cooldown is tracked in `j.lastAlertTime map[string]time.Time` which is initialized as an empty map at construction. If the pod restarts between reconciliation runs, ALL cooldown state is lost → the next reconciliation may send alerts that should have been suppressed by the cooldown window.
-
-On a daily reconciliation job this is low-impact, but during pod churn (deploy rollout during reconciliation window), multiple alert emails/PagerDuty notifications may fire.
-
-**Fix**: Options: (a) Store cooldown timestamp in Redis with `SETNX EX` TTL, or (b) Accept the behavior given it's a daily job and document it in runbooks.
-
----
-
-### 🔵 NEW-P2-03: `OutboxWorker.NewOutboxWorker` Hardcodes `pubsubName = "pubsub-redis"` — Not Configurable
-
-**File**: `payment/internal/worker/event/outbox_worker.go:29`
-
-**Problem**: The Dapr pubsub name is hardcoded as `"pubsub-redis"` at construction:
+**Fix**: Read from config:
 ```go
-pubsubName := "pubsub-redis"
+commissionRate := uc.config.Payment.DefaultCommissionRate
+if commissionRate == 0 {
+    commissionRate = 0.10
+}
 ```
 
-If the environment uses a different Dapr pubsub component name (e.g. `"pubsub-kafka"` in production vs `"pubsub-redis"` in dev), events will publish to the wrong component or fail silently. Other consumers in the codebase read the pubsub name from config to allow env-specific override.
+---
 
-**Fix**: Read `pubsubName` from `config.AppConfig.Data.Eventbus.DefaultPubsub` (or equivalent), same pattern as search and pricing consumers.
+### 🔵 V3-P2-05: Service Map Skill Outdated — Payment Event Consumers Incomplete
+
+**File**: `.agent/skills/service-map/SKILL.md:141`
+
+**Problem**: The service map shows payment only consumes `return_consumer`, but the actual code registers 3 consumers:
+- `ReturnConsumer` → `orders.return.completed`
+- `OrderConsumer` → `orders.order.cancelled`
+- `OrderCompletedConsumer` → `orders.order.completed`
+
+**Fix**: Update service map line 141 to:
+```
+| **payment** | return_consumer, order_consumer, order_completed_consumer |
+```
 
 ---
 
-## 5. GitOps Configuration Review
+## 3. Data Consistency Matrix
 
-### 5.1 Payment Worker (`gitops/apps/payment/base/worker-deployment.yaml`)
-
-| Check | Status |
-|-------|--------|
-| Dapr: `enabled=true`, `app-id=payment-worker`, `app-port=5005`, `grpc` | ✅ |
-| `securityContext: runAsNonRoot, runAsUser: 65532` | ✅ |
-| `envFrom: configMapRef: overlays-config` | ✅ |
-| `envFrom: secretRef: payment-secrets` | ✅ |
-| `resources.requests` + `resources.limits` | ✅ |
-| **`livenessProbe`/`readinessProbe` uses `tcpSocket`** (not gRPC) | ❌ **[NEW-04]** — claimed fixed but not applied |
-| **`volumeMounts` for `/app/configs/config.yaml`** | ❌ **[NEW-P2-01]** — missing |
-| **`volumes` section with ConfigMap** | ❌ **[NEW-P2-01]** — missing |
-
-### 5.2 Payment Main Deployment
-
-| Check | Status |
-|-------|--------|
-| HTTP 8010, Dapr HTTP | ✅ |
-| HPA (2–8 replicas, CPU 70% / mem 80%) | ✅ Fixed (Sprint 3) |
-| `secretRef` in overlay for gateway API keys | ✅ `payment-secrets` |
+| Flow | Consistency Check | Status |
+|------|------------------|--------|
+| ProcessPayment → Order amount cross-validation | ✅ `orderClient.GetOrder` + epsilon comparison + currency match | ✅ |
+| ProcessPayment → Idempotency | ✅ Idempotency key + distributed lock (30s TTL) | ✅ |
+| ProcessPayment → Double-payment prevention | ✅ Lock + double-check existing payments after lock | ✅ |
+| Refund → TOCTOU prevention | ✅ `GetTotalRefundedAmount` inside `InTx` + distributed lock | ✅ |
+| Refund → Over-refund prevention | ✅ `totalRefunded + refundAmount > p.Amount` check | ✅ |
+| CapturePayment → InTx + outbox | ✅ `transaction.InTx` wraps update + event publish | ✅ |
+| VoidPayment → InTx + outbox | ✅ `transaction.InTx` wraps update + event publish | ✅ |
+| StatusChange → InTx + outbox | ✅ `transaction.InTx` wraps update + event publish | ✅ |
+| COD create → InTx + outbox | ✅ `transaction.InTx` wraps create + event publish | ✅ |
+| COD confirm → InTx + outbox | ✅ `transaction.InTx` wraps update + event publish | ✅ |
+| Bank transfer create → InTx + outbox | ✅ `transaction.InTx` wraps create + event publish | ✅ |
+| Bank transfer confirm → InTx + outbox | ✅ `transaction.InTx` wraps update + event publish | ✅ |
+| Bank transfer expire → InTx + outbox | ✅ `transaction.InTx` wraps update + event publish | ✅ |
+| MarkPaymentCompleted → InTx + outbox | ✅ `transaction.InTx` wraps update + event publish | ✅ |
+| Saga compensation → detached context | ✅ Uses `context.Background()` with 10s timeout | ✅ |
 
 ---
 
-## 6. Worker & Cron Jobs Audit
+## 4. Outbox Pattern — Confirmed Working ✅
 
-### 6.1 Payment Worker (Binary: `/app/bin/worker`)
+| Check | Status |
+|-------|--------|
+| Outbox worker runs immediately on start | ✅ `outbox_worker.go:60` |
+| Outbox worker: 5s tick, batches 100 events | ✅ `outbox_worker.go:50,62` |
+| 24h cleanup of published events > 7 days | ✅ `outbox_worker.go:63,147–157` |
+| `ProcessPayment` — outbox inside `InTx` | ✅ `usecase.go:215–252` |
+| `CapturePayment`/`VoidPayment` — `InTx` | ✅ `usecase.go:539–560,597–618` |
+| Outbox `MarkFailed` is atomic (single UPDATE) | ✅ |
+| `pubsubName` read from config | ✅ `outbox_worker.go:31–34` |
+| DaprEventPublisher created with config pubsub | ✅ |
+
+---
+
+## 5. Event Publishing Review
+
+| Event | Via Outbox (InTx)? | Status |
+|-------|-------------------|--------|
+| `payment.processed` | ✅ | ✅ |
+| `payment.failed` | ✅ | ✅ |
+| `payment.captured` | ✅ | ✅ |
+| `payment.voided` | ✅ | ✅ |
+| `payment.refunded` | ✅ | ✅ |
+| `payment.status_changed` | ✅ | ✅ |
+| `dispute.created/responded/status_changed` | ✅ | ✅ |
+| `reconciliation.mismatch` | ⚠️ Direct publish | P2 — best-effort alerting acceptable |
+
+### Does payment service need to publish events? ✅ YES
+
+Payment events are consumed by:
+- **order** service → `payment_consumer` (payment status → order status advance)
+- **notification** service → order status notifications (payment confirmed → email/push)
+- **analytics** service → payment metrics
+
+All published events are necessary and correctly routed.
+
+---
+
+## 6. Event Subscription Review
+
+### Does payment service need to subscribe to events? ✅ YES
+
+| Consumer | Topic | Purpose | Needed? |
+|----------|-------|---------|---------|
+| `ReturnConsumer` | `orders.return.completed` | Auto-refund for completed returns | ✅ Critical |
+| `OrderConsumer` | `orders.order.cancelled` | Void authorized payments | ✅ Critical |
+| `OrderCompletedConsumer` | `orders.order.completed` | Mark payment completed, escrow release | ✅ Critical |
+
+All 3 consumers are essential for the payment lifecycle.
+
+### DLQ Coverage ✅
+
+| Consumer | DLQ Handler | Status |
+|----------|------------|--------|
+| `ReturnConsumer` | `ConsumeReturnCompletedDLQ` | ✅ Registered |
+| `OrderConsumer` | `ConsumeOrderCancelledDLQ` | ✅ Registered |
+| `OrderCompletedConsumer` | `ConsumeOrderCompletedDLQ` | ✅ Registered |
+
+---
+
+## 7. GitOps Configuration Review ✅
+
+### 7.1 Payment Worker
+
+| Check | Status |
+|-------|--------|
+| Uses `common-worker-deployment-v2` component | ✅ `kustomization.yaml:16` |
+| Dapr: `enabled=true`, `app-port=5005`, `grpc` protocol | ✅ `patch-worker.yaml:9–10` |
+| `securityContext: runAsNonRoot, runAsUser: 65532` | ✅ (from component) |
+| `envFrom: configMapRef + secretRef` | ✅ `patch-worker.yaml:25–28` |
+| `resources.requests` + `resources.limits` | ✅ `patch-worker.yaml:36–42` |
+| `startupProbe` / `livenessProbe` / `readinessProbe` (httpGet) | ✅ (from component) |
+| initContainers: wait-for-consul, redis, postgres | ✅ `patch-worker.yaml:13–21` |
+| Worker Dapr `app-id` propagated from metadata.name | ✅ `kustomization.yaml:189–199` |
+
+### 7.2 Payment Main (API)
+
+| Check | Status |
+|-------|--------|
+| HTTP 8005, gRPC 9005 port mapping | ✅ `kustomization.yaml:36–45` |
+| HPA (via `hpa.yaml`) | ✅ |
+| `secretRef: payment-secrets` | ✅ `patch-api.yaml:13` |
+| Startup command: `/app/bin/payment -conf /app/configs/config.yaml` | ✅ `kustomization.yaml:53–54` |
+
+### 7.3 Other Resources
+
+| Resource | Status |
+|----------|--------|
+| `configmap.yaml` — payment-config | ✅ Sync-wave 0 |
+| `migration-job.yaml` | ✅ |
+| `networkpolicy.yaml` | ✅ |
+| `pdb.yaml` + `worker-pdb.yaml` | ✅ |
+| `serviceaccount.yaml` | ✅ |
+| `servicemonitor.yaml` | ✅ |
+
+---
+
+## 8. Worker & Cron Jobs Audit
 
 | Worker | Type | Schedule | Status |
 |--------|------|----------|--------|
 | `outbox-worker` | Periodic | 5s tick, 24h cleanup | ✅ |
-| `event-consumer-worker` | Event consumers | Real-time (Dapr) | ✅ — but no DLQ handlers ([NEW-01]) |
-| `webhook-retry-worker` | Continuous | Effectively every ~1s | ⚠️ [NEW-03] busy-wait |
+| `event-consumer-worker` | Event consumers | Real-time (Dapr) + DLQ handlers | ✅ |
+| `webhook-retry-worker` | Periodic | 30s ticker | ✅ |
 | `failed-payment-retry-job` | Cron | Every 15 min | ✅ |
 | `refund-processing-job` | Cron | Every 10 min | ✅ |
-| `auto-capture` | Cron | Configurable | ✅ |
+| `auto-capture` | Cron | Configurable | ⚠️ [V3-03] no CanTransitionTo on failure path |
 | `payment-status-sync` | Cron | Configurable | ✅ |
 | `bank-transfer-expiry` | Cron | Configurable | ✅ |
-| `payment-reconciliation-job` | Cron | Daily 2 AM | ⚠️ [NEW-02] goroutine lifecycle issue |
+| `payment-reconciliation-job` | Cron | Daily (CronWorker) | ✅ |
 | `cleanup` | Cron | Configurable | ✅ |
 
-### 6.2 DLQ Coverage Matrix
+---
 
-| Consumer Topic | DLQ Topic | Drain Handler | Risk |
-|---------------|-----------|--------------|------|
-| `returns.return_completed` | `returns.return_completed.dlq` | ❌ None | Customer not refunded on return |
-| `orders.order_cancelled` | `orders.order_cancelled.dlq` | ❌ None | Authorized funds held indefinitely |
-| `orders.order_completed` | `orders.order_completed.dlq` | ❌ None | Seller payout/escrow never released |
+## 9. Edge Cases — Summary
+
+| Edge Case | Risk | Issue |
+|-----------|------|-------|
+| COD confirmation bypasses state machine | 🟡 P1 | [V3-01] |
+| Pending/requires_action payments orphaned on order cancel | 🟡 P1 | [V3-02] |
+| Scheduled capture failure skips CanTransitionTo | 🟡 P1 | [V3-03] |
+| Duplicate OutboxWorker implementations | 🔵 P2 | [V3-P2-01] |
+| Bank transfer provider always returns nil | 🔵 P2 | [V3-P2-02] |
+| COD amount mismatch silently accepted | 🔵 P2 | [V3-P2-03] |
+| Commission rate hardcoded | 🔵 P2 | [V3-P2-04] |
+| Service map outdated for payment consumers | 🔵 P2 | [V3-P2-05] |
 
 ---
 
-## 7. Event Publishing Review — Confirmed Working
-
-| Event | Via Outbox? | Status |
-|-------|------------|--------|
-| `payment.processed` | ✅ via InTx | ✅ |
-| `payment.failed` | ✅ via InTx | ✅ |
-| `payment.captured` | ✅ via InTx | ✅ |
-| `payment.voided` | ✅ via InTx | ✅ |
-| `payment.refunded` | ✅ via InTx (fixed) | ✅ Fixed Sprint 3 |
-| `payment.status_changed` | ✅ via InTx (fixed) | ✅ Fixed Sprint 3 |
-| `dispute.created/responded/status_changed` | ✅ via outbox (fixed) | ✅ Fixed Sprint 3 |
-| `reconciliation.mismatch` | ⚠️ Direct publish | P2 — best-effort alerting acceptable |
-
----
-
-## 8. Edge Cases — Summary
-
-| Edge Case | Risk | Note |
-|-----------|------|------|
-| **Return/cancel/completed DLQ → refunds/voids/payouts never execute** | 🔴 P0 | [NEW-01] — Financial safety issue |
-| **Reconciliation job goroutine detaches from Start() lifecycle** | 🟡 P1 | [NEW-02] — Partial reconciliation on SIGTERM |
-| **tcpSocket probe can't detect hung gRPC worker** | 🟡 P1 | [NEW-04] — Claimed fixed, NOT applied |
-| **Webhook retry busy-waits every 1s** | 🟡 P1 | [NEW-03] — DB query every second, no backoff |
-| **Payment worker missing volumeMounts for config.yaml** | 🔵 P2 | [NEW-P2-01] — Startup failure if config not embedded |
-| **Reconciliation alert cooldown lost on pod restart** | 🔵 P2 | [NEW-P2-02] — Duplicate alerts possible during rollout |
-| **Outbox pubsubName hardcoded to `"pubsub-redis"`** | 🔵 P2 | [NEW-P2-03] — Not env-configurable |
-
----
-
-## 9. Summary: Issue Priority Matrix
-
-### 🔴 P0 — Must Fix Before Release
-
-| ID | Description | Fix |
-|----|-------------|-----|
-| **[NEW-01]** | No DLQ drain handlers for `return.completed`, `order.cancelled`, `order.completed` — customer refunds & fund releases silent-fail | Add `Consume*DLQ` methods on each consumer; register in `EventConsumerWorker.Start` |
+## 10. Issue Priority Matrix
 
 ### 🟡 P1 — Fix in Next Sprint
 
 | ID | Description | Fix |
 |----|-------------|-----|
-| **[NEW-02]** | `PaymentReconciliationJob.Start()` goroutine lifecycle — partial reconciliation on shutdown | Run ticker loop directly in `Start()` (blocking pattern like `OutboxWorker`) |
-| **[NEW-03]** | `WebhookRetryWorker` busy-wait with `time.Sleep(1s)` | Replace with `time.NewTicker(30s)` and blocking select |
-| **[NEW-04]** | Worker `tcpSocket` probes not upgraded to gRPC (claimed fixed, still broken) | Replace `tcpSocket` with `grpc` in `worker-deployment.yaml` |
+| **[V3-01]** | `ConfirmCODCollection` sets captured without `CanTransitionTo` check | Add validation before status change |
+| **[V3-02]** | `voidAuthorizedPayments` ignores `pending`/`requires_action` payments on order cancel | Cancel/void all non-final payments |
+| **[V3-03]** | `capturePayment` (scheduled) skips `CanTransitionTo` on failure | Add validation on failure path |
 
 ### 🔵 P2 — Roadmap / Tech Debt
 
 | ID | Description | Fix |
 |----|-------------|-----|
-| **[NEW-P2-01]** | Payment worker missing `volumeMounts` + `volumes` for `config.yaml` | Add volume + volumeMounts blocks |
-| **[NEW-P2-02]** | Reconciliation cooldown in-memory — lost on restart | Redis-backed cooldown or document caveat |
-| **[NEW-P2-03]** | OutboxWorker hardcodes `pubsubName = "pubsub-redis"` | Read from `config.AppConfig` |
+| **[V3-P2-01]** | Duplicate OutboxWorker in `worker/event/` and `worker/outbox/` | Remove or archive unused implementation |
+| **[V3-P2-02]** | `getBankTransferProvider` always returns nil (bank transfer non-functional) | Implement provider factory or disable in config |
+| **[V3-P2-03]** | COD amount mismatch logged but not flagged in metadata | Store mismatch flag + publish alert event |
+| **[V3-P2-04]** | Commission rate hardcoded at 10% in `MarkPaymentCompleted` | Read from `config.AppConfig` |
+| **[V3-P2-05]** | Service map skill shows 1 consumer, actual has 3 | Update `.agent/skills/service-map/SKILL.md` |
 
 ---
 
-## 10. What Is Already Well Implemented ✅ (Post-Sprint 3)
+## 11. What Is Already Well Implemented ✅
 
 | Area | Evidence |
 |------|----------|
-| Runtime panic fix via adapter pattern | `PaymentEventAdapter` replaces unsafe assertion |
-| `order.cancelled` consumer triggers `VoidPayment` | `event_consumer_worker.go:49–51` |
-| `order.completed` consumer triggers escrow release / payout | `event_consumer_worker.go:53–56` |
-| Outbox `InTx` for all payment state events | `usecase.go:214–258`, capture/void also transactional |
-| Outbox cleanup (7d, 24h ticker) | `outbox_worker.go:56,64–65,140–149` |
-| `FindRetryable` enforces `max_retries` | `data/outbox.go:130` |
-| Dispute events: created/responded/status_changed implemented | `event_publisher.go:163–193` |
-| HPA for payment main (2–8 replicas) | `gitops/apps/payment/base/hpa.yaml` |
-| Distributed lock prevents concurrent double-payment | `usecase.go:113–123` (30s TTL Redis lock) |
-| Refund TOCTOU fixed: `GetTotalRefundedAmount` inside `InTx` | `refund/usecase.go:93–98` |
-| Outbox worker runs immediately on start | `outbox_worker.go:52–53` |
-| Reconciliation job respects `ReconciliationEnabled` config flag | `payment_reconciliation.go:47–50` |
-| Reconciliation alert cooldown (60 min default) | `payment_reconciliation.go:155–177` |
-| Gateway provider read from metadata (not hardcoded) | `CreatePaymentFromGatewayData` reads `payment_provider` key |
+| **All v2 issues resolved** | DLQ handlers, reconciliation lifecycle, webhook ticker, probes, cooldown, pubsub config |
+| ProcessPayment: order amount + currency cross-validation | `usecase.go:80–101` |
+| ProcessPayment: distributed lock (30s TTL) | `usecase.go:114–124` |
+| ProcessPayment: double-check after lock | `usecase.go:127–136` |
+| ProcessPayment: idempotency (Begin/MarkCompleted) | `usecase.go:103–112,266–269` |
+| ProcessPayment: saga compensation with detached ctx | `usecase.go:212–263` |
+| ProcessPayment: state machine validation | `usecase.go:174,187,197` |
+| Gateway failover with per-attempt transaction ID | `usecase.go:717–795` |
+| Refund: distributed lock + TOCTOU prevention in InTx | `refund/usecase.go:18–27,93–105` |
+| Refund: window check (configurable days) | `refund/usecase.go:41–57` |
+| Refund: auto-adjust type (full/partial) | `refund/usecase.go:60–68` |
+| Refund: transaction record creation | `refund/usecase.go:169–188` |
+| COD: shipping availability check via client | `cod.go:51–68` |
+| COD: location-based fee adjustments | `cod.go:196–319` |
+| Bank transfer: webhook signature verification (HMAC) | `bank_transfer.go:220–269` |
+| Bank transfer: expiry processing | `bank_transfer.go:436–553` |
+| Reconciliation: Redis-backed alert cooldown | `payment_reconciliation.go:49–69` |
+| Reconciliation: configurable thresholds | `payment_reconciliation.go:96–113` |
+| MarkPaymentCompleted: commission + seller payout calc | `usecase.go:930–986` |
+| Money type with cent-based arithmetic | `payment.go:17–147` |
+| Fraud detection with score, status, block | `usecase.go:158–168` |
+| All event publishes wrapped in InTx with outbox | Every status-changing operation |
 
 ---
 
@@ -380,6 +417,10 @@ If the environment uses a different Dapr pubsub component name (e.g. `"pubsub-ka
 
 | Document | Path |
 |----------|------|
-| Previous review (Sprint 1–3) | [payment-review.md](payment-review.md) |
-| Pricing flow checklist | [pricing-promotion-tax-review.md](pricing-promotion-tax-review.md) |
+| Previous review (v2) | This file (history preserved above) |
 | eCommerce platform flows reference | [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) |
+| Payment usecase | [usecase.go](file:///Users/tuananh/Desktop/myproject/microservice/payment/internal/biz/payment/usecase.go) |
+| Refund usecase | [usecase.go](file:///Users/tuananh/Desktop/myproject/microservice/payment/internal/biz/refund/usecase.go) |
+| Event consumer worker | [event_consumer_worker.go](file:///Users/tuananh/Desktop/myproject/microservice/payment/internal/worker/event/event_consumer_worker.go) |
+| Outbox worker (active) | [outbox_worker.go](file:///Users/tuananh/Desktop/myproject/microservice/payment/internal/worker/event/outbox_worker.go) |
+| GitOps kustomization | [kustomization.yaml](file:///Users/tuananh/Desktop/myproject/microservice/gitops/apps/payment/base/kustomization.yaml) |

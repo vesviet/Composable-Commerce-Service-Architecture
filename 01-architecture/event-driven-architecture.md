@@ -191,7 +191,104 @@ Key metrics to monitor:
 - Dead letter queue size
 - Consumer lag
 
+## Event Topic Naming Convention
+
+### Standard Format
+
+All event topics MUST follow the **three-segment** format:
+
+```
+{service}.{entity}.{action}
+```
+
+| Segment   | Description                                      | Examples                         |
+|-----------|--------------------------------------------------|----------------------------------|
+| `service` | The owning microservice (singular, lowercase)    | `order`, `payment`, `catalog`    |
+| `entity`  | The domain entity or aggregate (singular)        | `order`, `payment`, `product`    |
+| `action`  | The event action (past tense or descriptive)     | `created`, `updated`, `deleted`  |
+
+### Naming Rules
+
+1. **All lowercase**, words separated by underscores (`snake_case`).
+2. **Service prefix** MUST match the service that **publishes** the event.
+3. **Entity** is the domain aggregate the event refers to.
+4. **Action** describes what happened — use **past participle** (`created`, `updated`, `delivered`).
+5. **No abbreviations** — use `status_changed` not `stat_chgd`.
+6. **Four segments** are allowed for sub-entities: `{service}.{entity}.{sub_entity}.{action}`.
+
+### DLQ Topic Format
+
+DLQ topics follow the same convention with a `dlq.` prefix:
+
+```
+dlq.{service}.{entity}.{action}
+```
+
+Examples: `dlq.catalog.product.created`, `dlq.warehouse.inventory.stock_changed`
+
+### Non-Compliant Topics (Legacy — DO NOT Rename)
+
+The following 2-segment topics pre-date this convention. They MUST NOT be renamed (would break Dapr Pub/Sub subscriptions across all environments). New topics MUST follow the 3-segment convention.
+
+| Current Topic              | Publisher    | Correct Format (for reference)        |
+|----------------------------|-------------|---------------------------------------|
+| `campaign.created`         | promotion   | `promotion.campaign.created`          |
+| `campaign.updated`         | promotion   | `promotion.campaign.updated`          |
+| `campaign.deleted`         | promotion   | `promotion.campaign.deleted`          |
+| `campaign.activated`       | promotion   | `promotion.campaign.activated`        |
+| `campaign.deactivated`     | promotion   | `promotion.campaign.deactivated`      |
+| `promotion.created`        | promotion   | `promotion.promotion.created`         |
+| `promotion.updated`        | promotion   | `promotion.promotion.updated`         |
+| `promotion.deleted`        | promotion   | `promotion.promotion.deleted`         |
+| `promotion.deactivated`    | promotion   | `promotion.promotion.deactivated`     |
+| `coupon.created`           | promotion   | `promotion.coupon.created`            |
+| `coupon.updated`           | promotion   | `promotion.coupon.updated`            |
+| `coupon.deleted`           | promotion   | `promotion.coupon.deleted`            |
+| `cart.converted`           | checkout    | `orders.cart.converted`               |
+| `review.created`           | review      | `review.review.created`              |
+| `review.updated`           | review      | `review.review.updated`              |
+| `review.approved`          | review      | `review.review.approved`             |
+| `review.rejected`          | review      | `review.review.rejected`             |
+| `rating.updated`           | review      | `review.rating.updated`              |
+| `notification.created`     | notification| `notification.notification.created`   |
+| `notification.delivered`   | notification| `notification.notification.delivered` |
+| `notification.failed`      | notification| `notification.notification.failed`    |
+| `user.created`             | user        | `user.user.created`                  |
+| `user.updated`             | user        | `user.user.updated`                  |
+| `user.deleted`             | user        | `user.user.deleted`                  |
+| `user.status_changed`      | user        | `user.user.status_changed`           |
+| `customer.created`         | customer    | `customer.customer.created`          |
+| `customer.updated`         | customer    | `customer.customer.updated`          |
+| `customer.deleted`         | customer    | `customer.customer.deleted`          |
+| `customer.verified`        | customer    | `customer.customer.verified`         |
+| `customer.status.changed`  | customer    | `customer.customer.status_changed`   |
+| `auth.login`               | auth        | `auth.session.login`                 |
+| `auth.password_changed`    | auth        | `auth.credential.password_changed`   |
+| `system.errors`            | fulfillment | `system.error.occurred`              |
+
+### Guidelines for New Topics
+
+When adding a new event topic:
+
+1. **Use the 3-segment format**: `{service}.{entity}.{action}`.
+2. **Define the constant** in `internal/constants/constants.go` (or `event_topics.go`).
+3. **Document the topic** in this file with publisher and consumer(s).
+4. **Add DLQ topic** if the event is consumed by other services.
+5. **Use past participle** for actions: `created`, `updated`, `deleted`, `cancelled`, `processed`.
+
+```go
+// Good — 3-segment format
+TopicOrderStatusChanged      = "orders.order.status_changed"
+TopicPaymentProcessed        = "payment.payment.processed"
+TopicCatalogProductCreated   = "catalog.product.created"
+TopicWarehouseStockChanged   = "warehouse.inventory.stock_changed"
+
+// Avoid — 2-segment (missing service prefix)
+TopicCampaignCreated = "campaign.created"       // ❌
+TopicReviewApproved  = "review.approved"        // ❌
+```
+
 ---
 
 *Document generated from code analysis on: 2026-01-10*
-*Last Updated: 2026-01-10*
+*Last Updated: 2026-03-08*

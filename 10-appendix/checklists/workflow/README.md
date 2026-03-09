@@ -46,6 +46,7 @@ Each business flow has **one canonical review file**. Always use the file listed
 | Flow | Canonical File | Services Covered |
 |------|---------------|------------------|
 | Customer & Identity | [customer-identity-review.md](customer-identity-review.md) | auth, user, customer |
+| Customer & Identity (fresh audit) | [customer-identity-review-2026-03-07.md](customer-identity-review-2026-03-07.md) | auth, user, customer, loyalty-rewards |
 | Seller & Merchant | [seller-merchant-review.md](seller-merchant-review.md) | catalog (seller) |
 
 ### Returns & Refunds
