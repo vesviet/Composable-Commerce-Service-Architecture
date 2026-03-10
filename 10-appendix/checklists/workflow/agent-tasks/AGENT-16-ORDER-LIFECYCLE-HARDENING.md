@@ -17,7 +17,7 @@
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix Phantom Stock Leak in `CancelOrder` (Order Service)
+### [x] Task 1: Fix Phantom Stock Leak in `CancelOrder` (Order Service)
 
 **File**: `order/internal/biz/order/cancel.go`
 **Focus**: Dòng xử lý khi `releaseErr` chứa `"not active"`
@@ -30,7 +30,7 @@
 
 ---
 
-### [ ] Task 2: Fix Saga State Divergence Post-Capture (Order Service)
+### [x] Task 2: Fix Saga State Divergence Post-Capture (Order Service)
 
 **File**: `order/internal/data/eventbus/payment_consumer.go`
 **Focus**: `processPaymentCaptureRequested`
@@ -44,7 +44,7 @@
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 3: Verify Payment Status before Auto-Complete (Fulfillment Service)
+### [x] Task 3: Verify Payment Status before Auto-Complete (Fulfillment Service)
 
 **File**: `fulfillment/internal/worker/cron/auto_complete.go` (hoặc chức năng tương tự quét auto-completion)
 **Focus**: `AutoCompleteShippedWorker`
@@ -58,7 +58,7 @@
 
 ## 🔵 Checklist — P2 Issues (Nice To Have)
 
-### [ ] Task 4: Dapr Topic Refactoring for Capture Requested
+### [x] Task 4: Dapr Topic Refactoring for Capture Requested
 
 **File**: `order/internal/biz/order/process.go` hoặc luồng phát sinh request capture
 **Focus**: Consolidate `orders.payment.capture_requested`
