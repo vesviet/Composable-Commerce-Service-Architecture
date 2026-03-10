@@ -2,7 +2,7 @@
 
 **Assignee:** Agent 18  
 **Service:** Pricing & Promotion Services  
-**Status:** COMPLETED
+**Status:** COMPLETED (verified + fixed 2026-03-10)
 
 ## 📝 Objective
 Resolve P0 (Critical), P1 (High), and P2 (Nice to Have) issues identified during the 10-Round Meeting Review for the Pricing and Promotion services. This hardening task focuses on massive gRPC bottlenecks, missing outbox atomicity, unoptimized DB queries, and boundary conversions.
@@ -131,10 +131,9 @@ if len(couponIDs) > 0 {
 
 **Validation:**
 ```bash
-go build ./promotion/internal/biz/... ./promotion/internal/data/...  ✅ PASS
-# Note: Promotion test suite has pre-existing build failures in test files
-# (raw float64/int used instead of money.Money in catalog_indexing_test.go,
-# validation_complex_test.go, etc.). These are NOT introduced by this change.
+go build ./promotion/...                                                        ✅ PASS
+go test ./promotion/internal/biz/...                                            ✅ PASS
+golangci-lint run ./promotion/...                                               ✅ PASS
 ```
 
 ---
