@@ -1,216 +1,110 @@
-# AGENT-25: Checkout Service — Meeting Review Issues
+# AGENT-25: Checkout Service — Cart & Checkout Hardening Tasks
 
-> **Created**: 2026-03-09  
-> **Priority**: P0 (1 issue), P1 (2 issues), P2 (2 issues)  
-> **Sprint**: Tech Debt Sprint  
-> **Service**: `checkout`  
-> **Estimated Effort**: 2-3 days  
-> **Source**: [10-Round Checkout Meeting Review](file:///Users/tuananh/.gemini/antigravity/brain/406d35da-ee4a-4327-9fef-9b7188afee6d/checkout_service_meeting_review.md)
+> **Created**: 2026-03-10
+> **Priority**: P0
+> **Sprint**: Tech Debt Sprint
+> **Services**: `checkout`, `order`
+> **Estimated Effort**: 3-5 days
+> **Source**: [100-Round Cart & Checkout Meeting Review Artifact](file:///home/user/.gemini/antigravity/brain/01390264-3ea5-4ab7-8fa5-b7e7e24e3048/cart_checkout_meeting_review.md)
 
 ---
 
 ## 📋 Overview
 
-10-round multi-agent meeting review (5 agents: Architect, Sec/Perf, Senior Dev, BA, Data Eng) phát hiện **1 P0**, **2 P1**, và **2 P2** issues trong Checkout service. Focus: Idempotency crash-safety, transaction atomicity, và N+1 query performance.
-
-### Saga Flow Context (StepRunner Architecture)
-
-```
-ConfirmCheckout Saga (confirm.go:281-287):
-
-Step 1: IdempotencyStep       ← P0: lease crash-safety
-  → TryAcquire (SETNX 15min TTL)
-  → Return cached order if already completed
-
-Step 2: ValidatePrerequisitesStep
-  → Load & validate session + cart
-  → Acquire coupon locks (Redis SETNX)
-
-Step 3: CalculateTotalsStep   ← P1: N+1 query in engineCalculateDiscounts
-  → Revalidate prices (Pricing service)
-  → Calculate subtotal, discount, tax, shipping
-
-Step 4: PaymentAuthStep
-  → AuthorizePayment (skip for COD)
-  → ReserveStock JIT (15min TTL)
-
-Step 5: CreateOrderStep       ← P1: finalizeOrderAndCleanup tx boundary
-  → Build & create order (gRPC)
-  → Finalize (outbox + cart=completed + delete session)
-  → Store idempotency result
-```
+A comprehensive 100-round multi-agent meeting review identified critical P0 and P1 issues in the Cart & Checkout flows. This task covers fixing distributed transaction atomicity, warehouse reservation idempotency, blind price updates, query contention, and context timeouts.
 
 ---
 
-## ✅ Checklist — P0 Issue (MUST FIX)
+## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [x] Task 1: Idempotency Lock Crash-Safety — Add Lease TTL Expiry ✅ IMPLEMENTED
+### [ ] Task 1: Fix Distributed Transaction & Outbox Placement
 
-**Files**:
-- `checkout/internal/biz/checkout/confirm_step_idempotency.go` (lines 17-22, 53)
-- `checkout/internal/biz/checkout/confirm_p0_test.go` (line 276)
+**File**: `checkout/internal/biz/checkout/confirm.go`
+**Lines**: 201-239
+**Risk**: If gRPC call to `Order Service` succeeds but Checkout service crashes before inserting `CartConverted` to the outbox, the outbox event is permanently lost.
+**Problem**: The `CartConverted` outbox event is persisted locally in the Checkout service *after* the Order is successfully created via gRPC. 
+**Fix**:
+Remove the outbox insertion from the Checkout service. Move the `CartConverted` logic to the `Order Service` so that it's published in the same database transaction when the Order is persisted.
 
-**Risk / Problem**: If pod crashes during checkout, lock (15min TTL) blocks user from retrying for up to 15 minutes — a conversion killer. The `Rollback` only runs when stepRunner is active.
+**Validation**:
+```bash
+cd order && go test ./internal/biz/... -v
+cd checkout && go test ./internal/biz/checkout/ -run TestFinalizeOrderAndCleanup -v
+```
 
-**Solution Applied**: Reduced processing lease from 15min to 2min. The completed result TTL remains at 24h (already correctly set in `storeIdempotency`). Also improved error message for in-flight checkout to guide user towards retry.
+### [ ] Task 2: Update Warehouse Reservation Idempotency Key
 
+**File**: `checkout/internal/biz/checkout/confirm.go`
+**Lines**: 151
+**Risk**: If a user checks out, fails/cancels, changes the item quantity and checks out again, the warehouse service will return the cached reservation matching the old quantity.
+**Problem**: The idempotency key `reserve:%s:%s:%s` uses CartID and ProductID. It does not account for CartVersion or Quantity changes.
+**Fix**:
 ```go
-// confirm_step_idempotency.go — Processing lease reduced from 15min → 2min
-const checkoutProcessingLease = 2 * time.Minute
-acquired, err := s.uc.idempotencyService.TryAcquire(c.Ctx, idempotencyKey, checkoutProcessingLease)
+// BEFORE:
+idempotencyKey := fmt.Sprintf("reserve:%s:%s:%s", cart.CartID, item.ProductID, warehouseID)
 
-// Improved user-facing error message
-return fmt.Errorf("checkout is being processed for cart %s — please wait a moment and retry", c.Request.CartID)
+// AFTER:
+idempotencyKey := fmt.Sprintf("reserve:%s:%s:%s:v%d", cart.CartID, item.ProductID, warehouseID, cartVersion)
+// Note: Requires passing cartVersion to reserveStockForOrder
 ```
 
 **Validation**:
 ```bash
-cd checkout && go build ./...  # ✅ zero errors
-cd checkout && go test ./internal/biz/checkout/ -run TestConfirmCheckout_ConcurrentDuplicate -v  # ✅ PASS
-cd checkout && go test ./internal/biz/checkout/ -run TestIdempotent -v  # ✅ PASS
+cd checkout && go test ./internal/biz/checkout/ -run TestReserveStock -v
+```
+
+### [ ] Task 3: Prevent Blind Price Update Between Cart & Checkout
+
+**File**: `checkout/internal/biz/checkout/confirm.go`
+**Lines**: Needs adding into Checkout preparation steps
+**Risk**: Silent price increases between when an item is added to the cart and when checkout is confirmed. Users might be charged more than they expected.
+**Problem**: No check between `cart.TotalPrice` (pre-checkout) and `livePrice` (calculated during Checkout Confirm step).
+**Fix**:
+Implement a check comparing `modelCart` totals and the real-time calculated `OrderTotals`. If `OrderTotals.TotalAmount > cart.CartTotal`, return a structured error `ErrPriceChanged` requesting the user to verify the new totals.
+
+**Validation**:
+```bash
+cd checkout && go test ./internal/biz/checkout/ -run TestCalculateTotalsStep -v
 ```
 
 ---
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [x] Task 2: Wrap `finalizeOrderAndCleanup` in Explicit Transaction ✅ IMPLEMENTED
+### [ ] Task 4: Add Context Timeout in `AddToCart` Goroutines
 
-**Files**:
-- `checkout/internal/biz/checkout/confirm.go` (lines 255-258)
-
-**Risk / Problem**: `confirm.go:256` — `DeleteByCartID` error was discarded with `_ =`. Orphaned sessions can cause confusion.
-
-**Finding**: Transaction wrapper on `finalizeOrderAndCleanup` already exists (line 44-46 of `confirm_step_create.go`) and all internal operations use `txCtx` correctly. The only issue was the silent error discard on session deletion.
-
-**Solution Applied**: Replaced `_ = uc.checkoutSessionRepo.DeleteByCartID(ctx, cartID)` with proper error logging via `Warnf`. This is non-critical (idempotency protects against duplicates) but provides observability.
-
+**File**: `checkout/internal/biz/cart/add.go`
+**Lines**: 82
+**Risk**: Connection pool exhaustion and memory leaks if Pricing or Inventory services hang.
+**Problem**: The `errgroup` context is taken directly from the gRPC request context without an explicit timeout.
+**Fix**:
 ```go
-// confirm.go — Log error instead of discarding
-if delErr := uc.checkoutSessionRepo.DeleteByCartID(ctx, cartID); delErr != nil {
-    uc.log.WithContext(ctx).Warnf("Failed to delete checkout session for cart %s (non-critical): %v", cartID, delErr)
-}
+// BEFORE:
+eg, egCtx := errgroup.WithContext(ctx)
+
+// AFTER:
+egCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+defer cancel()
+eg, egCtx := errgroup.WithContext(egCtx)
 ```
 
 **Validation**:
 ```bash
-cd checkout && go build ./...  # ✅ zero errors
-cd checkout && go test ./internal/biz/checkout/ -run TestFinalizeOrderAndCleanup -v  # ✅ PASS
+cd checkout && go test ./internal/biz/cart/ -run TestAddToCart -v
 ```
 
----
+### [ ] Task 5: Prevent Cart Row Lock Contention (`LoadCartForUpdate`)
 
-### [x] Task 3: Fix N+1 Catalog Query in `engineCalculateDiscounts` ✅ IMPLEMENTED
-
-**Files**:
-- `checkout/internal/biz/checkout/pricing_engine.go` (lines 254-293)
-
-**Risk / Problem**: N+1 gRPC query — each cart item called `GetProduct` individually inside the loop. Cart with 10 items = 10 sequential gRPC calls.
-
-**Solution Applied**: Extracted product fetch into a prefetch phase before the item loop. Uses a `productCache` map keyed by `ProductID` to deduplicate calls. Mirrors the existing correct pattern in `calculations.go:253-269`.
-
-```go
-// pricing_engine.go — Prefetch product details (N calls → M unique calls)
-type productInfo struct {
-    CategoryID string
-    BrandID    string
-}
-productCache := make(map[string]productInfo, len(cart.Items))
-for _, item := range cart.Items {
-    if _, exists := productCache[item.ProductID]; exists {
-        continue
-    }
-    product, err := uc.catalogClient.GetProduct(ctx, item.ProductID)
-    if err == nil && product != nil {
-        productCache[item.ProductID] = productInfo{
-            CategoryID: product.CategoryID,
-            BrandID:    product.BrandID,
-        }
-    }
-}
-
-// Build line items using prefetched cache
-for _, item := range cart.Items {
-    // ...
-    if product, ok := productCache[item.ProductID]; ok {
-        lineItem.CategoryId = product.CategoryID
-        lineItem.BrandId = product.BrandID
-    }
-    req.Items = append(req.Items, lineItem)
-}
-```
-
-**Impact**: Reduces from N gRPC calls → M calls (M = unique product IDs, typically M << N when cart has duplicate SKUs or same product with different warehouses).
+**File**: `checkout/internal/biz/cart/add.go`
+**Lines**: 215
+**Risk**: High DB lock contention leading to slow response times or failures during Flash Sales.
+**Problem**: Spam clicks on `AddToCart` lock the same PostgreSQL row repeatedly.
+**Fix**:
+Implement a Redis-based Rate Limiter (e.g., using `constants.RedisKeyRateLimitAddToCart`) to limit `AddToCart` frequency per `CartID` or `SessionID` before the DB transaction begins.
 
 **Validation**:
 ```bash
-cd checkout && go build ./...  # ✅ zero errors
-cd checkout && go test ./internal/biz/checkout/ -run TestEngineCalculateDiscounts -v  # ✅ PASS
-```
-
----
-
-## ✅ Checklist — P2 Issues (Backlog)
-
-### [x] Task 4: Structured Error Types for Stock Shortage ✅ IMPLEMENTED
-
-**Files**:
-- `checkout/internal/biz/errors.go` (lines 49-58, new `ErrOutOfStock` type)
-- `checkout/internal/biz/checkout/confirm.go` (lines 153-162, updated `reserveStockForOrder`)
-
-**Risk / Problem**: Frontend received raw error string from stock reservation failure, couldn't parse which specific item was unavailable.
-
-**Solution Applied**: Added `ErrOutOfStock` structured error type in `biz/errors.go` (reusing existing `OutOfStockItem` from `biz.go`). Updated `reserveStockForOrder` to return `*ErrOutOfStock` instead of `fmt.Errorf`. Frontend/service layer can now use `errors.As` to extract specific item details.
-
-```go
-// biz/errors.go — Structured error type
-type ErrOutOfStock struct {
-    Items []OutOfStockItem
-}
-
-func (e *ErrOutOfStock) Error() string {
-    return fmt.Sprintf("stock not available for %d item(s)", len(e.Items))
-}
-
-// confirm.go — Returns structured error
-return nil, &biz.ErrOutOfStock{
-    Items: []biz.OutOfStockItem{
-        {
-            ProductID:         item.ProductID,
-            ProductName:       item.ProductName,
-            RequestedQuantity: item.Quantity,
-        },
-    },
-}
-```
-
-**Validation**:
-```bash
-cd checkout && go build ./...  # ✅ zero errors
-cd checkout && go test ./internal/biz/checkout/ -run TestReserveStock -v  # ✅ PASS
-```
-
----
-
-### [x] Task 5: Async Stock Rollback Queue for Warehouse Failures ✅ ALREADY IMPLEMENTED
-
-**Files**:
-- `checkout/internal/biz/checkout/helpers.go` (lines 34-77, `RollbackReservationsMap`)
-- `checkout/internal/biz/checkout/confirm_step_payment.go` (line 48, rollback call)
-
-**Risk / Problem**: If Warehouse service is down during rollback, stock is "held" until TTL expiry.
-
-**Finding**: This is **already implemented** in `helpers.go:RollbackReservationsMap`. The function:
-1. Retries 3 times with 100ms exponential backoff per reservation
-2. On permanent failure, writes to `failed_compensations` table via `failedCompensationRepo.Create()`
-3. `FailedCompensationWorker` picks up pending records for async retry
-
-This matches exactly the proposed pattern (`voidAuthorizationWithDLQ` pattern). No code changes needed.
-
-**Validation**:
-```bash
-grep -A5 'failedCompensationRepo.Create' checkout/internal/biz/checkout/helpers.go  # ✅ DLQ write present
-cd checkout && go test ./internal/biz/checkout/ -run TestRollback -v  # ✅ PASS
+cd checkout && go test ./internal/biz/cart/ -run TestAddToCart_RateLimit -v
 ```
 
 ---
@@ -218,10 +112,10 @@ cd checkout && go test ./internal/biz/checkout/ -run TestRollback -v  # ✅ PASS
 ## 🔧 Pre-Commit Checklist
 
 ```bash
-cd checkout && wire gen ./cmd/server/ ./cmd/worker/   # ✅ PASS
-cd checkout && go build ./...                          # ✅ PASS (zero errors)
-cd checkout && go test -race ./...                     # ✅ PASS (targeted tests)
-cd checkout && golangci-lint run ./...                  # ✅ PASS (zero warnings)
+cd checkout && wire gen ./cmd/server/ ./cmd/worker/
+cd checkout && go build ./...
+cd checkout && go test -race ./...
+cd checkout && golangci-lint run ./...
 ```
 
 ---
@@ -229,12 +123,12 @@ cd checkout && golangci-lint run ./...                  # ✅ PASS (zero warning
 ## 📝 Commit Format
 
 ```
-fix(checkout): harden checkout idempotency, tx atomicity, and N+1 perf
+docs(agent-tasks): update checkout service hardening tasks
 
-- fix: reduce idempotency lock TTL from 15min to 2min (crash-safety P0)
-- fix: log error on checkout session delete instead of discard (P1)
-- perf: prefetch product details in engineCalculateDiscounts (N+1 fix P1)
-- feat: add ErrOutOfStock structured error type for stock shortage (P2)
+- docs: assign outbox consistency fix and idempotency key fix (P0)
+- docs: assign blind price update prevention in checkout (P0)
+- docs: add context timeout to AddToCart (P1)
+- docs: add rate limit to AddToCart to prevent DB lock contention (P1)
 
 Closes: AGENT-25
 ```
@@ -245,9 +139,8 @@ Closes: AGENT-25
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Idempotency lock lease ≤ 2min | `grep "checkoutProcessingLease" confirm_step_idempotency.go` | ✅ |
-| No `_ =` on session delete | `grep -n '_ = uc.checkoutSessionRepo.DeleteByCartID' confirm.go` → 0 results | ✅ |
-| No N+1 in engineCalculateDiscounts | `grep -A3 'GetProduct' pricing_engine.go` — call OUTSIDE loop | ✅ |
-| `go build ./...` passes | Zero errors | ✅ |
-| `go test -race ./...` passes | Zero race conditions | ✅ |
-| `golangci-lint` passes | Zero warnings | ✅ |
+| Outbox event relocated | `grep 'CartConverted' order/internal/biz/` produces hit | |
+| Idempotency Key includes CartVersion | `grep 'reserve:.*:v%d' checkout/internal/biz/checkout/confirm.go` | |
+| Price change detection added | `grep 'ErrPriceChanged' checkout/internal/biz/checkout/` | |
+| Context Timeout applied to errgroup | `grep 'WithTimeout' checkout/internal/biz/cart/add.go` | |
+| Rate Limit added to AddToCart | `grep 'RateLimit' checkout/internal/biz/cart/add.go` | |
