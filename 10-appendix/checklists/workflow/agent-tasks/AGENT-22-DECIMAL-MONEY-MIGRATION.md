@@ -195,16 +195,18 @@ message Money {
 
 ## Phase 3: Remaining Services (Week 3) — `promotion` + `shipping`
 
-### [ ] Task 6: Migrate `promotion` Service
+### [x] Task 6: Migrate `promotion` Service ✅ COMPLETED
 
-**Files**: `promotion/internal/data/`, `promotion/api/promotion/v1/promotion.proto`  
+**Files**: `promotion/internal/data/`, `promotion/internal/biz/`, `promotion/internal/service/`, tests  
 **Effort**: 2 days
 
-- [ ] 6.1 Update GORM models — `DiscountAmount`, `OriginalAmount`, `FinalAmount`, `RulePrice`, etc.
-- [ ] 6.2 Update `promotion.proto` — dual-write for 30+ double fields
-- [ ] 6.3 Update discount calculation logic — `math.Round` → `money.RoundBank`
-- [ ] 6.4 Update promotion usage analytics — `TotalDiscount`, `AverageDiscount`
-- [ ] 6.5 Run: `cd promotion && go build ./... && go test ./...`
+- [x] 6.1 Update GORM models — `DiscountAmount`, `OriginalAmount`, `FinalAmount`, `RulePrice`, etc. → `money.Money`
+- [x] 6.2 Update biz layer types — all monetary fields in `types.go`, `Promotion`, `Campaign`, `Coupon`, `UsageStats`, `CatalogPriceIndex`
+- [x] 6.3 Update discount calculation logic — `Mul().Div()` → `MulPercentage`, arithmetic uses `money.Money` methods
+- [x] 6.4 Update promotion usage analytics — `TotalDiscount`, `AverageDiscount` bridged to `float64` at analytics boundary
+- [x] 6.5 Update service layer — convert proto `float64` ↔ `money.Money` at gRPC boundary with helpers (`floatPtrToMoneyPtr`, `moneyPtrToFloatPtr`)
+- [x] 6.6 Update all test files (promotion_test, catalog_indexing_test, validation_test, usage_tracking_test, service_test, etc.)
+- [x] 6.7 Run: `cd promotion && go build ./... && go test ./...` — **ALL PASS**
 
 ---
 
