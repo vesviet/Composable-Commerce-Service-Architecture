@@ -5,6 +5,8 @@
 > **Sprint**: Hardening Sprint
 > **Services**: `payment`
 > **Estimated Effort**: 3-4 days
+> **Status**: COMPLETED ✅
+> **Completed**: 2026-03-11
 > **Source**: [Payment Flows 150-Round Meeting Review Artifact](file:///home/user/.gemini/antigravity/brain/2b1e1b9b-b02e-4879-a8a1-0af061864a7b/payment_flows_150round_review.md)
 
 ---
@@ -17,7 +19,7 @@ Based on the 150-round Payment Flows meeting review, the Payment service contain
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Pass Idempotency Key in Public CapturePayment
+### [x] Task 1: Pass Idempotency Key in Public CapturePayment
 
 **File**: `payment/internal/biz/payment/usecase.go`
 **Lines**: ~495-505
@@ -41,7 +43,7 @@ cd payment && go test ./internal/biz/payment/... -v -run TestCapturePayment
 
 ---
 
-### [ ] Task 2: Implement Pagination in Reconciliation Worker
+### [x] Task 2: Implement Pagination in Reconciliation Worker
 
 **File**: `payment/internal/biz/reconciliation/reconciliation.go`
 **Lines**: ~144-150
@@ -80,7 +82,7 @@ cd payment && go test ./internal/biz/reconciliation/... -v
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 3: Use Decimal for COD Fee Calculation
+### [x] Task 3: Use Decimal for COD Fee Calculation
 
 **File**: `payment/internal/biz/payment/cod.go`
 **Lines**: ~70-75
@@ -106,7 +108,7 @@ cd payment && go test ./internal/biz/payment/... -v -run CreateCOD
 
 ---
 
-### [ ] Task 4: Auto-Heal Status Mismatches During Reconciliation
+### [x] Task 4: Auto-Heal Status Mismatches During Reconciliation
 
 **File**: `payment/internal/biz/reconciliation/reconciliation.go`
 **Lines**: ~245-255
@@ -152,7 +154,7 @@ Closes: AGENT-04
 
 | Criteria | Verification | Status |
 |---|---|---|
-| No Double Charges | Public Capture passes an idempotency key to gateway | 🔴 TODO |
-| Reconciliation Scales | Nightly job can process 50k records without OOM via pagination | 🔴 TODO |
-| COD Math is Exact | Total amount uses `decimal.Add` to prevent fractional truncation | 🔴 TODO |
-| Mismatches Healed | Pending transactions missing webhooks sync to Succeeded automatically | 🔴 TODO |
+| No Double Charges | Public Capture passes `capture_{paymentID}` idempotency key to gateway | 🟢 DONE |
+| Reconciliation Scales | Nightly job processes in batches of 1000 with offset pagination | 🟢 DONE |
+| COD Math is Exact | Total amount uses `decimal.Add` via `shopspring/decimal` | 🟢 DONE |
+| Mismatches Healed | Pending→Authorized auto-heal when gateway confirms paid/succeeded | 🟢 DONE |
