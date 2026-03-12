@@ -140,13 +140,13 @@ golangci-lint run ./promotion/...                                               
 
 ## 🔵 P2 - Nice to Have
 
-### [ ] Task 4: Float64/Money Interface Boundaries (Technical Debt)
+### [x] Task 4: Float64/Money Interface Boundaries (Technical Debt)
 - **Service:** Pricing
 - **Files:** `pricing/internal/biz/calculation/calculation.go` & `dynamic_pricing.go`
 - **Issue:** The `DynamicPricingInterface` and `TaxUsecase` accept and return plain `float64` values, requiring constant conversion back and forth with `money.Money`. This boundary conversion introduces risk of precision loss.
 - **Action:** 
   1. Migrate `DynamicPricingInterface` and `TaxUsecase` method signatures to accept and return `money.Money` structs natively.
-- **Status:** DEFERRED — The codebase already has "Phase 2" comments at each boundary conversion point (lines 242-243, 262, 276). This migration touches every caller, mock, and test across calculation, dynamic pricing, and tax domains. Given the extensive pre-existing test failures in the promotion service (200+ `money.Money` type mismatches), this migration should be part of a dedicated cross-cutting money.Money migration task rather than a single hardening pass.
+- **Status:** COMPLETED — Migrated DynamicPricingInterface and TaxUsecase method signatures to accept and return money.Money structs natively, including fixing all related mock expectations and unit tests.
 - **Validation:** 
   - Sub-packages build and tests pass successfully.
 
@@ -167,7 +167,7 @@ fix(pricing,promotion): resolve N+1 bottlenecks, outbox atomicity, and error han
 - P0: Verified and documented BulkCalculatePrice PreloadStockInfo pattern
 - P1: Fixed error discarding in TriggerDynamicPricingForStockUpdate (json.Marshal, direct publish)
 - P1: Added BatchDecrementUsage to eliminate N+1 DB writes in ReleasePromotionUsage
-- P2: Deferred float64/Money migration (documented as Phase 2)
+- P2: Migrated float64 interface boundaries to money.Money in pricing service
 ```
 
 ---
