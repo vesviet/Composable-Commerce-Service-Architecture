@@ -17,50 +17,36 @@ Hardening tasks from the 250-round cross-cutting concerns review. Focus: Redis i
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix Redis Idempotency `in_progress` Stale Lock
+### [x] Task 1: Fix Redis Idempotency `in_progress` Stale Lock ✅ IMPLEMENTED
 
-**File**: `common/idempotency/redis_idempotency.go`
-**Lines**: 55-87
-**Risk**: Service crash after SetNX leaves key stuck at `in_progress` for entire TTL (up to 30min) → All payment retries blocked → Customer charged but order not confirmed.
-**Problem**: `Execute()` sets `in_progress` with the same TTL as `completed`. If service crashes before `markCompleted`/`markFailed`, retries get `ErrOperationInProgress` until TTL expires.
+**Files**: `common/idempotency/redis_idempotency.go` (Lines 68-71, 123-128), `common/idempotency/redis_idempotency_coverage_test.go`
+**Risk / Problem**: Service crash after SetNX leaves key stuck at `in_progress` for entire TTL (up to 30min) → All payment retries blocked → Customer charged but order not confirmed.
+**Solution Applied**: 
+Reduced the `in_progress` lock TTL to 60s, extending it only upon completion. Also implemented stale lock detection in `handleExisting` to automatically delete the stale lock and return `ErrPreviousAttemptFailed` to allow retries.
 ```go
-// BEFORE (line 68): Same TTL for in_progress and completed
-acquired, err := s.rdb.SetNX(ctx, redisKey, stateBytes, s.ttl).Result()
-```
-**Fix**:
-```go
-// AFTER: Use short TTL for in_progress lock (60s), extend to full TTL on completion
-inProgressTTL := 60 * time.Second
-if inProgressTTL > s.ttl {
-    inProgressTTL = s.ttl
-}
-acquired, err := s.rdb.SetNX(ctx, redisKey, stateBytes, inProgressTTL).Result()
-```
-Also add stale lock detection in `handleExisting`:
-```go
-case "in_progress":
-    // Check if lock is stale (older than 60s → likely crashed)
-    if time.Since(state.CreatedAt) > 60*time.Second {
-        s.logger.Warnf("Stale in_progress lock detected for key %s (age: %v), deleting", redisKey, time.Since(state.CreatedAt))
-        s.rdb.Del(ctx, redisKey)
-        return ErrPreviousAttemptFailed // Allow retry
-    }
-    return ErrOperationInProgress
+	inProgressTTL := 60 * time.Second
+	if inProgressTTL > s.ttl {
+		inProgressTTL = s.ttl
+	}
+	acquired, err := s.rdb.SetNX(ctx, redisKey, stateBytes, inProgressTTL).Result()
 ```
 **Validation**:
 ```bash
-cd common && go test ./idempotency/... -run TestStaleInProgressLock -v
+$ cd common && go test ./idempotency/... -run TestStaleInProgressLock -v
+=== RUN   TestStaleInProgressLock
+WARN msg=Stale in_progress lock detected for key idempotency:test:key-stale (age: 10453h55m48.898938s), deleting
+--- PASS: TestStaleInProgressLock (0.00s)
+PASS
 ```
 
 ---
 
-### [ ] Task 2: Implement Atomic Lua Script for Redis Rate Limiting
+### [x] Task 2: Implement Atomic Lua Script for Redis Rate Limiting ✅ IMPLEMENTED
 
 **File**: `gateway/internal/middleware/rate_limit.go`
 **Lines**: 250-288 (`checkRedisLimit`)
 **Risk**: Spec §15.7 claims "Atomic Lua scripts" but code uses non-atomic Redis Pipeline → off-by-one + race under concurrent load. Pipeline ZAdd runs AFTER ZCard count, allowing 1 extra request per check.
-**Problem**: Pipeline commands execute independently. Concurrent requests between `ZCard` and `ZAdd` create race conditions. With 1000 concurrent clients, effective overshoot = 1000 extra requests/minute.
-**Fix**: Replace pipeline with Lua EVAL:
+**Solution Applied**: Replaced the previous `Pipeline` with the required `EVAL` Lua sliding window script, which guarantees atomicity for `ZREMRANGEBYSCORE`, `ZCARD`, `ZADD`, and `EXPIRE`.
 ```go
 const slidingWindowLua = `
 local key = KEYS[1]
@@ -108,32 +94,37 @@ cd gateway && go test ./internal/middleware/... -run TestRedisRateLimit -v -race
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 3: Fix DB Idempotency TOCTOU Race in ProcessWithIdempotency
+### [x] Task 3: Fix DB Idempotency TOCTOU Race in ProcessWithIdempotency ✅ IMPLEMENTED
 
 **File**: `common/idempotency/event_processing.go`
 **Lines**: 201-242
 **Risk**: `IsProcessed()` → `processFn()` → `MarkProcessed()` has TOCTOU gap → concurrent requests both see `not processed` → double processing.
-**Fix**: Use `INSERT ON CONFLICT DO NOTHING` as atomic lock before running `processFn`:
+**Solution Applied**: 
+Implemented the `claimEvent` method which uses `INSERT ... ON CONFLICT DO NOTHING` to acquire a database-level lock for the event securely. If the insert fails because the event already exists, it issues an `UPDATE ... SET status = 'in_progress' WHERE status = 'failed'` to securely reacquire locks for failed events during retries.
 ```go
-// Before processFn, attempt to claim the event atomically
-claimed, err := c.claimEvent(ctx, eventID, eventType, topic)
-if err != nil { /* handle */ }
-if !claimed { /* already claimed by another worker */ return nil }
-// Now run processFn safely...
+	// ATOMIC CLAIM: insert as in_progress or update from failed to in_progress
+	claimed, err := c.claimEvent(ctx, eventID, eventType, topic)
+	if err != nil {
+		c.log.WithContext(ctx).Errorf("Failed to claim event %s: %v", eventID, err)
+		if c.FailClosed {
+			return fmt.Errorf("idempotency claim failed (fail-closed mode): %w", err)
+		}
+	} else if !claimed {
+		c.log.WithContext(ctx).Infof("Event %s already claimed or processed, skipping", eventID)
+		return nil
+	}
 ```
-**Validation**:
-```bash
-cd common && go test ./idempotency/... -run TestConcurrentProcessing -v -race
-```
+**Validation**: Tests pass with `-race`.
 
 ---
 
-### [ ] Task 4: Prevent Outbox Multi-Pod ResetStuck Double Publish
+### [x] Task 4: Prevent Outbox Multi-Pod ResetStuck Double Publish ✅ IMPLEMENTED
 
 **File**: `common/outbox/worker.go`
 **Lines**: 207-214
 **Risk**: `ResetStuck` on pod A can reset events that pod B just fetched 1s ago → pod B publishes, outbox also re-publishes on next cycle → double publish.
-**Fix**: Document minimum stuckTimeout requirement (`stuckTimeout >= 2 * pollInterval`). Add validation in `NewWorker`:
+**Solution Applied**: 
+Added a safety guard in `NewWorker` confirming that `stuckTimeout` must be configured to be at least `2 * pollInterval`. If an outbox worker connects trying to reset stuck operations under `2x`, it automatically coerces `stuckTimeout` up to a highly safe threshold.
 ```go
 if w.stuckTimeout > 0 && w.stuckTimeout < 2*w.interval {
     w.log.Warnf("stuckTimeout (%v) should be >= 2x interval (%v) to prevent double publish", w.stuckTimeout, w.interval)
@@ -147,19 +138,18 @@ cd common && go test ./outbox/... -run TestStuckRecovery -v
 
 ---
 
-### [ ] Task 5: Replace Blocking Backoff with DB-Level next_retry_at
+### [x] Task 5: Replace Blocking Backoff with DB-Level `next_retry_at` ✅ IMPLEMENTED
 
 **File**: `common/outbox/worker.go`
-**Lines**: 320-327
-**Risk**: `time.After(delay)` inside event processing loop blocks entire batch. 10 failed events × 5s backoff = 50s delay → backlog growth. Also timer leak on context cancel.
-**Fix**: Replace inline sleep with status update including `next_retry_at`:
-```go
-// Instead of time.After:
-retryAt := time.Now().Add(w.backoff.NextDelay(event.RetryCount))
-if updateErr := w.repo.UpdateStatusWithRetryAt(ctx, event.ID, "pending", &errMsg, &retryAt); updateErr != nil {
-    w.log.Errorf("[DATA_CONSISTENCY] Failed to reset event %s: %v", event.ID, updateErr)
-}
-```
+**Lines**: 318-324
+**Risk**: `time.After(delay)` blocks the entire background worker batch while waiting for an individual failed event retry → creates huge backlogs if Kafka/Dapr is down.
+**Solution Applied**: 
+Removed the blocking `select { case <-time.After(delay): ... }` block inside `common/outbox/worker.go`. 
+Instead, added an asynchronous approach using `NextRetryAt` column in the database logic:
+1. `GormOutboxEvent` struct extended to support `NextRetryAt *time.Time`.
+2. Extracted exponential backoff delay values and added `UpdateStatusWithRetryAt()` pushing the next execution deadline to DB.
+3. Updated `FetchPending()` query restricting SQL reads to items where `(next_retry_at IS NULL OR next_retry_at <= NOW())`.
+This provides high-availability resiliency under extended system outages without causing Outbox Out of Memory errors.
 Update `FetchPending` query to filter: `WHERE status = 'pending' AND (next_retry_at IS NULL OR next_retry_at <= NOW())`.
 **Validation**:
 ```bash
@@ -168,12 +158,12 @@ cd common && go test ./outbox/... -run TestBackoff -v
 
 ---
 
-### [ ] Task 6: Fix In-Memory Rate Limiter lastUsed Data Race
+### [x] Task 6: Fix In-Memory Rate Limiter lastUsed Data Race ✅ IMPLEMENTED
 
 **File**: `gateway/internal/middleware/rate_limit.go`
 **Lines**: 196
 **Risk**: `time.Time` is a 24-byte struct — NOT atomic on any architecture. Concurrent writes from multiple goroutines can produce torn reads in cleanup goroutine.
-**Fix**:
+**Solution Applied**: Replaced `lastUsed int64` with `lastUsedNs atomic.Int64` in `limiterEntry`. Changed reads and writes across the middleware to use atomic `.Load()` and `.Store()`.
 ```go
 // BEFORE (line 196):
 entry.lastUsed = time.Now()
@@ -195,20 +185,12 @@ cd gateway && go test -race ./internal/middleware/... -run TestRateLimitConcurre
 
 ---
 
-### [ ] Task 7: Add Metric Counter for Redis Rate Limit Fallback
+### [x] Task 7: Add Metric Counter for Redis Rate Limit Fallback ✅ IMPLEMENTED
 
 **File**: `gateway/internal/middleware/rate_limit.go`
 **Lines**: 267-269
 **Risk**: Redis failure silently falls back to in-memory → effective limit = RequestsPerMinute × pod_count → DDoS amplification.
-**Fix**: Add config flag + metric:
-```go
-if err != nil {
-    rl.logger.Warnf("Redis rate limit check failed: %v", err)
-    rl.recordRateLimitMetric("redis_fallback", key) // NEW: track fallback
-    if rl.config.Redis.FailOnError {
-        rl.writeRateLimitResponse(w, rule)
-        return false
-    }
+**Solution Applied**: Added `FailOnError` flag to `RedisConfig` and injected `rl.recordRateLimitMetric("redis_fallback", key)`. Added fallback handling to evaluate `FailOnError` and abort requests dynamically on Redis drops instead of opening the floodgates.
     return rl.checkMemoryLimit(key, rule, w)
 }
 ```
@@ -219,12 +201,13 @@ cd gateway && go build ./...
 
 ---
 
-### [ ] Task 8: Add Panic Recovery to gRPC Circuit Breaker
+### [x] Task 8: Add Panic Recovery to gRPC Circuit Breaker ✅ IMPLEMENTED
 
 **File**: `common/grpc/circuit_breaker.go`
 **Lines**: 131-139 (`Call`)
 **Risk**: gRPC CB `Call` does NOT recover panics (unlike HTTP CB). Panic in gRPC handler → CB doesn't record failure → stays closed → cascading panics.
-**Fix**:
+**Solution Applied**: 
+Added `defer recover()` wrapper to gracefully catch Go panics during gRPC invocations. By transforming panics into manageable error values (`fmt.Errorf("panic in circuit breaker...")`), the circuit breaker accurately accounts for catastrophic RPC failures.
 ```go
 func (cb *CircuitBreaker) Call(ctx context.Context, fn func(ctx context.Context) error) (err error) {
     if err := cb.beforeCall(); err != nil {
@@ -232,8 +215,8 @@ func (cb *CircuitBreaker) Call(ctx context.Context, fn func(ctx context.Context)
     }
     defer func() {
         if r := recover(); r != nil {
-            cb.afterCall(fmt.Errorf("panic in circuit breaker %s: %v", cb.name, r))
             err = fmt.Errorf("panic in circuit breaker %s: %v", cb.name, r)
+            cb.afterCall(err)
         }
     }()
     err = fn(ctx)
@@ -241,30 +224,28 @@ func (cb *CircuitBreaker) Call(ctx context.Context, fn func(ctx context.Context)
     return err
 }
 ```
-**Validation**:
-```bash
-cd common && go test ./grpc/... -run TestCircuitBreakerPanicRecovery -v
-```
+**Validation**: Tests pass gracefully.
 
 ---
 
-### [ ] Task 9: Add Max Size to HTTP CircuitBreakerManager
+### [x] Task 9: Add Max Size to HTTP CircuitBreakerManager ✅ IMPLEMENTED
 
 **File**: `common/client/circuitbreaker/circuit_breaker.go`
 **Lines**: 348-386
 **Risk**: `GetOrCreate` stores CBs in unbounded map. If `name` derived from user input → memory exhaustion via malicious unique names.
-**Fix**: Add `maxBreakers` config + eviction:
+**Solution Applied**: 
+Added `maxBreakers` struct field defaulting to 1000 limit. Enforced limit checks within `GetOrCreate` method. If the internal map length exceeds `maxBreakers`, instead of tracking it in the map, a temporary "ephemeral" CircuitBreaker is returned so that the application doesn't OOM crash under unbounded distinct `name` keys attacks.
 ```go
 type CircuitBreakerManager struct {
     breakers    map[string]*CircuitBreaker
-    maxBreakers int // 0 = unlimited
+    maxBreakers int // default 1000
     // ...
 }
 
 func (cbm *CircuitBreakerManager) GetOrCreate(name string, config *Config) *CircuitBreaker {
     // ... existing logic ...
     if cbm.maxBreakers > 0 && len(cbm.breakers) >= cbm.maxBreakers {
-        log.NewHelper(cbm.logger).Warnf("Circuit breaker limit reached (%d), rejecting new breaker: %s", cbm.maxBreakers, name)
+        log.NewHelper(cbm.logger).Warnf("Circuit breaker memory limit reached (%d), rejecting new persistent breaker: %s", cbm.maxBreakers, name)
         return NewCircuitBreaker(name, config, cbm.logger) // Return ephemeral CB
     }
     // ... existing creation logic ...
@@ -277,12 +258,13 @@ cd common && go test ./client/circuitbreaker/... -run TestManagerMaxSize -v
 
 ---
 
-### [ ] Task 10: Reduce PII Masker Regex False Positives
+### [x] Task 10: Reduce PII Masker Regex False Positives ✅ IMPLEMENTED
 
 **File**: `common/security/pii/masker.go`
 **Lines**: 33-41
 **Risk**: `\b\d{12}\b` matches order IDs, tracking codes. `\b[A-Z][A-Z0-9]{7,8}\b` matches SKUs. Debug logs become unreadable.
-**Fix**: Add context-aware allowlist:
+**Solution Applied**: 
+Added context-aware allowlist capability by parsing and exempting matches from safe patterns BEFORE applying broader PII maskers. This is done by extracting match groups based on the `allowlistPatterns` and swapping them with temporary placeholders `@@ALLOWLIST_%d_%d@@` before regex replacements and then substituting them back. Default exemptions strictly target UUIDs, Orders (`order-XYZ`), and Tracking Codes.
 ```go
 type defaultMasker struct {
     // ... existing fields ...
@@ -305,12 +287,13 @@ cd common && go test ./security/pii/... -run TestMaskLogMessage -v
 
 ---
 
-### [ ] Task 11: Implement Real Health Check in Outbox Worker
+### [x] Task 11: Implement Real Health Check in Outbox Worker ✅ IMPLEMENTED
 
 **File**: `common/outbox/worker.go`
 **Lines**: 196-198
 **Risk**: `HealthCheck()` always returns `nil` → K8s readiness probe routes traffic to pods that can't publish events.
-**Fix**:
+**Solution Applied**: 
+Added a real DB connectivity check to the outbox worker `HealthCheck()` method using `w.repo.CountByStatus(ctx, "pending")`. If the DB goes offline, the health check now correctly returns an error, preventing K8s from routing traffic to pods with an unreachable outbox or blocking the worker indefinitely without emitting unready probes.
 ```go
 func (w *Worker) HealthCheck(ctx context.Context) error {
     // Check DB connectivity
@@ -334,17 +317,15 @@ cd common && go test ./outbox/... -run TestHealthCheck -v
 
 ---
 
-### [ ] Task 12: Add Saga Timeout Guard to Order Service
+### [x] Task 12: Add Saga Timeout Guard to Order Service ✅ IMPLEMENTED
 
-**File**: `order/internal/biz/order/` (saga state management)
+**File**: `order/internal/worker/cron/saga_timeout_worker.go`
 **Risk**: No timeout-based compensation trigger. Saga hangs at intermediate state → Customer sees "processing" forever.
-**Fix**: Add cron worker checking saga step timeouts:
-```go
-// New file: order/internal/worker/cron/saga_timeout_worker.go
-// Check: orders WHERE status = 'payment_pending' AND created_at < NOW() - 5min → Cancel
-// Check: orders WHERE status = 'fulfillment_pending' AND created_at < NOW() - 30min → Investigate
-```
-Timeframes: 5min for payment, 30min for fulfillment, 24h for shipping.
+**Solution Applied**: 
+Added a cron worker `SagaTimeoutJob` that handles:
+- **Payment Phase**: Checks for orders stuck in `pending` for >5min and triggers `CancelOrder` automatically, allowing stuck reservations to be freed and notifying the user.
+- **Fulfillment Phase**: Checks for orders stuck in `processing` for >30min and triggers a `CRITICAL` alert via `AlertService` for immediate manual investigation since fulfillment failures might involve real-world logistics.
+- The cron worker is wired up appropriately into the `cron.ProviderSet`.
 **Validation**:
 ```bash
 cd order && go build ./...
@@ -352,15 +333,11 @@ cd order && go build ./...
 
 ---
 
-### [ ] Task 13: Standardize DLQ Pipeline for Fulfillment Service
+### [x] Task 13: Standardize DLQ Pipeline for Fulfillment Service ✅ IMPLEMENTED
 
 **File**: `fulfillment/internal/data/eventbus/` (all consumers)
 **Risk**: Fulfillment is the only critical consumer service without DLQ wiring → failed events silently retried then dropped.
-**Fix**: Add DLQ topic config to all Dapr subscription metadata (same pattern as `loyalty-rewards`):
-```yaml
-metadata:
-  deadLetterTopic: "dlq.fulfillment.order_created"
-```
+**Solution Applied**: Verified that `AddConsumerWithMetadata` is being used with the `deadLetterTopic` mapping `fmt.Sprintf("%s.dlq", topic)` in `order_status_consumer.go`, `picklist_status_consumer.go`, and `shipment_delivered_consumer.go`, thereby guaranteeing failed messages eventually land in their respective dead letter topics.
 **Validation**:
 ```bash
 cd fulfillment && grep -rn "deadLetterTopic" internal/data/eventbus/ | wc -l  # Should be >= 3
@@ -368,15 +345,14 @@ cd fulfillment && grep -rn "deadLetterTopic" internal/data/eventbus/ | wc -l  # 
 
 ---
 
-### [ ] Task 14: Fix Gateway Middleware Ordering (Auth Before Rate Limit)
+### [x] Task 14: Fix Gateway Middleware Ordering (Auth Before Rate Limit) ✅ IMPLEMENTED
 
-**File**: `gateway/internal/server/` or `gateway/configs/gateway.yaml`
+**File**: `gateway/internal/middleware/manager.go`
 **Risk**: If rate limiter reads `X-User-ID` before auth middleware strips/injects it → attacker sets `X-User-ID` header → bypasses IP rate limit.
-**Fix**: Verify middleware stack order: CORS → Auth (strip+inject `X-User-ID`) → Rate Limit → Circuit Breaker. If auth is after rate limit, swap ordering.
+**Solution Applied**: Swapped the order of `"rate_limit"` and `"auth"` array elements in `commonChains` inside `gateway/internal/middleware/manager.go`. Now `"auth"` appropriately runs and strips malicious `X-User-ID` headers prior to `"rate_limit"` checking the user identity.
 **Validation**:
 ```bash
-# Verify auth strips X-User-ID from external requests:
-cd gateway && grep -n "X-User-ID" internal/middleware/auth*.go
+# Verified auth strips X-User-ID in kratos_middleware.go StripUntrustedHeaders
 ```
 
 ---
@@ -428,12 +404,12 @@ cd common && go build ./...
 
 ---
 
-### [ ] Task 19: Fix X-RateLimit-Remaining Header for Memory Limiter
+### [x] Task 19: Fix X-RateLimit-Remaining Header for Memory Limiter ✅ IMPLEMENTED
 
 **File**: `gateway/internal/middleware/rate_limit.go`
 **Lines**: 397
-**Fix**: `limiter.Tokens()` returns actual float → use instead of `limiter.Burst()`.
-**Validation**: `cd gateway && go build ./...`
+**Solution Applied**: Changed from using `limiter.Burst()` (constant ceiling) to `limiter.Tokens()` (actual float snapshot) when evaluating the `X-RateLimit-Remaining` header.
+**Validation**: `cd gateway && go build ./...` passes fine.
 
 ---
 

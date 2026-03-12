@@ -66,11 +66,11 @@ Technical Architect
 
 Let's plan the remaining parts.
 
-follow skill review service và helpme update for common-operations
+follow skill, rule, workflow review service và helpme update for common-operations
 
 follow skill write-tests và helpme update testcase for customer
 
 follow skill commit, commit và push
 
-tổ chức Meeting Review 250 round chuyên sâu cho 
+follow skill, rule, workflow và tổ chức Meeting Review 250 round chuyên sâu cho 
 docs\10-appendix\ecommerce-platform-flows.md tiếp nhé

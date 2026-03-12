@@ -782,11 +782,7 @@ Gateway → Auth Service
 
 ### P0 - Blocking Issues
 
-1. **Raw Goroutines Without Panic Recovery** 🔴
-   - **Issue**: Use of raw `go func()` can cause the application to crash if a panic occurs.
-   - **Location**: `cmd/worker/main.go:56`, `internal/client/user/user_client.go:106`
-   - **Impact**: Service instability and CrashLoopBackOff.
-   - **Fix**: Use `golang.org/x/sync/errgroup` to manage concurrent executions safely instead of raw `go func()`.
+None at the moment.
 
 ### P1 - High Priority Issues
 
