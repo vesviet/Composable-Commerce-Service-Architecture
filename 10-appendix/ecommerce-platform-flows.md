@@ -671,8 +671,8 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 ### 15.7 Technical Implementation — The "Golden Standards" (Verified)
 - **🕵️ Trace Continuity**: Uses **W3C Trace Propagation** to link async background events (Outbox) back to the original user transaction context.
 - **⚡ High-Throughput gRPC**: Implements **Round-Robin Connection Pooling** on the client side to bypass HTTP/2 head-of-line blocking.
-- **🛡️ DDoS Protection**: Uses **Sliding-Window Rate Limiting** with Atomic Lua scripts in Redis for thread-safe, precise quota enforcement.
-- **📬 Order Accuracy**: The **Step-based Orchestrated Saga** ensures multi-step business transactions either complete fully or are compensated.
+- **🛡️ DDoS Protection**: Uses **Sliding-Window Rate Limiting** with Pipeline operations in Redis for thread-safe, precise quota enforcement.
+- **📬 Order Accuracy**: The **Event-driven Choreographed Saga** ensures multi-step business transactions either complete fully or are compensated.
 
 ---
 

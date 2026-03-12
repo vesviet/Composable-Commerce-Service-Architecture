@@ -357,18 +357,12 @@ cd fulfillment && grep -rn "deadLetterTopic" internal/data/eventbus/ | wc -l  # 
 
 ---
 
-### [ ] Task 15: Standardize Metric Naming (OTel Conventions)
+### [x] Task 15: Standardize Metric Naming (OTel Conventions) ✅ IMPLEMENTED
 
 **File**: `common/observability/metrics/` + all service metrics
 **Risk**: Inconsistent metric naming across components → Grafana dashboard complexity.
-**Fix**: Create `common/observability/metrics/naming.go` with constants following OTel semantic conventions:
-```go
-const (
-    MetricRateLimitTotal     = "gateway.rate_limit.requests_total"
-    MetricOutboxProcessed    = "outbox.events.processed_total"
-    MetricCircuitBreakerTrip = "circuit_breaker.trips_total"
-)
-```
+**Solution Applied**: 
+Created `common/observability/metrics/naming.go` with constants for OTel semantic conventions. Updated metrics initializations in `common/outbox/metrics.go`, `common/client/circuitbreaker/metrics.go` and `gateway/internal/middleware/rate_limit.go` to use the new constants instead of hardcoded strings. Re-vendored in gateway and successfully compiled gateway and common.
 **Validation**:
 ```bash
 cd common && go build ./...
@@ -378,29 +372,29 @@ cd common && go build ./...
 
 ## ✅ Checklist — P2 Issues (Backlog)
 
-### [ ] Task 16: Make GetFailedEvents retry_count Config-Driven
+### [x] Task 16: Make GetFailedEvents retry_count Config-Driven ✅ IMPLEMENTED
 
 **File**: `common/idempotency/event_processing.go`
 **Lines**: 148
-**Fix**: Replace hard-coded `retry_count < 3` with configurable `maxRetryCount` field on `IdempotencyChecker`.
-**Validation**: `cd common && go build ./...`
+**Solution Applied**: Replaced the hard-coded `retry_count < 3` inside `GetFailedEvents` with a configurable `maxRetryCount` field on `IdempotencyChecker`. Defaulted to 3 in `NewIdempotencyChecker` and set up `SetMaxRetryCount` setter.
+**Validation**: `cd common && go build ./...` passes.
 
 ---
 
-### [ ] Task 17: Reduce MaskAddress Visible Characters to 5
+### [x] Task 17: Reduce MaskAddress Visible Characters to 5 ✅ IMPLEMENTED
 
 **File**: `common/security/pii/masker.go`
 **Lines**: 118-119
-**Fix**: Change `address[:10]` to `address[:5]` for better PDPA compliance.
-**Validation**: `cd common && go test ./security/pii/... -v`
+**Solution Applied**: Reduced `address[:10]` down to `address[:5]` to limit the visibility of personally identifiable information for tighter PDPA compliance.
+**Validation**: `cd common && go test ./security/pii/... -v` passes.
 
 ---
 
-### [ ] Task 18: Create Generic Webhook Signature Verifier Interface
+### [x] Task 18: Create Generic Webhook Signature Verifier Interface ✅ IMPLEMENTED
 
-**File**: `common/security/webhook/` (new file)
-**Fix**: Create `verifier.go` interface that payment gateways implement for uniform signature check.
-**Validation**: `cd common && go build ./...`
+**File**: `common/security/webhook/verifier.go`
+**Solution Applied**: Created standard `SignatureVerifier` generic interface for verifying webhook requests from payment providers ensuring consistent signature validations platform-wide.
+**Validation**: `cd common && go build ./...` passes.
 
 ---
 
@@ -421,21 +415,21 @@ cd common && go build ./...
 
 ---
 
-### [ ] Task 21: Update ecommerce-platform-flows.md §15.7 Golden Standards
+### [x] Task 21: Update ecommerce-platform-flows.md §15.7 Golden Standards ✅ IMPLEMENTED
 
 **File**: `docs/10-appendix/ecommerce-platform-flows.md`
 **Lines**: 671-676
-**Fix**: Update "Verified" claims to match actual implementation (rate limiter uses Pipeline not Lua, saga is choreography not orchestration).
-**Validation**: Manual doc review
+**Solution Applied**: Updated "Verified" claims to correctly reflect that the rate limiter utilizes Redis Pipeline operations rather than Lua scripts, and that the order saga uses an Event-driven Choreographed Saga, accurately mirroring the actual codebase implementation.
+**Validation**: Manual doc review performed and verified.
 
 ---
 
-### [ ] Task 22: Add Hex Char Validation to parseTraceparent
+### [x] Task 22: Add Hex Char Validation to parseTraceparent ✅ IMPLEMENTED
 
 **File**: `common/outbox/worker.go`
 **Lines**: 379-411
-**Fix**: Add `regexp.MustCompile("^[0-9a-f]+$").MatchString(parts[1])` before `hex.DecodeString`.
-**Validation**: `cd common && go test ./outbox/... -run TestParseTraceparent -v`
+**Solution Applied**: Added `var validHexPattern = regexp.MustCompile("^[0-9a-f]+$")` at package level and used it to validate `parts[1]` before passing it to `hex.DecodeString`. This ensures proper hex validation for `traceID` prior to decoding.
+**Validation**: `cd common && go test ./outbox/... -run TestParseTraceparent -v` passes.
 
 ---
 
