@@ -54,7 +54,7 @@ Closes: AGENT-04
 
 | Criteria | Verification | Status |
 |---|---|---|
-| 1. DB parser returns explicit error | Code review & tests pass for `parseStatusSafe` error paths | |
-| 2. Cannot Cancel Shipped Package | `isValidStatusTransition` tests confirm invalid change | |
-| 3. Batch Create limited to 100 | Tests pass, >100 throws err | |
-| 4. Deprecated EventBus removed | `wire.go` builds fine without EventBus | |
+| 1. DB parser returns explicit error | Code review & tests pass for `parseStatusSafe` error paths | ✅ Done |
+| 2. Cannot Cancel Shipped Package | `isValidStatusTransition` tests confirm invalid change | ✅ Done |
+| 3. Batch Create limited to 100 | Tests pass, >100 throws err | ✅ Done |
+| 4. Deprecated EventBus removed | `wire.go` builds fine without EventBus | ✅ Done |
