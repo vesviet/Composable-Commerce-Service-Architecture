@@ -72,5 +72,7 @@ follow skill write-tests và helpme update testcase for customer
 
 follow skill commit, commit và push
 
-follow skill, rule, workflow và tổ chức Meeting Review 1000 round chuyên sâu cho 
+follow skill, rule, workflow, index codebase chi tiết và tổ chức Meeting Review 10000 round chuyên sâu cho 
 docs\10-appendix\ecommerce-platform-flows.md tiếp nhé
+
+follow skill, rule, workflow và debug nó nhé
