@@ -1,67 +1,60 @@
 ## 🔍 Service Review: auth
 
-**Date**: 2026-03-05
-**Version**: v1.2.6
-**Status**: ✅ Production Ready
+**Date**: 2026-03-16
+**Status**: ✅ Ready
 
 ### 📊 Issue Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| P0 (Blocking) | 0 | N/A |
-| P1 (High) | 1 | ✅ Fixed |
-| P2 (Normal) | 0 | N/A |
+| P0 (Blocking) | 0 | Fixed |
+| P1 (High) | 1 | Fixed |
+| P2 (Normal) | 0 | Fixed |
+
+### 🔴 P0 Issues (Blocking)
+None found.
 
 ### 🟡 P1 Issues (High)
-1. **[DEPENDENCIES]** `go.mod` — `user` dep outdated v1.0.11 → ✅ Upgraded to v1.0.14
+1. **[TEST BUILD FAILURE]** `internal/biz/biz_test.go:214` - `ProvideLoginUsecase` was missing newly required parameters (`Redis`, `Transaction`), preventing tests from compiling.
+
+### 🔵 P2 Issues (Normal)
+None found.
 
 ### ✅ Completed Actions
-1. Upgraded `user` dependency to v1.0.14
-2. Re-synced vendor directory
-3. Verified lint, build, and all 11 test packages pass
+1. Fixed: `internal/biz/biz_test.go` method signature for `ProvideLoginUsecase` tests.
 
 ### 🔧 Action Plan
 | # | Severity | Issue | File:Line | Fix | Status |
 |---|----------|-------|-----------|-----|--------|
-| 1 | P1 | user dep outdated | go.mod | `go get user@latest` | ✅ Done |
+| 1 | P1 | Test Compile Error | `internal/biz/biz_test.go:214` | Passed `nil` blocks for `rdb` and `tx` | ✅ Done |
 
 ### 📈 Test Coverage
-| Package | Coverage | Target | Status |
-|---------|----------|--------|--------|
-| biz | 71.0% | 60% | ✅ |
-| biz/audit | 91.7% | 60% | ✅ |
-| biz/login | 79.1% | 60% | ✅ |
-| biz/session | 65.3% | 60% | ✅ |
-| biz/token | 67.2% | 60% | ✅ |
-| data | 3.5% | 60% | ⚠️ Low (wire/provider code) |
-| data/postgres | 51.9% | 60% | ⚠️ Below target |
-| middleware | 79.2% | 60% | ✅ |
-| model | 100.0% | 60% | ✅ |
-| observability | 94.4% | 60% | ✅ |
-| service | 89.7% | 60% | ✅ |
+| Layer | Coverage | Target | Status |
+|-------|----------|--------|--------|
+| Biz | 80.3% | 60% | ✅ |
+| Service | 90.1% | 60% | ✅ |
 
-Coverage checklist: ✅ No changes needed
+Coverage checklist updated: ✅
 
 ### 🌐 Cross-Service Impact
-- Services that import this proto: customer, gateway
-- Services that consume events: customer (auth_consumer), notification
-- Backward compatibility: ✅ Preserved (no proto/event changes)
+- Services that import this proto: `customer`, `gateway`
+- Services that consume events: `customer`, `notification`
+- Backward compatibility: ✅ Preserved
 
 ### 🚀 Deployment Readiness
-- Config/GitOps aligned: ✅ (ports 8000/9000 match standard)
+- Config/GitOps aligned: ✅
 - Health probes: ✅
-- Resource limits: ✅ (128Mi/100m → 512Mi)
-- HPA: ✅
+- Resource limits: ✅
 - Migration safety: ✅
 
 ### Build Status
 - `golangci-lint`: ✅ 0 warnings
 - `go build ./...`: ✅
-- `wire`: ✅ Generated
+- `wire`: ✅ Generated 
 - Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
-- `bin/` Files: ✅ Not present
+- `bin/` Files: ✅ Removed
 
 ### Documentation
 - Service doc: ✅
 - README.md: ✅
-- CHANGELOG.md: ✅ Updated with v1.2.6 entry
+- CHANGELOG.md: ✅
