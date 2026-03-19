@@ -1,14 +1,18 @@
 # 📚 Microservices Documentation Index
 
-**Platform**: E-Commerce Microservices Platform  
-**Version**: 2.2.0  
-**Last Updated**: March 2, 2026  
-**Total Services**: 21 Go services + 2 frontends  
-**Documentation Coverage**: 23/23 services documented  
-**Maturity**: See [SERVICE_INDEX.md](../SERVICE_INDEX.md) for per-service status  
-**Navigation**: [← Business Domains](../02-business-domains/README.md) | [← Back to Main](../README.md) | [APIs →](../04-apis/README.md)
+- **Platform**: E-Commerce Microservices Platform
+- **Version**: 2.2.0
+- **Last Updated**: March 2, 2026
+- **Total Services**: 21 Go services + 2 frontends
+- **Documentation Coverage**: 23/23 services documented
+- **Maturity Source of Truth**: [SERVICE_INDEX.md](../SERVICE_INDEX.md)
+- **Navigation**: [← Business Domains](../02-business-domains/README.md) | [← Back to Main](../README.md) | [APIs →](../04-apis/README.md)
+- **Quick Index**: [SERVICE_INDEX.md](../SERVICE_INDEX.md) - Complete service catalog with versions, ports, and features
 
-**Quick Index**: [SERVICE_INDEX.md](../SERVICE_INDEX.md) - Complete service catalog with versions, ports, and features  
+---
+
+> [!IMPORTANT]
+> This page is the documentation index for service guides. For current service maturity, ports, and versions, use [SERVICE_INDEX.md](../SERVICE_INDEX.md). For repository orientation, use [CODEBASE_INDEX.md](../CODEBASE_INDEX.md). For deployment/runtime state, use [../../gitops/README.md](../../gitops/README.md) and the [GitOps review checklist](../10-appendix/checklists/gitops/review_checklist.md).
 
 ---
 
@@ -31,40 +35,16 @@ This directory contains comprehensive documentation for all microservices in the
 
 ---
 
-## 📊 Service Documentation Status
+## 📊 Documentation Status
 
-### ✅ Core Business Services (14 services)
+This directory contains service guides for all 23 deployable services in the repository.
 
-| Service | Version | Status | Production Ready | Last Updated | Documentation |
-|---------|---------|--------|------------------|--------------|---------------|
-| **Auth Service** | v1.1.1 | ✅ Complete | 100% | 2026-02-04 | `core-services/auth-service.md` |
-| **User Service** | v1.0.6 | ✅ Complete | 100% | 2026-02-04 | `core-services/user-service.md` |
-| **Customer Service** | v1.1.4 | ✅ Complete | 100% | 2026-02-06 | `core-services/customer-service.md` |
-| **Catalog Service** | v1.2.8 | ✅ Complete | 100% | 2026-02-04 | `core-services/catalog-service.md` |
-| **Pricing Service** | v1.1.4 | ✅ Complete | 100% | 2026-02-06 | `core-services/pricing-service.md` |
-| **Promotion Service** | v1.1.2 | ✅ Complete | 100% | 2026-02-06 | `core-services/promotion-service.md` |
-| **Checkout Service** | v1.3.1 | ✅ Complete | 100% | 2026-02-04 | `core-services/checkout-service.md` |
-| **Order Service** | v1.2.0 | ✅ Complete | 100% | 2026-02-04 | `core-services/order-service.md` |
-| **Payment Service** | v1.1.0 | ✅ Complete | 100% | 2026-02-06 | `core-services/payment-service.md` |
-| **Warehouse Service** | v1.1.3 | ✅ Complete | 100% | 2026-02-06 | `core-services/warehouse-service.md` |
-| **Fulfillment Service** | v1.1.0 | ✅ Complete | 100% | 2026-02-06 | `core-services/fulfillment-service.md` |
-| **Shipping Service** | v1.1.2 | ✅ Complete | 100% | 2026-02-06 | `core-services/shipping-service.md` |
-| **Return Service** | v1.0.1 | ✅ Complete | 100% | 2026-02-01 | `core-services/return-service.md` |
-| **Loyalty Service** | v1.0.1 | ✅ Complete | 100% | 2026-02-10 | `core-services/loyalty-rewards-service.md` |
+- **Documentation coverage**: 23/23 service guides present
+- **Per-service maturity, versions, and ports**: [SERVICE_INDEX.md](../SERVICE_INDEX.md)
+- **Codebase map and ownership orientation**: [CODEBASE_INDEX.md](../CODEBASE_INDEX.md)
+- **Deployment/runtime status**: [../../gitops/README.md](../../gitops/README.md) and [GitOps review checklist](../10-appendix/checklists/gitops/review_checklist.md)
 
-### 🛠️ Platform Services (9 services)
-
-| Service | Version | Status | Production Ready | Last Updated | Documentation |
-|---------|---------|--------|------------------|--------------|---------------|
-| **Gateway Service** | v1.1.6 | ✅ Complete | 95% | 2026-02-12 | `platform-services/gateway-service.md` |
-| **Notification Service** | v1.1.4 | ✅ Complete | 100% | 2026-02-11 | `platform-services/notification-service.md` |
-| **Location Service** | v1.0.0 | ✅ Complete | 90% | 2026-01-29 | `platform-services/location-service.md` |
-| **Review Service** | v1.1.0 | ✅ Complete | 95% | 2026-02-01 | `platform-services/review-service.md` |
-| **Search Service** | v1.0.12 | ✅ Complete | 100% | 2026-02-06 | `platform-services/search-service.md` |
-| **Analytics Service** | v1.2.3 | ✅ Complete | 100% | 2026-02-12 | `platform-services/analytics-service.md` |
-| **Common Ops** | v1.0.0 | ✅ Complete | 100% | 2026-01-31 | `platform-services/common-operations-service.md` |
-| **Admin Service** | v1.0.0 | ✅ Complete | 100% | 2026-02-10 | `platform-services/admin-service.md` |
-| **Frontend Service** | v1.0.1 | ✅ Complete | 100% | 2026-02-10 | `platform-services/frontend-service.md` |
+The lists below group service documentation by domain. They are not the source of truth for rollout readiness.
 
 
 
@@ -169,11 +149,13 @@ graph LR
 
 ## 📊 Platform Health
 
-### Service Maturity
-- 🟢 **Production Ready**: All 21 Go services (100%)
-- 🟢 **Frontend**: Admin (React/Vite) + Customer Storefront (Next.js)
+### Canonical Status References
+- **Service maturity, ports, versions**: [SERVICE_INDEX.md](../SERVICE_INDEX.md)
+- **Repository architecture and code map**: [CODEBASE_INDEX.md](../CODEBASE_INDEX.md)
+- **Deployment/runtime state**: [../../gitops/README.md](../../gitops/README.md)
+- **Active GitOps findings**: [GitOps review checklist](../10-appendix/checklists/gitops/review_checklist.md)
 
-### Key Metrics
+### Documentation Metrics
 - **Documentation Coverage**: 23/23 services documented ✅
 - **Architecture Compliance**: Clean Architecture + DI (Wire) across all services ✅
 - **Event Infrastructure**: Outbox pattern in 10+ services, idempotency in 8+ services ✅
@@ -219,7 +201,7 @@ graph LR
 - [x] Fix critical security issues
 - [x] Implement transactional outbox patterns
 - [x] Complete authentication & authorization
-- [x] All services production ready (100%)
+- [x] Align landing-page status reporting to [SERVICE_INDEX.md](../SERVICE_INDEX.md)
 
 ### Q2 2026 - Testing & Optimization 🔄 IN PROGRESS
 - [ ] Implement comprehensive integration tests

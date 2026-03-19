@@ -5,6 +5,8 @@
 > **Stack**: Go 1.25 · Kratos v2 · PostgreSQL · Redis · Dapr · Kubernetes  
 > **Maturity**: 15/21 services 🟢 Production-ready · 6 services 🟡 Near-prod (see [SERVICE_INDEX.md](SERVICE_INDEX.md))
 
+This file is the canonical repository and codebase map. For per-service maturity, versions, and ports, use [SERVICE_INDEX.md](SERVICE_INDEX.md). For deployment state and GitOps health, use [`gitops/README.md`](../gitops/README.md) and the [GitOps review checklist](10-appendix/checklists/gitops/review_checklist.md).
+
 ## 🏗️ Core Business Services
 These form the backbone of the e-commerce transaction and user domains:
 - **`auth`** — Identity & Authentication

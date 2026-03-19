@@ -33,31 +33,31 @@
 
 ## 🎯 Overview
 
-Catalog Service là **core service** quản lý toàn bộ product catalog trong e-commerce platform. Service này xử lý:
+Catalog Service is the **core service** that manages the entire product catalog for the e-commerce platform. The service handles:
 
 ### Core Capabilities
-- **🛍️ Product Management**: CRUD operations cho 25,000+ products với complex filtering
+- **🛍️ Product Management**: CRUD operations for 25,000+ products with complex filtering
 - **🏷️ EAV Attribute System**: 3-tier attribute architecture (Hot/Tier1, EAV/Tier2, JSON/Tier3)
-- **📂 Category Management**: Hierarchical category structure với templates
-- **🏢 Brand & Manufacturer**: Brand management với metadata và sorting
-- **📄 CMS Pages**: Content management cho static pages
-- **👁️ Visibility Rules**: Age, group, và geo-based access controls
+- **📂 Category Management**: Hierarchical category structure with templates
+- **🏢 Brand & Manufacturer**: Brand management with metadata and sorting
+- **📄 CMS Pages**: Content management for static pages
+- **👁️ Visibility Rules**: Age, group, and geo-based access controls
 - **🔍 Search Integration**: Auto-sync attributes to Search Service
-- **📊 Event-Driven**: Publishes product changes cho indexing và analytics
+- **📊 Event-Driven**: Publishes product changes for indexing and analytics
 
 ### Business Value
-- **Product Catalog**: Centralized product data với rich attributes
-- **Flexibility**: EAV system cho custom product specifications
+- **Product Catalog**: Centralized product data with rich attributes
+- **Flexibility**: EAV system for custom product specifications
 - **Performance**: Tiered attribute system balances flexibility vs speed
-- **Integration**: Seamless sync với Search, Pricing, Warehouse services
-- **Content Management**: Built-in CMS cho marketing pages
+- **Integration**: Seamless sync with Search, Pricing, and Warehouse services
+- **Content Management**: Built-in CMS for marketing pages
 
 ### Key Differentiators
-- **3-Tier Attribute Architecture**: Balances performance với flexibility
-- **Event-Driven Sync**: Auto-reindexing khi attribute config changes
-- **Rich Filtering**: Advanced search và filter capabilities
+- **3-Tier Attribute Architecture**: Balances performance with flexibility
+- **Event-Driven Sync**: Auto-reindexing when attribute configuration changes
+- **Rich Filtering**: Advanced search and filter capabilities
 - **CMS Integration**: Content management built-in
-- **Visibility Controls**: Granular access control cho products
+- **Visibility Controls**: Granular access control for products
 
 ---
 
@@ -99,21 +99,21 @@ catalog/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8015` - REST endpoints cho frontend/client apps
+- **HTTP API**: `:8015` - REST endpoints for frontend/client apps
 - **gRPC API**: `:9015` - Internal service communication
 - **Health Check**: `/api/v1/catalog/health`
 
 ### Service Dependencies
 
 #### Internal Dependencies
-- **Warehouse Service**: Stock levels và availability
-- **Pricing Service**: Product pricing và promotions
-- **Search Service**: Product indexing và search sync
+- **Warehouse Service**: Stock levels and availability
+- **Pricing Service**: Product pricing and promotions
+- **Search Service**: Product indexing and search sync
 - **Notification Service**: Product update notifications
 
 #### External Dependencies
 - **PostgreSQL**: Primary data store (`catalog_db`)
-- **Redis**: Caching layer và session storage
+- **Redis**: Caching layer and session storage
 - **Dapr**: Event-driven communication
 - **Consul**: Service discovery
 
@@ -171,8 +171,8 @@ rpc GetProduct(GetProductRequest) returns (GetProductReply) {
 ```
 
 **Response includes:**
-- Product details với all attributes
-- Category và brand information
+- Product details with all attributes
+- Category and brand information
 - Stock levels (from Warehouse Service)
 - Pricing information (from Pricing Service)
 - Visibility rules
@@ -244,7 +244,7 @@ rpc SearchProducts(SearchProductsRequest) returns (SearchProductsReply) {
 
 **Search Capabilities:**
 - Full-text search across name, description, SKU
-- Fuzzy matching với typos
+- Fuzzy matching with typos
 - Relevance scoring
 - Faceted search results
 

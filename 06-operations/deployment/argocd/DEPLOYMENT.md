@@ -1,8 +1,15 @@
-# ArgoCD Deployment Guide
+# Legacy ArgoCD Deployment Guide
 
 How to deploy services using ArgoCD.
 
 ---
+
+> [!WARNING]
+> This guide is legacy reference only. The steps below use `argocd/applications/*`, SOPS/GPG secret handling, and `ApplicationSet` onboarding from the old deployment model.
+>
+> Do not use this as the current deploy runbook. Use:
+> - [../../../../gitops/README.md](../../../../gitops/README.md)
+> - [GitOps review checklist](../../../10-appendix/checklists/gitops/review_checklist.md)
 
 ## Prerequisites
 
@@ -14,7 +21,7 @@ How to deploy services using ArgoCD.
 
 ---
 
-## Deployment Process
+## Historical Deployment Process
 
 ### Step 1: Prepare Secrets
 
@@ -61,7 +68,7 @@ git commit -m "Deploy <service-name> to staging/production"
 git push origin main
 ```
 
-### Step 4: Apply ApplicationSet
+### Legacy Step 4: Apply ApplicationSet
 
 ```bash
 # Apply ApplicationSet (first time only)

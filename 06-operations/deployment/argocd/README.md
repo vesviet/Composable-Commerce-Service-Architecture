@@ -1,20 +1,27 @@
-# GitOps with ArgoCD
+# Legacy ArgoCD Procedures
 
-**Purpose**: ArgoCD-specific deployment procedures and configuration  
-**Last Updated**: 2026-02-07  
-**Status**: ✅ Active - Kustomize-based GitOps deployment for 24 microservices  
-**Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
+- **Purpose**: Historical ArgoCD deployment procedures and migration-era configuration notes
+- **Last Updated**: 2026-02-07
+- **Status**: Legacy reference; not the primary runbook for current service deployment
+- **Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
 
 ---
+
+> [!WARNING]
+> This folder is legacy reference material. It contains pre-migration and mixed-transition ArgoCD procedures, including stale service counts and older onboarding patterns. Do not use it as the primary deployment guide for current services.
+>
+> Use these current sources instead:
+> - [../../../../gitops/README.md](../../../../gitops/README.md)
+> - [GitOps review checklist](../../../10-appendix/checklists/gitops/review_checklist.md)
 
 ## 📋 Overview
 
 This section contains ArgoCD-specific procedures for deploying and managing applications using **Kustomize-based GitOps**. ArgoCD serves as our GitOps engine, continuously synchronizing Kubernetes resources with Git repositories.
 
 ### 🎯 What You'll Find Here
-- **[ArgoCD Guide](./ARGOCD_GUIDE.md)** - Comprehensive ArgoCD setup and usage
-- **[Deployment Procedures](./DEPLOYMENT.md)** - Service deployment procedures with Kustomize
-- **[Templates](./)** - Kustomize templates and examples
+- **[ArgoCD Guide](./ARGOCD_GUIDE.md)** - Historical ArgoCD setup and usage notes
+- **[Deployment Procedures](./DEPLOYMENT.md)** - Legacy service deployment procedure examples
+- **[Templates](./)** - Historical templates and examples
 
 ### ⚠️ Migration Notice
 
@@ -22,7 +29,7 @@ This section contains ArgoCD-specific procedures for deploying and managing appl
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Historical Quick Start
 
 ### **Deploy New Service (Kustomize)**
 ```bash
@@ -110,7 +117,7 @@ argocd app get new-service
 
 ---
 
-## 📊 Current Status
+## 📊 Historical Snapshot
 
 | Metric | Count | Status |
 |--------|-------|--------|

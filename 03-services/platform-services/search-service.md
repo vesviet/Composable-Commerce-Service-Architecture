@@ -15,23 +15,23 @@
 
 ## 🎯 Overview
 
-Search Service cung cấp AI-powered product search và discovery cho e-commerce platform. Service này sử dụng Elasticsearch để indexing và retrieval với advanced features như fuzzy matching, faceted search, và personalized recommendations.
+Search Service provides AI-powered product search and discovery for the e-commerce platform. It uses Elasticsearch for indexing and retrieval, with advanced features such as fuzzy matching, faceted search, and personalized recommendations.
 
 ### Core Capabilities
-- **🤖 AI-Powered Search**: Intelligent query understanding và result ranking
-- **📊 Real-Time Indexing**: Auto-sync với Catalog, Pricing, Warehouse services
-- **🎯 Advanced Filtering**: Faceted search với multiple filter combinations
-- **📈 Search Analytics**: Query performance và user behavior insights
-- **🔄 Auto-Suggestions**: Query autocomplete và spell correction
-- **📱 Mobile Optimization**: Fast search cho mobile devices
-- **🌍 Multi-Language**: Unicode support và language-specific processing
+- **🤖 AI-Powered Search**: Intelligent query understanding and result ranking
+- **📊 Real-Time Indexing**: Auto-sync with Catalog, Pricing, and Warehouse services
+- **🎯 Advanced Filtering**: Faceted search with multiple filter combinations
+- **📈 Search Analytics**: Query performance and user-behavior insights
+- **🔄 Auto-Suggestions**: Query autocomplete and spell correction
+- **📱 Mobile Optimization**: Fast search for mobile devices
+- **🌍 Multi-Language**: Unicode support and language-specific processing
 - **⚡ Performance**: Sub-second response times
 
 ### Business Value
-- **Conversion Optimization**: Better search experience tăng conversion
+- **Conversion Optimization**: Better search experiences increase conversion
 - **Product Discovery**: Help customers find products efficiently
 - **Analytics Insights**: Understand customer search behavior
-- **Scalability**: Handle high search volume với low latency
+- **Scalability**: Handle high search volume with low latency
 - **Personalization**: AI-driven result personalization
 
 ## ✅ Implementation Status (v1.0.6)
@@ -89,7 +89,7 @@ search/
 - **HTTP API**: `:8004` - REST endpoints
 - **gRPC API**: `:9004` - Internal communication
 - **Database**: PostgreSQL (`search_db`) + Elasticsearch
-- **Cache**: Redis for query caching và suggestions
+- **Cache**: Redis for query caching and suggestions
 - **External Services**: Catalog, Pricing, Warehouse services
 
 ---
@@ -266,7 +266,7 @@ rpc GetZeroResultsQueries(GetZeroResultsQueriesRequest) returns (GetZeroResultsQ
 - **Intent Detection**: Classify search intent (product, category, brand)
 - **Entity Extraction**: Extract brands, categories, specifications
 - **Query Expansion**: Add synonyms and related terms
-- **Context Awareness**: Consider user history và preferences
+- **Context Awareness**: Consider user history and preferences
 
 #### Result Ranking
 - **Relevance Scoring**: BM25 + custom business rules
@@ -275,7 +275,7 @@ rpc GetZeroResultsQueries(GetZeroResultsQueriesRequest) returns (GetZeroResultsQ
 - **A/B Testing**: Test different ranking algorithms
 
 #### Advanced Features
-- **Fuzzy Matching**: Handle typos và variations
+- **Fuzzy Matching**: Handle typos and variations
 - **Partial Matching**: Search within product names/descriptions
 - **Phrase Matching**: Exact phrase matching for quotes
 - **Field Boosting**: Weight different fields differently
@@ -314,7 +314,7 @@ rpc GetZeroResultsQueries(GetZeroResultsQueriesRequest) returns (GetZeroResultsQ
 
 ### Catalog Service Integration
 - **Consumes**: `catalog.product.created`, `catalog.product.updated`, `catalog.product.deleted`
-- **Provides**: Search indexing và product discovery
+- **Provides**: Search indexing and product discovery
 - **Data Flow**: Product changes → Auto-reindexing → Updated search results
 
 ### Pricing Service Integration
@@ -530,7 +530,7 @@ caching:
 
 ---
 
-**Service Status**: Production Ready (95%)  
-**Critical Path**: Product search và indexing  
-**Performance Target**: <200ms search response, <500ms indexing  
-**Index Size**: 25,000+ products with full-text search
+- **Service Status**: Production Ready (95%)
+- **Critical Path**: Product search and indexing
+- **Performance Target**: <200ms search response, <500ms indexing
+- **Index Size**: 25,000+ products with full-text search

@@ -1,9 +1,9 @@
 # 🚀 Deployment Documentation
 
-**Purpose**: Complete deployment strategy and procedures for the microservices platform  
-**Last Updated**: 2026-02-07  
-**Status**: ✅ Active - Kustomize-based GitOps deployment with ArgoCD  
-**GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
+- **Purpose**: Complete deployment strategy and procedures for the microservices platform
+- **Last Updated**: 2026-02-07
+- **Status**: Active deployment documentation with mixed current and historical sub-sections
+- **GitOps Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
 
 ---
 
@@ -13,14 +13,17 @@ This section contains comprehensive documentation for deploying and managing the
 
 ### 🎯 What You'll Find Here
 
-- **[GitOps Overview](./gitops/)** - Complete Kustomize-based GitOps strategy
-- **[ArgoCD Procedures](./argocd/)** - ArgoCD-specific deployment procedures
+- **[GitOps Overview](./gitops/)** - Current conceptual docs for Kustomize-based GitOps
+- **[ArgoCD Procedures](./argocd/)** - Legacy/historical ArgoCD procedures kept for migration context
 - **[Kubernetes Operations](./kubernetes/)** - K8s cluster management and operations
-- **[Deployment Guides](./guides/)** - Step-by-step deployment procedures
+- **[Deployment Guides](./guides/)** - Mixed-reference deployment notes; verify against live GitOps docs before use
 
 ### ⚠️ Migration Notice
 
 **February 2026**: We migrated from ApplicationSet-based to Kustomize-based GitOps for better environment management and consistency. See [GitOps Migration Guide](../../01-architecture/gitops-migration.md) for complete details.
+
+> [!IMPORTANT]
+> For current operator workflow, use the live GitOps repository docs at [../../../gitops/README.md](../../../gitops/README.md) and the [GitOps review checklist](../../10-appendix/checklists/gitops/review_checklist.md). Treat `./argocd/` and parts of `./guides/` as historical reference unless explicitly verified against the live GitOps repo.
 
 ---
 

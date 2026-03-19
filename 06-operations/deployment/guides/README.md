@@ -1,10 +1,17 @@
 # Deployment Guides
 
-**Purpose**: Step-by-step deployment procedures and best practices  
-**Last Updated**: 2026-02-03  
-**Status**: ✅ Active - Essential deployment procedures
+- **Purpose**: Step-by-step deployment procedures and best practices
+- **Last Updated**: 2026-02-03
+- **Status**: Mixed-reference deployment notes; validate against the live GitOps repo before use
 
 ---
+
+> [!WARNING]
+> This folder contains mixed deployment notes. Some guides still reference legacy `argocd/applications/*`, Helm-era configuration, or manual patch flows that are not the current GitOps onboarding path.
+>
+> Before following any procedure here, verify it against:
+> - [../../../../gitops/README.md](../../../../gitops/README.md)
+> - [GitOps review checklist](../../../10-appendix/checklists/gitops/review_checklist.md)
 
 ## � Overview
 
@@ -104,59 +111,59 @@ kubectl logs -f deployment/service-name
 **Last Updated**: February 3, 2026  
 **Review Cycle**: Monthly deployment review  
 **Maintained By**: DevOps & Platform Engineering Teams
-- Khi service cần communicate với services khác
+- When a service needs to communicate with other services
 - Khi troubleshoot connection issues
 
 ### 3. [Configuration Best Practices](./configuration-best-practices.md)
-**Mục đích**: Best practices cho việc cấu hình microservices
+**Purpose**: Best practices for configuring microservices
 
-**Nội dung chính**:
-- Nguyên tắc cơ bản (Consistency, Security, Environment Parity)
-- Configuration patterns và structures
+**Main contents**:
+- Core principles (Consistency, Security, Environment Parity)
+- Configuration patterns and structures
 - Security best practices
 - Resource management
 - Health check best practices
-- Monitoring và observability
+- Monitoring and observability
 
-**Khi nào sử dụng**:
-- Khi thiết kế configuration cho service mới
-- Khi review và improve configuration hiện tại
-- Khi train team members về best practices
+**When to use**:
+- When designing configuration for a new service
+- When reviewing and improving the current configuration
+- When training team members on best practices
 - Khi troubleshoot configuration issues
 
 ---
 
 ## 🎯 Quick Start Guide
 
-### Cho Service Mới
-1. **Đọc [Service Configuration Guide](./service-configuration-guide.md)** để hiểu structure chuẩn
-2. **Copy template** từ service tương tự (ví dụ: customer-service)
+### For New Services
+1. **Read [Service Configuration Guide](./service-configuration-guide.md)** to understand the standard structure
+2. **Copy a template** from a similar service (for example: `customer-service`)
 3. **Update configuration** theo service-specific requirements
-4. **Review [Common Service Dependencies](./common-service-dependencies.md)** để cấu hình dependencies
+4. **Review [Common Service Dependencies](./common-service-dependencies.md)** to configure dependencies
 5. **Apply [Configuration Best Practices](./configuration-best-practices.md)**
-6. **Validate configuration** bằng Helm template và kubectl dry-run
+6. **Validate configuration** using `helm template` and `kubectl --dry-run`
 
-### Cho Service Hiện Tại
-1. **Review configuration** với [Config Review Checklist](../argocd/applications/CONFIG_REVIEW_CHECKLIST.md)
+### For Existing Services
+1. **Review configuration** using [Config Review Checklist](../argocd/applications/CONFIG_REVIEW_CHECKLIST.md)
 2. **Standardize configuration** theo [Config Standardization Checklist](../argocd/applications/CONFIG_STANDARDIZATION_CHECKLIST.md)
-3. **Apply best practices** từ [Configuration Best Practices](./configuration-best-practices.md)
+3. **Apply best practices** from [Configuration Best Practices](./configuration-best-practices.md)
 4. **Update dependencies** theo [Common Service Dependencies](./common-service-dependencies.md)
-5. **Test và validate** changes
+5. **Test and validate** changes
 
 ---
 
 ## 🔍 Configuration Review Process
 
 ### 1. Pre-Review Preparation
-- [ ] Đọc [Service Configuration Guide](./service-configuration-guide.md)
-- [ ] Chuẩn bị [Config Review Checklist](../argocd/applications/CONFIG_REVIEW_CHECKLIST.md)
+- [ ] Read [Service Configuration Guide](./service-configuration-guide.md)
+- [ ] Prepare [Config Review Checklist](../argocd/applications/CONFIG_REVIEW_CHECKLIST.md)
 - [ ] Identify service category (standard, high-traffic, worker)
 
 ### 2. Configuration Review
-- [ ] Check file structure và naming conventions
+- [ ] Check file structure and naming conventions
 - [ ] Review base configuration (values.yaml)
 - [ ] Review environment-specific overrides
-- [ ] Validate secrets và security settings
+- [ ] Validate secrets and security settings
 - [ ] Check resource allocations
 - [ ] Verify health check configurations
 
@@ -174,33 +181,33 @@ kubectl logs -f deployment/service-name
 - [ ] Review deployment strategies
 - [ ] Validate monitoring setup
 
-### 5. Testing và Validation
+### 5. Testing and Validation
 - [ ] Run `helm template` validation
-- [ ] Test với `kubectl apply --dry-run`
+- [ ] Test with `kubectl apply --dry-run`
 - [ ] Validate environment-specific configs
 - [ ] Check ArgoCD application sync
 
 ---
 
-## 🚨 Common Issues và Solutions
+## 🚨 Common Issues and Solutions
 
 ### 1. Configuration Issues
-**Issue**: Service không start được  
+**Issue**: Service does not start
 **Solution**: Check [Service Configuration Guide](./service-configuration-guide.md) section "Common Issues"
 
-**Issue**: Health checks fail  
-**Solution**: Review health check configuration trong [Configuration Best Practices](./configuration-best-practices.md)
+**Issue**: Health checks fail
+**Solution**: Review health-check configuration in [Configuration Best Practices](./configuration-best-practices.md)
 
 ### 2. Dependency Issues
 **Issue**: Cannot connect to database/Redis  
 **Solution**: Check [Common Service Dependencies](./common-service-dependencies.md) section "Common Issues"
 
-**Issue**: Service discovery không hoạt động  
-**Solution**: Verify Consul configuration và FQDN usage
+**Issue**: Service discovery is not working
+**Solution**: Verify Consul configuration and FQDN usage
 
 ### 3. Resource Issues
-**Issue**: Pod bị OOMKilled  
-**Solution**: Review resource allocation trong [Configuration Best Practices](./configuration-best-practices.md)
+**Issue**: Pod was OOMKilled
+**Solution**: Review resource allocation in [Configuration Best Practices](./configuration-best-practices.md)
 
 **Issue**: CPU throttling  
 **Solution**: Adjust CPU limits theo service category
@@ -242,7 +249,7 @@ argocd/applications/{service-name}/
 
 ---
 
-## 🔧 Tools và Scripts
+## 🔧 Tools and Scripts
 
 ### Validation Scripts
 ```bash
@@ -273,7 +280,7 @@ kubectl describe secret {service-name}-secret
 
 ---
 
-## 📈 Metrics và Monitoring
+## 📈 Metrics and Monitoring
 
 ### Key Metrics to Monitor
 - **Resource Usage**: CPU, Memory utilization
@@ -292,18 +299,18 @@ kubectl describe secret {service-name}-secret
 ## 🔄 Continuous Improvement
 
 ### Regular Reviews
-- **Monthly**: Review resource usage và adjust limits
-- **Quarterly**: Review configuration standards và update documentation
+- **Monthly**: Review resource usage and adjust limits
+- **Quarterly**: Review configuration standards and update documentation
 - **After incidents**: Update configuration based on lessons learned
 
 ### Feedback Loop
-- Collect feedback từ development teams
+- Collect feedback from development teams
 - Update standards based on operational experience
 - Share best practices across teams
 
 ---
 
-## 📞 Support và Contact
+## 📞 Support and Contact
 
 ### For Configuration Issues
 - **Slack**: #devops-support
@@ -332,6 +339,6 @@ kubectl describe secret {service-name}-secret
 
 ---
 
-**Tác giả**: DevOps Team  
-**Cập nhật**: December 27, 2025  
-**Version**: 1.0
+- **Author**: DevOps Team
+- **Updated**: December 27, 2025
+- **Version**: 1.0

@@ -32,14 +32,14 @@
 
 ## 🎯 Overview
 
-Order Service là microservice cốt lõi quản lý order lifecycle trong hệ thống e-commerce sau khi đã tách biệt Cart, Checkout, và Return services. Service này tập trung vào core order management operations.
+Order Service is the core microservice that manages the order lifecycle in the e-commerce platform after Cart, Checkout, and Return were split into separate services. It focuses on core order-management operations.
 
 ### Core Capabilities
 - **📦 Order Lifecycle Management**: Order creation, status tracking, fulfillment coordination
-- **🔄 Order Status Management**: Status transitions và business rule enforcement
+- **🔄 Order Status Management**: Status transitions and business-rule enforcement
 - **✏️ Order Modifications**: Order editing, cancellations, item updates
-- **📊 Order Analytics**: Order insights và business intelligence
-- **🔗 Service Orchestration**: Coordination với các services khác
+- **📊 Order Analytics**: Order insights and business intelligence
+- **🔗 Service Orchestration**: Coordination with other services
 
 ### Business Value
 - **Operational Efficiency**: Streamlined order processing workflows
@@ -49,7 +49,7 @@ Order Service là microservice cốt lõi quản lý order lifecycle trong hệ 
 
 ### Key Differentiators
 - **Focused Responsibility**: Pure order management after service split
-- **Event-Driven Architecture**: Async coordination với Dapr pub/sub
+- **Event-Driven Architecture**: Async coordination with Dapr pub/sub
 - **State Management**: Robust order status transitions
 - **Integration Hub**: Central coordination point for order-related operations
 
@@ -98,7 +98,7 @@ order/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8004` - REST endpoints cho frontend/client apps
+- **HTTP API**: `:8004` - REST endpoints for frontend/client apps
 - **gRPC API**: `:9004` - Internal service communication
 - **Health Check**: `/api/v1/orders/health`
 

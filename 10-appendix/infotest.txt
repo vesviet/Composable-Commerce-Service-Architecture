@@ -4,3 +4,7 @@ https://frontend.tanhdev.com
 
 admin: user/pass là admin@example.com/Admin123!
 https://admin.tanhdev.com
+
+vault-unseal-key: <MASKED_UNSEAL_KEY>
+
+vault-root-token: <MASKED_ROOT_TOKEN>

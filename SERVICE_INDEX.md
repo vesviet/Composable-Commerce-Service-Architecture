@@ -7,6 +7,8 @@
 
 ## Service Catalog
 
+This file is the canonical source of truth for per-service maturity, versions, and ports. If a service README or workflow landing page disagrees with this table, update the landing page or README to match this index.
+
 | # | Service | Domain | HTTP | gRPC | Maturity | Worker | Outbox | Idempotency | DLQ |
 |---|---------|--------|------|------|----------|--------|--------|-------------|-----|
 | 1 | **Auth** | Identity & Access | 8000 | 9000 | 🟢 Production | ✅ | — | — | — |

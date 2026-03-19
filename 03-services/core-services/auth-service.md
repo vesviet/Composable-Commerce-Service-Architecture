@@ -32,26 +32,26 @@
 
 ## 🎯 Overview
 
-Auth Service là **security-critical service** quản lý authentication, authorization, và session management cho toàn bộ e-commerce platform. Service này xử lý:
+Auth Service is a **security-critical service** that manages authentication, authorization, and session management across the entire e-commerce platform. The service handles:
 
 ### Core Capabilities
 - **🔑 JWT Token Management**: Generation, validation, refresh, revocation
-- **👤 User Authentication**: Login/logout flows cho customers và admin users
-- **📊 Session Management**: Multi-device session tracking và management
-- **🛡️ Rate Limiting**: Protection against brute force và DoS attacks
+- **👤 User Authentication**: Login/logout flows for customers and admin users
+- **📊 Session Management**: Multi-device session tracking and management
+- **🛡️ Rate Limiting**: Protection against brute-force and DoS attacks
 - **🔄 Token Refresh**: Secure token rotation mechanism
 - **📋 Audit Logging**: Authentication event tracking
-- **🚪 Gateway Integration**: Token validation cho service-to-service calls
+- **🚪 Gateway Integration**: Token validation for service-to-service calls
 
 ### Business Value
-- **Security Foundation**: Centralized authentication cho toàn bộ platform
+- **Security Foundation**: Centralized authentication for the entire platform
 - **User Experience**: Seamless login/logout across devices
-- **Compliance**: Audit trails và security event monitoring
-- **Scalability**: Stateless JWT tokens với centralized validation
-- **Operational Security**: Rate limiting và attack prevention
+- **Compliance**: Audit trails and security-event monitoring
+- **Scalability**: Stateless JWT tokens with centralized validation
+- **Operational Security**: Rate limiting and attack prevention
 
 ### Critical Security Role
-Auth Service là **foundation of platform security** - mọi authentication request đều đi qua service này. Compromise của Auth Service = compromise của toàn bộ platform.
+Auth Service is the **foundation of platform security** — every authentication request passes through this service. A compromise of Auth Service means a compromise of the entire platform.
 
 ---
 
@@ -83,7 +83,7 @@ auth/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8000` - REST endpoints cho authentication
+- **HTTP API**: `:8000` - REST endpoints for authentication
 - **gRPC API**: `:9000` - Internal service communication
 - **Health Check**: `/api/v1/auth/health`
 
@@ -787,7 +787,7 @@ None at the moment.
 ### P1 - High Priority Issues
 
 1. **Session Management Review** 🟡
-   - **Issue**: Session expiry và cleanup logic cần review
+   - **Issue**: Session expiry and cleanup logic need review
    - **Location**: `internal/biz/session/`
    - **Impact**: Potential session leaks, security concerns
    - **Fix**: Implement proper session lifecycle management
@@ -956,8 +956,8 @@ go test -run TestRateLimiting -v
 ### Authentication Security
 - **JWT HS256**: Symmetric signing with 256-bit secrets
 - **Token Expiry**: Short-lived access tokens (1h), longer refresh tokens (24h)
-- **Session Tracking**: Device fingerprinting và IP tracking
-- **Rate Limiting**: Per-user và per-IP protection
+- **Session Tracking**: Device fingerprinting and IP tracking
+- **Rate Limiting**: Per-user and per-IP protection
 
 ### Data Protection
 - **Credential Storage**: Never stored, validated via User/Customer services
@@ -969,7 +969,7 @@ go test -run TestRateLimiting -v
 - **Brute Force Protection**: Rate limiting on login attempts
 - **Token Theft Mitigation**: Refresh token rotation
 - **Session Hijacking**: Device/IP validation
-- **Replay Attacks**: Token expiry và nonce validation
+- **Replay Attacks**: Token expiry and nonce validation
 
 ### Security Headers (Gateway Level)
 ```

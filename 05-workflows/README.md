@@ -1,15 +1,18 @@
 # 🔄 Business Process Flows
 
-**Purpose**: Detailed business process flows and sequence diagrams based on actual implementation  
-**Last Updated**: February 7, 2026  
-**Platform Status**: 100% Complete, 23/23 Services Production Ready  
-**Navigation**: [← Business Domains](../02-business-domains/README.md) | [← Back to Main](../README.md) | [Services →](../03-services/README.md)
+- **Purpose**: Detailed business process flows and sequence diagrams based on actual implementation
+- **Last Updated**: February 7, 2026
+- **Platform Scope**: 23 deployable services; current runtime maturity is tracked in [SERVICE_INDEX.md](../SERVICE_INDEX.md)
+- **Navigation**: [← Business Domains](../02-business-domains/README.md) | [← Back to Main](../README.md) | [Services →](../03-services/README.md)
 
 ---
 
 ## 📋 **What's in This Section**
 
-This section contains detailed documentation of business processes, user journeys, and system workflows based on the actual implementation of our **24-service microservices platform**. It bridges the gap between business requirements and technical implementation with visual diagrams and step-by-step process descriptions.
+This section contains detailed documentation of business processes, user journeys, and system workflows based on the actual implementation of our **23 deployable service platform**. It bridges the gap between business requirements and technical implementation with visual diagrams and step-by-step process descriptions.
+
+> [!IMPORTANT]
+> Workflow documents describe business behavior and service interactions. They are not the source of truth for per-service maturity or deploy readiness. Use [SERVICE_INDEX.md](../SERVICE_INDEX.md) for service maturity and [../../gitops/README.md](../../gitops/README.md) plus the [GitOps review checklist](../10-appendix/checklists/gitops/review_checklist.md) for deployment/runtime status.
 
 ### **📚 Workflow Categories**
 
@@ -261,59 +264,19 @@ Each workflow document includes:
 
 ---
 
-## 🚀 **Workflow Implementation Status**
+## 🚀 **Workflow Documentation Status**
 
-### **Platform Completion: 100%**
+These workflow guides cover the business flows that span the 23 deployable services in this repository.
 
-All 23 deployable services are production-ready and fully operational:
-
-#### **✅ Core Business Services (13/13)**
-- ✅ Auth Service - 100% (JWT, OAuth2, MFA)
-- ✅ User Service - 100% (RBAC, permissions)
-- ✅ Customer Service - 100% (profiles, segments)
-- ✅ Catalog Service - 100% (products, EAV, CMS)
-- ✅ Pricing Service - 100% (dynamic pricing, tax)
-- ✅ Promotion Service - 100% (campaigns, coupons)
-- ✅ Checkout Service - 100% (cart, orchestration)
-- ✅ Order Service - 100% (lifecycle management)
-- ✅ Payment Service - 100% (multi-gateway, PCI DSS)
-- ✅ Warehouse Service - 100% (inventory, reservations)
-- ✅ Fulfillment Service - 100% (pick, pack, ship)
-- ✅ Shipping Service - 100% (multi-carrier)
-- ✅ Return Service - 100% (returns, refunds)
-
-#### **✅ Platform Services (5/5)**
-- ✅ Gateway Service (routing, security)
-- ✅ Search Service (Elasticsearch, analytics)
-- ✅ Analytics Service (BI, dashboards)
-- ✅ Review Service (ratings, moderation)
-- ✅ Common Operations (task orchestration)
-
-#### **✅ Operational Services (5/5)**
-- ✅ Notification Service (multi-channel)
-- ✅ Location Service (geographic hierarchy)
-- ✅ Loyalty Rewards (points, rewards)
-- ✅ Admin Service (React admin panel)
-- ✅ Frontend Service (Next.js customer site)
-
-### **Deployment Status**
-- **GitOps Migration**: ✅ Completed (February 2026)
-- **Kustomize-based**: ✅ All services migrated
-- **Production Deployment**: ✅ 23/23 services deployed
-- **Monitoring**: ✅ Full observability stack
-- **Documentation**: ✅ 100% coverage
-
-### **Key Achievements**
-- 🎯 **100% Service Completion**: All planned services production-ready
-- 🚀 **GitOps Deployment**: Kustomize-based automated deployment
-- 📊 **Full Observability**: Prometheus + Grafana + Jaeger
-- 🔒 **Security Compliance**: PCI DSS, GDPR compliant
-- ⚡ **Performance**: All SLAs met (P95 < 200ms)
-- 📈 **Scalability**: 10,000+ concurrent users supported
+- **Service maturity, versions, and ports**: [SERVICE_INDEX.md](../SERVICE_INDEX.md)
+- **Codebase and service map**: [CODEBASE_INDEX.md](../CODEBASE_INDEX.md)
+- **GitOps deployment model**: [../../gitops/README.md](../../gitops/README.md)
+- **Current GitOps/runtime findings**: [GitOps review checklist](../10-appendix/checklists/gitops/review_checklist.md)
+- **Workflow documentation coverage**: Customer journey, operational flows, integration flows, and sequence diagrams
 
 ---
 
-**Last Updated**: 2026-03-02  
-**Platform Status**: 100% Complete, 23/23 Services Production Ready  
-**GitOps**: Kustomize-based deployment with ArgoCD  
-**Maintained By**: Business Process & Architecture Team
+- **Last Updated**: 2026-03-02
+- **Status Source of Truth**: See [SERVICE_INDEX.md](../SERVICE_INDEX.md) and [GitOps review checklist](../10-appendix/checklists/gitops/review_checklist.md)
+- **GitOps**: Kustomize-based deployment with ArgoCD
+- **Maintained By**: Business Process & Architecture Team

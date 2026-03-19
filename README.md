@@ -10,6 +10,17 @@
 
 ---
 
+## Current Status And Sources Of Truth
+
+- **Service maturity, ports, versions**: [SERVICE_INDEX.md](SERVICE_INDEX.md)
+- **Codebase and repository map**: [CODEBASE_INDEX.md](CODEBASE_INDEX.md)
+- **GitOps deployment model**: [../gitops/README.md](../gitops/README.md)
+- **Current GitOps/runtime issues**: [GitOps review checklist](10-appendix/checklists/gitops/review_checklist.md)
+
+This README is the platform overview. When maturity or deployment status in other docs conflicts with the files above, defer to those source-of-truth documents.
+
+---
+
 ## 💎 Business Value
 
 | Capability | What It Delivers |
@@ -28,7 +39,7 @@
 ### Design Principles
 - **Independent scaling** — each service scales separately (e.g., 10× Order during peak, 1× Analytics)
 - **Fault isolation** — if Review crashes, customers still shop and pay
-- **Zero-downtime deploys** — GitOps with ArgoCD, automated rollback
+- **GitOps-managed deploys** — ArgoCD + Kustomize with environment-specific controls
 - **Event-driven** — services communicate via Dapr PubSub, transactional outbox guarantees delivery
 
 ---

@@ -1,19 +1,26 @@
-# 🚀 ArgoCD Setup Guide - GitOps Deployment
+# 🚀 Legacy ArgoCD Setup Guide - Historical Bootstrap Notes
 
-**Ngày tạo:** December 2, 2025  
-**Mục đích:** Setup ArgoCD cho GitOps deployment của 19 microservices
+- **Created**: December 2, 2025
+- **Purpose**: Set up ArgoCD for GitOps deployment of 19 microservices
 
 ---
 
+> [!WARNING]
+> This document is a historical reference for installing the ArgoCD control plane and the legacy onboarding model. Sections that discuss `ApplicationSet` and service rollout do not reflect the current GitOps workflow.
+>
+> For the current workflow, use:
+> - [../../../../gitops/README.md](../../../../gitops/README.md)
+> - [GitOps review checklist](../../../10-appendix/checklists/gitops/review_checklist.md)
+
 ## 📋 Overview
 
-### Tại sao ArgoCD?
-- ✅ **GitOps**: Deploy từ Git repository (single source of truth)
-- ✅ **Auto-sync**: Tự động sync khi có thay đổi trong Git
-- ✅ **UI Dashboard**: Quản lý deployments qua web UI
-- ✅ **Rollback**: Rollback dễ dàng về version cũ
-- ✅ **Health Checks**: Tự động check health của applications
-- ✅ **Multi-environment**: Quản lý staging/production dễ dàng
+### Why ArgoCD?
+- ✅ **GitOps**: Deploy from a Git repository (single source of truth)
+- ✅ **Auto-sync**: Automatically sync when Git changes
+- ✅ **UI Dashboard**: Manage deployments through the web UI
+- ✅ **Rollback**: Easily roll back to a previous version
+- ✅ **Health Checks**: Automatically check application health
+- ✅ **Multi-environment**: Manage staging and production more easily
 
 ### Architecture
 ```
@@ -30,7 +37,7 @@ Microservices
 
 ## 🔧 Phase 1: Install ArgoCD
 
-### 1.1 Install ArgoCD vào Cluster
+### 1.1 Install ArgoCD into the Cluster
 
 ```bash
 # Create namespace
@@ -120,7 +127,7 @@ argocd login localhost:8080 --insecure --username admin --password <password>
 
 ### 2.2 Configure Git Repository
 
-ArgoCD cần access Git repository để sync manifests.
+ArgoCD needs access to the Git repository to sync manifests.
 
 #### Option 1: Public Repository (No Auth)
 ```bash
@@ -170,7 +177,7 @@ argocd repo add https://gitlab.com/ta-microservices/k8s-manifests.git \
 
 ### 2.3 Configure Image Registry (Optional)
 
-Nếu sử dụng private Docker registry:
+If you use a private Docker registry:
 
 ```bash
 # Create secret for Docker registry
@@ -188,7 +195,7 @@ kubectl create secret docker-registry argocd-image-pull-secret \
 
 ### 3.1 Recommended Structure
 
-Tạo Git repository riêng cho K8s manifests (hoặc folder trong repo hiện tại):
+Create a dedicated Git repository for Kubernetes manifests (or a folder inside the current repository):
 
 ```
 k8s-manifests/                    # Git repository
@@ -232,7 +239,7 @@ k8s-manifests/                    # Git repository
 
 ### 3.2 Kustomize Structure (Recommended)
 
-Sử dụng Kustomize để quản lý multi-environment:
+Use Kustomize to manage multiple environments:
 
 ```
 services/base/auth-service/
@@ -271,10 +278,10 @@ services/production/
 ### 4.1 Application Types
 
 #### Option 1: Individual Applications (Recommended for Staging)
-Mỗi service là một ArgoCD Application riêng → dễ quản lý và debug
+Each service is a separate ArgoCD Application -> easier to manage and debug
 
-#### Option 2: ApplicationSet (Recommended for Production)
-Sử dụng ApplicationSet để tự động tạo applications cho tất cả services
+#### Option 2: ApplicationSet (Legacy Reference)
+Use ApplicationSet to automatically create applications for all services under the old model. Do not use this section as the standard for current GitOps app onboarding.
 
 ### 4.2 Create Infrastructure Application
 
@@ -393,7 +400,7 @@ spec:
 
 ### 4.6 Create Individual Service Applications (Alternative)
 
-Nếu muốn quản lý từng service riêng:
+If you want to manage each service separately:
 
 ```yaml
 # applications/auth-service-app.yaml
@@ -444,7 +451,7 @@ syncPolicy:
 
 ### 5.2 Sync Windows
 
-Giới hạn thời gian sync (ví dụ: chỉ sync trong giờ làm việc):
+Restrict sync windows (for example, sync only during business hours):
 
 ```yaml
 syncPolicy:
@@ -468,31 +475,31 @@ syncPolicy:
 
 ### 6.1 Development Workflow
 
-1. **Developer** thay đổi code → Push lên Git
+1. **Developer** changes code -> pushes to Git
 2. **CI/CD Pipeline** (GitLab CI):
    - Build Docker image
-   - Push image lên registry
-   - Update image tag trong K8s manifests
-   - Commit và push manifests lên Git
-3. **ArgoCD** detect thay đổi trong Git
-4. **ArgoCD** tự động sync → Deploy new version
+   - Push the image to the registry
+   - Update the image tag in the Kubernetes manifests
+   - Commit and push manifests to Git
+3. **ArgoCD** detects changes in Git
+4. **ArgoCD** automatically syncs -> deploys the new version
 
 ### 6.2 Manual Sync Workflow
 
-1. **Developer** thay đổi code → Push lên Git
-2. **CI/CD Pipeline** build và push image
-3. **Update manifests** trong Git (manually hoặc via CI/CD)
-4. **ArgoCD** detect thay đổi
-5. **Admin** review trong ArgoCD UI
+1. **Developer** changes code -> pushes to Git
+2. **CI/CD Pipeline** builds and pushes the image
+3. **Update manifests** in Git (manually or via CI/CD)
+4. **ArgoCD** detects changes
+5. **Admin** reviews the change in the ArgoCD UI
 6. **Admin** click "Sync" → Deploy
 
 ### 6.3 Rollback Workflow
 
 #### Via ArgoCD UI:
-1. Mở ArgoCD UI
-2. Chọn application
+1. Open the ArgoCD UI
+2. Select the application
 3. Click "History"
-4. Chọn version cũ
+4. Select the previous version
 5. Click "Sync" → Rollback
 
 #### Via CLI:
@@ -510,7 +517,7 @@ argocd app rollback auth-service <revision>
 git revert <commit-hash>
 git push
 
-# ArgoCD sẽ auto-sync và rollback
+# ArgoCD will auto-sync and roll back
 ```
 
 ---
@@ -519,7 +526,7 @@ git push
 
 ### 7.1 Health Checks
 
-ArgoCD tự động check health của applications:
+ArgoCD automatically checks application health:
 
 - **Healthy**: All resources are healthy
 - **Progressing**: Deployment in progress
@@ -529,7 +536,7 @@ ArgoCD tự động check health của applications:
 
 ### 7.2 Custom Health Checks
 
-Tạo custom health check cho services:
+Create custom health checks for services:
 
 ```yaml
 # argocd-cm ConfigMap
@@ -554,7 +561,7 @@ data:
 
 ### 7.3 Notifications
 
-Setup notifications cho ArgoCD (Slack, Email, etc.):
+Set up notifications for ArgoCD (Slack, email, etc.):
 
 ```yaml
 # argocd-notifications-cm ConfigMap
@@ -575,32 +582,32 @@ data:
 ## 📋 Phase 8: Best Practices
 
 ### 8.1 Repository Structure
-- ✅ **Separate repo** cho K8s manifests (hoặc folder riêng)
-- ✅ **Use Kustomize** cho multi-environment
-- ✅ **Version control** tất cả manifests
-- ✅ **Review process** cho production changes
+- ✅ **Separate repo** for Kubernetes manifests (or a separate folder)
+- ✅ **Use Kustomize** for multiple environments
+- ✅ **Version control** all manifests
+- ✅ **Review process** for production changes
 
 ### 8.2 Application Organization
 - ✅ **Group by namespace**: Infrastructure, Support, Core, Integration
-- ✅ **Use ApplicationSet** cho production (auto-create apps)
-- ✅ **Individual apps** cho staging (dễ debug)
+- ✅ **Use ApplicationSet** for production under the legacy model (auto-create apps)
+- ✅ **Individual apps** for staging (easier to debug)
 
 ### 8.3 Sync Strategy
-- ✅ **Automated sync** cho staging
-- ✅ **Manual sync** cho production (với approval)
-- ✅ **Sync windows** để tránh deploy ngoài giờ
+- ✅ **Automated sync** for staging
+- ✅ **Manual sync** for production (with approval)
+- ✅ **Sync windows** to avoid after-hours deployments
 
 ### 8.4 Security
-- ✅ **RBAC** cho ArgoCD users
+- ✅ **RBAC** for ArgoCD users
 - ✅ **Secrets management** (Vault, Sealed Secrets)
-- ✅ **Image scanning** trong CI/CD
-- ✅ **Git branch protection** cho production
+- ✅ **Image scanning** in CI/CD
+- ✅ **Git branch protection** for production
 
 ---
 
 ## 🚨 Troubleshooting
 
-### ArgoCD không sync
+### ArgoCD Does Not Sync
 ```bash
 # Check application status
 argocd app get <app-name>
@@ -638,15 +645,15 @@ argocd repo refresh <repo-url>
 ## ✅ Checklist
 
 ### Installation
-- [ ] ArgoCD installed và running
+- [ ] ArgoCD installed and running
 - [ ] ArgoCD UI accessible
 - [ ] Admin password retrieved
 - [ ] ArgoCD CLI installed (optional)
 
 ### Configuration
 - [ ] Git repository configured
-- [ ] Repository credentials setup (nếu private)
-- [ ] Image registry configured (nếu private)
+- [ ] Repository credentials set up (if private)
+- [ ] Image registry configured (if private)
 
 ### Repository Setup
 - [ ] Git repository structure created
@@ -662,21 +669,21 @@ argocd repo refresh <repo-url>
 - [ ] Applications syncing successfully
 
 ### Testing
-- [ ] Test sync từ Git
+- [ ] Test sync from Git
 - [ ] Test rollback
 - [ ] Test health checks
-- [ ] Test notifications (nếu có)
+- [ ] Test notifications (if applicable)
 
 ---
 
 ## 📚 Next Steps
 
-1. **Setup Git Repository**: Tạo repo cho K8s manifests
-2. **Organize Manifests**: Copy manifests vào repo structure
-3. **Create Applications**: Tạo ArgoCD applications
-4. **Test Sync**: Test sync từ Git
-5. **Setup CI/CD**: Integrate với GitLab CI/CD
-6. **Monitor**: Setup monitoring và alerts
+1. **Set Up the Git Repository**: Create a repo for Kubernetes manifests
+2. **Organize Manifests**: Copy manifests into the repo structure
+3. **Create Applications**: Create ArgoCD applications
+4. **Test Sync**: Test sync from Git
+5. **Set Up CI/CD**: Integrate with GitLab CI/CD
+6. **Monitor**: Set up monitoring and alerts
 
 ---
 

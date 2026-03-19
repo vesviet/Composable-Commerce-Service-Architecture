@@ -15,20 +15,20 @@
 
 ## 🎯 Overview
 
-Location Service quản lý geographic data và delivery zone logic cho e-commerce platform. Service này cung cấp location validation, geocoding, distance calculations, và delivery zone management.
+Location Service manages geographic data and delivery-zone logic for the e-commerce platform. It provides location validation, geocoding, distance calculations, and delivery-zone management.
 
 ### Core Capabilities
 - **🌍 Geographic Data**: Vietnam location hierarchy (province → district → ward)
-- **📍 Address Validation**: Real-time address validation và geocoding
-- **🚚 Delivery Zones**: Warehouse coverage areas và delivery zone management
-- **📏 Distance Calculation**: Geographic distance và delivery time estimation
+- **📍 Address Validation**: Real-time address validation and geocoding
+- **🚚 Delivery Zones**: Warehouse coverage areas and delivery-zone management
+- **📏 Distance Calculation**: Geographic distance and delivery-time estimation
 - **🏷️ Location Metadata**: Postal codes, time zones, shipping restrictions
-- **🔍 Location Search**: Autocomplete và location search functionality
-- **📊 Coverage Analytics**: Delivery coverage analysis và optimization
+- **🔍 Location Search**: Autocomplete and location-search functionality
+- **📊 Coverage Analytics**: Delivery coverage analysis and optimization
 
 ### Business Value
 - **Accurate Delivery**: Precise address validation prevents delivery failures
-- **Cost Optimization**: Geographic optimization của delivery routes
+- **Cost Optimization**: Geographic optimization of delivery routes
 - **Customer Experience**: Accurate delivery time estimates
 - **Operational Efficiency**: Automated location-based decision making
 
@@ -243,7 +243,7 @@ Country (VN)
   "location_id": "VN.HCM.Q1.P1",
   "type": "ward",
   "name": "Phuong 1",
-  "local_name": "Phường 1",
+  "local_name": "Ward 1",
   "parent_id": "VN.HCM.Q1",
   "coordinates": {
     "latitude": 10.7745,
@@ -268,22 +268,22 @@ Country (VN)
 ## 🔗 Integration Points
 
 ### Warehouse Service Integration
-- **Provides**: Location data và delivery zone validation
+- **Provides**: Location data and delivery-zone validation
 - **Consumes**: Warehouse coverage area updates
 - **Data Flow**: Warehouse coverage → Location zones → Delivery validation
 
 ### Order Service Integration
-- **Provides**: Address validation và delivery zone checking
+- **Provides**: Address validation and delivery-zone checking
 - **Consumes**: Order addresses for validation
 - **Data Flow**: Order address → Validation → Delivery zone assignment
 
 ### Shipping Service Integration
-- **Provides**: Geographic distance calculations và zone data
+- **Provides**: Geographic distance calculations and zone data
 - **Consumes**: Shipping origin/destination coordinates
 - **Data Flow**: Shipping calculation → Distance lookup → Cost estimation
 
 ### Fulfillment Service Integration
-- **Provides**: Warehouse-to-address distance và delivery time estimates
+- **Provides**: Warehouse-to-address distance and delivery-time estimates
 - **Consumes**: Fulfillment center assignments
 - **Data Flow**: Fulfillment center + delivery address → Distance/time calculation
 
@@ -480,10 +480,10 @@ delivery:
 
 ---
 
-**Service Status**: Production Ready (90%)  
-**Critical Path**: Location tree management và address validation  
-**Performance Target**: <50ms location lookup (with cache), <200ms tree queries  
-**Data Coverage**: Vietnam complete (64 provinces, 705 districts, 11,000+ wards)
+- **Service Status**: Production Ready (90%)
+- **Critical Path**: Location tree management and address validation
+- **Performance Target**: <50ms location lookup (with cache), <200ms tree queries
+- **Data Coverage**: Vietnam complete (64 provinces, 705 districts, 11,000+ wards)
 
 ## Recent Updates (2026-01-29)
 

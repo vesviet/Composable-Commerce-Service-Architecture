@@ -15,10 +15,10 @@
 
 ## 🎯 Overview
 
-Shipping Service quản lý tất cả carrier integrations và shipment logistics trong e-commerce platform. Service này cung cấp rate shopping, label generation, và real-time tracking cho multiple shipping carriers.
+Shipping Service manages all carrier integrations and shipment logistics for the e-commerce platform. It provides rate shopping, label generation, and real-time tracking for multiple shipping carriers.
 
 ### Core Capabilities
-- **🚛 Multi-Carrier Integration**: Giao Hàng Nhanh (GHN), Grab, VNPay Shipping, MoMo
+- **🚛 Multi-Carrier Integration**: GHN, Grab, VNPay Shipping, MoMo
 - **💰 Rate Shopping**: Best rate selection across carriers
 - **🏷️ Label Generation**: Automated shipping label creation
 - **📍 Tracking Integration**: Real-time shipment tracking
@@ -28,9 +28,9 @@ Shipping Service quản lý tất cả carrier integrations và shipment logisti
 
 ### Business Value
 - **Cost Optimization**: Best rate selection reduces shipping costs
-- **Customer Experience**: Real-time tracking và delivery updates
-- **Operational Efficiency**: Automated label generation và carrier communication
-- **Scalability**: Support multiple carriers và international expansion
+- **Customer Experience**: Real-time tracking and delivery updates
+- **Operational Efficiency**: Automated label generation and carrier communication
+- **Scalability**: Support multiple carriers and international expansion
 
 ### Implementation Status
 - **✅ Architecture**: Clean Architecture with proper layer separation
@@ -261,7 +261,7 @@ rpc GetCarrierCapabilities(GetCarrierCapabilitiesRequest) returns (CarrierCapabi
 
 ### Supported Carriers
 
-#### Giao Hàng Nhanh (GHN)
+#### GHN
 - **Coverage**: Vietnam nationwide
 - **Services**: Standard, Express, COD
 - **APIs**: Rate calculation, booking, tracking, webhooks
@@ -486,9 +486,9 @@ shipping_rules:
 
 ---
 
-**Service Status**: Production Ready (90%)  
-**Critical Path**: Shipping rate calculation và booking  
-**Performance Target**: <2 seconds rate calculation, <5 seconds booking  
-**Security**: JWT authentication enabled  
+- **Service Status**: Production Ready (90%)
+- **Critical Path**: Shipping rate calculation and booking
+- **Performance Target**: <2 seconds rate calculation, <5 seconds booking
+- **Security**: JWT authentication enabled
 **Monitoring**: Health checks and Redis caching implemented  
 **Carrier Coverage**: 4 major carriers (Vietnam focus, GHN fully integrated)

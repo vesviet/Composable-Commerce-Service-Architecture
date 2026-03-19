@@ -346,6 +346,6 @@ graph TB
 
 ---
 
-**Last Updated**: March 2, 2026  
-**Platform Status**: 23/23 Services Production Ready  
-**Maintained By**: Customer Experience & Product Team
+- **Last Updated**: March 2, 2026
+- **Status Source of Truth**: See [SERVICE_INDEX.md](../../SERVICE_INDEX.md) and [GitOps review checklist](../../10-appendix/checklists/gitops/review_checklist.md)
+- **Maintained By**: Customer Experience & Product Team

@@ -1,61 +1,57 @@
 ## 🔍 Service Review: gateway
 
-**Date**: 2026-03-05
-**Version**: v1.1.16
+**Date**: 2026-03-18
+**Version**: v1.1.21
 **Status**: ✅ Production Ready
 
 ### 📊 Issue Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| P0 (Blocking) | 0 | N/A |
-| P1 (High) | 1 | ✅ Fixed |
-| P2 (Normal) | 1 | ✅ Fixed |
+| P0 (Blocking) | 0 | ✅ Fixed |
+| P1 (High) | 0 | ✅ Fixed |
+| P2 (Normal) | 0 | N/A |
+
+### 🔴 P0 Issues (Blocking)
+1. **[OBSERVABILITY]** `ratelimit.go:25` — NOAUTH error preventing rate limiter metrics due to detached Redis client → ✅ Fixed by fetching password from environment.
+2. **[ROUTING]** `gateway.yaml` — Route collision on `/api/v1/ratings/` prefix between authenticated and public routes causing CrashLoopBackOff → ✅ Fixed by merging routing rules.
 
 ### 🟡 P1 Issues (High)
-1. **[DEPENDENCIES]** `go.mod` — 18 internal service dependencies outdated → ✅ Upgraded all to latest tags
+1. **[DEPENDENCIES]** `vendor/` out of sync with `go.mod` blocking CI build → ✅ Fixed by running `go mod tidy` and `go mod vendor` to sync `common` to `v1.30.3`.
 
 ### 🔵 P2 Issues (Normal)
-1. **[VERSION]** `cmd/gateway/main.go:18` — Hardcoded Version was stale `v1.1.6` → ✅ Updated to `v1.1.16`
+None.
 
 ### ✅ Completed Actions
-1. Upgraded all 18 internal service dependencies to latest tags
-2. Fixed catalog v1.3.9 breaking change: `ListProductsRequest.Pagination` → `Cursor` in `aggregation.go`
-3. Updated Version constant in `cmd/gateway/main.go`
-4. Updated version in `gateway.yaml` and `README.md`
-5. Ran `go mod tidy` + `go mod vendor`
-6. Lint: 0 warnings, Build: passing, All 20 tests pass
+1. Upgraded all 19 internal dependencies to latest tags in `go.mod`.
+2. Applied fixes for NOAUTH and Route Collisions from previous debugging session.
+3. Repaired build errors and vendoring mismatches blocking the CI pipeline.
+4. Validated native Kustomize GitOps replacing for `deployment` and `service` ports.
 
 ### 🔧 Action Plan
 | # | Severity | Issue | File:Line | Fix | Status |
 |---|----------|-------|-----------|-----|--------|
-| 1 | P1 | 18 deps outdated | go.mod | `go get @latest` for all | ✅ Done |
-| 2 | P1 | Catalog API migration | aggregation.go:159 | `Pagination` → `Cursor` | ✅ Done |
-| 3 | P2 | Stale version | main.go:18 | `v1.1.6` → `v1.1.16` | ✅ Done |
+| 1 | P0 | Missing Redis password for Rate Limiter metrics | ratelimit.go | Read `GATEWAY_DATA_REDIS_PASSWORD` from OS | ✅ Done |
+| 2 | P0 | CrashLoopBackOff via Route prefix collision | gateway.yaml | Merge duplicate auth/public mapping rules | ✅ Done |
+| 3 | P1 | CI pipeline blocked by failed vendoring | go.mod | Run `go mod tidy` and `go mod vendor` | ✅ Done |
 
 ### 📈 Test Coverage
 | Package | Coverage | Target | Status |
 |---------|----------|--------|--------|
-| bff | 77.0% | 60% | ✅ |
-| client | 80.5% | 60% | ✅ |
-| config | 85.5% | 60% | ✅ |
-| errors | 90.4% | 60% | ✅ |
-| handler | 79.8% | 60% | ✅ |
-| middleware | 70.7% | 60% | ✅ |
-| observability | 89.8% | 60% | ✅ |
-| observability/health | 74.2% | 60% | ✅ |
-| observability/jaeger | 73.5% | 60% | ✅ |
-| observability/prometheus | 95.8% | 60% | ✅ |
-| observability/redis | 81.7% | 60% | ✅ |
-| proxy | 87.2% | 60% | ✅ |
-| registry | 100.0% | 60% | ✅ |
-| router | 64.1% | 60% | ✅ |
-| router/url | 100.0% | 60% | ✅ |
-| router/utils | 56.3% | 60% | ⚠️ Below target |
-| server | 96.0% | 60% | ✅ |
+| bff | 71.6% | 60% | ✅ |
+| client | 73.0% | 60% | ✅ |
+| config | 80.8% | 60% | ✅ |
+| errors | 68.0% | 60% | ✅ |
+| handler | 80.2% | 60% | ✅ |
+| middleware | 67.0% | 60% | ✅ |
+| observability | 86.6% | 60% | ✅ |
+| proxy | 84.6% | 60% | ✅ |
+| registry | 80.0% | 60% | ✅ |
+| router | 61.4% | 60% | ✅ |
+| server | 95.8% | 60% | ✅ |
 | service | 64.8% | 60% | ✅ |
 | transformer | 98.4% | 60% | ✅ |
-| worker | 83.5% | 60% | ✅ |
+| worker | 80.9% | 60% | ✅ |
 
 Coverage checklist updated: ✅ Done
 
@@ -67,18 +63,18 @@ Coverage checklist updated: ✅ Done
 ### 🚀 Deployment Readiness
 - Config/GitOps aligned: ✅
 - Health probes: ✅
-- Resource limits: ✅ (256Mi/100m → 512Mi/500m)
-- HPA: ✅ (2-10 replicas, CPU 70%, Memory 80%, sync-wave 3)
+- Resource limits: ✅ (256Mi/100m → 1Gi/1000m)
+- HPA: ✅ (2-10 replicas, CPU 70%, Memory 80%, sync-wave=2/3)
 - Migration safety: ✅ (No DB)
 
 ### Build Status
 - `golangci-lint`: ✅ 0 warnings
-- `go build ./...`: ✅
+- `go build ./...`: ✅ Passing
 - `wire`: ✅ Generated
 - Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
 - `bin/` Files: ✅ Not present
 
 ### Documentation
-- Service doc: ✅
-- README.md: ✅ Updated to v1.1.16
-- CHANGELOG.md: ✅ Updated with v1.1.16 entry
+- Service doc: ✅ Updated to v1.1.21
+- README.md: ✅ Updated to v1.1.21
+- CHANGELOG.md: ✅ Updated with v1.1.21 entry

@@ -35,31 +35,31 @@
 
 ## 🎯 Overview
 
-Warehouse Service là **core service** quản lý warehouse operations, inventory tracking, và fulfillment capacity trong e-commerce platform. Service này xử lý:
+Warehouse Service is the **core service** that manages warehouse operations, inventory tracking, and fulfillment capacity across the e-commerce platform. The service handles:
 
 ### Core Capabilities
-- **🏭 Multi-Warehouse Management**: Quản lý nhiều warehouses với geographic locations
-- **📊 Real-Time Inventory Tracking**: Stock levels, reservations, và movements theo dõi real-time
-- **🔄 Stock Movement Audit**: Complete audit trail cho mọi inventory changes
-- **🎫 Reservation System**: Reserve inventory cho pending orders với TTL
-- **⚡ Throughput Capacity Management**: Quản lý capacity limits (orders/day, items/hour)
-- **🕐 Time Slot Management**: Hourly capacity configurations với availability windows
-- **🚨 Low Stock Alerts**: Automated alerts và notifications
+- **🏭 Multi-Warehouse Management**: Manage multiple warehouses across geographic locations
+- **📊 Real-Time Inventory Tracking**: Real-time tracking of stock levels, reservations, and movements
+- **🔄 Stock Movement Audit**: Complete audit trails for all inventory changes
+- **🎫 Reservation System**: Reserve inventory for pending orders with TTL
+- **⚡ Throughput Capacity Management**: Manage capacity limits (orders/day, items/hour)
+- **🕐 Time Slot Management**: Hourly capacity configurations with availability windows
+- **🚨 Low Stock Alerts**: Automated alerts and notifications
 - **📡 Event-Driven Updates**: Real-time updates via Dapr PubSub events
 
 ### Business Value
 - **Inventory Accuracy**: Real-time stock tracking prevents overselling
 - **Operational Efficiency**: Capacity management optimizes fulfillment throughput
-- **Multi-Warehouse Support**: Geographic distribution cho faster delivery
-- **Reservation System**: Prevents stock conflicts trong high-concurrency scenarios
-- **Audit Compliance**: Complete stock movement history cho regulatory requirements
+- **Multi-Warehouse Support**: Geographic distribution for faster delivery
+- **Reservation System**: Prevents stock conflicts in high-concurrency scenarios
+- **Audit Compliance**: Complete stock-movement history for regulatory requirements
 
 ### Key Differentiators
-- **Optimistic Locking**: Race condition prevention với version-based concurrency
-- **TTL-Based Reservations**: Automatic cleanup của expired reservations
-- **Event-Driven Architecture**: Real-time sync với Order, Fulfillment services
-- **Capacity Planning**: Time-based capacity management cho peak periods
-- **Multi-Format Export**: Excel export cho inventory reports
+- **Optimistic Locking**: Race-condition prevention with version-based concurrency
+- **TTL-Based Reservations**: Automatic cleanup of expired reservations
+- **Event-Driven Architecture**: Real-time sync with Order and Fulfillment services
+- **Capacity Planning**: Time-based capacity management for peak periods
+- **Multi-Format Export**: Excel export for inventory reports
 
 ---
 
@@ -99,7 +99,7 @@ warehouse/
 ```
 
 ### External Dependencies
-- **Catalog Service**: Product data và SKU validation
+- **Catalog Service**: Product data and SKU validation
 - **Order Service**: Order fulfillment notifications
 - **Fulfillment Service**: Shipment status updates
 - **Notification Service**: Alert delivery
@@ -115,19 +115,19 @@ warehouse/
 ```protobuf
 rpc GetInventory(GetInventoryRequest) returns (InventoryResponse);
 ```
-**Purpose**: Retrieve detailed inventory information cho specific product tại warehouse
+**Purpose**: Retrieve detailed inventory information for a specific product at a warehouse
 **Parameters**:
-- `warehouse_id`: UUID của warehouse
-- `product_id`: UUID của product
+- `warehouse_id`: Warehouse UUID
+- `product_id`: Product UUID
 - `sku`: Product SKU (alternative to product_id)
 
-**Response**: Complete inventory record với stock levels, reservations, locations
+**Response**: Complete inventory record with stock levels, reservations, and locations
 
 #### ListInventory
 ```protobuf
 rpc ListInventory(ListInventoryRequest) returns (ListInventoryResponse);
 ```
-**Purpose**: List inventory across warehouses với filtering và pagination
+**Purpose**: List inventory across warehouses with filtering and pagination
 **Filters**:
 - `warehouse_ids`: Multiple warehouse filtering
 - `product_ids`: Product-specific queries
@@ -138,7 +138,7 @@ rpc ListInventory(ListInventoryRequest) returns (ListInventoryResponse);
 ```protobuf
 rpc UpdateInventory(UpdateInventoryRequest) returns (InventoryResponse);
 ```
-**Purpose**: Update inventory quantities với validation
+**Purpose**: Update inventory quantities with validation
 **Features**:
 - **Optimistic Locking**: Version-based concurrency control
 - **Stock Movement Recording**: Automatic audit trail creation
@@ -149,9 +149,9 @@ rpc UpdateInventory(UpdateInventoryRequest) returns (InventoryResponse);
 ```protobuf
 rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
 ```
-**Purpose**: Atomic stock adjustments với business logic
+**Purpose**: Atomic stock adjustments with business logic
 **Types**:
-- `received`: Stock receipt từ suppliers
+- `received`: Stock receipts from suppliers
 - `damaged`: Damage write-offs
 - `correction`: Administrative adjustments
 - `transfer`: Inter-warehouse transfers
@@ -162,7 +162,7 @@ rpc AdjustStock(AdjustStockRequest) returns (AdjustStockResponse);
 ```protobuf
 rpc GetInventoryValuation(GetInventoryValuationRequest) returns (GetInventoryValuationResponse);
 ```
-**Purpose**: Calculate inventory value sử dụng multiple valuation methods
+**Purpose**: Calculate inventory value using multiple valuation methods
 **Methods**:
 - `fifo`: First In, First Out
 - `lifo`: Last In, First Out
@@ -183,9 +183,9 @@ rpc CheckLowStock(CheckLowStockRequest) returns (CheckLowStockResponse);
 ```protobuf
 rpc SyncProductStock(SyncProductStockRequest) returns (SyncProductStockResponse);
 ```
-**Purpose**: Sync stock levels từ external systems (ERP, POS)
+**Purpose**: Sync stock levels from external systems (ERP, POS)
 **Integration**: Catalog Service v1.1.2+ required
-**Features**: Bulk sync với conflict resolution
+**Features**: Bulk sync with conflict resolution
 
 ---
 
@@ -217,7 +217,7 @@ rpc UpdateWarehouse(UpdateWarehouseRequest) returns (WarehouseResponse);
 ```protobuf
 rpc ListWarehouses(ListWarehousesRequest) returns (ListWarehousesResponse);
 ```
-**Purpose**: Query warehouses với filtering
+**Purpose**: Query warehouses with filtering
 **Filters**: Status, location, capacity ranges
 
 ### Time Slot Management
@@ -249,7 +249,7 @@ rpc GetTimeSlots(GetTimeSlotsRequest) returns (GetTimeSlotsResponse);
 ```protobuf
 rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
 ```
-**Purpose**: Reserve inventory cho pending orders
+**Purpose**: Reserve inventory for pending orders
 **Features**:
 - **TTL Support**: Automatic expiration
 - **Partial Reservations**: Reserve available quantities
@@ -269,7 +269,7 @@ rpc ReleaseReservation(ReleaseReservationRequest) returns (ReleaseReservationRes
 ```protobuf
 rpc ConfirmReservation(ConfirmReservationRequest) returns (ConfirmReservationResponse);
 ```
-**Purpose**: Convert reservation thành actual stock reduction
+**Purpose**: Convert a reservation into an actual stock reduction
 **Use Case**: Order fulfillment confirmation
 
 ### Reservation Queries
@@ -285,7 +285,7 @@ rpc GetReservation(GetReservationRequest) returns (ReservationResponse);
 ```protobuf
 rpc ListReservations(ListReservationsRequest) returns (ListReservationsResponse);
 ```
-**Purpose**: Query reservations với filtering
+**Purpose**: Query reservations with filtering
 **Filters**: Warehouse, product, expiry status, order ID
 
 ---
@@ -343,7 +343,7 @@ rpc UpdateWarehouseCapacity(UpdateWarehouseCapacityRequest) returns (UpdateWareh
 ```protobuf
 rpc CheckCapacity(CheckCapacityRequest) returns (CheckCapacityResponse);
 ```
-**Purpose**: Validate capacity trước order acceptance
+**Purpose**: Validate capacity before order acceptance
 **Factors**: Current load, time slots, capacity limits
 
 ### Capacity Monitoring
@@ -452,12 +452,12 @@ low_stock = available_stock <= reorder_point
 
 #### Reservation Logic
 - **TTL Enforcement**: Automatic expiry via database constraints
-- **Partial Fulfillment**: Allow partial reservations khi stock insufficient
+- **Partial Fulfillment**: Allow partial reservations when stock is insufficient
 - **Cleanup Jobs**: Background workers remove expired reservations
 
 #### Capacity Management
-- **Time-Based Limits**: Different capacity cho peak vs off-peak hours
-- **Queue Management**: FIFO processing với priority orders
+- **Time-Based Limits**: Different capacity for peak vs. off-peak hours
+- **Queue Management**: FIFO processing with priority orders
 - **Load Balancing**: Distribute orders across warehouses by capacity
 
 ### Event-Driven Architecture
@@ -542,7 +542,7 @@ features:
 ## 🔗 Dependencies
 
 ### Internal Services
-- **Catalog Service v1.1.2+**: Product data và SyncProductStock endpoint
+- **Catalog Service v1.1.2+**: Product data and the `SyncProductStock` endpoint
 - **Order Service**: Order lifecycle events
 - **Fulfillment Service**: Shipment status updates
 - **Notification Service**: Alert delivery
@@ -550,8 +550,8 @@ features:
 
 ### External Systems
 - **PostgreSQL 13+**: Primary data store
-- **Redis 6+**: Caching và session storage
-- **MinIO/S3**: File storage cho exports
+- **Redis 6+**: Caching and session storage
+- **MinIO/S3**: File storage for exports
 - **Dapr 1.10+**: Event-driven messaging
 
 ### Go Modules
@@ -596,7 +596,7 @@ go test -tags=mock ./test/...
 - **Worker Tests**: Background job processing
 
 ### Test Data Setup
-- **Factory Pattern**: Test data factories cho consistent setup
+- **Factory Pattern**: Test data factories for consistent setup
 - **Database Isolation**: Separate test database
 - **Cleanup**: Automatic test data cleanup
 
@@ -627,9 +627,9 @@ warehouse_reservations_expired_total{warehouse_id}
 - **Business Operations**: Key workflow tracing (reserve → confirm → release)
 
 ### Logging
-- **Structured Logging**: JSON format với correlation IDs
+- **Structured Logging**: JSON format with correlation IDs
 - **Log Levels**: ERROR, WARN, INFO, DEBUG
-- **Audit Logs**: All stock movements logged với user context
+- **Audit Logs**: All stock movements logged with user context
 
 ### Health Checks
 - **Database Connectivity**: PostgreSQL connection validation
@@ -642,22 +642,22 @@ warehouse_reservations_expired_total{warehouse_id}
 ## 🚨 Known Issues & TODOs
 
 ### ✅ **RESOLVED ISSUES** (2026-01-28)
-- ✅ **Stock Movement Methods**: Implemented `ListStockMovements` và `GetStockMovement`
+- ✅ **Stock Movement Methods**: Implemented `ListStockMovements` and `GetStockMovement`
 - ✅ **Reservation Methods**: Full lifecycle (6 methods) implemented
 - ✅ **GetInventoryValuation**: FIFO/LIFO/weighted_average valuation
 - ✅ **XLSX Export**: Excel export using `excelize` library
 - ✅ **SyncProductStock**: gRPC client, catalog v1.1.2 tag created
-- ✅ **CheckExpiringStock**: Expiry tracking với alerts
+- ✅ **CheckExpiringStock**: Expiry tracking with alerts
 - ✅ **Refactor valueOrDefault**: Consolidated to `utils.ValueOrDefault()`
 - ✅ **Input Validation**: Added `ValidateUpdateInventoryRequest`
 - ✅ **N+1 Queries**: All methods use `Preload("Warehouse")`
 - ✅ **Linter Issues**: All `golangci-lint` warnings resolved
-- ✅ **Deprecated Code**: Replaced `grpc.Dial` với `grpc.NewClient`
+- ✅ **Deprecated Code**: Replaced `grpc.Dial` with `grpc.NewClient`
 
 ### 🔮 **FUTURE ENHANCEMENTS**
 - **Location Service Integration**: Link warehouses to geographic locations
 - **Advanced Analytics**: Inventory turnover, ABC analysis
-- **Automated Reordering**: Integration với procurement systems
+- **Automated Reordering**: Integration with procurement systems
 - **Mobile App**: Warehouse staff mobile application
 
 ---
@@ -755,20 +755,20 @@ kubectl apply -f k8s/
 
 ### Benchmarks
 - **Inventory Queries**: <10ms average response time
-- **Stock Updates**: <50ms với optimistic locking
+- **Stock Updates**: <50ms with optimistic locking
 - **Reservation Operations**: <20ms average
-- **Bulk Exports**: <30s cho 10k inventory records
+- **Bulk Exports**: <30s for 10k inventory records
 
 ### Scalability
 - **Horizontal Scaling**: Stateless design supports multiple instances
-- **Database Sharding**: Partition by warehouse_id cho large deployments
+- **Database Sharding**: Partition by `warehouse_id` for large deployments
 - **Cache Strategy**: Redis clustering support
 - **Event Processing**: Asynchronous processing prevents bottlenecks
 
 ### Reliability
 - **Circuit Breakers**: External service call protection
-- **Retry Logic**: Exponential backoff cho transient failures
-- **Data Consistency**: ACID transactions cho critical operations
+- **Retry Logic**: Exponential backoff for transient failures
+- **Data Consistency**: ACID transactions for critical operations
 - **Backup Strategy**: Point-in-time recovery support
 
 ---

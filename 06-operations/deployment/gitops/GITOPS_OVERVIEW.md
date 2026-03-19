@@ -1,10 +1,15 @@
 # 🚀 GitOps Overview
 
-**Purpose**: Complete GitOps strategy and implementation guide  
-**Last Updated**: 2026-02-03  
-**Status**: ✅ Active - Production-ready GitOps implementation
+- **Purpose**: GitOps strategy and implementation guide
+- **Last Updated**: 2026-02-03
+- **Status**: Reference guide with some historical examples; verify against the live `gitops/` repo
 
 ---
+
+> [!IMPORTANT]
+> This file is an overview, not the live operational source of truth. For current implementation details, environment state, and active issues, use:
+> - [../../../../gitops/README.md](../../../../gitops/README.md)
+> - [GitOps review checklist](../../../10-appendix/checklists/gitops/review_checklist.md)
 
 ## 📋 What is GitOps?
 
@@ -125,7 +130,10 @@ graph LR
 
 ### ArgoCD Configuration
 
-#### ApplicationSet Pattern
+#### Historical ApplicationSet Pattern
+
+> [!WARNING]
+> The snippet below is kept for migration context only. The current repository uses app-of-apps plus Kustomize in `gitops/`, not `ApplicationSet` as the primary onboarding pattern.
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet

@@ -36,27 +36,27 @@
 
 ## 🎯 Overview
 
-Payment Service là **mission-critical service** xử lý toàn bộ payment processing trong e-commerce platform. Service này đảm bảo PCI DSS Level 1 compliance và hỗ trợ multiple payment gateways với advanced security features.
+Payment Service is a **mission-critical service** that handles all payment processing for the e-commerce platform. It ensures PCI DSS Level 1 compliance and supports multiple payment gateways with advanced security features.
 
 ### Core Capabilities
-- **🔐 PCI DSS Compliance**: Level 1 certified với tokenization và encryption
+- **🔐 PCI DSS Compliance**: Level 1 certified with tokenization and encryption
 - **💳 Multi-Gateway Support**: Stripe, PayPal, VNPay, MoMo integration
 - **🔄 Payment Lifecycle**: Authorization → Capture → Settlement workflow
-- **💰 Refund Management**: Full/partial refunds với dispute handling
-- **📊 Reconciliation**: Automated reconciliation với payment providers
-- **🛡️ Fraud Detection**: Advanced fraud detection và risk assessment
-- **📱 Payment Methods**: Tokenized storage cho recurring payments
-- **🌐 Webhooks**: Real-time payment status updates từ gateways
+- **💰 Refund Management**: Full/partial refunds with dispute handling
+- **📊 Reconciliation**: Automated reconciliation with payment providers
+- **🛡️ Fraud Detection**: Advanced fraud detection and risk assessment
+- **📱 Payment Methods**: Tokenized storage for recurring payments
+- **🌐 Webhooks**: Real-time payment status updates from gateways
 
 ### Business Value
-- **Revenue Protection**: Secure payment processing với fraud prevention
-- **Compliance**: PCI DSS certification cho regulatory requirements
-- **Flexibility**: Multiple payment options tăng conversion rates
-- **Reliability**: Redundant gateway support và failover mechanisms
-- **Analytics**: Payment analytics cho business intelligence
+- **Revenue Protection**: Secure payment processing with fraud prevention
+- **Compliance**: PCI DSS certification for regulatory requirements
+- **Flexibility**: Multiple payment options increase conversion rates
+- **Reliability**: Redundant gateway support and failover mechanisms
+- **Analytics**: Payment analytics for business intelligence
 
 ### Critical Security Role
-Payment Service xử lý **sensitive financial data** - PANs, CVV, personal information. Bất kỳ breach nào đều có consequences pháp lý và financial nghiêm trọng.
+Payment Service handles **sensitive financial data** — PANs, CVV, and personal information. Any breach here has serious legal and financial consequences.
 
 ---
 
@@ -97,16 +97,16 @@ payment/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8004` - REST endpoints cho frontend/client apps
+- **HTTP API**: `:8004` - REST endpoints for frontend/client apps
 - **gRPC API**: `:9004` - Internal service communication
 - **Health Check**: `/api/v1/payments/health`
 
 ### Service Dependencies
 
 #### Internal Dependencies
-- **Order Service**: Order payment processing và status updates
-- **Customer Service**: Customer payment methods và billing info
-- **Notification Service**: Payment confirmations và failure notifications
+- **Order Service**: Order payment processing and status updates
+- **Customer Service**: Customer payment methods and billing information
+- **Notification Service**: Payment confirmations and failure notifications
 
 #### External Dependencies
 - **PostgreSQL**: Primary data store (`payment_db`)

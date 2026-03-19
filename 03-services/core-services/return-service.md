@@ -30,25 +30,25 @@
 
 ## 🎯 Overview
 
-Return Service là microservice chuyên biệt xử lý toàn bộ quy trình return và refund trong hệ thống e-commerce. Service này được tách ra từ Order Service để tối ưu hóa cho customer service operations và compliance requirements.
+Return Service is a specialized microservice that handles the full return and refund workflow in the e-commerce platform. It was split out from Order Service to optimize customer service operations and compliance requirements.
 
 ### Core Capabilities
-- **🔄 Return Management**: Quản lý toàn bộ quy trình return requests
-- **💰 Refund Processing**: Xử lý refunds với Payment Service
-- **📦 Restock Coordination**: Điều phối restock với Warehouse Service
-- **📋 Return Approval**: Workflow approval cho return requests
-- **🔍 Return Analytics**: Phân tích return patterns và insights
+- **🔄 Return Management**: Manage the full return-request lifecycle
+- **💰 Refund Processing**: Handle refunds with Payment Service
+- **📦 Restock Coordination**: Coordinate restocking with Warehouse Service
+- **📋 Return Approval**: Approval workflows for return requests
+- **🔍 Return Analytics**: Analyze return patterns and insights
 
 ### Business Value
-- **Customer Satisfaction**: Quy trình return nhanh chóng và minh bạch
-- **Cost Optimization**: Tối ưu chi phí xử lý returns
-- **Compliance**: Đáp ứng các yêu cầu pháp lý về return policy
-- **Operational Efficiency**: Tự động hóa quy trình return processing
+- **Customer Satisfaction**: Fast and transparent return workflows
+- **Cost Optimization**: Optimize return-processing costs
+- **Compliance**: Meet legal requirements for return policies
+- **Operational Efficiency**: Automate the return-processing workflow
 
 ### Key Differentiators
-- **Dedicated Service**: Tách biệt khỏi Order Service cho specialized operations
+- **Dedicated Service**: Separated from Order Service for specialized operations
 - **Workflow Engine**: Flexible return approval workflows
-- **Event-Driven**: Async processing với compensation patterns
+- **Event-Driven**: Async processing with compensation patterns
 - **Audit Trail**: Complete return history tracking
 
 ---
@@ -81,7 +81,7 @@ return/
 **Note**: All order-related models and repositories have been removed. Return Service now calls Order Service via gRPC to fetch order information. **Server entry point**: `cmd/return` (Kratos app + Wire); run with `make run` or `go run ./cmd/return -conf configs`. Health: `/health`, `/health/ready`, `/health/live`; metrics: `/metrics`.
 
 ### Ports & Endpoints
-- **HTTP API**: `:8006` - REST endpoints cho customer service và frontend
+- **HTTP API**: `:8006` - REST endpoints for customer service and the frontend
 - **gRPC API**: `:9006` - Internal service communication
 - **Health Check**: `/api/v1/returns/health`
 

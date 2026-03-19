@@ -2,11 +2,11 @@
 
 ## 📋 Prerequisites Check
 
-- [ ] **OS**: Linux (Ubuntu/Debian) hoặc Mac
-- [ ] **Docker**: Đã cài đặt và đang chạy
-- [ ] **Git**: Đã cài đặt
-- [ ] **Disk Space**: Ít nhất 10GB trống
-- [ ] **RAM**: Ít nhất 8GB (khuyến nghị 16GB)
+- [ ] **OS**: Linux (Ubuntu/Debian) or macOS
+- [ ] **Docker**: Installed and running
+- [ ] **Git**: Installed
+- [ ] **Disk Space**: At least 10GB free
+- [ ] **RAM**: At least 8GB (16GB recommended)
 
 ### Verify Prerequisites
 

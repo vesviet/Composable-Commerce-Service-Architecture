@@ -1,11 +1,16 @@
 # 🚀 GitOps Documentation
 
-**Purpose**: Complete Kustomize-based GitOps strategy and implementation guides  
-**Last Updated**: 2026-02-07  
-**Status**: ✅ Active - Production-ready Kustomize-based GitOps  
-**Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
+- **Purpose**: Kustomize-based GitOps strategy and implementation notes
+- **Last Updated**: 2026-02-07
+- **Status**: Reference guide; confirm current operational state in the live `gitops/` repository
+- **Repository**: [ta-microservices/gitops](https://gitlab.com/ta-microservices/gitops)
 
 ---
+
+> [!IMPORTANT]
+> This folder is a documentation overview, not the operational source of truth. For current manifests, environment status, bootstrap caveats, and active issues, use:
+> - [../../../../gitops/README.md](../../../../gitops/README.md)
+> - [GitOps review checklist](../../../10-appendix/checklists/gitops/review_checklist.md)
 
 ## 📋 Overview
 

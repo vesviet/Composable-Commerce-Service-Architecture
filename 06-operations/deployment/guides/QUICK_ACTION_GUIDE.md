@@ -1,8 +1,8 @@
 # Quick Action Guide - Configuration Fixes
 
-**Mục đích**: Hướng dẫn nhanh để implement các fixes quan trọng nhất  
-**Cập nhật**: December 27, 2025  
-**Ưu tiên**: 🔴 **CRITICAL** - Cần làm ngay
+- **Purpose**: Quick guide for implementing the highest-priority fixes
+- **Updated**: December 27, 2025
+- **Priority**: 🔴 **CRITICAL** - Needs immediate action
 
 ---
 

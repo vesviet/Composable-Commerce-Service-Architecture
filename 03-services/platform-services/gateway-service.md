@@ -6,8 +6,8 @@
 > **Ports**: HTTP `80` | gRPC `81`
 
 **Service Name**: Gateway Service
-**Version**: 1.1.12
-**Last Updated**: 2026-02-24
+**Version**: 1.1.21
+**Last Updated**: 2026-03-18
 **Review Status**: ✅ Reviewed
 **Production Ready**: 100%
 
@@ -31,32 +31,32 @@
 
 ## 🎯 Overview
 
-Gateway Service là **API Gateway** cho toàn bộ e-commerce platform, hoạt động như single entry point cho tất cả client requests. Service này xử lý:
+Gateway Service is the **API Gateway** for the entire e-commerce platform, acting as the single entry point for all client requests. The service handles:
 
 ### Core Capabilities
-- **🚪 API Gateway**: Centralized request routing và aggregation
+- **🚪 API Gateway**: Centralized request routing and aggregation
 - **🔒 Authentication & Authorization**: JWT validation with JWKS, role-based access, JWT blacklist
 - **🛡️ Security**: CSRF protection (HMAC double-submit), rate limiting, CORS, input validation, response sanitization, header injection prevention
-- **⚖️ Load Balancing**: Intelligent routing với health checks và circuit breaker
+- **⚖️ Load Balancing**: Intelligent routing with health checks and circuit breakers
 - **📊 Request Transformation**: Body transformation, header manipulation, pagination normalization
 - **📈 Monitoring**: Prometheus metrics, Jaeger tracing, structured logging, error monitoring
-- **🔄 Circuit Breaker**: Fault tolerance, exponential backoff retries với jitter
-- **💾 Smart Caching**: Redis-based caching với singleflight (cache stampede prevention), per-endpoint TTL strategies, mutation-based invalidation
+- **🔄 Circuit Breaker**: Fault tolerance and exponential-backoff retries with jitter
+- **💾 Smart Caching**: Redis-based caching with singleflight (cache stampede prevention), per-endpoint TTL strategies, and mutation-based invalidation
 - **📝 Audit Logging**: Admin action tracking
-- **🌐 i18n**: Language detection từ Accept-Language header
-- **🏭 Warehouse Detection**: Location-based routing cho warehouse operations
-- **🔑 Idempotency**: Automatic idempotency key injection cho mutations
+- **🌐 i18n**: Language detection from the `Accept-Language` header
+- **🏭 Warehouse Detection**: Location-based routing for warehouse operations
+- **🔑 Idempotency**: Automatic idempotency key injection for mutations
 - **📮 Dead Letter Queue**: Failed mutation logging to Redis DLQ for ops replay
 
 ### Business Value
-- **Unified API**: Single entry point cho mobile, web, admin dashboard, shipper app
+- **Unified API**: Single entry point for mobile, web, admin dashboard, and shipper apps
 - **Security Enforcement**: Centralized security policies (customer auth + admin auth + CSRF)
 - **Performance Optimization**: Smart caching, singleflight, connection pooling
-- **Operational Visibility**: Request tracking với trace IDs, Prometheus RED metrics
-- **Scalability**: Horizontal scaling với config-driven routing
+- **Operational Visibility**: Request tracking with trace IDs and Prometheus RED metrics
+- **Scalability**: Horizontal scaling with config-driven routing
 
 ### Critical Platform Role
-Gateway Service là **front door** của platform — mọi external request đều đi qua đây. Nó đảm bảo security, performance, và reliability cho toàn bộ system.
+Gateway Service is the platform's **front door** — every external request passes through it. It ensures security, performance, and reliability across the entire system.
 
 ---
 
@@ -64,7 +64,7 @@ Gateway Service là **front door** của platform — mọi external request đ�
 
 ### Dual-Binary Architecture
 
-Gateway sử dụng **dual-binary architecture** từ cùng một codebase:
+The Gateway uses a **dual-binary architecture** from a shared codebase:
 
 | Aspect | Main Service (`cmd/gateway/`) | Worker (`cmd/worker/`) |
 |--------|------|--------|
@@ -200,7 +200,7 @@ gateway/
 - **Idempotency Key Injection**: Gateway generates `gw-` prefixed keys for mutations
 
 ### Security Features
-- **JWT Validation**: JWKS-based token verification với Redis blacklist checking
+- **JWT Validation**: JWKS-based token verification with Redis blacklist checks
 - **CSRF Protection**: HMAC double-submit cookie pattern (24h token rotation)
 - **Admin Auth**: Separate middleware for admin/shipper role validation
 - **Header Injection Prevention**: `StripUntrustedHeaders` removes spoofable headers
@@ -454,6 +454,11 @@ docker build -t gateway-service .
 
 ## 📈 Recent Updates
 
+### v1.1.21 (2026-03-18)
+- ✅ Fixed `NOAUTH` error in Rate Limiter observability setup by properly reading Redis Password from environment.
+- ✅ Resolved `gateway.yaml` route collision panic on `/api/v1/ratings/` prefix by merging duplicate definitions.
+- ✅ Re-synced vendor dependencies to `common` `v1.30.3`.
+
 ### v1.1.12 (2026-02-24)
 - ✅ Removed dead `RateLimitMiddleware()` (data-race-prone, unreachable in prod)
 - ✅ `LoggingMiddleware` uses structured `log.Helper` — trace IDs now propagate through access logs
@@ -487,7 +492,7 @@ docker build -t gateway-service .
 ---
 
 **Service Status**: 🟢 Production Ready
-**Last Code Review**: 2026-02-24
+**Last Code Review**: 2026-03-18
 **Critical Issues (P0)**: 0
 **High Issues (P1)**: 0
 **Build**: ✅ golangci-lint 0 warnings, go build passes

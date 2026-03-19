@@ -14,21 +14,21 @@
 
 ## 🎯 Overview
 
-Notification Service quản lý tất cả customer và internal communications trong e-commerce platform. Service này cung cấp multi-channel messaging với template engine và delivery tracking.
+Notification Service manages all customer-facing and internal communications across the e-commerce platform. It provides multi-channel messaging with a template engine and delivery tracking.
 
 ### Core Capabilities
 - **📱 Multi-Channel Delivery**: Email, SMS, Push notifications, In-app messages
-- **📝 Template Engine**: Dynamic message templating với personalization
+- **📝 Template Engine**: Dynamic message templating with personalization
 - **🎯 Audience Segmentation**: Target specific customer groups
-- **📊 Delivery Tracking**: Message delivery và engagement analytics
-- **🔄 Event-Driven**: Trigger notifications từ business events
+- **📊 Delivery Tracking**: Message delivery and engagement analytics
+- **🔄 Event-Driven**: Trigger notifications from business events
 - **🌍 Internationalization**: Multi-language support
-- **📈 Performance Monitoring**: Delivery rates và success metrics
+- **📈 Performance Monitoring**: Delivery rates and success metrics
 
 ### Business Value
 - **Customer Engagement**: Personalized, timely communications
 - **Operational Efficiency**: Automated notification workflows
-- **Marketing Effectiveness**: Targeted campaigns với analytics
+- **Marketing Effectiveness**: Targeted campaigns with analytics
 - **Compliance**: Opt-in/opt-out management
 - **Cost Optimization**: Intelligent channel selection
 
@@ -471,10 +471,10 @@ delivery:
 
 ---
 
-**Service Status**: Production Ready (100%)  
-**Critical Path**: Order confirmations và shipping notifications  
-**Performance Target**: <5 seconds first delivery, 95% delivery rate  
-**Channel Support**: Email, SMS, Push, Telegram, In-app notifications
+- **Service Status**: Production Ready (100%)
+- **Critical Path**: Order confirmations and shipping notifications
+- **Performance Target**: <5 seconds first delivery, 95% delivery rate
+- **Channel Support**: Email, SMS, Push, Telegram, and in-app notifications
 
 ---
 
@@ -575,7 +575,7 @@ delivery:
 
 ---
 
-**Service Status**: Production Ready (90%)  
-**Critical Path**: Order confirmations và shipping notifications  
-**Performance Target**: <5 seconds first delivery, 95% delivery rate  
-**Channel Support**: Email, SMS, Push, Telegram, In-app notifications
+- **Service Status**: Production Ready (90%)
+- **Critical Path**: Order confirmations and shipping notifications
+- **Performance Target**: <5 seconds first delivery, 95% delivery rate
+- **Channel Support**: Email, SMS, Push, Telegram, and in-app notifications

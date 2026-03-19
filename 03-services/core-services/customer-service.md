@@ -30,25 +30,25 @@
 
 ## 🎯 Overview
 
-Customer Service là microservice quản lý toàn bộ dữ liệu customer trong hệ thống e-commerce. Service này chịu trách nhiệm quản lý:
+Customer Service is the microservice that manages all customer data across the e-commerce platform. It is responsible for:
 
 ### Core Capabilities
-- **👤 Customer Profile Management**: CRUD operations cho customer profiles
-- **📍 Address Management**: Quản lý multiple addresses per customer với validation
+- **👤 Customer Profile Management**: CRUD operations for customer profiles
+- **📍 Address Management**: Manage multiple customer addresses with validation
 - **⚙️ Customer Preferences**: Shopping preferences, communication settings
-- **🎯 Customer Segmentation**: Dynamic segmentation cho marketing campaigns
+- **🎯 Customer Segmentation**: Dynamic segmentation for marketing campaigns
 - **📊 Analytics Integration**: Customer behavior tracking
-- **🔐 Two-Factor Authentication**: 2FA support với TOTP
+- **🔐 Two-Factor Authentication**: 2FA support with TOTP
 - **📱 Social Login**: OAuth integration (placeholder)
-- **🗑️ GDPR Compliance**: Data deletion và anonymization
-- **📋 Audit Logging**: Comprehensive security audit trail cho compliance
+- **🗑️ GDPR Compliance**: Data deletion and anonymization
+- **📋 Audit Logging**: Comprehensive security audit trails for compliance
 
 ### Business Value
 - **Customer Experience**: Seamless profile management across touchpoints
-- **Marketing**: Rich customer segmentation cho personalized campaigns
+- **Marketing**: Rich customer segmentation for personalized campaigns
 - **Compliance**: GDPR-compliant data handling
-- **Analytics**: Customer insights cho business decisions
-- **Security**: Comprehensive audit trail cho compliance và forensic analysis
+- **Analytics**: Customer insights for business decisions
+- **Security**: Comprehensive audit trails for compliance and forensic analysis
 
 ---
 
@@ -81,7 +81,7 @@ customer/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8003` - REST endpoints cho frontend/client apps
+- **HTTP API**: `:8003` - REST endpoints for frontend/client apps
 - **gRPC API**: `:9003` - Internal service communication
 - **Health Check**: `/api/v1/customers/health`
 
@@ -95,7 +95,7 @@ customer/
 
 #### External Dependencies
 - **PostgreSQL**: Primary data store (`customer_db`)
-- **Redis**: Caching layer cho performance
+- **Redis**: Caching layer for performance
 - **Dapr**: Event-driven communication
 - **Consul**: Service discovery
 

@@ -1,9 +1,16 @@
-# ArgoCD Deployment Guide
+# Legacy ArgoCD Deployment Guide
 
-**Last Updated**: 2025-01-XX  
-**Status**: ✅ **ACTIVE** - 13 services deployed to dev environment
+- **Last Updated**: 2025-01-XX
+- **Status**: Legacy reference; retained for migration history and old rollout examples
 
 ---
+
+> [!WARNING]
+> This file documents an older deployment model and stale rollout snapshot. It still references `argocd/applications/main/*` and `ApplicationSet` verification steps.
+>
+> For the current deployment workflow, use:
+> - [../../../../gitops/README.md](../../../../gitops/README.md)
+> - [GitOps review checklist](../../../10-appendix/checklists/gitops/review_checklist.md)
 
 ## 📚 Table of Contents
 
@@ -20,7 +27,7 @@
 
 ## Overview
 
-### Current Status
+### Historical Snapshot
 
 | Metric | Count | Status |
 |--------|-------|--------|
@@ -59,7 +66,7 @@
 
 ---
 
-## Quick Start
+## Historical Quick Start
 
 ### Deploy a Service
 

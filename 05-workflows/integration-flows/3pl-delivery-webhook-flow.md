@@ -1,7 +1,7 @@
 # 🚚 3PL Delivery & Webhook Flow
 
 ## Overview
-This document describes the business workflow for syncing and completing order deliveries via Third-Party Logistics (3PL) partners such as GHN (Giao Hàng Nhanh) and Grab. It covers the transition of an order from the `SHIPPING` state to the `DELIVERED` state.
+This document describes the business workflow for syncing and completing order deliveries via Third-Party Logistics (3PL) partners such as GHN and Grab. It covers the transition of an order from the `SHIPPING` state to the `DELIVERED` state.
 
 ## Core Mechanisms
 The delivery completion process utilizes a dual-engine approach to ensure data consistency and prompt updates:

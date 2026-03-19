@@ -16,23 +16,23 @@
 
 ## 🎯 Overview
 
-Review Service quản lý product reviews, ratings, và content moderation cho e-commerce platform. Service này cung cấp review submission, validation, moderation workflow, và review analytics.
+Review Service manages product reviews, ratings, and content moderation for the e-commerce platform. It provides review submission, validation, moderation workflows, and review analytics.
 
 ### Core Capabilities
 - **⭐ Review Management**: Submit, edit, delete product reviews
-- **📊 Rating System**: 1-5 star ratings với aggregated statistics
-- **🛡️ Content Moderation**: Automated và manual review moderation
-- **👍 Helpful Votes**: User voting system cho review quality
-- **📈 Review Analytics**: Review performance và sentiment analysis
-- **🚨 Abuse Detection**: Spam detection và fraudulent review prevention
-- **🌍 Multi-Language**: Support for multiple languages và character sets
+- **📊 Rating System**: 1-5 star ratings with aggregated statistics
+- **🛡️ Content Moderation**: Automated and manual review moderation
+- **👍 Helpful Votes**: User voting system for review quality
+- **📈 Review Analytics**: Review performance and sentiment analysis
+- **🚨 Abuse Detection**: Spam detection and fraudulent review prevention
+- **🌍 Multi-Language**: Support for multiple languages and character sets
 - **📱 Media Support**: Photo/video reviews
 
 ### Business Value
-- **Trust Building**: Authentic customer reviews tăng credibility
-- **Product Insights**: Customer feedback cho product improvement
+- **Trust Building**: Authentic customer reviews increase credibility
+- **Product Insights**: Customer feedback for product improvement
 - **SEO Benefits**: Rich review content improves search rankings
-- **Conversion Optimization**: Social proof tăng purchase confidence
+- **Conversion Optimization**: Social proof increases purchase confidence
 
 ---
 
@@ -93,7 +93,7 @@ User Input → Review Validation
 ├── Validate review content (length, format, profanity)
 ├── Check duplicate reviews (one review per product per customer)
 ├── Verify purchase history
-├── Extract rating và text content
+├── Extract rating and text content
 └── Queue for processing
 ```
 
@@ -101,7 +101,7 @@ User Input → Review Validation
 ```
 Validated Review → Moderation
 ├── Automated spam detection (AI/ML models)
-├── Profanity và content filtering
+├── Profanity and content filtering
 ├── Sentiment analysis
 ├── Image validation (if media included)
 ├── Business rule checks (minimum length, etc.)
@@ -122,7 +122,7 @@ Approved Review → Publishing
 #### 4. User Interaction & Analytics
 ```
 Published Review → User Engagement
-├── Track view counts và helpful votes
+├── Track view counts and helpful votes
 ├── Monitor user interactions
 ├── Calculate review quality scores
 ├── Update review rankings
@@ -309,7 +309,7 @@ func calculateReviewRiskScore(review Review, violations []Violation) float64 {
 
 ### Catalog Service Integration
 - **Consumes**: Product information, category data
-- **Provides**: Review data cho product pages
+- **Provides**: Review data for product pages
 - **Data Flow**: Product reviews → Product rating updates → Search indexing
 
 ### Customer Service Integration
@@ -553,10 +553,10 @@ reviews:
 
 ---
 
-**Service Status**: Production Ready (98%)  
-**Critical Path**: Review submission và product rating display  
-**Performance Target**: <200ms review submission, <50ms rating queries  
-**Review Volume**: Support 10,000+ reviews/month with moderation
+- **Service Status**: Production Ready (98%)
+- **Critical Path**: Review submission and product rating display
+- **Performance Target**: <200ms review submission, <50ms rating queries
+- **Review Volume**: Support 10,000+ reviews/month with moderation
 
 ---
 

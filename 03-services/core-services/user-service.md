@@ -31,25 +31,25 @@
 
 ## 🎯 Overview
 
-User Service là microservice quản lý toàn bộ user management, authentication, và authorization trong hệ thống e-commerce. Service này xử lý:
+User Service is the microservice that manages all user-management, authentication, and authorization concerns in the e-commerce platform. The service handles:
 
 ### Core Capabilities
-- **👤 User Lifecycle Management**: CRUD operations cho internal users
-- **🔐 Role-Based Access Control**: Hierarchical role system với permissions
+- **👤 User Lifecycle Management**: CRUD operations for internal users
+- **🔐 Role-Based Access Control**: Hierarchical role system with permissions
 - **🛡️ Service Access Control**: Granular access control per service/operation
-- **📊 User Analytics**: User activity tracking và audit trails
-- **🔑 Password Management**: Secure password handling với complexity requirements
-- **🎭 Multi-tenancy**: Support for different user types và organizations
+- **📊 User Analytics**: User activity tracking and audit trails
+- **🔑 Password Management**: Secure password handling with complexity requirements
+- **🎭 Multi-tenancy**: Support for different user types and organizations
 - **📋 Audit Logging**: Comprehensive audit trails for compliance
 
 ### Business Value
-- **Security**: Centralized user management với strict access controls
-- **Compliance**: Audit trails và GDPR-compliant user data handling
-- **Scalability**: Role-based permissions scale với organization growth
-- **Operational Efficiency**: Self-service user management cho admins
+- **Security**: Centralized user management with strict access controls
+- **Compliance**: Audit trails and GDPR-compliant user data handling
+- **Scalability**: Role-based permissions scale with organizational growth
+- **Operational Efficiency**: Self-service user management for admins
 
 ### Critical Security Role
-User Service là **security-critical service** - quản lý authentication, authorization, và audit logging cho toàn bộ platform. Bất kỳ vulnerability nào đều ảnh hưởng toàn hệ thống.
+User Service is a **security-critical service** that manages authentication, authorization, and audit logging across the entire platform. Any vulnerability here affects the whole system.
 
 ---
 
@@ -86,20 +86,20 @@ user/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8001` - REST endpoints cho admin interfaces
+- **HTTP API**: `:8001` - REST endpoints for admin interfaces
 - **gRPC API**: `:9001` - Internal service communication
 - **Health Check**: `/api/v1/users/health`
 
 ### Service Dependencies
 
 #### Internal Dependencies
-- **Auth Service**: Token validation và session management
+- **Auth Service**: Token validation and session management
 - **Notification Service**: Password reset emails, security notifications
 - **Audit Service**: Centralized audit logging (planned)
 
 #### External Dependencies
 - **PostgreSQL**: Primary data store (`user_db`)
-- **Redis**: Caching layer cho permissions và sessions
+- **Redis**: Caching layer for permissions and sessions
 - **Dapr**: Event-driven communication
 - **Consul**: Service discovery
 

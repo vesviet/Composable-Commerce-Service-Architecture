@@ -294,7 +294,7 @@ sequenceDiagram
 | Category | Partners |
 |----------|---------|
 | **Payment** | VNPay, MoMo, Stripe, COD |
-| **Shipping** | GHN (Giao Hàng Nhanh), Grab Express |
+| **Shipping** | GHN, Grab Express |
 | **Notifications** | Email (SMTP), SMS providers |
 
 ---

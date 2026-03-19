@@ -32,28 +32,28 @@
 
 ## 🎯 Overview
 
-Pricing Service là **core service** quản lý tất cả logic về giá, discounts, tax rules, và price calculations cho e-commerce platform. Service này expose gRPC API để các services khác (như Catalog, Order) có thể query giá.
+Pricing Service is the **core service** that manages all pricing logic, discounts, tax rules, and price calculations for the e-commerce platform. It exposes a gRPC API so other services, such as Catalog and Order, can query pricing.
 
 ### Core Capabilities
-- **💰 Price Management**: CRUD operations cho base prices, sale prices với SKU & Warehouse support
-- **🎯 Price Calculation**: Calculate final price với discounts + taxes
-- **🎁 Discount Management**: Quản lý discount codes, rules, segments
-- **📊 Tax Calculation**: Calculate tax dựa trên location và product categories
+- **💰 Price Management**: CRUD operations for base prices and sale prices, with SKU and warehouse support
+- **🎯 Price Calculation**: Calculate final prices with discounts and taxes
+- **🎁 Discount Management**: Manage discount codes, rules, and segments
+- **📊 Tax Calculation**: Calculate tax based on location and product categories
 - **⚙️ Price Rules**: Dynamic pricing rules (bulk discount, time-based, etc.)
-- **📡 Event Publishing**: Notify các services khác khi price thay đổi
-- **🔄 Price Sync**: Real-time sync prices to Catalog service (600x faster than API calls)
-- **🌍 Multi-Currency**: Currency conversion với exchange rate support
-- **📈 Dynamic Pricing**: Stock-based và demand-based pricing adjustments
+- **📡 Event Publishing**: Notify other services when prices change
+- **🔄 Price Sync**: Real-time price sync to Catalog Service (600x faster than API calls)
+- **🌍 Multi-Currency**: Currency conversion with exchange-rate support
+- **📈 Dynamic Pricing**: Stock-based and demand-based pricing adjustments
 
 ### ⚠️ Known Issues
 - **None**
 
 ### Business Value
-- **Centralized Pricing**: Single source of truth cho tất cả pricing data
+- **Centralized Pricing**: Single source of truth for all pricing data
 - **Flexible Pricing**: 4-level price priority (SKU+WH > SKU > Product+WH > Product)
-- **Real-time Calculations**: Fast price calculations với caching
-- **Tax Compliance**: Multi-region tax rules và calculations
-- **Discount Management**: Flexible discount system với rules và segments
+- **Real-time Calculations**: Fast price calculations with caching
+- **Tax Compliance**: Multi-region tax rules and calculations
+- **Discount Management**: Flexible discount system with rules and segments
 - **Performance**: Bulk operations support 10,000+ items
 
 ### Key Differentiators
@@ -101,16 +101,16 @@ pricing/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8002` - REST endpoints cho frontend/client apps
+- **HTTP API**: `:8002` - REST endpoints for frontend/client apps
 - **gRPC API**: `:9002` - Internal service communication
 - **Health Check**: `/health`, `/health/ready`, `/health/live`
 - **Swagger UI**: `/docs/` - API documentation
 
 ### Service Dependencies
-- **PostgreSQL**: Primary database cho prices, discounts, tax rules
-- **Redis**: Caching cho price lookups và calculations
-- **Consul**: Service discovery và registration
-- **Dapr**: Pub/sub messaging cho price change events
+- **PostgreSQL**: Primary database for prices, discounts, and tax rules
+- **Redis**: Caching for price lookups and calculations
+- **Consul**: Service discovery and registration
+- **Dapr**: Pub/sub messaging for price-change events
 - **Catalog Service**: Product information (gRPC)
 - **Warehouse Service**: Warehouse information (gRPC)
 
@@ -135,8 +135,8 @@ pricing/
 ### 3. Discount Management
 - **Discount codes**: Code-based discounts
 - **Discount rules**: Rule-based discounts (customer segments, products, etc.)
-- **Usage limits**: Per-customer và total usage limits
-- **Date ranges**: Start/end dates cho discounts
+- **Usage limits**: Per-customer and total usage limits
+- **Date ranges**: Start/end dates for discounts
 - **Applicable products/categories**: Target specific products or categories
 
 ### 4. Tax Calculation
@@ -149,7 +149,7 @@ pricing/
 - **Bulk discounts**: Volume-based pricing
 - **Customer segment rules**: Different prices per segment
 - **Time-based rules**: Seasonal pricing
-- **Condition-based**: Complex conditions và actions
+- **Condition-based**: Complex conditions and actions
 
 ### 6. Dynamic Pricing
 - **Stock-based**: Adjust prices based on stock levels
@@ -160,7 +160,7 @@ pricing/
 ### 7. Event-Driven Updates
 - **Price change events**: Publish when prices change
 - **Outbox pattern**: Reliable event publishing
-- **Event consumption**: Listen to stock và catalog events
+- **Event consumption**: Listen to stock and catalog events
 - **Price sync**: Real-time sync to Catalog service
 
 ---

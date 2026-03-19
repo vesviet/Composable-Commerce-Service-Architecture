@@ -30,10 +30,10 @@
 
 ## 🎯 Overview
 
-Frontend Services bao gồm 2 React applications chính:
+Frontend Services include two main applications:
 
 ### 👨‍💼 Admin Dashboard (75% Complete)
-**Purpose**: Business management interface cho admin users
+**Purpose**: Business management interface for admin users
 - **Dashboard**: Sales metrics, order tracking, inventory alerts
 - **Product Management**: CRUD operations, bulk imports
 - **Order Processing**: Order fulfillment, status updates
