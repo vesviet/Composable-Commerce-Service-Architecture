@@ -5,6 +5,6 @@ https://frontend.tanhdev.com
 admin: user/pass là admin@example.com/Admin123!
 https://admin.tanhdev.com
 
-vault-unseal-key: <MASKED_UNSEAL_KEY>
+vault-unseal-key: [REDACTED]
 
-vault-root-token: <MASKED_ROOT_TOKEN>
+vault-root-token: [REDACTED]

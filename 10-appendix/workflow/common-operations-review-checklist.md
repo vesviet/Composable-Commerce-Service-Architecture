@@ -1,43 +1,59 @@
 ## 🔍 Service Review: common-operations
 
-**Date**: 2026-03-17
+**Date**: 2026-03-20
 **Status**: ✅ Ready
 
 ### 📊 Issue Summary
 
 | Severity | Count | Status |
 |----------|-------|--------|
-| P0 (Blocking) | 0 | - |
-| P1 (High) | 0 | - |
+| P0 (Blocking) | 2 | ✅ Resolved |
+| P1 (High) | 4 | ✅ Resolved |
 | P2 (Normal) | 0 | - |
 
 ### 🔴 P0 Issues (Blocking)
-*None found during review. Transaction handling is compliant via generic repositories.*
+1. Missing auth/authz enforcement for sensitive operations (`CreateTask`, `CancelTask`, `RetryTask`, `DeleteTask`) in transport middleware.
+   - Fixed via operation-based auth middleware in server layer and request identity checks in service layer.
+2. Hardcoded credentials in runtime config files (`configs/config.yaml`, `configs/config-docker.yaml`).
+   - Replaced with empty defaults and explicit env-var based injection guidance.
 
 ### 🟡 P1 Issues (High)
-*The binary naming collision `cmd/operations` has already been remediated based on previous Production Readiness Audit. Binary is properly named `cmd/common-operations` and `cmd/worker`.*
+1. Worker startup probe path mismatch in GitOps rendered deployment.
+   - Fixed by adding explicit `startupProbe` override for worker (`/healthz` on port `8019`).
+2. Outdated internal modules in `go.mod`.
+   - Upgraded `gitlab.com/ta-microservices/common` to `v1.30.4` and `gitlab.com/ta-microservices/user` to `v1.0.14`, then regenerated vendor.
+3. Date filter parser silently ignored invalid input.
+   - `ListTasks` now returns validation error when `start_date`/`end_date` format is invalid.
+4. Worker process used `panic` for startup/runtime failures.
+   - Replaced with explicit stderr logging + non-zero exit.
 
 ### 🔵 P2 Issues (Normal)
 *None found.*
 
 ### ✅ Completed Actions
-1. Analyzed previous Production Readiness Audit.
-2. Verified transaction outbox pattern execution inside `SettingsRepo` and `TaskRepo`.
-3. Validated port bindings exactly match GitOps allocations and probe ports.
+1. Added operation-aware auth middleware in gRPC + HTTP server stack.
+2. Enforced identity consistency for `requested_by` in task creation flow.
+3. Tightened date input validation in `ListTasks`.
+4. Replaced worker `panic` error handling with graceful process exit.
+5. Removed hardcoded DB/MinIO/S3 secrets from config defaults.
+6. Updated internal modules (`common`, `user`) and regenerated vendor tree.
+7. Patched worker startup probe in GitOps.
+8. Updated `warehouse` operations gRPC client to forward auth metadata for compatibility with stricter auth checks.
 
 ### 📈 Test Coverage
 | Layer | Coverage | Target | Status |
 |-------|----------|--------|--------|
-| Biz | 87.7% | 60% | ✅ |
-| Service | 79.3% | 60% | ✅ |
+| Biz | 82.2% | 60% | ✅ |
+| Service | 70.1% | 60% | ✅ |
 | Data | 0.0% | 60% | ⚠️ |
 
-*Coverage checklist requires data layer remediation, but biz/service layers easily cross standard thresholds.*
+*Data layer coverage remains the only major testing gap; biz/service layers still exceed baseline threshold.*
 
 ### 🌐 Cross-Service Impact
 - Services that import this proto: `gateway`, `warehouse`
 - Services that consume events: *None*
 - Backward compatibility: ✅ Preserved
+- Auth metadata propagation: ✅ Updated in `warehouse` gRPC client to prevent cross-service auth regressions
 
 ### 🚀 Deployment Readiness
 - Config/GitOps aligned: ✅ 
@@ -47,8 +63,9 @@
 
 ### Build Status
 - `golangci-lint`: ✅ 0 warnings
-- `go build ./...`: ✅
-- `wire`: ✅ Generated 
+- `go test ./...` (`-mod=vendor`): ✅
+- `go build ./...` (`-mod=vendor`): ✅
+- `wire`: ✅ Generated
 - Generated Files (`wire_gen.go`, `*.pb.go`): ✅ Not modified manually
 
 ### Documentation

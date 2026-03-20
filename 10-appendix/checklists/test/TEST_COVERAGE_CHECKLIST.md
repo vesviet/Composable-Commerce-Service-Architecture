@@ -1,6 +1,6 @@
 # Test Coverage Checklist — Target 80%+ All Services
 
-> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-07 11:45 (UTC+7)
+> **Generated**: 2026-03-02 | **Last Updated**: 2026-03-20 16:35 (UTC+7)
 > **Platform**: 21 Go Services | **Current**: 11/21 above 80% | **16/21 above 70%**
 > **Test Files**: 702+ total test files across all services
 
@@ -15,7 +15,7 @@
 
 | # | Service | Biz Coverage | Service Coverage | Data Coverage | Overall | Target | Status | Gap to 80% |
 |---|---------|-------------|-----------------|---------------|---------|--------|--------|------------|
-| 1 | **common-operations** | **93.5% avg** | **79.3%** | — | **~92%** | 80% | ✅ >80% | — |
+| 1 | **common-operations** | **82.2% avg** | **70.1%** | — | **~82%** | 80% | ✅ >80% | — |
 | 2 | **auth** | **80.3% avg** | **90.1%** | 11.8% / 51.9% | **~85%** | 80% | ✅ >80% | — |
 | 3 | **return** | **85.9%** | **85.2%** | — | **~85%** | 80% | ✅ >80% | — |
 | 4 | **review** | **89.0% avg** | **76.6%** | 50.0% / 57.9% / 100% | **~83%** | 80% | ✅ >80% | — |
@@ -41,19 +41,19 @@
 
 ## ✅ Per-Service Detailed Breakdown
 
-### 1. common-operations — ✅ Above 80% (~92% overall)
+### 1. common-operations — ✅ Above 80% (~82% overall)
 
 | Package | Coverage | Status | Action |
 |---------|----------|--------|--------|
 | `biz` (root) | **100.0%** | ✅ | — |
 | `biz/audit` | **100.0%** | ✅ | — |
 | `constants` | **100.0%** | ✅ | — |
-| `biz/settings` | **98.1%** | ✅ | — |
+| `biz/settings` | **84.8%** | ✅ | — |
 | `model` | **95.7%** | ✅ | — |
 | `security` | **90.7%** | ✅ | — |
-| `biz/message` | **90.5%** | ✅ | — |
-| `biz/task` | **82.9%** | ✅ | — |
-| `service` | **79.3%** | 🟡 | Push to 80%+ |
+| `biz/message` | **85.9%** | ✅ | — |
+| `biz/task` | **77.9%** | 🟡 | Push to 80%+ |
+| `service` | **70.1%** | ⚠️ | Push to 80%+ |
 
 ---
 
@@ -379,7 +379,7 @@
 
 | Service | Biz Coverage | Status |
 |---------|-------------|--------|
-| common-operations | **93.5%** | ✅ |
+| common-operations | **82.2%** | ✅ |
 | review | **89.0%** | ✅ |
 | order | **88.3%** | ✅ |
 | notification | **90.5%** | ✅ |
@@ -415,7 +415,7 @@
 | order | **80.6%** | ✅ |
 | payment | **80.5%** | ✅ |
 | catalog | **80.0%** | ✅ |
-| common-operations | **79.3%** | 🟡 |
+| common-operations | **70.1%** | ⚠️ |
 | review | **76.6%** | ✅ |
 | checkout | **85.5%** | ✅ |
 | analytics/marketplace | **73.2%** | ✅ |
@@ -490,6 +490,6 @@
 
 ---
 
-**Last Updated:** March 7, 2026 11:45 UTC+7 (Agent 4 verified: order, promotion, fulfillment, return)
-**Next Review:** March 11, 2026 (Weekly)
+**Last Updated:** March 20, 2026 16:35 UTC+7 (common-operations review pass updated)
+**Next Review:** March 27, 2026 (Weekly)
 **Maintained by:** QA Team + Backend Team
