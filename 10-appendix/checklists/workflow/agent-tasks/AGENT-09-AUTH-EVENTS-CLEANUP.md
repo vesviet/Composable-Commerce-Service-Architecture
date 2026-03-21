@@ -17,7 +17,7 @@ The `auth` service publishes `auth.token.*` and `auth.session.*` events (e.g., t
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 1: Deprecate or Consume Unused Auth PubSub Events
+### [x] Task 1: Deprecate or Consume Unused Auth PubSub Events
 
 **File**: `auth/internal/biz/session/events.go` and `auth/internal/biz/token/events.go`
 **Risk**: Writing to the outbox and publishing to Dapr requires DB transactions and network calls. If no one is listening, the entire operation is a pure performance penalty.
@@ -59,4 +59,4 @@ Closes: AGENT-09
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Auth service no longer publishes dead events | Source code analysis | |
+| Auth service no longer publishes dead events | Source code analysis | ✅ |

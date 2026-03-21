@@ -17,7 +17,7 @@ This batch addresses critical security and data leakage issues discovered in the
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix Autocomplete Data Leak By Applying Visibility Filtering
+### [x] Task 1: Fix Autocomplete Data Leak By Applying Visibility Filtering
 
 **File**: `search/internal/biz/search_usecase.go`
 **Lines**: ~465-495 (hàm `AutocompleteAdvanced`)
@@ -44,7 +44,7 @@ cd search && go test ./internal/biz -run TestAutocomplete_VisibilityBypass -v
 # Construct a request that searches for a restricted SKU and assert it is not returned.
 ```
 
-### [ ] Task 2: Change Search Visibility Filter from Fail-Open to Fail-Closed
+### [x] Task 2: Change Search Visibility Filter from Fail-Open to Fail-Closed
 
 **File**: `search/internal/biz/search_usecase.go`
 **Lines**: ~695 (hàm `filterVisibleProducts`)
@@ -80,7 +80,7 @@ cd search && go test ./internal/biz -run TestSearchProducts_CatalogUnavailable -
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 3: Fix Goroutine Leak / Unchecked Semaphore in Catalog Bulk Enrichment
+### [x] Task 3: Fix Goroutine Leak / Unchecked Semaphore in Catalog Bulk Enrichment
 
 **File**: `catalog/internal/service/product_helper.go`
 **Lines**: ~305-315
@@ -108,7 +108,7 @@ case <-ctx.Done():
 cd catalog && go test ./internal/service -run TestEnrichProductsBulk_ContextCancellation -v
 ```
 
-### [ ] Task 4: Fix Sparse Pagination (UX Bug) in Search Results
+### [x] Task 4: Fix Sparse Pagination (UX Bug) in Search Results
 
 **File**: `search/internal/biz/search_usecase.go`
 **Lines**: ~710
@@ -164,6 +164,6 @@ Closes: AGENT-04
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Complete fail-close logic | `TestSearchProducts_CatalogUnavailable` passes properly | |
-| Autocomplete secures data | Manual verify `autocomplete` with blocked SKU shows no results | |
-| No Goroutines leaked | Profile `/debug/pprof` under load test and abort |  |
+| Complete fail-close logic | `TestSearchProducts_CatalogUnavailable` passes properly | ✅ |
+| Autocomplete secures data | Manual verify `autocomplete` with blocked SKU shows no results | ✅ |
+| No Goroutines leaked | Profile `/debug/pprof` under load test and abort | ✅ |

@@ -17,7 +17,7 @@ During the 5M Rounds Meeting Review across the Common Shared Library and subsequ
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix RateLimiter IP Spoofing Vulnerability
+### [x] Task 1: Fix RateLimiter IP Spoofing Vulnerability
 
 **File**: `common/middleware/ratelimit.go`
 **Function**: `getClientIP`
@@ -44,7 +44,7 @@ if p, ok := peer.FromContext(c.Request.Context()); ok {
 cd common && go build ./...
 ```
 
-### [ ] Task 2: Purge Custom Checkout Outbox (Fix Split-Brain)
+### [x] Task 2: Purge Custom Checkout Outbox (Fix Split-Brain)
 
 **File**: `checkout/internal/data/outbox_repo.go`
 **Lines**: Entire file
@@ -59,7 +59,7 @@ cd checkout && wire gen ./cmd/server/ ./cmd/worker/
 cd checkout && go test ./internal/data/... -v
 ```
 
-### [ ] Task 3: Purge Custom Payment Outbox (Fix Split-Brain)
+### [x] Task 3: Purge Custom Payment Outbox (Fix Split-Brain)
 
 **File**: `payment/internal/data/postgres/outbox.go`
 **Lines**: 134-154
@@ -78,7 +78,7 @@ cd payment && go test ./internal/data/... -v
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 4: Standardize Pagination in Customer Service
+### [x] Task 4: Standardize Pagination in Customer Service
 
 **File**: `customer/internal/data/postgres/address.go`
 **Function**: `FindByCustomerIDPaginated`
@@ -132,7 +132,7 @@ Closes: AGENT-07
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Rate Limiter uses Peer Transport IP | `common/middleware/ratelimit.go` logic update | |
-| Checkout Outbox worker uses SKIP LOCKED | `checkout` compiles using `common/outbox` | |
-| Payment Outbox worker uses SKIP LOCKED | `payment` compiles using `common/outbox` | |
-| Customer Address Pagination uses \`common/data\` | `customer` test execution pass | |
+| Rate Limiter uses Peer Transport IP | `common/middleware/ratelimit.go` logic update | ✅ |
+| Checkout Outbox worker uses SKIP LOCKED | `checkout` compiles using `common/outbox` | ✅ |
+| Payment Outbox worker uses SKIP LOCKED | `payment` compiles using `common/outbox` | ✅ |
+| Customer Address Pagination uses \`common/data\` | `customer` test execution pass | ✅ |

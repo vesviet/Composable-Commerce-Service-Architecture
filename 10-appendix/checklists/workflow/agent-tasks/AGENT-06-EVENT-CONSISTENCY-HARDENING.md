@@ -16,7 +16,7 @@ This batch addresses critical architecture flaws in the Event-Driven infrastruct
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix Silent Event Loss via Redis PubSub Configuration
+### [x] Task 1: Fix Silent Event Loss via Redis PubSub Configuration
 **File**: `gitops/components/dapr-resiliency/resiliency.yaml` (and related PubSub components)
 **Risk**: Dapr's retry max is 5 with a 60s timeout. Because it uses standard Redis PubSub (which has no message persistence), if a subscriber Pod restarts or loses connection for ~1 minute, Dapr will drop the message. The Outbox table implies the message was successfully dispatched, leading to **permanent data mismatches**.
 
@@ -40,7 +40,7 @@ kubectl kustomize gitops/components/dapr-resiliency/
 ```
 
 
-### [ ] Task 2: Fix Order Cancellation Saga (Missing Payment Refunds)
+### [x] Task 2: Fix Order Cancellation Saga (Missing Payment Refunds)
 **File**: `order/internal/biz/order/cancel.go`
 **Lines**: ~90-100 (inside the `txCtx` transaction loop)
 **Risk**: `CancelOrder` publishes `inventory.release.requested` to refund the warehouse stock, but completely skips refunding the payment! If an order is in `processing` or `paid` status (where `PaymentSagaState == captured`), the money is kept while the goods are restocked.

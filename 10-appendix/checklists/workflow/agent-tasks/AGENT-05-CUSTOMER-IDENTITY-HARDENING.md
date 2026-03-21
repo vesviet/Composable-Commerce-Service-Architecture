@@ -17,7 +17,7 @@ This batch addresses critical security, UX, and race condition issues discovered
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix Catastrophic Session Invalidation on Token Refresh
+### [x] Task 1: Fix Catastrophic Session Invalidation on Token Refresh
 
 **File**: `auth/internal/biz/token/token.go`
 **Lines**: ~527-529 (hàm `RefreshToken`)
@@ -46,7 +46,7 @@ cd auth && go test ./internal/biz/token -run TestTokenUsecase_RefreshToken_Sessi
 # Ensure that after calling RefreshToken, a second call using the OLD Access token (if still valid) or checking the Session's DB state shows the session is STILL active.
 ```
 
-### [ ] Task 2: Change User Rate Limit from Fail-Open to Fail-Closed
+### [x] Task 2: Change User Rate Limit from Fail-Open to Fail-Closed
 
 **File**: `user/internal/service/user.go`
 **Lines**: ~793-802 (hàm `checkCredentialValidationRateLimit`)
@@ -87,7 +87,7 @@ cd user && go test ./internal/service -run TestUserService_ValidateUserCredentia
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 3: Fix Double-Fetch Race Condition in Preference Initialization
+### [x] Task 3: Fix Double-Fetch Race Condition in Preference Initialization
 
 **File**: `customer/internal/biz/preference/preference.go`
 **Lines**: ~87-112 and ~143-164 (`GetPreferences` and `UpdatePreferences`)

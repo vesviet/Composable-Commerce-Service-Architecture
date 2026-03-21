@@ -19,7 +19,7 @@ This task bundle addresses critical operational risks discovered during the deep
 
 ## ✅ Checklist — P1 Issues (MUST FIX)
 
-### [ ] Task 1: Fix Redis Fallback Hazard in Throughput Capacity Checks
+### [x] Task 1: Fix Redis Fallback Hazard in Throughput Capacity Checks
 
 **File**: `warehouse/internal/biz/throughput/throughput.go`
 **Lines**: ~95-120
@@ -53,7 +53,7 @@ Implement a "Degraded Mode" fallback.
 cd warehouse && go test ./internal/biz/throughput/... -run TestCheckThroughputCapacity_RedisFailure -v
 ```
 
-### [ ] Task 2: Implement Bulk Expiry for Reservations
+### [x] Task 2: Implement Bulk Expiry for Reservations
 
 **File**: `warehouse/internal/biz/reservation/reservation.go` & `warehouse/internal/worker/expiry/reservation_expiry.go`
 **Risk**: Severe database write latency (N+1 updates) during mass reservation expiry (e.g., after flash sales).
@@ -102,5 +102,5 @@ Closes: AGENT-16
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Throughput capacity check fails closed/degraded when Redis is down | Run throughput tests with mocked Redis error | |
-| Reservation expiry worker processes chunks using a bulk method | Run worker tests and verify DB query counts | |
+| Throughput capacity check fails closed/degraded when Redis is down | Run throughput tests with mocked Redis error | ✅ |
+| Reservation expiry worker processes chunks using a bulk method | Run worker tests and verify DB query counts | ✅ |

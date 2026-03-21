@@ -17,7 +17,7 @@ This batch addresses critical Distributed Transaction (Saga) failures between Ch
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix "Deadlock of Retry" - Catch `AlreadyExists` in Checkout Order Creation
+### [x] Task 1: Fix "Deadlock of Retry" - Catch `AlreadyExists` in Checkout Order Creation
 
 **File**: `checkout/internal/biz/checkout/confirm_step_create.go`
 **Lines**: ~31-35
@@ -56,7 +56,7 @@ cd checkout && go test ./internal/biz/checkout -run TestCreateOrderStep -v
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 2: Remove "Split-Brain Outbox Recovery" Anti-Pattern
+### [x] Task 2: Remove "Split-Brain Outbox Recovery" Anti-Pattern
 
 **File**: `checkout/internal/biz/checkout/confirm_step_create.go`
 **Lines**: ~133-185
@@ -89,7 +89,7 @@ cd checkout && go test ./internal/biz/checkout -run TestCreateOrderStep_Finalize
 
 ## ✅ Checklist — P2 Issues (Backlog)
 
-### [ ] Task 3: Establish DLQ Metric Alerting for Async Promotion Rules
+### [x] Task 3: Establish DLQ Metric Alerting for Async Promotion Rules
 
 **File**: `checkout/internal/biz/checkout/confirm_step_create.go`
 **Lines**: ~70-130
@@ -142,6 +142,6 @@ Closes: AGENT-03
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Retries do not cause hanging checkout | Unit test verifying `codes.AlreadyExists` is handled as success | |
-| Direct publish removed | grep for `publishCartConvertedDirect` returns nothing | |
-| DLQ failure incremented on err | PromQL `rate(dlq_events_total{operation="apply_promotion"}[5m]) > 0` |  |
+| Retries do not cause hanging checkout | Unit test verifying `codes.AlreadyExists` is handled as success | ✅ |
+| Direct publish removed | grep for `publishCartConvertedDirect` returns nothing | ✅ |
+| DLQ failure incremented on err | PromQL `rate(dlq_events_total{operation="apply_promotion"}[5m]) > 0` | ✅ |

@@ -17,7 +17,7 @@ The recent system-wide architectural review highlighted critical platform-level 
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Enable Dapr Resiliency for Real Microservices
+### [x] Task 1: Enable Dapr Resiliency for Real Microservices
 
 **File**: `gitops/components/dapr-resiliency/resiliency.yaml`
 **Lines**: 47-52
@@ -65,7 +65,7 @@ kubectl apply -f gitops/components/dapr-resiliency/resiliency.yaml --dry-run=loc
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 2: Mitigate Synchronous Auth Bottleneck in Gateway
+### [x] Task 2: Mitigate Synchronous Auth Bottleneck in Gateway
 
 **File**: `gateway/internal/middleware/validate_access.go`
 **Lines**: 87-103
@@ -93,7 +93,7 @@ cd gateway && go test ./internal/middleware... -v
 
 ## ✅ Checklist — P2 Issues (Backlog)
 
-### [ ] Task 3: Stop Gateway Idempotency Auto-Generation for Mutating Requests
+### [x] Task 3: Stop Gateway Idempotency Auto-Generation for Mutating Requests
 
 **File**: `gateway/internal/router/proxy_handler.go`
 **Lines**: 62-69
@@ -152,6 +152,6 @@ Closes: AGENT-08
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Dapr Circuit Breakers Enabled For All Services | Inspect `resiliency.yaml` diff | |
-| Gateway Auth does not block > 500ms | Load test `gateway` with injected latency | |
-| Checkout API rejects missing Idempotency | `curl -X POST /api/v1/checkout` → HTTP 400 | |
+| Dapr Circuit Breakers Enabled For All Services | Inspect `resiliency.yaml` diff | ✅ |
+| Gateway Auth does not block > 500ms | Load test `gateway` with injected latency | ✅ |
+| Checkout API rejects missing Idempotency | `curl -X POST /api/v1/checkout` → HTTP 400 | ✅ |

@@ -17,7 +17,7 @@ This task batch aims to resolve critical issues identified during the comprehens
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix "Fail-Open" Context Timeout Hazard in Fulfillment
+### [x] Task 1: Fix "Fail-Open" Context Timeout Hazard in Fulfillment
 
 **File**: `fulfillment/internal/biz/fulfillment/fulfillment_dispatch.go`
 **Lines**: ~191-230
@@ -54,7 +54,7 @@ cd fulfillment && go test ./internal/biz/fulfillment -run TestSelectWarehouse -v
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 2: Fix Pessimistic Locking FOR UPDATE Bottleneck in Warehouse
+### [x] Task 2: Fix Pessimistic Locking FOR UPDATE Bottleneck in Warehouse
 
 **File**: `warehouse/internal/data/postgres/reservation.go`
 **Lines**: ~47-61
@@ -78,7 +78,7 @@ err = r.DB(ctx).Joins("LEFT JOIN warehouses ON inventory_reservations.warehouse_
 cd warehouse && go test ./internal/data/postgres -run TestFindByIDForUpdate -v
 ```
 
-### [ ] Task 3: Implement Webhook HMAC Authentication & Fix Out-of-order Transition Skip
+### [x] Task 3: Implement Webhook HMAC Authentication & Fix Out-of-order Transition Skip
 
 **File**: `shipping/internal/biz/shipment/shipment_usecase.go`
 **Lines**: ~450+
@@ -105,7 +105,7 @@ cd shipping && go test ./internal/biz/shipment -run TestAddTrackingEvent -v
 
 ## ✅ Checklist — P2 Issues (Backlog)
 
-### [ ] Task 4: Fix Float64 Precision Loss in Pro-Rata COD Algorithm
+### [x] Task 4: Fix Float64 Precision Loss in Pro-Rata COD Algorithm
 
 **File**: `fulfillment/internal/biz/fulfillment/fulfillment_dispatch.go`
 **Lines**: ~450-510
@@ -159,6 +159,6 @@ Closes: AGENT-02
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Fail-Open condition replaced | Check context timeout removal and circuit breaker usage | |
-| Pro-rata COD uses decimal  | Verify no float64 used in `computeProRataCOD` | |
-| Out-of-order webhook handled | Validated via `go test` for `AddTrackingEvent` |  |
+| Fail-Open condition replaced | Check context timeout removal and circuit breaker usage | ✅ |
+| Pro-rata COD uses decimal  | Verify no float64 used in `computeProRataCOD` | ✅ |
+| Out-of-order webhook handled | Validated via `go test` for `AddTrackingEvent` | ✅ |
