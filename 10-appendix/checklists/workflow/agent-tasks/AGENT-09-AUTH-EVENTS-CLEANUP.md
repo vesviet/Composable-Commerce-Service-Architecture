@@ -19,7 +19,7 @@ The `auth` service publishes `auth.token.*` and `auth.session.*` events (e.g., t
 
 ### [x] Task 1: Deprecate or Consume Unused Auth PubSub Events
 
-**File**: `auth/internal/biz/session/events.go` and `auth/internal/biz/token/events.go`
+**Implementation (Option A)**: Removed token/session event helpers and all publish calls; **`auth/internal/biz/session/events.go` and `auth/internal/biz/token/events.go` deleted**.
 **Risk**: Writing to the outbox and publishing to Dapr requires DB transactions and network calls. If no one is listening, the entire operation is a pure performance penalty.
 **Problem**: Dead events being published.
 **Fix**:

@@ -95,25 +95,15 @@ Only items that are currently observable in repo state are listed here.
 
 ### P0 (Critical)
 
-1. **Dapr resiliency target still placeholder**
-   - Evidence: `gitops/components/dapr-resiliency/resiliency.yaml`
-   - Risk: service-invocation resiliency policy not explicitly attached to real apps.
-   - Meeting decision: choose global-target strategy vs per-service explicit targets and lock one standard.
+1. ~~**Dapr resiliency target still placeholder**~~ — **Addressed (Wave 1)**: `gitops/components/dapr-resiliency/resiliency.yaml` now lists production app IDs under `targets.apps`.
 
 ### P1 (High)
 
-1. **Gateway permission check timeout on hot path is still 3 seconds**
-   - Evidence: `gateway/internal/middleware/validate_access.go`
-   - Risk: user-service latency can cascade into gateway bottleneck.
+1. ~~**Gateway permission check timeout on hot path is still 3 seconds**~~ — **Addressed (Wave 1)**: `ValidateAccess` uses a **500ms** context timeout in `gateway/internal/middleware/validate_access.go`.
 
-2. **Gateway auto-generates idempotency key for mutation requests**
-   - Evidence: `gateway/internal/router/proxy_handler.go`
-   - Risk: retries from client can lose true idempotent identity for critical checkout/payment paths.
+2. ~~**Gateway auto-generates idempotency key for mutation requests**~~ — **Addressed (Wave 1)**: mutating requests without `Idempotency-Key` are rejected for checkout/payment paths in `gateway/internal/router/proxy_handler.go`.
 
-3. **Auth token/session event topics still have no active subscribers**
-   - Auth publishes: `auth/internal/biz/session/events.go`, `auth/internal/biz/token/events.go`
-   - Cross-repo consumer scan shows no active subscriber outside docs references.
-   - Risk: event cost without business value, missing observability/audit enrichment.
+3. ~~**Auth token/session event topics still have no active subscribers**~~ — **Addressed (Wave 2 / AGENT-09)**: removed unused `auth.token.*` / `auth.session.*` publishing from the auth service (no downstream consumers). `auth.login` outbox events remain for flows that need them.
 
 ### P2 (Medium)
 
@@ -188,8 +178,8 @@ rg -n "common/outbox|NewGormRepository|outbox.NewWorker" checkout order customer
 # 3) DLQ/dead-letter coverage scan
 rg -n "deadLetterTopic|dlq|dead_letter" gateway review analytics loyalty-rewards notification search -S
 
-# 4) Auth topic publisher/subscriber gap scan
-rg -n "auth\.token|auth\.session|auth\.login" auth notification customer analytics order loyalty-rewards -S
+# 4) Auth topic publisher/subscriber gap scan (login events may still publish; token/session topics removed from auth hot path)
+rg -n "auth\.login|PublishCustomE" auth internal/biz/login -S
 
 # 5) Dapr resiliency target check
 sed -n '1,220p' gitops/components/dapr-resiliency/resiliency.yaml
