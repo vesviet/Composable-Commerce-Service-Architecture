@@ -5,6 +5,7 @@ https://frontend.tanhdev.com
 admin: user/pass là admin@example.com/Admin123!
 https://admin.tanhdev.com
 
-vault-unseal-key: [REDACTED]
+# Redacted — do not commit real Vault material; store in a secrets manager only.
+vault-unseal-key: <REDACTED>
 
-vault-root-token: [REDACTED]
+vault-root-token: <REDACTED>

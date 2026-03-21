@@ -19,7 +19,7 @@ review code, code quality, argocd config, business logic
 index codebase, review code, code quality, gitops config, business logic
 
 Follow Shopify, Shopee, and Lazada patterns, skills, rule, workflow, codebase hiện tại và docs\10-appendix\ecommerce-platform-flows.md
-hãy review logic nghiệp vụ của :
+hãy review logic nghiệp vụ :
 - Kiểm tra sự nhất quán dữ liệu giữa các service
 - Có trường hợp nào dữ liệu bị lệch (mismatched) không?
 - Cơ chế Retry hoặc Rollback (Saga pattern/Outbox)(service có thực tế cần publish event không) đã được triển khai đúng chưa?

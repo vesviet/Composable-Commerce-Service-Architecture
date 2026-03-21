@@ -1,13 +1,15 @@
 # E-Commerce Platform — Verified Implementation Reference
 
-**Last Updated**: 2026-03-08
-**Verification Status**: %88 Complete (Post-Saga Hardening Review)
-**Core Patterns**: Kratos v2, Dapr PubSub, GORM, Transactional Outbox, Orchestrated Saga.
+**Last Updated**: 2026-03-21
+**Verification Status**: 88% Complete (Implementation-aligned; periodic re-validation required)
+**Core Patterns**: Kratos v2, Dapr PubSub, GORM, Transactional Outbox, Orchestrated + Choreographed Saga.
+**Industry Baseline**: Shopify-style commerce core + Shopee/Lazada-style marketplace operations (COD, split fulfillment, seller SLA, dispute-first returns).
 
 ---
 
 ## Table of Contents
 
+0. [Industry Pattern Alignment](#0-industry-pattern-alignment)
 1. [Customer & Identity Flows](#1-customer--identity-flows)
 2. [Catalog & Product Flows](#2-catalog--product-flows)
 3. [Search & Discovery Flows](#3-search--discovery-flows)
@@ -23,6 +25,16 @@
 13. [Admin & Operations Flows](#13-admin--operations-flows)
 14. [Analytics & Reporting Flows](#14-analytics--reporting-flows)
 15. [Cross-Cutting Concerns](#15-cross-cutting-concerns)
+
+---
+
+## 0. Industry Pattern Alignment
+
+- **Shopify-style Core**: Product/price/order/payment modeled as strongly consistent business aggregates with app/webhook-driven extensibility.
+- **Shopee/Lazada-style Marketplace**: Multi-seller and multi-warehouse split fulfillment, COD-heavy flows, seller SLA monitoring, and dispute-oriented return/refund lifecycle.
+- **Platform Standardization**: Keep customer-facing lifecycle terms stable while mapping to internal service statuses/events (versioned and idempotent).
+- **Operational Doctrine**: Outbox-first event delivery, retry/DLQ for non-atomic side effects, and explicit compensation for payment/inventory/fulfillment failures.
+- **Pattern Fit by Domain**: Checkout uses orchestrated saga; order/payment/inventory/fulfillment run event choreography; return/refund follows dispute-first and evidence-driven resolution.
 
 ---
 
@@ -62,7 +74,7 @@
 ### 1.5 Implementation & Hardening Notes (Verified)
 - **🔐 RBAC Security**: Implemented **Privilege Escalation Protection** (prevents admins from self-assigning higher roles).
 - **⏳ Real-time Permissions**: Uses `permissions_version` in User service + Atomic increments to invalidate cache/tokens instantly on permission change.
-- **📝 Audit Integrity**: Centralized `logAudit` helper in `internal/biz/user` ensures 100% visibility on administrative state changes.
+- **📝 Audit Integrity**: Centralized `logAudit` helper in `internal/biz/user` standardizes administrative audit writes with outbox-backed durability in critical paths.
 - **🚀 Auth Resilience**: Gateway validates JWT; services fallback to `AuthClient` for session revocation checks.
 
 ---
@@ -111,7 +123,7 @@
 - Review display on PDP (Product Detail Page)
 ### 2.6 Implementation & Hardening Notes (Verified)
 - **🗄️ EAV Pattern**: Catalog uses Entity-Attribute-Value pattern for highly dynamic product attributes without schema migrations.
-- **📦 SKU Integrity**: Unique constraint on `SKU` code + `WarehouseID` ensures multi-warehouse inventory accuracy at the DB level.
+- **📦 SKU Integrity**: Catalog enforces unique product `SKU`; warehouse inventory enforces unique `(warehouse_id, product_id)` rows for stock consistency.
 - **🏗️ Content Atomicity**: Product updates wrap basic info + attributes + categories in a single GORM transaction.
 
 ---
@@ -147,15 +159,15 @@
 - Stock-out → deprioritize or hide in results
 - Price change → update index document
 - Scheduled full re-index (nightly sync)
-### 3.6 Implementation & Hardening Notes (Verified)
-- **🧠 Async Discovery**: Search index updates are driven by `warehouse.inventory.stock_changed` and `product.updated` events via Dapr PubSub.
-- **🛡️ Ranking Integrity**: Ranking rules (business boost) are configurable via the Admin service without code redeployment.
-
 ### 3.5 SEO & Landing Pages
 - Category page with canonical URL + structured data
 - Brand landing pages
 - Sale / Campaign landing pages
 - Sitemap generation
+
+### 3.6 Implementation & Hardening Notes (Verified)
+- **🧠 Async Discovery**: Search index updates are driven by `warehouse.inventory.stock_changed` and `catalog.product.updated` events via Dapr PubSub.
+- **🛡️ Ranking Integrity**: Ranking rules (business boost) are configurable via the Admin service without code redeployment.
 
 ---
 
@@ -200,7 +212,7 @@
 - Line item price lock on order creation
 - Price mismatch handling (product price changed mid-checkout)
 ### 4.6 Implementation & Hardening Notes (Verified)
-- **🔒 Price Lock**: Final checkout price is locked in the `ConfirmCheckout` Saga (Step 4) to protect against mid-transaction price changes.
+- **🔒 Price Lock**: Final checkout totals are recalculated and frozen during `ConfirmCheckout`, then persisted into order item snapshots to prevent mid-transaction drift.
 - **🚀 Eligibility Engine**: Promotions are validated using a high-performance rules engine in `internal/biz/promotion`.
 
 ---
@@ -227,7 +239,7 @@
 ### 5.3 Checkout Steps
 1. Cart review & confirmation
 2. Shipping address selection / creation
-3. Shipping method selection (standard, express, same-day)
+3. Shipping option selection per shipment group (warehouse/seller split where applicable)
 4. Promotion / voucher code application
 5. Loyalty points redemption
 6. Payment method selection
@@ -240,6 +252,7 @@
 - Promotion eligibility re-validation
 - Address validation (city, postal code, delivery zone)
 - Payment method eligibility (COD limit, installment threshold)
+- Seller SLA cutoff validation (same-day / next-day commitments)
 - Fraud pre-check (velocity, blacklist)
 
 ### 5.5 Guest Checkout
@@ -247,8 +260,8 @@
 - Collect email for order updates
 - Offer post-purchase account creation
 ### 5.6 Implementation & Hardening Notes (Verified)
-- **🎭 10-Step Saga**: `ConfirmCheckout` is implemented as an orchestrated saga including validation, price lock, capture authorization, and stock reservation.
-- **🛑 Double-Submit Protection**: Uses Redis `SETNX` (15 min TTL) on `checkout_session_id` to prevent duplicate orders.
+- **🎭 8-Step Saga**: `ConfirmCheckout` runs orchestrated steps (idempotency, validation, totals, fraud check, promo reserve, stock reserve, payment auth, order creation).
+- **🛑 Double-Submit Protection**: Uses Redis `SETNX`-style atomic lock via idempotency key (`checkout:<cart>:cust:<id>:v<version>`) with short processing lease + cached success result.
 - **🔄 Failed Compensations**: Uses `failed_compensations` persistent log to handle edge cases (e.g., voiding payment if stock reservation fails).
 
 ---
@@ -256,23 +269,23 @@
 ## 6. Order Lifecycle Flows
 
 ### 6.1 Order Creation
-- Order placed → order record created (PENDING_PAYMENT)
+- Order placed → order record created (`pending`)
+- Parent order decomposed into shipment groups (multi-warehouse / multi-seller)
 - Inventory reservation (soft hold on stock)
 - Order confirmation notification (email + push)
 - Payment window timer starts (e.g., 24h for bank transfer)
 
 ### 6.2 Order Status Lifecycle
 ```
-PENDING_PAYMENT → PAID → PROCESSING → READY_TO_SHIP
-    → SHIPPED → IN_TRANSIT → OUT_FOR_DELIVERY
-    → DELIVERED → COMPLETED
-                                  ↘ RETURN_REQUESTED → RETURNED
-PENDING_PAYMENT → CANCELLED (timeout / user cancel)
-PAID → CANCELLED_REFUND_PENDING → REFUNDED
+pending → confirmed → processing → partially_shipped → shipped → delivered → completed
+                       ↘ partially_cancelled → cancelled
+delivered → partially_returned → returned → refunded
+pending → cancelled
+failed → pending (controlled retry path)
 ```
 
 ### 6.3 Order Confirmation & Processing
-- Payment confirmed → order moves to PROCESSING
+- Payment confirmed → order moves to `processing`
 - Seller / warehouse receives pick task
 - Packing slip & shipping label generated
 - Seller / warehouse marks order as packed
@@ -296,7 +309,7 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 - Trigger review request notification
 - Credits & loyalty points earned
 ### 6.7 Implementation & Hardening Notes (Verified)
-- **📬 Transactional Outbox**: All status changes (`UpdateOrderStatus`) are committed atomically with an outbox event to guarantee 100% downstream consistency.
+- **📬 Transactional Outbox**: Status changes (`UpdateOrderStatus`) are committed with outbox records to provide reliable at-least-once downstream propagation.
 - **📊 Status Hierarchy**: level-based hierarchy prevents backward status transitions (e.g., `shipped` cannot move back to `processing`).
 - **🛡️ Terminal Guards**: States like `completed`, `cancelled`, and `refunded` are implemented as final; no further transitions allowed.
 
@@ -342,9 +355,15 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 - Manual review queue for high-risk orders
 - 3DS enforcement for high-value amounts
 ### 7.6 Implementation & Hardening Notes (Verified)
-- **🧩 Saga Guard**: `CapturePayment` is protected by both DB-level idempotency (`CheckAndMark`) and Saga-state checks.
+- **🧩 Saga Guard**: `CapturePayment` is protected by deterministic idempotency keys and Saga-state gating (`authorized` → `capture_pending` → `captured` / `capture_failed`), while event consumers use `CheckAndMark` dedupe.
 - **🛡️ COD Optimized**: Automatically skips the capture-authorization step for COD orders to avoid gateway errors.
 - **⏱️ Expiry Aware**: Respects payment gateway authorization windows (config-driven) to prevent capturing expired authorizations.
+
+### 7.7 Marketplace Payment Pattern Mapping
+- Pay-now methods (card/wallet/VA) prioritize early confirmation and idempotent callback handling.
+- Auth-capture flow is enforced for methods requiring deferred settlement.
+- COD flow delays final capture semantics until delivery confirmation.
+- Escrow/payout release remains downstream of fulfillment + dispute window outcomes.
 
 ---
 
@@ -353,9 +372,9 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 ### 8.1 Stock Management
 - Initial stock upload (bulk import / API)
 - Real-time stock level tracking per SKU per warehouse
-- Stock reservation on cart add (soft reserve)
+- Stock reservation on checkout confirmation (just-in-time soft reserve)
 - Reservation confirmation on order pay
-- Reservation release on cart expiry / cancellation
+- Reservation release on checkout timeout / cancellation
 - Stock deduction on shipment dispatch
 - Low-stock alert (threshold notification to seller)
 - Out-of-stock handling → auto hide or backorder
@@ -386,7 +405,7 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 - Supplier lead time tracking
 - Safety stock calculation
 ### 8.6 Implementation & Hardening Notes (Verified)
-- **🔒 Pessimistic Locking**: All warehouse operations use `FOR UPDATE` row-level locks to prevent race conditions during concurrent reservations.
+- **🔒 Concurrency Control**: Warehouse uses optimistic/atomic stock mutation for hot reservation paths, with targeted `FOR UPDATE` locking on sensitive lifecycle transitions.
 - **⚖️ Reconciliation**: An hourly background job (`StockReconciliationJob`) corrects any drift between denormalized totals and active reservation logs.
 - **📬 Reliable Expiry**: Reservation expiry is committed atomically with an outbox event to notify the Order service.
 
@@ -431,7 +450,7 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 ### 9.6 Implementation & Hardening Notes (Verified)
 - **📦 Multi-WH Splitting**: `CreateFromOrderMulti` automatically splits orders across warehouses while maintaining proportional COD disbursement.
 - **🏗️ Dispatched Ready**: Fulfillment transitions to `ReadyToShip` only after QC checks and package creation are atomically committed.
-- **⚠️ Stability Note**: identified P1 risk — gRPC calls within DB transactions are being refactored to use async outbox patterns.
+- **⚠️ Stability Note**: High-risk transaction boundaries are being kept local-state only; cross-service calls are moved outside DB transactions or emitted via outbox-driven async flow.
 
 ---
 
@@ -468,8 +487,9 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 - Resolution options: full refund, partial refund, replacement
 - Seller appeal process
 - Chargeback handling (card network dispute)
+- SLA-governed evidence windows for buyer and seller before final ruling
 ### 10.6 Implementation & Hardening Notes (Verified)
-- **🧠 Return Saga**: Return approval triggers a `partially_returned` or `returned` status transition in the Order service via PubSub.
+- **🧠 Return Saga**: `orders.return.completed` events drive `partially_returned` / `returned` transitions in the Order service via PubSub.
 - **🔄 Compensation Path**: Orders cancelled after shipment are marked `compensation_pending` to trigger physical return workflows.
 
 ---
@@ -510,7 +530,7 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 ### 11.4 Implementation & Hardening Notes (Verified)
 - **⚖️ Status Precedence**: `shouldUpdateStatus` logic prevents late webhooks from downgrading a terminal delivery status (e.g., "sent" arriving after "delivered").
 - **🛡️ Webhook Security**: Implements HMAC-SHA1 validation for Twilio webhooks to prevent status spoofing attacks.
-- **🏗️ Delivery Logging**: Every attempt (Success/Fail) is recorded in a persistent `delivery_log` for diagnostic transparency.
+- **🏗️ Delivery Logging**: Every attempt (Success/Fail) is recorded in persistent `delivery_logs` for diagnostic transparency.
 
 ---
 
@@ -628,11 +648,11 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 
 ### 15.1 Idempotency
 - Payment callback idempotency (dedupe by gateway txn ID)
-- Order creation idempotency (dedupe key per checkout session)
+- Order creation idempotency (dedupe key per checkout session + cart version)
 - Event processing idempotency (event ID tracking)
 
 ### 15.2 Distributed Transaction Patterns
-- **Saga (Choreography)**: Order → Payment → Inventory → Shipment with compensating events
+- **Saga (Orchestrated + Choreographed)**: Checkout orchestrates critical path; downstream domains coordinate via events with compensating actions
 - **Outbox Pattern**: Guaranteed at-least-once event publishing from DB
 - **Reservation Pattern**: Soft-lock stock before payment, confirm or release
 - **Two-Phase Commit** (avoided; use Saga instead)
@@ -668,11 +688,11 @@ PAID → CANCELLED_REFUND_PENDING → REFUNDED
 - Tax rules per country / state
 - Date/time format by locale
 - Address schema by country (postal code format, state required)
-### 15.7 Technical Implementation — The "Golden Standards" (Verified)
-- **🕵️ Trace Continuity**: Uses **W3C Trace Propagation** to link async background events (Outbox) back to the original user transaction context.
-- **⚡ High-Throughput gRPC**: Implements **Round-Robin Connection Pooling** on the client side to bypass HTTP/2 head-of-line blocking.
-- **🛡️ DDoS Protection**: Uses **Sliding-Window Rate Limiting** with Pipeline operations in Redis for thread-safe, precise quota enforcement.
-- **📬 Order Accuracy**: The **Event-driven Choreographed Saga** ensures multi-step business transactions either complete fully or are compensated.
+### 15.7 Technical Implementation — Golden Standards (Implementation-Aligned)
+- **🕵️ Trace Continuity**: Supports W3C `traceparent` propagation across outbox events; rollout is active across services and must be validated per domain.
+- **⚡ High-Throughput gRPC**: Shared clients support round-robin connection pooling where pool size > 1.
+- **🛡️ DDoS Protection**: Gateway/services use Redis-backed rate limiting (sliding-window and fixed-window variants by context).
+- **📬 Order Accuracy**: Checkout uses orchestrated saga, while downstream services use event-driven choreography with compensation + idempotency.
 
 ---
 

@@ -69,6 +69,7 @@ Each business flow has **one canonical review file**. Always use the file listed
 |------|---------------|---------|
 | Cross-Cutting Concerns | [cross-cutting-concerns-review.md](cross-cutting-concerns-review.md) | Latest findings across all services |
 | Cross-Cutting Template | [cross-cutting-concerns-template.md](cross-cutting-concerns-template.md) | **Reusable template** — copy for each new service audit |
+| System Meeting Review (50000 Round) | [SYSTEM_MEETING_REVIEW_50000_ROUND_2026-03-21.md](SYSTEM_MEETING_REVIEW_50000_ROUND_2026-03-21.md) | System-wide deep-dive agenda, risk queue, and execution gates |
 
 ---
 
