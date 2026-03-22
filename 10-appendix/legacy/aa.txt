@@ -79,11 +79,11 @@ follow skill, rule, workflow và debug
 
 follow skill, rule, workflow và process all issue
 
-Cluster k8s
+follow skill, rule, workflow và check Cluster k8s status
 
 as senior QA, bạn follow skill, rule, workflow và giúp tôi test luồng :
-3. [Search & Discovery Flows](#3-search--discovery-flows)
-cả auto(new repo ở qa-auto) vs manual
+3. [Search & Discovery Flows](#3-search--discovery-flows) docs\10-appendix\ecommerce-platform-flows.md
+cả auto(qa-auto) vs manual
 https://frontend.tanhdev.com/ vs https://admin.tanhdev.com/
 nếu có issue thì tạo agent task 4
 docs/10-appendix/infotest.txt

@@ -73,7 +73,7 @@ cd qa-auto && npx playwright test -g "TC-AUTO-01"
 
 ## ✅ Checklist — P2 Issues (Backlog)
 
-### [ ] Task 4: Add Price Range Filter
+### [x] Task 4: Add Price Range Filter ✅ IMPLEMENTED — Added custom min/max price inputs with debounced onChange to product facets. Always visible regardless of backend facet data.
 
 **Risk**: No price range filter (slider or min/max inputs) on the PLP or search results page. Per ecommerce standards this is an essential filter.
 
@@ -85,7 +85,7 @@ cd qa-auto && npx playwright test -g "TC-FACET-06"
 
 ---
 
-### [ ] Task 5: Add Rating Filter
+### [x] Task 5: Add Rating Filter ✅ IMPLEMENTED — Added star rating filter (≥4★, ≥3★, ≥2★, ≥1★) to product facets with `min_rating` API param.
 
 **Risk**: No rating filter on PLP or search results page. Standard e-commerce feature.
 
@@ -96,7 +96,7 @@ cd qa-auto && npx playwright test -g "TC-FACET-07"
 
 ---
 
-### [ ] Task 6: Implement "Recently Viewed" Section on Homepage
+### [x] Task 6: Implement "Recently Viewed" Section on Homepage ✅ IMPLEMENTED — Created `recently-viewed.tsx` with localStorage-based tracking. `addToRecentlyViewed()` called from product detail. `RecentlyViewed` component on homepage.
 
 **Risk**: No "Recently Viewed" section appears after visiting products. Per Shopify/Shopee/Lazada patterns, this is a standard personalization feature.
 
@@ -107,7 +107,7 @@ cd qa-auto && npx playwright test -g "TC-DISC-04"
 
 ---
 
-### [ ] Task 7: Add Zero-Result Fallback Suggestions
+### [x] Task 7: Add Zero-Result Fallback Suggestions ✅ IMPLEMENTED — Enhanced zero-result state with trending searches (pills), clickable "Did you mean?" link, and "Browse All Products" button.
 
 **Risk**: When search returns no results, no fallback content is shown (no "Did you mean?", no popular products, no suggestions).
 

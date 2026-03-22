@@ -66,7 +66,7 @@ cd qa-auto && npx playwright test -g "TC-PROFILE-04"
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 2: Fix Stale Session Token Blocking Login
+### [x] Task 2: Fix Stale Session Token Blocking Login ✅ IMPLEMENTED — Added `refreshAttempted` ref guard in auth-context to prevent infinite check loops, and timeout-reset on `redirectingToLogin` flag in api-client.
 
 **Files**: `frontend/src/lib/api/api-client.ts`, `frontend/src/lib/auth/auth-context.tsx`
 **Risk**: Users with expired tokens get stuck showing "Your session is invalid. Please sign in again" error loop. Login is impossible until localStorage is manually cleared.
