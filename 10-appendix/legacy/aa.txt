@@ -59,8 +59,8 @@ Follow rule, skill commit related services
 15. [Cross-Cutting Concerns](#15-cross-cutting-concerns)
 
 nohup kubectl port-forward svc/argocd-server -n argocd --address 0.0.0.0 8090:443 > argocd-port-forward.log 2>&1 &
-
 nohup kubectl port-forward svc/traefik -n kube-system --address 0.0.0.0 8081:80 > traefik-pf-8081.log 2>&1 &
+nohup kubectl port-forward svc/grafana -n monitoring --address 0.0.0.0 8082:3000 > grafana-pf-8082.log 2>&1 &
 
 Technical Architect
 
