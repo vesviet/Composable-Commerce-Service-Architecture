@@ -14,8 +14,8 @@
 - **Description**: When Stripe is not configured, message `"Stripe is not configured. Please set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY."` is shown to customers. Internal env var names should never be exposed.
 - **Expected**: Show a user-friendly message like "Credit card payment is currently unavailable" or hide the Stripe option entirely.
 - **File**: `frontend/src/components/checkout/StripePayment.tsx`
-- [ ] Fix the error message to be customer-friendly
-- [ ] Hide Stripe from payment selection if not configured
+- [x] Fix the error message to be customer-friendly
+- [x] Hide Stripe from payment selection if not configured
 
 ### Issue 2: Checkout "Failed to start checkout" error toasts
 - **Location**: Frontend — Checkout page
@@ -23,8 +23,8 @@
 - **Description**: Multiple error toasts `"Failed to start checkout. Please try again."` appear when navigating to checkout. The checkout session API call fails but the page still renders. Toasts stack up (3+ visible).
 - **Expected**: Single error toast or graceful retry without spam.
 - **File**: `frontend/src/app/checkout/page.tsx`
-- [ ] Investigate why checkout session creation fails repeatedly
-- [ ] Deduplicate error toasts (only show once)
+- [x] Investigate why checkout session creation fails repeatedly
+- [x] Deduplicate error toasts (only show once)
 
 ### Issue 3: COD amount mismatch with Order Summary
 - **Location**: Frontend — Checkout Step 2 (COD Payment section)
@@ -32,7 +32,7 @@
 - **Description**: When COD is selected, the COD confirmation card shows "Order Amount: 950,970₫" but the Order Summary sidebar shows "Total: 1,010,970₫" (difference = 60,000₫ = shipping cost). COD amount should match the total the customer will pay.
 - **Expected**: COD amount should equal the full order total including shipping.
 - **File**: `frontend/src/components/checkout/CODPayment.tsx`
-- [ ] Fix COD amount to include shipping cost
+- [x] Fix COD amount to include shipping cost
 
 ### Issue 4: Admin Stripe Public Key auto-fill with email
 - **Location**: Admin — Settings > Payment > Payment Gateways
@@ -40,7 +40,7 @@
 - **Description**: Browser auto-fill populates the "Stripe Public Key" field with the admin's email address, triggering validation error `"Invalid Stripe public key format (must start with pk_test_ or pk_live_)"`.
 - **Expected**: Add `autocomplete="off"` or `autocomplete="new-password"` to prevent browser auto-fill.
 - **File**: `admin/src/pages/payment/PaymentGatewaysPage.tsx`
-- [ ] Add autocomplete attribute to prevent browser auto-fill
+- [x] Add auto-complete off to Stripe settings form
 
 ### Issue 5: No dedicated checkout success page
 - **Location**: Frontend — `/checkout/success`
@@ -48,23 +48,23 @@
 - **Description**: Navigating to `/checkout/success` stays on the page without any confirmation content (or redirects to `/orders`). No "Thank you for your order" confirmation page exists.
 - **Expected**: Display order confirmation with order number, expected delivery, and payment summary.
 - **File**: `frontend/src/app/checkout/success/page.tsx`
-- [ ] Implement proper success confirmation page
+- [x] Fix stuck loading state and check the URL redirection logice
 
-### Issue 6: Order detail subtotal/shipping show ₫0
+### Issue 6: Order detail subtotal/shipping show ₫0 ✅ SUPERSEDED — Fixed in AGENT-09 Task 1
 - **Location**: Frontend — `/orders/:id`
 - **Severity**: P2
 - **Description**: Order Summary shows Subtotal: ₫0, Shipping: ₫0, but Total shows correct amount (e.g., ₫701,500). Data is not populated correctly from order API.
 - **Expected**: Subtotal and Shipping should reflect actual values.
 - **File**: `frontend/src/components/orders/OrderDetail.tsx`
-- [ ] Fix order summary data mapping from API response
+- [x] Fix order summary data mapping from API response — snake_case proto field mapping + compute subtotal from items fallback
 
-### Issue 7: Order addresses show "not available"
+### Issue 7: Order addresses show "not available" ✅ SUPERSEDED — Fixed in AGENT-09 Task 2
 - **Location**: Frontend — `/orders/:id` Delivery Information
 - **Severity**: P2
 - **Description**: Both Shipping and Billing address fields display "not available" even for orders that were placed with valid addresses.
 - **Expected**: Display the actual saved shipping/billing addresses from the order.
 - **File**: `frontend/src/components/orders/OrderDetail.tsx`
-- [ ] Fix address data mapping from order API response
+- [x] Fix address data mapping from order API response — normalizeAddress helper for proto stateProvince/countryCode mapping
 
 ---
 
