@@ -7,7 +7,7 @@
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Sort Fix Pending Deploy — Verify After CI/CD
+### [ ] Task 1: Sort Fix Pending Deploy — Verify After CI/CD *(code fix done in AGENT-05 Task 2, needs deploy verification)*
 
 **File**: `frontend/src/lib/api/search-api.ts`  
 **Risk**: Sort by Price/Name still triggers 400 Bad Request. Fix is committed (`6a7f3d5`) but not deployed. Frontend CI/CD pipeline needs to complete.

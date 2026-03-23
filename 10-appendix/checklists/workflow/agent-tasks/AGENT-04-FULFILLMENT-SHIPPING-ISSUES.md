@@ -10,7 +10,7 @@
 
 ## P0 — Critical (Blocking)
 
-### [ ] Task 1: Order Detail Missing Shipping Address & Billing Address
+### [x] Task 1: Order Detail Missing Shipping Address & Billing Address ✅ SUPERSEDED — Fixed in AGENT-09 Task 2 (normalizeAddress helper for proto field mapping)
 
 **File**: `frontend/src/app/orders/[id]/page.tsx` (or equivalent order detail component)
 **Risk**: Customer cannot see delivery information for shipped orders — causes support tickets
@@ -23,7 +23,7 @@
 
 ---
 
-### [ ] Task 2: Order Detail Shipping Method Shows "Not specified"
+### [x] Task 2: Order Detail Shipping Method Shows "Not specified" ✅ SUPERSEDED — Fixed in AGENT-09 Task 4 (shipping method fallback with string-to-object conversion)
 
 **File**: `frontend/src/app/orders/[id]/page.tsx` + `order/internal/service/`
 **Risk**: Shipped orders display no shipping method info — inconsistent with actual fulfillment state
@@ -36,7 +36,7 @@
 
 ---
 
-### [ ] Task 3: Order Summary Shows ₫0 for Subtotal and Shipping
+### [x] Task 3: Order Summary Shows ₫0 for Subtotal and Shipping ✅ SUPERSEDED — Fixed in AGENT-09 Task 1 (snake_case proto field mapping + compute subtotal from items fallback)
 
 **File**: `frontend/src/app/orders/[id]/page.tsx`
 **Risk**: Customer sees misleading price breakdown — total shows ₫701,500 but subtotal and shipping both show ₫0
@@ -51,7 +51,7 @@
 
 ## P1 — High Priority
 
-### [ ] Task 4: Checkout "Failed to start checkout" Error
+### [ ] Task 4: Checkout "Failed to start checkout" Error *(see also: AGENT-11 Issue 2)*
 
 **File**: `frontend/src/app/checkout/page.tsx` + `order/internal/service/`
 **Risk**: Customers cannot complete purchases — directly impacts revenue
@@ -64,7 +64,7 @@
 
 ---
 
-### [ ] Task 5: Stripe Configuration Warning on Checkout
+### [ ] Task 5: Stripe Configuration Warning on Checkout *(see also: AGENT-11 Issue 1)*
 
 **File**: `frontend/.env` or `frontend/src/app/checkout/page.tsx`
 **Risk**: Payment flow partially broken — Stripe card payments will not work
