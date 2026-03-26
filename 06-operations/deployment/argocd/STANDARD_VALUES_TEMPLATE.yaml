@@ -131,9 +131,9 @@ config:
     database:
       driver: postgres
       max_open_conns: 100
-      max_idle_conns: 10
-      conn_max_lifetime: 3600s
-      conn_max_idle_time: 600s
+      max_idle_conns: 20
+      conn_max_lifetime: 1800s
+      conn_max_idle_time: 300s
       query_timeout: 5s
     
     redis:
