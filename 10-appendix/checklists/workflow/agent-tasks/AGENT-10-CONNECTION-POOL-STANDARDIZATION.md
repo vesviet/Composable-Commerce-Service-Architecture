@@ -398,11 +398,22 @@ grep -rn "30m\|5m\|1h" /home/user/microservices/*/configs/ --include="*.yaml" | 
 
 ---
 
-### [ ] Task 11: Migrate analytics to standard `data.database` config schema
+### [x] Task 11: Migrate analytics to standard `data.database` config schema ✅ IMPLEMENTED
 
 **Problem**: Analytics uses top-level `database:` with individual fields (`host`, `port`, `user`, `password`, `dbname`, `_sec` suffixes) instead of the standard `data.database.source` DSN pattern.
 
-This is a larger refactor affecting `analytics/internal/data/data.go` and its config loading. Track separately.
+**Solution Applied**:
+- **config.go**: Replaced custom `DatabaseConfig` (Host/Port/User/Password/DBName/SSLMode/_Sec fields) with standard DSN-based struct under `DataConfig.Database` (Source, Driver, MaxOpenConns, MaxIdleConns, ConnMaxLifetime, ConnMaxIdleTime as `time.Duration`). Added `GRPC`/`HTTP` back as they're used in main.go. Added default pool values in `Init()`.
+- **provider.go**: Updated `ProvideDatabaseConfig` and `ProvideRedisConfig` to extract from `cfg.Data.Database`/`cfg.Data.Redis`.
+- **postgres.go**: Simplified to accept DSN `cfg.Source` directly instead of building from individual fields. Pool settings use `time.Duration`.
+- **redis.go**: Updated to use `cfg.Addr` directly instead of `fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)`. Also standardized to `data.redis.addr` format.
+- **config.yaml**: Migrated from `database:` → `data.database:` with `source:` DSN. Migrated from `redis:` → `data.redis:` with `addr:`.
+- **worker/main.go**: Fixed `cfg.Redis` → `cfg.Data.Redis`.
+- **Wire**: Regenerated `wire_gen.go` for both server and worker.
+
+**Files Modified**: `internal/config/config.go`, `internal/config/provider.go`, `internal/infrastructure/database/postgres.go`, `internal/infrastructure/redis/redis.go`, `configs/config.yaml`, `cmd/worker/main.go`, `cmd/server/wire_gen.go`, `cmd/worker/wire_gen.go`
+
+**Validation**: `go build ./...` ✅, `go test ./...` ✅ (5 packages pass), `wire` regenerated ✅
 
 ---
 
