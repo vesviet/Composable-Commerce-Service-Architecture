@@ -17,7 +17,7 @@ During a full QA cycle covering Cart, Checkout, Order Lifecycle, and Inventory f
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix Missing Inventory Reservation on Order Confirmation
+### [x] Task 1: Fix Missing Inventory Reservation on Order Confirmation
 
 **File**: `warehouse/internal/biz/...` or `order/internal/biz/...` (Event Integration)
 **Risk**: Severe overselling risk. Customers can purchase out-of-stock items because stock is neither reserved nor deducted when an order is placed and confirmed.
@@ -107,6 +107,6 @@ Closes: AGENT-04
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Order creates inventory reservation | Query `warehouse_db` after placing an order | |
+| Order creates inventory reservation | Query `warehouse_db` after placing an order | ✅ Done |
 | Admin lockout returns 403 | Trigger lockout and inspect HTTP response | ✅ Done |
 | Inventory test suite passes | `npm run test:inventory-warehouse` passes | ✅ Done |
