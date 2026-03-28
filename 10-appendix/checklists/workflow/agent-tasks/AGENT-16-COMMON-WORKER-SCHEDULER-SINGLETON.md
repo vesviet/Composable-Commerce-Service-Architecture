@@ -1,7 +1,7 @@
 # AGENT-16: Add Scheduler Singleton Mode to `common/worker`
 
 > **Created**: 2026-03-28  
-> **Updated**: 2026-03-28  
+> **Updated**: 2026-03-28 (per-service worker review)  
 > **Priority**: P1  
 > **Sprint**: Common Library Hardening Sprint  
 > **Services**: `common`, plus consumers of `gitlab.com/ta-microservices/common`  
@@ -201,19 +201,65 @@ worker.NewCronWorker("cleanup", interval, logger, doFunc,
 
 ---
 
-## Per-service migration guidance (suggested order)
+## Rà soát từng service (`cmd/worker`) — có cần singleton không?
 
-Use this table to plan work. Priority is **suggestion** only; align with your team.
+Phần này ghi lại **kết quả review codebase** (Wire `wire_gen.go` / `wire.go`, cron, outbox, consumer). Mục tiêu: biết service nào **nên** thêm singleton cho **job định kỳ / tác vụ toàn cục**, và service nào **không** cần (outbox / consumer scale ngang).
 
-| Service | Suggested pattern | Notes |
-|---------|-------------------|--------|
-| **analytics** | A (done) | `ProcessSingletonCoordinator` + `RedisSchedulerLock`; bump to `v1.31.3` and drop `replace` when CI uses the tag. |
-| **loyalty-rewards** | B | Replace manual `SETNX` in `internal/jobs/*` with `CronWorker` + `WithSingleton` or shared `RedisSchedulerLock` inside a thin wrapper. |
-| **customer** | B | `segment_evaluator`: `WithSingleton` on the cron path or one lock key per schedule. |
-| **common-operations** | B | `process_scheduled_tasks`-style jobs: same as above. |
-| **warehouse** | Mixed | Many `robfig/cron` jobs; only add singleton where global side effects exist (reconciliation, reports). Keep parallel-safe jobs unchanged. |
-| **payment** | C | Domain `DistributedLock` in `internal/data/lock.go` is a different concern; migrate only if you want to unify on `RedisSchedulerLock` API later. |
-| **Outbox / event consumers** | C | Do **not** enable singleton; outbox uses `SKIP LOCKED`. |
+### Cách đọc kết quả
+
+| Cột / giá trị | Ý nghĩa |
+|----------------|---------|
+| **Cần singleton (cron / job)** | Có ít nhất một cron hoặc ticker làm việc “một lần trên cluster” (cleanup, reconciliation, báo cáo, refresh MV, …). Nên dùng **Pattern B** (theo job) hoặc **Pattern A** (cả process) tùy mức. |
+| **Một phần** | Chủ yếu outbox + consumer; chỉ **một vài** cron cần xem xét singleton. |
+| **Không cần (worker)** | Worker chủ yếu là **outbox** + **event consumer** — đã an toàn multi-replica; chỉ cần **Pattern C** khi bump `common`. |
+| **Đã xử lý** | Đã dùng API chung (`ProcessSingletonCoordinator` / `WithSingleton`). |
+
+### Các bước review (áp dụng khi tự kiểm tra lại)
+
+1. Mở `cmd/worker/wire_gen.go` (hoặc `wire.go`) — liệt kê worker: **outbox**, **consumer**, **CronWorker** / `robfig/cron`.  
+2. Với **outbox** / **Dapr consumer**: **không** gắn singleton (đã có `SKIP LOCKED` / idempotency).  
+3. Với **mỗi cron** (đặc biệt cleanup, reconciliation, báo cáo, refresh): hỏi “nếu chạy N replica cùng lúc có **trùng tác vụ toàn cục** không?” — nếu **có** → thêm **Pattern B** (khóa theo job) hoặc **Pattern A** (một leader cho cả process).  
+4. Nếu trong code đã có **SETNX thủ công** → ưu tiên migrate sang `RedisSchedulerLock` / `WithSingleton`.
+
+### Bảng tổng hợp (20 service có `cmd/worker` trong monorepo)
+
+| STT | Service | Kết quả | Worker chính (tóm tắt) | Gợi ý hành động |
+|-----|---------|---------|------------------------|-----------------|
+| 1 | **analytics** | Đã xử lý | Cron jobs + `ProcessSingletonCoordinator` + Redis | Bump `common@v1.31.3`; bỏ `replace` local nếu có. |
+| 2 | **auth** | Một phần | `SessionCleanupWorker` + `EventConsumerWorker` + outbox | Session cleanup: nếu lo trùng xóa / tải DB, cân nhắc `WithSingleton` cho **một** cron đó; consumer + outbox: không singleton. |
+| 3 | **catalog** | Cần singleton (cron) | Outbox + stock/price consumer + **MV refresh** + **outbox cleanup** | **Pattern B** cho `MaterializedViewRefreshJob`, `OutboxCleanupJob` (khóa theo job). Consumer/outbox: không. |
+| 4 | **checkout** | Không cần | Chủ yếu outbox | **Pattern C** (chỉ bump `common`). |
+| 5 | **common-operations** | Cần singleton | Nhiều `CronWorker`; **SETNX** trong `process_scheduled_tasks`, `cleanup_old_tasks` | **Pattern B** hoặc thay SETNX bằng `RedisSchedulerLock`; Dapr server / polling: đánh giá riêng (thường không bọc cả process trừ khi có yêu cầu). |
+| 6 | **customer** | Cần singleton | Outbox + consumer + **segment** (đã SETNX) + stats + GDPR cleanup | **Pattern B** cho segment evaluator; các cron khác: tùy (stats/cleanup có thể singleton nhẹ). |
+| 7 | **fulfillment** | Cần singleton (cron) | Consumers + outbox + **auto complete shipped**, **SLA breach**, **outbox cleanup** | **Pattern B** cho từng cron “global”; **không** singleton cho outbox/consumer. |
+| 8 | **gateway** | Không cần | Chỉ consumer (cache invalidation) | **Pattern C**. |
+| 9 | **loyalty-rewards** | Cần singleton | Outbox + consumer + **points expiration / pending points** (SETNX trong job) | **Pattern B** — migrate SETNX → `WithSingleton` + `RedisSchedulerLock`. |
+| 10 | **location** | Không cần | Outbox | **Pattern C**. |
+| 11 | **notification** | Một phần | Nhiều consumer + outbox + **`notification_worker` (robfig cron)** | Xem từng **schedule** cron: gửi batch / digest / retry → thường **nên singleton** cho job đó; consumer/outbox: không. |
+| 12 | **order** | Cần singleton (cron) | Nhiều `CronWorker` (cleanup, reservation, COD, capture, compensation, idempotency, completion) + event consumer + outbox | **Pattern B** lần lượt cho các cron “toàn cục”; **không** bọc outbox/consumer. |
+| 13 | **payment** | Một phần | Nhiều cron (reconciliation, retry, …) + webhook retry + outbox + consumer; **DistributedLock** trong domain (khác scheduler) | Cron reconciliation / cleanup: **Pattern B** nếu chưa đủ an toàn multi-replica; giữ domain lock cho payment/refund như hiện tại. |
+| 14 | **promotion** | Không cần | Outbox + order consumer | **Pattern C**. |
+| 15 | **return** | Một phần | Outbox + **stale return cleanup** (`NewCronWorker`) | **Pattern B** cho cleanup cron nếu chạy nhiều replica. |
+| 16 | **review** | Không cần | Outbox | **Pattern C**. |
+| 17 | **search** | Cần singleton (cron) | Nhiều consumer + trending/popular + **DLQ** + **reconciliation** + orphan + failed-event cleanup | **Pattern B** cho các job đụng index / DLQ / reconciliation toàn cục; consumer: không. |
+| 18 | **shipping** | Không cần | Outbox + consumer | **Pattern C**. |
+| 19 | **user** | Không cần | Outbox | **Pattern C**. |
+| 20 | **warehouse** | Cần singleton (cron) | Nhiều `robfig/cron` (reconciliation, stock detector, báo cáo, cleanup, …) + outbox + consumer; **RedisDistributedLocker** cho reservation (khác cron) | **Pattern B** theo từng cron “một runner”; **không** singleton outbox; locker reservation giữ nguyên logic domain. |
+
+### Ưu tiên migrate (gợi ý)
+
+| Ưu tiên | Service | Lý do ngắn |
+|---------|---------|------------|
+| **P0** | **loyalty-rewards**, **customer** (segment), **common-operations** | Đã có SETNX thủ công — dễ lệch semantics / blind DEL. |
+| **P1** | **order**, **warehouse**, **search** | Nhiều cron toàn cục — rủi ro trùng chạy khi scale worker. |
+| **P2** | **fulfillment**, **catalog**, **payment** (cron), **notification** (cron), **return**, **auth** (session cleanup) | Từng job xử lý dần bằng Pattern B. |
+| **P3** | **gateway**, **user**, **location**, **promotion**, **checkout**, **shipping**, **review** | Chỉ bump `common` trừ khi sau này thêm cron “global”. |
+
+### Lưu ý chung
+
+- **Outbox worker** và **event consumer** trong bảng trên: **không** chuyển sang singleton.  
+- **Warehouse** `DistributedLocker` / **Payment** domain lock: là **khóa nghiệp vụ**, không thay bằng singleton worker trừ khi refactor có chủ đích.  
+- **analytics**: đã dùng **Pattern A** — làm mẫu cho bất kỳ service nào muốn **một replica** chạy **toàn bộ** nhóm cron.
 
 ---
 
