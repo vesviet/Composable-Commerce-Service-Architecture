@@ -33,7 +33,7 @@
 | 16 | **pricing** | **85.8% avg** | **80.0%** | 44.0% | **~83%** | 80% | ✅ >80% | — |
 | 17 | **checkout** | **80.8% avg** | **85.5%** | 54.5% | **>80%** | 80% | ✅ >80% | — |
 | 18 | **search** | **80.1% avg** | **70.3%** | — | **~72%** | 80% | ✅ Below | -8% |
-| 19 | **warehouse** | **78.8% avg** | **68.3%** | 61.4% / 8.5% | **~72%** | 80% | ✅ Below | -8% |
+| 19 | **warehouse** | **81.4% avg** | **79.5%** | 58.5% / 8.1% | **~75%** | 80% | 🟡 Below | -5% |
 | 20 | **user** | **84.7%** | **81.4%** | 53.5% / 83.0% | **~81%** | 80% | ✅ >80% | — |
 | 21 | **shipping** | **63.4% avg** | **92.0%** | 29.8% / 65.5% / 65.0% / 49.1% | **~70%** | 80% | ✅ Below | -10% |
 
@@ -318,18 +318,18 @@
 
 ---
 
-### 19. warehouse — ✅ Above 80% (~82% overall)
+### 19. warehouse — 🟡 Approaching 80% (~75% overall)
 
 | Package | Coverage | Status | Action |
 |---------|----------|--------|--------|
-| `biz/throughput` | **93.5%** | ✅ | — |
-| `biz/transaction` | **89.7%** | ✅ | — |
+| `biz/throughput` | **93.0%** | ✅ | — |
+| `biz/transaction` | **89.3%** | ✅ | — |
 | `biz/warehouse` | **82.0%** | ✅ | — |
-| `biz/reservation` | **81.2%** | ✅ | — |
-| `biz/inventory` | **80.5%** | ✅ | — |
-| `service` | **80.4%** | ✅ | — |
-| `data/postgres` | **61.4%** | ⚠️ | Push to 70%+ |
-| `data/redis` | **8.5%** | ⚠️ | Push to 50%+ |
+| `biz/inventory` | **76.3%** | 🟡 | Push to 80%+ |
+| `biz/reservation` | **66.6%** | ⚠️ | Push to 80%+ |
+| `service` | **79.5%** | 🟡 | Push to 80%+ |
+| `data/postgres` | **58.5%** | ⚠️ | Push to 70%+ |
+| `data/redis` | **8.1%** | ⚠️ | Push to 50%+ |
 
 ---
 
@@ -393,7 +393,7 @@
 | analytics | **81.9%** | ✅ |
 | promotion | **81.0%** | ✅ |
 | search | **80.1%** | ✅ |
-| warehouse | **78.8%** | 🟡 |
+| warehouse | **81.4%** | ✅ |
 | pricing | **85.8%** | ✅ |
 | loyalty-rewards | **75.6%** | ✅ |
 | customer | **73.3%** | ✅ |
@@ -424,7 +424,7 @@
 | search | **70.3%** | ✅ |
 | pricing | **80.0%** | ✅ |
 | promotion | **70.1%** | ✅ |
-| warehouse | **68.3%** | ✅ |
+| warehouse | **79.5%** | 🟡 |
 | user | **66.1%** | ✅ |
 | `gateway` | 80/81 | 70% | 80% | N/A | ✅ | 66.8% | 2026-03-18 | | **64.8%** | ✅ |
 
