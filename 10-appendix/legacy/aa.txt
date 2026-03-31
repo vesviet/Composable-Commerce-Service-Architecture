@@ -53,10 +53,11 @@ Follow rule, skill commit related services
 9. [Fulfillment & Shipping Flows](#9-fulfillment--shipping-flows)
 10. [Return & Refund Flows](#10-return--refund-flows)
 11. [Notification Flows](#11-notification-flows)
-12. [Seller / Merchant Flows](#12-seller--merchant-flows)
 13. [Admin & Operations Flows](#13-admin--operations-flows)
 14. [Analytics & Reporting Flows](#14-analytics--reporting-flows)
 15. [Cross-Cutting Concerns](#15-cross-cutting-concerns)
+
+12. [Seller / Merchant Flows](#12-seller--merchant-flows)
 
 nohup kubectl port-forward svc/argocd-server -n argocd --address 0.0.0.0 8090:443 > argocd-port-forward.log 2>&1 &
 nohup kubectl port-forward svc/traefik -n kube-system --address 0.0.0.0 8081:80 > traefik-pf-8081.log 2>&1 &
