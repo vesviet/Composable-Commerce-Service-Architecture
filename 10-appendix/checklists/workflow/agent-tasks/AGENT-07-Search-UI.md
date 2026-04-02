@@ -17,7 +17,7 @@ During E2E testing of the Search & Discovery flows, the core search returned acc
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 1: Fix Missing Search Autocomplete Dropdown Rendering
+### [x] Task 1: Fix Missing Search Autocomplete Dropdown Rendering
 
 **File**: `frontend/src/components/search/SearchBar.tsx` (or equivalent)
 **Lines**: Autocomplete render logic
@@ -48,7 +48,7 @@ npm run dev
 
 ---
 
-### [ ] Task 2: Implement Missing `/about` Route
+### [x] Task 2: Implement Missing `/about` Route
 
 **File**: `frontend/src/app/about/page.tsx` (or Next.js pages router equivalent)
 **Lines**: File creation

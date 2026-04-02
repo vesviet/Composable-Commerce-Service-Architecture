@@ -5,16 +5,6 @@ https://frontend.tanhdev.com
 admin: user/pass là admin@example.com/Admin123!
 https://admin.tanhdev.com
 
-# Redacted — do not commit real Vault material; store in a secrets manager only.
-vault-unseal-key: <REDACTED>
-
-vault-root-token: <REDACTED>
-
 admin.curtis_martinez_812113@propoolbuilders.net
 saigonmelon8386
 DCF2I4KBJCKTAQD5Y7SRL5SIFBPW7ZED
-Em gửi a
-
-telegram: 
-8312925148:AAH085KFSd1e9KFrGuFxaeHTMJutrlBbV1Q
-Id: 8312925148
