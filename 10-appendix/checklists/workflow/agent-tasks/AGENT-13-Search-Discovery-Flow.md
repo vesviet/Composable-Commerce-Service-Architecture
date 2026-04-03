@@ -42,7 +42,7 @@ cd qa-auto && npx playwright test tests/search-discovery/search-facets-sort.spec
 
 ## ✅ Checklist — P1 Issues (Fix In Sprint)
 
-### [ ] Task 2: Implement Autocomplete / Typeahead UI
+### [x] Task 2: Implement Autocomplete / Typeahead UI
 
 **Service**: `frontend` / `search` or `catalog` API
 **Risk**: Lack of interactive search degrades modern e-commerce UX.
@@ -58,7 +58,7 @@ cd qa-auto && npx playwright test tests/search-discovery/search-facets-sort.spec
 
 ## ✅ Checklist — P2 Issues (Backlog)
 
-### [ ] Task 3: Add Rating Filter Facet to Search Results
+### [x] Task 3: Add Rating Filter Facet to Search Results
 
 **Service**: `frontend` / (Elasticsearch aggregations)
 **Risk**: Missing filtering option compared to competitors.
@@ -96,6 +96,6 @@ Closes: AGENT-13
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Typing slowly in the search bar triggers a suggestion dropdown. | Manual UI testing. | |
-| Applying the price-sort dropdown in search results successfully re-orders items without a 400 error. | Automated script verification. | |
-| Filtering search results by "4 Stars & Up", correctly limits results. | Manual UI verification. | |
+| Typing slowly in the search bar triggers a suggestion dropdown. | Manual UI testing. | ✅ |
+| Applying the price-sort dropdown in search results successfully re-orders items without a 400 error. | Automated script verification. | ✅ |
+| Filtering search results by "4 Stars & Up", correctly limits results. | Manual UI verification. | ✅ |
