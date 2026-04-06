@@ -87,4 +87,4 @@ docs\10-appendix\ecommerce-platform-flows.md
 cả auto(qa-auto) vs manual
 https://frontend.tanhdev.com/ vs https://admin.tanhdev.com/
 nếu có issue thì tạo agent task 4
-docs/10-appendix/infotest.txt
+docs/10-appendix/infotest.txt (delete the old input before entering new input.)
