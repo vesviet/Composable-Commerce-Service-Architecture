@@ -12,7 +12,7 @@ Post-validation fixes on the backend, a full QA audit (both manual & automated) 
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix `StripePayment` Error Swallowing (UI Hang)
+### [x] Task 1: Fix `StripePayment` Error Swallowing (UI Hang)
 
 **File**: `frontend/src/components/checkout/StripePayment.tsx`
 **Lines**: 135-141 (approx)
@@ -28,7 +28,7 @@ Move the error rendering out of the `clientSecret` dependency, or adjust the fas
 
 ---
 
-### [ ] Task 2: Fix Order ID Session Loss on Reload
+### [x] Task 2: Fix Order ID Session Loss on Reload
 
 **File**: `frontend/src/app/checkout/components/PaymentStep.tsx` or global cart state
 
@@ -43,7 +43,7 @@ Implement local storage persistence, Session Storage re-hydration, or refetch th
 
 ---
 
-### [ ] Task 3: Investigate Admin Portal Login Timeout (Automated Block)
+### [x] Task 3: Investigate Admin Portal Login Timeout (Automated Block)
 
 **File**: `admin/` environment / `qa-auto/tests/cart-checkout/admin-orders.spec.ts`
 
@@ -58,7 +58,7 @@ Debug the `admin` UI login flow. Identify why `/api/v1/auth/login` is failing or
 
 ---
 
-### [ ] Task 4: Fix Concurrent Session Instability ("Your session is invalid")
+### [x] Task 4: Fix Concurrent Session Instability ("Your session is invalid")
 
 **File**: `frontend/src/lib/api/api-client.ts` or `AuthContext`
 
