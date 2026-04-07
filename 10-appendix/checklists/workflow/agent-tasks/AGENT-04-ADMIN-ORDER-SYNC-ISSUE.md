@@ -19,7 +19,7 @@ This indicates a synchronization issue, pagination/filtering bug, or backend rol
 
 ## ✅ Checklist — P0 Issues (MUST FIX)
 
-### [ ] Task 1: Fix Admin API ListOrders Pagination/Filtering Bug
+### [x] Task 1: Fix Admin API ListOrders Pagination/Filtering Bug
 **File**: `order/internal/service/order.go` or `order/internal/biz/order/usecase.go`
 **Risk**: Admin users cannot process or ship new orders paid by customers, halting the fulfillment lifecycle.
 **Problem**: The frontend `ListOrders` API for the Admin portal (`GET /admin/v1/orders` routed to `/api/v1/orders` in `order` service via Gateway) is either defaulting to an aggressive date filter, failing to bypass ownership checks for the Admin role, or suffering from a pagination error (showing 1-10 of 10 instead of 1-10 of 18).
@@ -34,7 +34,7 @@ This indicates a synchronization issue, pagination/filtering bug, or backend rol
 cd order && go test ./internal/service/... -run TestListOrders_AdminBypass -v
 ```
 
-### [ ] Task 2: Verify Dapr Event Synchronization (Payment → Order)
+### [x] Task 2: Verify Dapr Event Synchronization (Payment → Order)
 **File**: `order/internal/worker/handlers/payment_handler.go`
 **Risk**: If the order service is stuck in a `pending` state and the Admin UI has a default filter for `paid`/`processing` orders, the newly paid Stripe order will be hidden.
 **Problem**: The `PaymentCaptured` or `PaymentStatusChanged` event published by the `payment` service might not be cleanly consumed by the `order-worker`, leaving the order in `pending_payment` status. 
@@ -49,7 +49,7 @@ cd order && go test ./internal/service/... -run TestListOrders_AdminBypass -v
 cd order && go test ./internal/worker/handlers/... -run TestHandlePaymentStatusChanged_Stripe -v
 ```
 
-### [ ] Task 3: Fix Dashboard Count vs List Discrepancy
+### [x] Task 3: Fix Dashboard Count vs List Discrepancy
 **File**: `admin/src/pages/orders/OrdersList.tsx` or `admin/src/hooks/useDashboardStats.ts`
 **Risk**: Dashboards providing conflicting data to list views break user trust in the system.
 **Problem**: Dashboard says 18 orders, pagination meta says 10 total orders. The backend should return the `total_count` consistently.
@@ -92,6 +92,6 @@ Closes: AGENT-04
 
 | Criteria | Verification | Status |
 |---|---|---|
-| Admin user can see all orders in `admin.tanhdev.com/orders` | Log into Admin, total orders in the data table must match total in DB. | |
-| Dashboard stats match list total exactly | Compare Dashboard number to Pagination `total_count`. | |
-| Order #4819 from Stripe is visible | Search `#4819` in the standard search box. | |
+| Admin user can see all orders in `admin.tanhdev.com/orders` | Log into Admin, total orders in the data table must match total in DB. | ✅ Done |
+| Dashboard stats match list total exactly | Compare Dashboard number to Pagination `total_count`. | ✅ Done |
+| Order #4819 from Stripe is visible | Search `#4819` in the standard search box. | ✅ Done |
