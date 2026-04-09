@@ -1,10 +1,10 @@
 customer: customer1000@example.com/Customer1000@example.com
 https://frontend.tanhdev.com
 
-
 admin: user/pass là admin@example.com/Admin123!
 https://admin.tanhdev.com
 
-admin.curtis_martinez_812113@propoolbuilders.net
-saigonmelon8386
-DCF2I4KBJCKTAQD5Y7SRL5SIFBPW7ZED
+Stripe test cards:
+- Success: 4242 4242 4242 4242 (any future expiry, any CVC)
+- 3DS required: 4000 0025 0000 3155
+- Decline: 4000 0000 0000 0002
