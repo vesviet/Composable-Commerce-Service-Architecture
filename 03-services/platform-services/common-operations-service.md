@@ -1,13 +1,12 @@
 # ⚙️ Common Operations Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
-> **Ports**: 8019/9019
+> **Ports**: 8018/9018
 
 **Service Name**: Common Operations Service
-**Version**: 1.0
-**Last Updated**: 2026-01-31
+**Version**: v1.2.3
 **Review Status**: 🔄 Active
 **Production Ready**: ✅ Active
 
@@ -85,8 +84,8 @@ Common-Operations Service provides task orchestration, bulk operations (import/e
 ### Environment Variables
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `HTTP_PORT` / config `server.http.addr` | No | `0.0.0.0:8000` | HTTP server |
-| `GRPC_PORT` / config `server.grpc.addr` | No | `0.0.0.0:9000` | gRPC server |
+| `HTTP_PORT` / config `server.http.addr` | No | `0.0.0.0:8018` | HTTP server |
+| `GRPC_PORT` / config `server.grpc.addr` | No | `0.0.0.0:9018` | gRPC server |
 | Database `source` (config) | Yes | - | PostgreSQL DSN |
 | Redis `addr` (config) | No | - | Redis; optional (graceful degradation) |
 | `DAPR_GRPC_ENDPOINT` | No | `localhost:50001` | Dapr sidecar gRPC |
@@ -100,7 +99,7 @@ Common-Operations Service provides task orchestration, bulk operations (import/e
 
 ### Docker
 - **Image**: Build via `make docker-build` (e.g. `common-operations:$(VERSION)`)
-- **Ports**: 8000 (HTTP), 9000 (gRPC); docs may use 8018/9018 in some setups
+- **Ports**: 8018 (HTTP), 9018 (gRPC)
 - **Health check**: `GET /health/ready`, `GET /health/live`
 
 ### Kubernetes

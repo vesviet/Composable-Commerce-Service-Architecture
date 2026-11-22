@@ -1,13 +1,12 @@
 # 💳 Payment Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8005/9005
 
 **Service Name**: Payment Service  
-**Version**: v1.2.1  
-**Last Updated**: 2026-02-23  
+**Version**: v1.2.9  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: ✅ 100%  
 **PCI DSS Compliance**: ✅ Level 1 Certified  
@@ -97,8 +96,8 @@ payment/
 ```
 
 ### Ports & Endpoints
-- **HTTP API**: `:8004` - REST endpoints for frontend/client apps
-- **gRPC API**: `:9004` - Internal service communication
+- **HTTP API**: `:8005` - REST endpoints for frontend/client apps
+- **gRPC API**: `:9005` - Internal service communication
 - **Health Check**: `/api/v1/payments/health`
 
 ### Service Dependencies
@@ -781,8 +780,8 @@ PAYMENT_REDIS_ADDR=redis:6379
 PAYMENT_REDIS_DB=1
 
 # Service Ports
-PAYMENT_HTTP_PORT=8004
-PAYMENT_GRPC_PORT=9004
+PAYMENT_HTTP_PORT=8005
+PAYMENT_GRPC_PORT=9005
 
 # Payment Gateways
 PAYMENT_STRIPE_SECRET_KEY=sk_live_...
@@ -1321,7 +1320,7 @@ make api
 make run
 
 # Test payment processing (requires gateway sandbox accounts)
-curl -X POST http://localhost:8004/api/v1/payments \
+curl -X POST http://localhost:8005/api/v1/payments \
   -H "Content-Type: application/json" \
   -d '{"order_id": "test-123", "amount": 100.00, "currency": "USD"}'
 ```
@@ -1382,7 +1381,7 @@ make test-pci-compliance
 hey -n 1000 -c 10 -m POST \
   -H "Authorization: Bearer <token>" \
   -H "Idempotency-Key: test-$(date +%s)" \
-  http://localhost:8004/api/v1/payments \
+  http://localhost:8005/api/v1/payments \
   -d '{"order_id": "load-test-$(date +%s)", "amount": 10.00, "currency": "USD"}'
 ```
 

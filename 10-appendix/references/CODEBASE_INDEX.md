@@ -1,3 +1,6 @@
+> [!WARNING]
+> **Historical Snapshot (January 23, 2026 / `common v1.0.14`)**: Preserved for audit reference only. For the current canonical codebase map, service versions, and maturity status, see [`../../CODEBASE_INDEX.md`](../../CODEBASE_INDEX.md) and [`../../SERVICE_INDEX.md`](../../SERVICE_INDEX.md).
+
 # 📚 MICROSERVICES CODEBASE INDEX
 
 **Last Updated**: January 23, 2026

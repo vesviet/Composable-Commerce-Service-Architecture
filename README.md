@@ -134,8 +134,8 @@ graph TD
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | Go 1.25 · Kratos v2 (Google's microservice framework) |
-| **Frontend** | Next.js (customer) · React + Ant Design (admin) |
+| **Backend** | Go 1.25.5 · Kratos v2 (Google's microservice framework) |
+| **Frontend** | Next.js 16 + Ant Design (customer) · React 18 + Vite + Ant Design (admin) |
 | **Database** | PostgreSQL 15+ (per-service isolation) |
 | **Cache** | Redis 7+ (caching, sessions, distributed locks) |
 | **Search** | Elasticsearch 8.11+ |
@@ -143,9 +143,7 @@ graph TD
 | **API** | gRPC (internal) + REST via gRPC-Gateway (external) |
 | **Deploy** | Docker · Kubernetes (k3d) · ArgoCD (GitOps) |
 | **Observability** | Prometheus · Grafana · Jaeger (OpenTelemetry) |
-| **Shared Library** | `common` v1.10.0 — outbox, idempotency, health, config, server |
-
----
+| **Shared Library** | `common` v1.35.3 — outbox, idempotency, health, config, server, JWT key rotation, circuit breaker |
 
 ---
 
@@ -182,7 +180,9 @@ make api            # Generate proto code
 
 | Section | Contents |
 |---------|----------|
-| [**Service Index**](SERVICE_INDEX.md) | All 23 services (21 Go + 2 frontends) — ports, domains, architecture patterns |
+| [**Service Index**](SERVICE_INDEX.md) | All 23 services (21 Go + 2 frontends) — ports, domains, versions, architecture patterns |
+| [**Codebase Index**](CODEBASE_INDEX.md) | All workspace repositories, entrypoints, and architectural patterns |
+| [**Agent Skills Index**](MICROSERVICES_AGENT_SKILLS_INDEX.md) | 23 AI skills and 7 operational workflows |
 | [**Architecture**](01-architecture/) | System design, event flows, data architecture |
 | [**Business Domains**](02-business-domains/) | DDD bounded contexts and domain models |
 | [**Service Docs**](03-services/) | Per-service implementation details |
@@ -200,13 +200,13 @@ make api            # Generate proto code
 
 | Pattern | Purpose | Used By |
 |---------|---------|---------|
-| **Transactional Outbox** | Reliable event publishing (DB + event in single transaction) | Order, Loyalty, Return, Fulfillment, Shipping |
-| **Event Idempotency** | Deduplicate events with `event_idempotency` table | Warehouse, Search, Shipping, Loyalty |
-| **Dead Letter Queue** | Failed event processing → DLQ for manual review | Order, Checkout, Payment, Search |
+| **Transactional Outbox** | Reliable event publishing (DB + event in single transaction) | 19/21 Go services (all except Gateway, Analytics) |
+| **Event Idempotency** | Deduplicate events with `event_idempotency` table | 19/21 Go services (all except Auth, Location) |
+| **Dead Letter Queue** | Failed event processing → DLQ for manual review | 16/21 Go services (all except Auth, User, Location, Review, Common Ops) |
 | **Circuit Breaker** | Prevent cascade failures on downstream service outages | Analytics (PG writes), Gateway |
 | **Saga / Compensation** | Distributed transactions with rollback on failure | Checkout → Order → Payment → Warehouse |
 | **CQRS** | Separate read/write paths for performance | Search (read-optimized Elasticsearch) |
 
 ---
 
-*Last Updated: March 2, 2026 · Platform Team*
+*Last Updated: 2026-11-22 · Platform Team*

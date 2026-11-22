@@ -1,13 +1,12 @@
 # 🌐 Frontend Services - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
-> **Ports**: 3000/3001
+> **Ports**: 3000 (Customer Frontend) / 3001 (Admin Dashboard)
 
 **Services**: Admin Dashboard & Customer Frontend  
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-22  
+**Version**: v1.0.1 (Frontend — Next.js 16) · main (Admin — React 18 + Vite)  
 **Review Status**: 🟡 In Progress (Both services need completion)  
 **Production Ready**: 70% (Admin: 75%, Customer: 70%)  
 

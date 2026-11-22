@@ -1,5 +1,15 @@
 # Notification Service
 
+> **Owner**: Platform Team  
+> **Last Updated**: 2026-11-22  
+> **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
+> **Ports**: HTTP 8009 / gRPC 9009
+
+**Service Name**: Notification Service  
+**Version**: notification/v1.2.0
+
+> **Deep Dive**: Full architecture and channel details in [platform-services/notification-service.md](../platform-services/notification-service.md).
+
 ## Overview
 The `notification` service handles the delivery of messages across various channels (Email, SMS, Push, Telegram) for both internal systems and customers. It uses a robust, transactional outbox pattern to guarantee at-least-once delivery, handles idempotent requests, honors user notification preferences (e.g., quiet hours, opt-outs), and manages templates.
 

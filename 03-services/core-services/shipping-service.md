@@ -1,13 +1,12 @@
 # 📦 Shipping Service - Carrier Integrations & Logistics
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8012/9012
 
 **Service Name**: Shipping Service
-**Version**: 1.1.2
-**Last Updated**: 2026-02-06
+**Version**: v1.2.3
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: ✅ 100%  
 
@@ -74,8 +73,8 @@ shipping/
 ```
 
 ### Ports & Dependencies
-- **HTTP API**: `:8000` - REST endpoints (config: `server.http.addr`)
-- **gRPC API**: `:9000` - Internal communication (config: `server.grpc.addr`)
+- **HTTP API**: `:8012` - REST endpoints (config: `server.http.addr`)
+- **gRPC API**: `:9012` - Internal communication (config: `server.grpc.addr`)
 - **Database**: PostgreSQL (`shipping_db`)
 - **Cache**: Redis
 - **External APIs**: GHN, Grab, VNPay, MoMo carrier APIs

@@ -1,13 +1,12 @@
 # 🔍 Search Service - AI-Powered Product Discovery
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8017/9017
 
 **Service Name**: Search Service
-**Version**: 1.0.12
-**Last Updated**: 2026-02-06
+**Version**: v1.0.21
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: ✅ 100%  
 
@@ -86,8 +85,8 @@ search/
 ```
 
 ### Ports & Dependencies
-- **HTTP API**: `:8004` - REST endpoints
-- **gRPC API**: `:9004` - Internal communication
+- **HTTP API**: `:8017` - REST endpoints
+- **gRPC API**: `:9017` - Internal communication
 - **Database**: PostgreSQL (`search_db`) + Elasticsearch
 - **Cache**: Redis for query caching and suggestions
 - **External Services**: Catalog, Pricing, Warehouse services

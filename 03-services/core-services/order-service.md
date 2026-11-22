@@ -1,13 +1,12 @@
 # 📦 Order Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-03-05  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8004/9004
 
 **Service Name**: Order Service  
-**Version**: 1.3.0  
-**Last Updated**: 2026-03-05  
+**Version**: v1.1.9  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: 🟢 **READY** - All systems operational  
 **Build**: Succeeds with `go build ./...` and `make build`; dependencies use `go get` (no `replace` in go.mod).  
@@ -464,15 +463,15 @@ ORDER_RETURN_WINDOW_DAYS=30
 ORDER_AUTO_CANCEL_DRAFT_HOURS=24
 
 # External Services
-ORDER_CHECKOUT_SERVICE_ADDR=checkout-service:9005
+ORDER_CHECKOUT_SERVICE_ADDR=checkout-service:9010
 ORDER_CUSTOMER_SERVICE_ADDR=customer-service:9003
-ORDER_CATALOG_SERVICE_ADDR=catalog-service:9002
-ORDER_PRICING_SERVICE_ADDR=pricing-service:9009
-ORDER_WAREHOUSE_SERVICE_ADDR=warehouse-service:9010
-ORDER_PAYMENT_SERVICE_ADDR=payment-service:9007
-ORDER_FULFILLMENT_SERVICE_ADDR=fulfillment-service:9011
-ORDER_RETURN_SERVICE_ADDR=return-service:9006
-ORDER_NOTIFICATION_SERVICE_ADDR=notification-service:9013
+ORDER_CATALOG_SERVICE_ADDR=catalog-service:9015
+ORDER_PRICING_SERVICE_ADDR=pricing-service:9002
+ORDER_WAREHOUSE_SERVICE_ADDR=warehouse-service:9006
+ORDER_PAYMENT_SERVICE_ADDR=payment-service:9005
+ORDER_FULFILLMENT_SERVICE_ADDR=fulfillment-service:9008
+ORDER_RETURN_SERVICE_ADDR=return-service:9013
+ORDER_NOTIFICATION_SERVICE_ADDR=notification-service:9009
 
 # Features
 ORDER_ENABLE_PROMOTIONS=true

@@ -2,7 +2,7 @@
 
 - **Platform**: E-Commerce Microservices Platform
 - **Version**: 2.2.0
-- **Last Updated**: March 2, 2026
+- **Last Updated**: 2026-11-22
 - **Total Services**: 21 Go services + 2 frontends
 - **Documentation Coverage**: 23/23 services documented
 - **Maturity Source of Truth**: [SERVICE_INDEX.md](../SERVICE_INDEX.md)
@@ -53,31 +53,33 @@ The lists below group service documentation by domain. They are not the source o
 All 23 services now have comprehensive documentation:
 
 #### Core Business Services (14 services):
-- **Auth Service** - Authentication, JWT, OAuth2, MFA
-- **User Service** - Admin users, RBAC, permissions
-- **Customer Service** - Customer profiles, addresses, segments
-- **Catalog Service** - Products, EAV attributes, categories, CMS
-- **Pricing Service** - Dynamic pricing, discounts, tax calculation
-- **Promotion Service** - Campaigns, coupons, BOGO, tiered discounts
-- **Checkout Service** - Cart management, checkout orchestration
-- **Order Service** - Order lifecycle, status management, editing
-- **Payment Service** - Payment processing, gateways, refunds (PCI DSS)
-- **Warehouse Service** - Inventory, stock movements, reservations
-- **Fulfillment Service** - Order fulfillment, picking, packing
-- **Shipping Service** - Carrier integrations, rates, tracking
-- **Return Service** - Returns, exchanges, refunds
-- **Loyalty Service** - Rewards programs, points, tiers
+- [**Auth Service**](core-services/auth-service.md) - Authentication, JWT, OAuth2, MFA
+- [**User Service**](core-services/user-service.md) - Admin users, RBAC, permissions
+- [**Customer Service**](core-services/customer-service.md) - Customer profiles, addresses, segments
+- [**Catalog Service**](core-services/catalog-service.md) - Products, EAV attributes, categories, CMS
+- [**Pricing Service**](core-services/pricing-service.md) - Dynamic pricing, discounts, tax calculation
+- [**Promotion Service**](core-services/promotion-service.md) - Campaigns, coupons, BOGO, tiered discounts
+- [**Checkout Service**](core-services/checkout-service.md) - Cart management, checkout orchestration
+- [**Order Service**](core-services/order-service.md) - Order lifecycle, status management, editing
+- [**Payment Service**](core-services/payment-service.md) - Payment processing, gateways, refunds (PCI DSS)
+- [**Warehouse Service**](core-services/warehouse-service.md) - Inventory, stock movements, reservations
+- [**Fulfillment Service**](core-services/fulfillment-service.md) - Order fulfillment, picking, packing
+- [**Shipping Service**](core-services/shipping-service.md) - Carrier integrations, rates, tracking
+- [**Return Service**](core-services/return-service.md) - Returns, exchanges, refunds
+- [**Loyalty Service**](core-services/loyalty-rewards-service.md) - Rewards programs, points, tiers
 
 #### Platform Services (9 services):
-- **Gateway Service** - API gateway, routing, authentication
-- **Search Service** - Full-text search, Elasticsearch, analytics
-- **Analytics Service** - Business intelligence, dashboards, metrics
-- **Review Service** - Product reviews, ratings, moderation
-- **Common Operations** - Task orchestration, file operations, MinIO
-- **Notification Service** - Email, SMS, push notifications (SendGrid/Twilio)
-- **Location Service** - Geocoding, address validation, zones
-- **Admin Service** - Internal dashboard for operations
-- **Frontend Service** - Customer facing storefront
+- [**Gateway Service**](platform-services/gateway-service.md) - API gateway, routing, authentication
+- [**Search Service**](platform-services/search-service.md) - Full-text search, Elasticsearch, analytics
+- [**Analytics Service**](platform-services/analytics-service.md) - Business intelligence, dashboards, metrics
+- [**Review Service**](platform-services/review-service.md) - Product reviews, ratings, moderation
+- [**Common Operations**](platform-services/common-operations-service.md) - Task orchestration, file operations, MinIO
+- [**Notification Service**](platform-services/notification-service.md) - Email, SMS, push notifications (SendGrid/Twilio)
+- [**Location Service**](platform-services/location-service.md) - Geocoding, address validation, zones
+- [**Admin Service**](platform-services/admin-service.md) - Internal dashboard for operations
+- [**Frontend Service**](platform-services/frontend-service.md) - Customer facing storefront
+
+> **Operational Overviews**: Concise operational summaries for Analytics, Location, and Notification are also maintained under [operational-services/](operational-services/).
 
 ### 📋 Documentation Standards
 
@@ -158,7 +160,7 @@ graph LR
 ### Documentation Metrics
 - **Documentation Coverage**: 23/23 services documented ✅
 - **Architecture Compliance**: Clean Architecture + DI (Wire) across all services ✅
-- **Event Infrastructure**: Outbox pattern in 10+ services, idempotency in 8+ services ✅
+- **Event Infrastructure**: Outbox pattern in 19/21 services, idempotency in 19/21 services, DLQ in 16/21 services ✅
 - **Testing Coverage**: Needs improvement (target 80%+)
 
 ---
@@ -284,9 +286,9 @@ graph LR
 ---
 
 **Documentation Version**: 2.2.0  
-**Last Updated**: 2026-03-02  
+**Last Updated**: 2026-11-22  
 **Coverage**: 23/23 services documented  
-**Maturity**: All services production-ready — see [SERVICE_INDEX.md](../SERVICE_INDEX.md)  
+**Maturity**: 16/21 Go services production-ready, 5 near-production — see [SERVICE_INDEX.md](../SERVICE_INDEX.md)  
 **Review Status**: ✅ Audited and cleaned up (March 2, 2026)
 
 **Quick Reference**: See [SERVICE_INDEX.md](../SERVICE_INDEX.md) for complete service catalog

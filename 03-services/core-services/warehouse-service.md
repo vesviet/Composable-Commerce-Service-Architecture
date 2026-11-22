@@ -1,13 +1,12 @@
 # 📦 Warehouse Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-23  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8006/9006
 
 **Service Name**: Warehouse Service
-**Version**: v1.2.0
-**Last Updated**: 2026-02-24
+**Version**: v1.2.6
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: 100%
 **Code Review Date**: 2026-02-24
@@ -492,10 +491,10 @@ WAREHOUSE_REDIS_ADDR=localhost:6379
 WAREHOUSE_REDIS_DB=4
 
 # External Services
-CATALOG_SERVICE_ADDR=localhost:9001
-ORDER_SERVICE_ADDR=localhost:9002
-FULFILLMENT_SERVICE_ADDR=localhost:9003
-NOTIFICATION_SERVICE_ADDR=localhost:9004
+CATALOG_SERVICE_ADDR=localhost:9015
+ORDER_SERVICE_ADDR=localhost:9004
+FULFILLMENT_SERVICE_ADDR=localhost:9008
+NOTIFICATION_SERVICE_ADDR=localhost:9009
 
 # S3/MinIO (for exports)
 WAREHOUSE_S3_ENDPOINT=minio:9000
@@ -508,9 +507,9 @@ WAREHOUSE_S3_BUCKET=warehouse-exports
 ```yaml
 server:
   http:
-    addr: "0.0.0.0:8008"
+    addr: "0.0.0.0:8006"
   grpc:
-    addr: "0.0.0.0:9008"
+    addr: "0.0.0.0:9006"
 
 data:
   database:
@@ -728,13 +727,13 @@ migrate -path migrations -database "postgres://user:password@localhost/warehouse
 export WAREHOUSE_LOG_LEVEL=debug
 
 # Check service health
-curl http://localhost:8008/health
+curl http://localhost:8006/health
 
 # View metrics
-curl http://localhost:8008/metrics
+curl http://localhost:8006/metrics
 
 # Debug gRPC calls
-grpcurl -plaintext localhost:9008 list
+grpcurl -plaintext localhost:9006 list
 ```
 
 ### Deployment

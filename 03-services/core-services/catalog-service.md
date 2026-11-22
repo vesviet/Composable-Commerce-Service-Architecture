@@ -1,13 +1,12 @@
 # 📦 Catalog Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-03-05  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8015/9015
 
 **Service Name**: Catalog Service  
-**Version**: 1.4.0  
-**Last Updated**: 2026-03-05  
+**Version**: v1.4.0  
 **Review Status**: ✅ COMPLETED - Production Ready  
 **Production Ready**: 100%  
 **Code Review Date**: 2026-03-05  
@@ -723,7 +722,7 @@ CATALOG_HTTP_PORT=8015
 CATALOG_GRPC_PORT=9015
 
 # Search Integration
-CATALOG_SEARCH_SERVICE_ADDR=search-service:9004
+CATALOG_SEARCH_SERVICE_ADDR=search-service:9017
 CATALOG_AUTO_REINDEX=true
 
 # Event Publishing
@@ -771,8 +770,8 @@ server:
 
 external_services:
   search_service: ${CATALOG_SEARCH_SERVICE_ADDR}
-  warehouse_service: warehouse-service:9010
-  pricing_service: pricing-service:9009
+  warehouse_service: warehouse-service:9006
+  pricing_service: pricing-service:9002
 
 features:
   auto_reindex: ${CATALOG_AUTO_REINDEX}
@@ -1113,7 +1112,7 @@ make api
 make run
 
 # Test product creation
-curl -X POST http://localhost:8001/api/v1/catalog/products \
+curl -X POST http://localhost:8015/api/v1/catalog/products \
   -H "Content-Type: application/json" \
   -d '{"name":"Test Product","sku":"TEST-001","category_id":"test-cat","status":"active"}'
 ```
@@ -1169,7 +1168,7 @@ make test-search-sync
 
 # Load testing
 hey -n 1000 -c 10 -m GET \
-  http://localhost:8001/api/v1/catalog/products?category=electronics&page=1&limit=20
+  http://localhost:8015/api/v1/catalog/products?category=electronics&page=1&limit=20
 ```
 
 ---

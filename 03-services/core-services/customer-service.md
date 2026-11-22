@@ -1,13 +1,12 @@
 # 🧑‍🤝‍🧑 Customer Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-23  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8003/9003
 
 **Service Name**: Customer Service  
-**Version**: 1.1.11  
-**Last Updated**: 2026-02-23  
+**Version**: v1.3.3  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: ✅ 100%  
 
@@ -461,9 +460,9 @@ CUSTOMER_HTTP_PORT=8003
 CUSTOMER_GRPC_PORT=9003
 
 # External Services
-CUSTOMER_AUTH_SERVICE_ADDR=auth-service:9001
+CUSTOMER_AUTH_SERVICE_ADDR=auth-service:9000
 CUSTOMER_ORDER_SERVICE_ADDR=order-service:9004
-CUSTOMER_LOYALTY_SERVICE_ADDR=loyalty-service:9011
+CUSTOMER_LOYALTY_SERVICE_ADDR=loyalty-service:9014
 
 # Feature Flags
 CUSTOMER_ENABLE_SEGMENTS=true

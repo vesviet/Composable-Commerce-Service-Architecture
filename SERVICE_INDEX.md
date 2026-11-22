@@ -1,7 +1,7 @@
 # 📦 Service Index
 
-> **Last Updated**: 2026-03-02 (post P0/P1 audit fixes) | **Total**: 21 Go services + 2 frontends  
-> **Stack**: Go 1.25 · Kratos v2 · PostgreSQL · Redis · Dapr · Kubernetes
+> **Last Updated**: 2026-11-22 (sync with workspace repos & `common` v1.35.3) | **Total**: 21 Go services + 2 frontends  
+> **Stack**: Go 1.25.5 · Kratos v2 · Next.js 16 · React 18 · PostgreSQL · Redis · Dapr · Kubernetes
 
 ---
 
@@ -9,33 +9,34 @@
 
 This file is the canonical source of truth for per-service maturity, versions, and ports. If a service README or workflow landing page disagrees with this table, update the landing page or README to match this index.
 
-| # | Service | Domain | HTTP | gRPC | Maturity | Worker | Outbox | Idempotency | DLQ |
-|---|---------|--------|------|------|----------|--------|--------|-------------|-----|
-| 1 | **Auth** | Identity & Access | 8000 | 9000 | 🟢 Production | ✅ | — | — | — |
-| 2 | **User** | Identity & Access | 8001 | 9001 | 🟢 Production | ✅ | ✅ | ✅ | — |
-| 3 | **Customer** | CRM & Analytics | 8003 | 9003 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 4 | **Catalog** | Product & Content | 8015 | 9015 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 5 | **Pricing** | Product & Content | 8002 | 9002 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 6 | **Promotion** | Product & Content | 8011 | 9011 | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
-| 7 | **Checkout** | Commerce Flow | 8010 | 9010 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 8 | **Order** | Commerce Flow | 8004 | 9004 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 9 | **Payment** | Commerce Flow | 8005 | 9005 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 10 | **Warehouse** | Inventory | 8006 | 9006 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 11 | **Fulfillment** | Order Fulfillment | 8008 | 9008 | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
-| 12 | **Shipping** | Logistics | 8012 | 9012 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 13 | **Return** | Post-Purchase | 8013 | 9013 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 14 | **Loyalty** | Post-Purchase | 8014 | 9014 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 15 | **Gateway** | Platform | 80 | — | 🟢 Production | ✅ | — | ✅ | ✅ |
-| 16 | **Search** | Platform | 8017 | 9017 | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 17 | **Analytics** | Platform | 8019 | 9019 | 🟡 Near-prod | ✅ | — | ✅ | ✅ |
-| 18 | **Review** | Platform | 8016 | 9016 | 🟡 Near-prod | ✅ | ✅ | ✅ | — |
-| 19 | **Common Ops** | Platform | 8018 | 9018 | 🟢 Production | ✅ | ✅ | ✅ | — |
-| 20 | **Notification** | Operations | 8009 | 9009 | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
-| 21 | **Location** | Operations | 8007 | 9007 | 🟢 Production | ✅ | ✅ | — | — |
-| — | **Frontend** | UI (Next.js) | 3000 | — | — | — | — | — | — |
-| — | **Admin** | UI (React) | 3001 | — | — | — | — | — | — |
+| # | Service | Domain | HTTP | gRPC | Version | Maturity | Worker | Outbox | Idempotency | DLQ |
+|---|---------|--------|------|------|---------|----------|--------|--------|-------------|-----|
+| 1 | **Auth** | Identity & Access | 8000 | 9000 | `v1.2.8` | 🟢 Production | ✅ | ✅ | — | — |
+| 2 | **User** | Identity & Access | 8001 | 9001 | `user/v1.0.15` | 🟢 Production | ✅ | ✅ | ✅ | — |
+| 3 | **Customer** | CRM & Analytics | 8003 | 9003 | `v1.3.3` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 4 | **Catalog** | Product & Content | 8015 | 9015 | `v1.4.0` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 5 | **Pricing** | Product & Content | 8002 | 9002 | `v1.2.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 6 | **Promotion** | Product & Content | 8011 | 9011 | `v1.2.0` | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
+| 7 | **Checkout** | Commerce Flow | 8010 | 9010 | `v1.5.7` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 8 | **Order** | Commerce Flow | 8004 | 9004 | `v1.1.9` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 9 | **Payment** | Commerce Flow | 8005 | 9005 | `v1.2.9` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 10 | **Warehouse** | Inventory | 8006 | 9006 | `v1.2.6` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 11 | **Fulfillment** | Order Fulfillment | 8008 | 9008 | `v1.2.2` | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
+| 12 | **Shipping** | Logistics | 8012 | 9012 | `v1.2.3` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 13 | **Return** | Post-Purchase | 8013 | 9013 | `v1.1.4` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 14 | **Loyalty** | Post-Purchase | 8014 | 9014 | `v1.2.4` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 15 | **Gateway** | Platform | 80 | — | `v1.1.17` | 🟢 Production | ✅ | — | ✅ | ✅ |
+| 16 | **Search** | Platform | 8017 | 9017 | `v1.0.21` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 17 | **Analytics** | Platform | 8019 | 9019 | `analytics/v1.4.0` | 🟡 Near-prod | ✅ | — | ✅ | ✅ |
+| 18 | **Review** | Platform | 8016 | 9016 | `v1.3.1` | 🟡 Near-prod | ✅ | ✅ | ✅ | — |
+| 19 | **Common Ops** | Platform | 8018 | 9018 | `v1.2.3` | 🟢 Production | ✅ | ✅ | ✅ | — |
+| 20 | **Notification** | Operations | 8009 | 9009 | `notification/v1.2.0` | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
+| 21 | **Location** | Operations | 8007 | 9007 | `v1.0.10` | 🟢 Production | ✅ | ✅ | — | — |
+| — | **Frontend** | UI (Next.js 16) | 3000 | — | `v1.0.1` | — | — | — | — | — |
+| — | **Admin** | UI (React 18 + Vite) | 3001 | — | `main` (untagged) | — | — | — | — | — |
 
-**Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable
+**Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable  
+**Coverage (21 Go services)**: Worker 21/21 · Outbox 19/21 · Idempotency 19/21 · DLQ 16/21
 
 ---
 
@@ -118,12 +119,15 @@ This file is the canonical source of truth for per-service maturity, versions, a
 
 ---
 
-## Common Library (`common` v1.23.0)
+## Common Library (`common` v1.35.3)
 
 Shared packages used across services (`gitlab.com/ta-microservices/common`):
 
+> **Recent Highlights**: `v1.35.3` adds JWT multi-secret key rotation in `middleware/auth.go`; `v1.31.2` introduced CORS/rate-limit/SSRF/SQLi hardening, atomic idempotency claims, `singleflight` caching, and a default PG `MaxOpenConns` of 25.
+
 | Package | Purpose | Status |
 |---------|---------|--------|
+| `common/api/errors` | Shared protobuf/API error definitions | ✅ All services |
 | `common/outbox` | `Event`, `GormRepository`, `Worker` for transactional outbox | ✅ Adopted |
 | `common/idempotency` | `GormIdempotencyHelper` for event deduplication | ✅ Adopted |
 | `common/events` | Dapr publisher/consumer, entity event helpers, validator | ✅ All services |

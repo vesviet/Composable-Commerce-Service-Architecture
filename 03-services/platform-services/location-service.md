@@ -1,15 +1,16 @@
 # 🗺️ Location Service - Geographic Data & Delivery Zones
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8007/9007
 
 **Service Name**: Location Service  
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-29  
+**Version**: v1.0.10  
 **Production Ready**: 90%  
 **Code Review**: [Location Service Code Review Checklist](../../10-appendix/checklists/v2/location_service_code_review.md)  
+
+> **Related**: Updated operational overview in [operational-services/location-service.md](../operational-services/location-service.md).
 
 ---
 
@@ -60,8 +61,8 @@ location/
 ```
 
 ### Ports & Dependencies
-- **HTTP API**: `:8017` - REST endpoints
-- **gRPC API**: `:9017` - Internal communication
+- **HTTP API**: `:8007` - REST endpoints
+- **gRPC API**: `:9007` - Internal communication
 - **Database**: PostgreSQL (`location_db`)
 - **Cache**: Redis (db: 7) for location data caching
 - **Common Package**: `gitlab.com/ta-microservices/common@v1.8.3`
@@ -462,9 +463,9 @@ redis:
 
 server:
   http:
-    addr: 0.0.0.0:8015
+    addr: 0.0.0.0:8007
   grpc:
-    addr: 0.0.0.0:9015
+    addr: 0.0.0.0:9007
 
 location:
   country: VN

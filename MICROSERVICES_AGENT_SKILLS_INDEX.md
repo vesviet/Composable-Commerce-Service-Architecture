@@ -1,13 +1,13 @@
 # Microservices Agent Skills Index
 
-> Last Updated: 2026-03-27 (filesystem snapshot)
+> Last Updated: 2026-11-22 (filesystem snapshot)
 > Source folder: [`microservices-agent-skills/`](../microservices-agent-skills/)
 
 This file indexes the `microservices-agent-skills` pack used for development, review, and operations workflows in this repository.
 
 ## Snapshot
 
-- Skills: `22`
+- Skills: `23`
 - Workflows: `7` executable workflow docs (`workflows/*.md`, excluding `workflows/README.md`)
 - Rule packs: `1` (`rules/microservices.md`)
 - Environment config: `1` (`config/environment.sh`)
@@ -44,6 +44,7 @@ This file indexes the `microservices-agent-skills` pack used for development, re
 
 - `setup-gitops`: Configure/update GitOps manifests
 - `debug-k8s`: Investigate Kubernetes deployment/runtime issues
+- `debug-openclaw-telegram`: Debug OpenClaw Telegram bot health, gateway/auth errors, and safe homelab cleanup
 - `troubleshoot-service`: Debug service runtime failures
 - `rollback-deployment`: Safe rollback process for bad releases
 - `performance-profiling`: Profile and optimize service performance
@@ -58,6 +59,7 @@ This file indexes the `microservices-agent-skills` pack used for development, re
 - `create-agent-task`
 - `create-migration`
 - `debug-k8s`
+- `debug-openclaw-telegram`
 - `meeting-review`
 - `navigate-service`
 - `performance-profiling`

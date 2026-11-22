@@ -1,13 +1,12 @@
 # 👥 User Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8001/9001
 
 **Service Name**: User Service  
-**Version**: 1.0.16  
-**Last Updated**: 2026-03-12 
+**Version**: user/v1.0.15  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: ✅ 100%  
 
@@ -509,8 +508,8 @@ USER_DEFAULT_ROLES=user,viewer
 USER_CACHE_TTL=300
 
 # External Services
-USER_AUTH_SERVICE_ADDR=auth-service:9001
-USER_NOTIFICATION_SERVICE_ADDR=notification-service:9005
+USER_AUTH_SERVICE_ADDR=auth-service:9000
+USER_NOTIFICATION_SERVICE_ADDR=notification-service:9009
 
 # Audit
 USER_ENABLE_AUDIT_LOGGING=true

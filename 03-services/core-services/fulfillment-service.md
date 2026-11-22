@@ -1,13 +1,12 @@
 # 📦 Fulfillment Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8008/9008
 
 **Service Name**: Fulfillment Service
-**Version**: 1.1.0
-**Last Updated**: 2026-02-10
+**Version**: v1.2.2
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: ✅ 100%
 
@@ -73,8 +72,8 @@ The Fulfillment Service manages the end-to-end order fulfillment process, includ
 
 ### Docker
 - **Image**: `registry/ta-microservices/fulfillment`
-- **Ports**: 9000 (gRPC), 8000 (HTTP)
-- **Health check**: `grpc_health_probe -addr=:9000`
+- **Ports**: 9008 (gRPC), 8008 (HTTP)
+- **Health check**: `grpc_health_probe -addr=:9008`
 
 ### Kubernetes
 - **Namespace**: `ta-microservices`
@@ -122,7 +121,7 @@ The Fulfillment Service manages the end-to-end order fulfillment process, includ
 kubectl logs -f deployment/fulfillment
 
 # Test gRPC endpoint
-grpcurl -plaintext localhost:9000 list
+grpcurl -plaintext localhost:9008 list
 ```
 
 ## Changelog

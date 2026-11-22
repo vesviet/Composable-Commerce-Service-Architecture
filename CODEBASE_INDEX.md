@@ -1,17 +1,18 @@
 # 🗂️ Microservices Codebase Index
 
-> **Last Updated**: 2026-03-02 (post P0/P1 service maturity audit)  
+> **Last Updated**: 2026-11-22 (full workspace repo sync)  
 > **Standard:** Shopify / Shopee / Lazada Architecture Patterns  
-> **Stack**: Go 1.25 · Kratos v2 · PostgreSQL · Redis · Dapr · Kubernetes  
-> **Maturity**: 15/21 services 🟢 Production-ready · 6 services 🟡 Near-prod (see [SERVICE_INDEX.md](SERVICE_INDEX.md))
+> **Stack**: Go 1.25.5 · Kratos v2 · Next.js 16 · React 18 · PostgreSQL · Redis · Dapr · Kubernetes  
+> **Maturity**: 16/21 services 🟢 Production-ready · 5 services 🟡 Near-prod (see [SERVICE_INDEX.md](SERVICE_INDEX.md))
 
-This file is the canonical repository and codebase map. For per-service maturity, versions, and ports, use [SERVICE_INDEX.md](SERVICE_INDEX.md). For deployment state and GitOps health, use [`gitops/README.md`](../gitops/README.md) and the [GitOps review checklist](10-appendix/checklists/gitops/review_checklist.md).
+This file is the canonical repository and codebase map. For per-service maturity, versions, and ports, use [SERVICE_INDEX.md](SERVICE_INDEX.md). For deployment state and GitOps health, use [`gitops/README.md`](../gitops/README.md) and the [GitOps review checklist](10-appendix/checklists/gitops/review_checklist.md). Note: all 20 DB-backed Go services (all except `gateway`) also include a `cmd/migrate/` Goose migration CLI.
 
 ## 🏗️ Core Business Services
 These form the backbone of the e-commerce transaction and user domains:
 - **`auth`** — Identity & Authentication
   - API: HTTP/gRPC main server (`cmd/auth/`)
-  - Worker: Async event processing (`cmd/worker/`)
+  - Worker: Async Outbox/Event processing (`cmd/worker/`)
+  - Migrate: Goose DB migration CLI (`cmd/migrate/`)
 - **`user`** — Admin User Management & RBAC
   - API: HTTP/gRPC main server (`cmd/user/`)
   - Worker: Async Outbox processing (`cmd/worker/`)
@@ -58,6 +59,7 @@ These form the backbone of the e-commerce transaction and user domains:
 - **`loyalty-rewards`** — Points, Tiers, Rewards, Referrals
   - API: HTTP/gRPC main server (`cmd/loyalty-rewards/`)
   - Worker: Async Outbox/Event processing (`cmd/worker/`)
+  - Migrate & Tools: Goose migration CLI (`cmd/migrate/`), config test tool (`cmd/test_config/`)
 - **`review`** — Product Reviews, Ratings, Moderation
   - API: HTTP/gRPC main server (`cmd/review/`)
   - Worker: Async Outbox/Event processing (`cmd/worker/`)
@@ -77,13 +79,17 @@ These form the backbone of the e-commerce transaction and user domains:
 - **`gateway`** — API Gateway (Routing, Auth, Rate Limiting, Circuit Breaker)
   - API: HTTP main server (`cmd/gateway/`)
   - Worker: Background processing (`cmd/worker/`)
-- **`common`** — Shared Go Library v1.23.0 (`gitlab.com/ta-microservices/common`)
+- **`common`** — Shared Go Library `v1.35.3` (`gitlab.com/ta-microservices/common`)
 - **`common-operations`** — Admin/Support Aggregation API
-  - API: HTTP/gRPC main server (`cmd/operations/`)
+  - API: HTTP/gRPC main server (`cmd/common-operations/`)
   - Worker: Background processing (`cmd/worker/`)
+  - Migrate: Goose DB migration CLI (`cmd/migrate/`)
 - **`gitops`** — Kustomize, ArgoCD manifests, cluster config
-- **`frontend`** — Customer Next.js Web Application
-- **`admin`** — Backoffice React Application
+- **`frontend`** — Customer Next.js 16 + Ant Design Web Application (`v1.0.1`)
+- **`admin`** — Backoffice React 18 + Vite + Ant Design Application
+- **`docs`** — Platform documentation, ADRs, OpenAPI/event specs, workflows, and runbooks
+- **`gitlab-ci-templates`** — Shared GitLab CI/CD pipeline templates (`lint-test`, `build-image`, `update-gitops-image-tag`)
+- **`microservices-agent-skills`** — 23 AI skills + 7 operational workflows ([MICROSERVICES_AGENT_SKILLS_INDEX.md](MICROSERVICES_AGENT_SKILLS_INDEX.md))
 
 ## 🧬 Common Architectural Patterns
 1. **Clean Architecture:** `internal/biz` (Domain), `internal/data` (Repo), `internal/service` (API)

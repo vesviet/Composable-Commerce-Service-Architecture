@@ -1,13 +1,12 @@
 # 🔄 Return Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-20  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8013/9013
 
 **Service Name**: Return Service  
-**Version**: 1.0.6  
-**Last Updated**: 2026-02-20  
+**Version**: v1.1.4  
 **Review Status**: ✅ Production Ready  
 **Production Ready**: 100% (All critical issues resolved, dependencies updated)  
 
@@ -81,8 +80,8 @@ return/
 **Note**: All order-related models and repositories have been removed. Return Service now calls Order Service via gRPC to fetch order information. **Server entry point**: `cmd/return` (Kratos app + Wire); run with `make run` or `go run ./cmd/return -conf configs`. Health: `/health`, `/health/ready`, `/health/live`; metrics: `/metrics`.
 
 ### Ports & Endpoints
-- **HTTP API**: `:8006` - REST endpoints for customer service and the frontend
-- **gRPC API**: `:9006` - Internal service communication
+- **HTTP API**: `:8013` - REST endpoints for customer service and the frontend
+- **gRPC API**: `:9013` - Internal service communication
 - **Health Check**: `/api/v1/returns/health`
 
 ### Service Dependencies
@@ -600,8 +599,8 @@ RETURN_REDIS_PASSWORD=
 RETURN_REDIS_DB=3
 
 # Service Ports
-RETURN_HTTP_PORT=8006
-RETURN_GRPC_PORT=9006
+RETURN_HTTP_PORT=8013
+RETURN_GRPC_PORT=9013
 
 # Return Configuration
 RETURN_WINDOW_DAYS=30
@@ -611,10 +610,10 @@ RETURN_SHIPPING_LABEL_PROVIDER=shippo
 # External Services
 RETURN_ORDER_SERVICE_ADDR=order-service:9004
 RETURN_CUSTOMER_SERVICE_ADDR=customer-service:9003
-RETURN_PAYMENT_SERVICE_ADDR=payment-service:9007
-RETURN_WAREHOUSE_SERVICE_ADDR=warehouse-service:9010
-RETURN_SHIPPING_SERVICE_ADDR=shipping-service:9008
-RETURN_NOTIFICATION_SERVICE_ADDR=notification-service:9013
+RETURN_PAYMENT_SERVICE_ADDR=payment-service:9005
+RETURN_WAREHOUSE_SERVICE_ADDR=warehouse-service:9006
+RETURN_SHIPPING_SERVICE_ADDR=shipping-service:9012
+RETURN_NOTIFICATION_SERVICE_ADDR=notification-service:9009
 
 # Features
 RETURN_ENABLE_AUTO_APPROVAL=true
@@ -827,7 +826,7 @@ make api
 make run
 
 # Test return functionality
-curl -X POST http://localhost:8006/api/v1/returns \
+curl -X POST http://localhost:8013/api/v1/returns \
   -H "Content-Type: application/json" \
   -d '{"order_id":"test-order-id","reason":"defective","items":[...]}'
 ```

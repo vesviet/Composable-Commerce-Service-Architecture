@@ -1,13 +1,12 @@
 # 🌐 Gateway Service - Complete Documentation
 
 > **Owner**: Platform Team
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-11-22
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)
 > **Ports**: HTTP `80` | gRPC `81`
 
 **Service Name**: Gateway Service
-**Version**: 1.1.21
-**Last Updated**: 2026-03-18
+**Version**: v1.1.17
 **Review Status**: ✅ Reviewed
 **Production Ready**: 100%
 

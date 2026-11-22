@@ -1,13 +1,12 @@
 # 🔐 Auth Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-17  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8000/9000
 
 **Service Name**: Auth Service  
-**Version**: 1.1.1  
-**Last Updated**: 2026-02-17  
+**Version**: v1.2.8  
 **Review Status**: ✅ Reviewed (Feb 2026 — 0 P0, 3 P1 fixed, 5 P2 tracked)  
 **Production Ready**: 85%  
 
@@ -539,7 +538,7 @@ AUTH_REDIS_PASSWORD=
 # External Services
 AUTH_USER_SERVICE_ADDR=user-service:9001
 AUTH_CUSTOMER_SERVICE_ADDR=customer-service:9003
-AUTH_NOTIFICATION_SERVICE_ADDR=notification-service:9005
+AUTH_NOTIFICATION_SERVICE_ADDR=notification-service:9009
 
 # Features
 AUTH_ENABLE_AUDIT_LOGGING=true

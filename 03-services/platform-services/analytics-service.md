@@ -1,14 +1,15 @@
 # Analytics Service
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-02-15  
+> **Last Updated**: 2026-11-22  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
-> **Ports**: 8018/9018
+> **Ports**: 8019/9019
 
-**Version**: 1.2.3
-**Last Updated**: 2026-02-12
+**Version**: analytics/v1.4.0
 **Service Type**: Operational
 **Status**: Active - Production Ready
+
+> **Related**: Concise operational summary in [operational-services/analytics-service.md](../operational-services/analytics-service.md).
 
 ## Overview
 
