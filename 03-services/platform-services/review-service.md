@@ -1,15 +1,15 @@
 # ⭐ Review Service - Product Reviews & Moderation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8016/9016
 
 **Service Name**: Review Service
-**Version**: v1.3.1
+**Version**: v1.4.0
 **Review Status**: ✅ Production Ready
 **Production Ready**: 98%  
-**Common Package**: v1.35.3  
+**Common Package**: v1.37.0  
 
 ---
 

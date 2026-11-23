@@ -1,12 +1,12 @@
 # 📊 Analytics Service - Business Intelligence & Metrics
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: HTTP 8019 / gRPC 9019
 
 **Service Name**: Analytics Service  
-**Version**: analytics/v1.4.0  
+**Version**: v1.3.1  
 **Production Ready**: 85%  
 **Code Review**: [Analytics Service Review Checklist](../../10-appendix/workflow/analytics-review-checklist.md)  
 

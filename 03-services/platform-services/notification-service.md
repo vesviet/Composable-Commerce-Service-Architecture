@@ -1,12 +1,12 @@
 # 📧 Notification Service - Multi-Channel Messaging
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8009/9009
 
 **Service Name**: Notification Service  
-**Version**: notification/v1.2.0  
+**Version**: v1.2.0  
 **Production Ready**: 100% (Error mapping implemented, all quality gates passing)
 
 > **Related**: Concise operational overview in [operational-services/notification-service.md](../operational-services/notification-service.md).

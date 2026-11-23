@@ -1,12 +1,12 @@
 # 🏷️ Promotion Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8011/9011
 
 **Service Name**: Promotion Service
-**Version**: v1.2.0
+**Version**: v1.4.0
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: ✅ 100%
 

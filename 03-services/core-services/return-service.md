@@ -1,12 +1,12 @@
 # 🔄 Return Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8013/9013
 
 **Service Name**: Return Service  
-**Version**: v1.1.4  
+**Version**: v1.2.0  
 **Review Status**: ✅ Production Ready  
 **Production Ready**: 100% (All critical issues resolved, dependencies updated)  
 
@@ -629,7 +629,7 @@ RETURN_ENABLE_STORE_CREDIT=true
 ```go
 module gitlab.com/ta-microservices/return
 
-go 1.25.3
+go 1.27.4
 
 require (
     gitlab.com/ta-microservices/common v1.8.3

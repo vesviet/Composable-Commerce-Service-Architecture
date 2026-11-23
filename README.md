@@ -3,7 +3,7 @@
 > **Composable commerce platform** built on 21 Go microservices + 2 frontends (23 deployable services) with event-driven architecture.  
 > Handles the complete customer journey: **Browse → Search → Cart → Checkout → Pay → Fulfill → Ship → Return**.
 
-[![Go 1.25+](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://go.dev/)
+[![Go 1.27.4](https://img.shields.io/badge/Go-1.27.4-00ADD8?logo=go)](https://go.dev/)
 [![Kratos v2](https://img.shields.io/badge/Framework-Kratos_v2-blue)](https://go-kratos.dev/)
 [![Services](https://img.shields.io/badge/Services-23-green)]()
 [![GitOps](https://img.shields.io/badge/Deploy-GitOps_+_ArgoCD-orange)](https://argo-cd.readthedocs.io/)
@@ -134,7 +134,7 @@ graph TD
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | Go 1.25.5 · Kratos v2 (Google's microservice framework) |
+| **Backend** | Go 1.27.4 (21/21 Go services) · Kratos v2.9.2 (Google's microservice framework) |
 | **Frontend** | Next.js 16 + Ant Design (customer) · React 18 + Vite + Ant Design (admin) |
 | **Database** | PostgreSQL 15+ (per-service isolation) |
 | **Cache** | Redis 7+ (caching, sessions, distributed locks) |
@@ -142,15 +142,15 @@ graph TD
 | **Messaging** | Dapr PubSub (Redis Streams) |
 | **API** | gRPC (internal) + REST via gRPC-Gateway (external) |
 | **Deploy** | Docker · Kubernetes (k3d) · ArgoCD (GitOps) |
-| **Observability** | Prometheus · Grafana · Jaeger (OpenTelemetry) |
-| **Shared Library** | `common` v1.35.3 — outbox, idempotency, health, config, server, JWT key rotation, circuit breaker |
+| **Observability** | Prometheus · Grafana · OpenTelemetry (OTLP / Jaeger) |
+| **Shared Library** | `common` v1.37.0 — outbox, idempotency, health, config, server, JWT key rotation, circuit breaker (legacy Gin removed) |
 
 ---
 
 ## 🚀 Getting Started
 
 ```bash
-# Prerequisites: Go 1.25+, Docker, PostgreSQL 15+, Redis 7+, kubectl
+# Prerequisites: Go 1.27.4+, Docker, PostgreSQL 15+, Redis 7+, kubectl
 
 # 1. Clone & start infrastructure
 docker-compose up -d postgres redis consul
@@ -182,7 +182,7 @@ make api            # Generate proto code
 |---------|----------|
 | [**Service Index**](SERVICE_INDEX.md) | All 23 services (21 Go + 2 frontends) — ports, domains, versions, architecture patterns |
 | [**Codebase Index**](CODEBASE_INDEX.md) | All workspace repositories, entrypoints, and architectural patterns |
-| [**Agent Skills Index**](MICROSERVICES_AGENT_SKILLS_INDEX.md) | 23 AI skills and 7 operational workflows |
+| [**Agent Skills Index**](MICROSERVICES_AGENT_SKILLS_INDEX.md) | Global pack (`v5.10.0`) + 23 workspace skills & 7 workflows (`.agent/`) |
 | [**Architecture**](01-architecture/) | System design, event flows, data architecture |
 | [**Business Domains**](02-business-domains/) | DDD bounded contexts and domain models |
 | [**Service Docs**](03-services/) | Per-service implementation details |
@@ -209,4 +209,4 @@ make api            # Generate proto code
 
 ---
 
-*Last Updated: 2026-11-22 · Platform Team*
+*Last Updated: 2026-11-23 · Platform Team*

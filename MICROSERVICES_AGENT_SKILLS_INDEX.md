@@ -1,97 +1,80 @@
 # Microservices Agent Skills Index
 
-> Last Updated: 2026-11-22 (filesystem snapshot)
-> Source folder: [`microservices-agent-skills/`](../microservices-agent-skills/)
+> **Last Updated**: 2026-11-23 (synchronized with `microservices-agent-skills` `v5.10.0` & workspace `.agent/`)  
+> **Global Engineering Pack**: [`microservices-agent-skills/`](../microservices-agent-skills/) (`v5.10.0`)  
+> **Workspace Microservices Skills**: [`.agent/`](../.agent/)
 
-This file indexes the `microservices-agent-skills` pack used for development, review, and operations workflows in this repository.
+This workspace uses a two-layer agent skill setup: the portable **Global Engineering Pack** (`microservices-agent-skills v5.10.0`) paired with the **Workspace Microservices Skills** (`.agent/`) for day-to-day Go/Kratos/Dapr/GitOps development.
 
-## Snapshot
+---
 
-- Skills: `23`
-- Workflows: `7` executable workflow docs (`workflows/*.md`, excluding `workflows/README.md`)
-- Rule packs: `1` (`rules/microservices.md`)
-- Environment config: `1` (`config/environment.sh`)
+## Layer 1: Global Engineering Pack (`microservices-agent-skills` `v5.10.0`)
 
-## Skill Groups
+- **Pack Root**: [`microservices-agent-skills/`](../microservices-agent-skills/) ([`INDEX.md`](../microservices-agent-skills/INDEX.md))
+- **Catalog Scale**: `39` roles · `184` skills (`170` core + `14` overlay) · `25` workflows · `63` contracts · `17` packs · `21` overlays
+- **Microservices Pack & Overlays**:
+  - Team Pack: [`packs/ecommerce-team/manifest.yaml`](../microservices-agent-skills/packs/ecommerce-team/manifest.yaml)
+  - Go Stack Overlay: [`overlays/go-microservices/README.md`](../microservices-agent-skills/overlays/go-microservices/README.md) ([`go-conventions.md`](../microservices-agent-skills/overlays/go-microservices/rules/go-conventions.md))
+  - Platform Overlay (Rule-Only): [`overlays/ecommerce-microservices/README.md`](../microservices-agent-skills/overlays/ecommerce-microservices/README.md) ([`microservices-conventions.md`](../microservices-agent-skills/overlays/ecommerce-microservices/rules/microservices-conventions.md))
 
-### Development Skills
+---
 
-- `add-api-endpoint`: Add REST/gRPC endpoints using project patterns
-- `add-cron-job`: Add scheduled jobs to worker binaries
-- `add-event-handler`: Add event publishers/consumers via Dapr PubSub
-- `add-service-client`: Add service-to-service gRPC clients
-- `create-migration`: Create SQL migrations (Goose format)
-- `upgrade-common-lib`: Upgrade `common` library usage across services
+## Layer 2: Workspace Microservices Skills (`.agent/`)
 
-### Navigation And Understanding Skills
+- **Skills**: `23` (Go 1.27.4 / Kratos v2.9.2 / `common v1.37.0` / Dapr / GitOps)
+- **Workflows**: `7` executable workflow docs ([`.agent/workflows/`](../.agent/workflows/))
+- **Rule Pack**: [`.agent/rules/microservices.md`](../.agent/rules/microservices.md)
+- **Environment Helper**: [`.agent/config/environment.sh`](../.agent/config/environment.sh)
 
-- `navigate-service`: Explore service structure and key files
-- `service-structure`: Understand dual-binary architecture
-- `trace-event-flow`: Trace event-driven flows across services
-- `use-common-lib`: Reuse existing utilities from `common`
+### Skill Groups
 
-### Quality And Review Skills
+#### Development Skills (`6`)
 
-- `review-code`: Code review criteria and severity model (P0/P1/P2)
-- `review-service`: Full service review and release flow
-- `write-tests`: Unit/integration testing patterns and coverage flow
-- `commit-code`: Validation and commit workflow
-- `meeting-review`: Multi-perspective technical review format
-- `create-agent-task`: Create actionable AGENT task files
-- `process-agent-task`: Execute AGENT tasks end-to-end
+- [`add-api-endpoint`](../.agent/skills/add-api-endpoint/SKILL.md): Add REST/gRPC endpoints using project patterns and OpenAPI exposure
+- [`add-cron-job`](../.agent/skills/add-cron-job/SKILL.md): Add scheduled jobs to worker binaries
+- [`add-event-handler`](../.agent/skills/add-event-handler/SKILL.md): Add event publishers/consumers via Dapr PubSub with idempotency
+- [`add-service-client`](../.agent/skills/add-service-client/SKILL.md): Add service-to-service gRPC clients
+- [`create-migration`](../.agent/skills/create-migration/SKILL.md): Create SQL migrations (Goose format)
+- [`upgrade-common-lib`](../.agent/skills/upgrade-common-lib/SKILL.md): Upgrade `common` library usage across services
 
-### Operations And Reliability Skills
+#### Navigation And Understanding Skills (`4`)
 
-- `setup-gitops`: Configure/update GitOps manifests
-- `debug-k8s`: Investigate Kubernetes deployment/runtime issues
-- `debug-openclaw-telegram`: Debug OpenClaw Telegram bot health, gateway/auth errors, and safe homelab cleanup
-- `troubleshoot-service`: Debug service runtime failures
-- `rollback-deployment`: Safe rollback process for bad releases
-- `performance-profiling`: Profile and optimize service performance
+- [`navigate-service`](../.agent/skills/navigate-service/SKILL.md): Explore service structure and key files
+- [`service-structure`](../.agent/skills/service-structure/SKILL.md): Understand tri-binary architecture (`cmd/<service>`, `cmd/worker`, `cmd/migrate`)
+- [`trace-event-flow`](../.agent/skills/trace-event-flow/SKILL.md): Trace event-driven flows across services
+- [`use-common-lib`](../.agent/skills/use-common-lib/SKILL.md): Reuse existing utilities from `common`
 
-## Full Skill List
+#### Quality And Review Skills (`7`)
 
-- `add-api-endpoint`
-- `add-cron-job`
-- `add-event-handler`
-- `add-service-client`
-- `commit-code`
-- `create-agent-task`
-- `create-migration`
-- `debug-k8s`
-- `debug-openclaw-telegram`
-- `meeting-review`
-- `navigate-service`
-- `performance-profiling`
-- `process-agent-task`
-- `review-code`
-- `review-service`
-- `rollback-deployment`
-- `service-structure`
-- `setup-gitops`
-- `trace-event-flow`
-- `troubleshoot-service`
-- `upgrade-common-lib`
-- `use-common-lib`
-- `write-tests`
+- [`review-code`](../.agent/skills/review-code/SKILL.md): Code review criteria and severity model
+- [`review-service`](../.agent/skills/review-service/SKILL.md): Full service review and release flow
+- [`write-tests`](../.agent/skills/write-tests/SKILL.md): Unit/integration testing patterns and coverage flow
+- [`commit-code`](../.agent/skills/commit-code/SKILL.md): Validation and commit workflow
+- [`meeting-review`](../.agent/skills/meeting-review/SKILL.md): Multi-perspective technical review format
+- [`create-agent-task`](../.agent/skills/create-agent-task/SKILL.md): Create actionable AGENT task files
+- [`process-agent-task`](../.agent/skills/process-agent-task/SKILL.md): Execute AGENT tasks end-to-end
 
-## Workflow Index
+#### Operations And Reliability Skills (`6`)
 
-- `add-new-feature.md`
-- `build-deploy.md`
-- `hotfix-production.md`
-- `refactoring.md`
-- `service-review-release.md`
-- `setup-new-service.md`
-- `troubleshooting.md`
+- [`setup-gitops`](../.agent/skills/setup-gitops/SKILL.md): Configure/update GitOps manifests
+- [`debug-k8s`](../.agent/skills/debug-k8s/SKILL.md): Investigate Kubernetes deployment/runtime issues
+- [`debug-openclaw-telegram`](../.agent/skills/debug-openclaw-telegram/SKILL.md): Debug OpenClaw Telegram bot health, gateway/auth errors, and safe homelab cleanup
+- [`troubleshoot-service`](../.agent/skills/troubleshoot-service/SKILL.md): Debug service runtime failures
+- [`rollback-deployment`](../.agent/skills/rollback-deployment/SKILL.md): Safe rollback process for bad releases
+- [`performance-profiling`](../.agent/skills/performance-profiling/SKILL.md): Profile and optimize service performance
 
-## Supporting Files
+### Workflow Index (`7`)
 
-- Rule: [`microservices-agent-skills/rules/microservices.md`](../microservices-agent-skills/rules/microservices.md)
-- Workflow reference: [`microservices-agent-skills/workflows/README.md`](../microservices-agent-skills/workflows/README.md)
-- Environment helper: [`microservices-agent-skills/config/environment.sh`](../microservices-agent-skills/config/environment.sh)
+- [`add-new-feature.md`](../.agent/workflows/add-new-feature.md)
+- [`build-deploy.md`](../.agent/workflows/build-deploy.md)
+- [`hotfix-production.md`](../.agent/workflows/hotfix-production.md)
+- [`refactoring.md`](../.agent/workflows/refactoring.md)
+- [`service-review-release.md`](../.agent/workflows/service-review-release.md)
+- [`setup-new-service.md`](../.agent/workflows/setup-new-service.md)
+- [`troubleshooting.md`](../.agent/workflows/troubleshooting.md)
 
 ## Quick Links
 
 - Main codebase index: [CODEBASE_INDEX.md](CODEBASE_INDEX.md)
-- Skill pack overview: [`microservices-agent-skills/README.md`](../microservices-agent-skills/README.md)
+- Service catalog: [SERVICE_INDEX.md](SERVICE_INDEX.md)
+- Global pack overview: [`microservices-agent-skills/README.md`](../microservices-agent-skills/README.md)

@@ -1,12 +1,12 @@
 # 💳 Payment Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8005/9005
 
 **Service Name**: Payment Service  
-**Version**: v1.2.9  
+**Version**: v1.3.0  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: ✅ 100%  
 **PCI DSS Compliance**: ✅ Level 1 Certified  
@@ -871,7 +871,7 @@ reconciliation:
 ```go
 module gitlab.com/ta-microservices/payment
 
-go 1.25.3
+go 1.27.4
 
 require (
     gitlab.com/ta-microservices/common v1.9.5

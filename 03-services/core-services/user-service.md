@@ -1,12 +1,12 @@
 # 👥 User Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8001/9001
 
 **Service Name**: User Service  
-**Version**: user/v1.0.15  
+**Version**: v1.1.0  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: ✅ 100%  
 

@@ -30,8 +30,8 @@ infrastructure_stack:
     sidecar: Automatic injection
     
   runtime:
-    language: Go 1.25+
-    framework: Kratos v2
+    language: Go 1.27.4
+    framework: Kratos v2.9.2
     protocol: gRPC + HTTP
     
   data_layer:

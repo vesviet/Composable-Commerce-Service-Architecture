@@ -1,12 +1,12 @@
 # 🌐 Gateway Service - Complete Documentation
 
 > **Owner**: Platform Team
-> **Last Updated**: 2026-11-22
+> **Last Updated**: 2026-11-23
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)
 > **Ports**: HTTP `80` | gRPC `81`
 
 **Service Name**: Gateway Service
-**Version**: v1.1.17
+**Version**: v1.2.0
 **Review Status**: ✅ Reviewed
 **Production Ready**: 100%
 
@@ -38,7 +38,7 @@ Gateway Service is the **API Gateway** for the entire e-commerce platform, actin
 - **🛡️ Security**: CSRF protection (HMAC double-submit), rate limiting, CORS, input validation, response sanitization, header injection prevention
 - **⚖️ Load Balancing**: Intelligent routing with health checks and circuit breakers
 - **📊 Request Transformation**: Body transformation, header manipulation, pagination normalization
-- **📈 Monitoring**: Prometheus metrics, Jaeger tracing, structured logging, error monitoring
+- **📈 Monitoring**: Prometheus metrics, OpenTelemetry tracing (W3C TraceContext/Baggage), structured logging, error monitoring
 - **🔄 Circuit Breaker**: Fault tolerance and exponential-backoff retries with jitter
 - **💾 Smart Caching**: Redis-based caching with singleflight (cache stampede prevention), per-endpoint TTL strategies, and mutation-based invalidation
 - **📝 Audit Logging**: Admin action tracking
@@ -453,6 +453,12 @@ docker build -t gateway-service .
 
 ## 📈 Recent Updates
 
+### v1.2.0 (2026-11-23)
+- ✅ Upgraded to **Go 1.27.4**, `common v1.37.0`, and cascaded all 20 internal `ta-microservices/*` modules (including `analytics` admin dashboard stats protobufs).
+- ✅ Migrated tracing from deprecated `opentracing-go` / `uber/jaeger-client-go` to `go.opentelemetry.io/otel` SDK with W3C TraceContext/Baggage propagation.
+- ✅ Hardened security defaults: fail-closed JWT/CORS config validation, expanded `StripUntrustedHeaders` across Kratos and legacy proxies, and properly escaped JSON error payloads.
+- ✅ Added `whitelist_ips` rate-limiter bypass, `/api/v1/analytics/` & notification HTTP list routes, Redis `3s` read/write timeouts, nil-cache guards, idempotent `Stop()` cleanup, `.golangci.yml` v2, and `golang:1.27.4-alpine` / `alpine:3.21` Dockerfile.
+
 ### v1.1.21 (2026-03-18)
 - ✅ Fixed `NOAUTH` error in Rate Limiter observability setup by properly reading Redis Password from environment.
 - ✅ Resolved `gateway.yaml` route collision panic on `/api/v1/ratings/` prefix by merging duplicate definitions.
@@ -491,7 +497,7 @@ docker build -t gateway-service .
 ---
 
 **Service Status**: 🟢 Production Ready
-**Last Code Review**: 2026-03-18
+**Last Code Review**: 2026-11-23
 **Critical Issues (P0)**: 0
 **High Issues (P1)**: 0
 **Build**: ✅ golangci-lint 0 warnings, go build passes

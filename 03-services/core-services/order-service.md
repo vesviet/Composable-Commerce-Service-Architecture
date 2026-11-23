@@ -1,12 +1,12 @@
 # 📦 Order Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8004/9004
 
 **Service Name**: Order Service  
-**Version**: v1.1.9  
+**Version**: v1.4.0  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: 🟢 **READY** - All systems operational  
 **Build**: Succeeds with `go build ./...` and `make build`; dependencies use `go get` (no `replace` in go.mod).  

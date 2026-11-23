@@ -1,12 +1,12 @@
 # 📦 Catalog Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8015/9015
 
 **Service Name**: Catalog Service  
-**Version**: v1.4.0  
+**Version**: v1.5.0  
 **Review Status**: ✅ COMPLETED - Production Ready  
 **Production Ready**: 100%  
 **Code Review Date**: 2026-03-05  
@@ -797,7 +797,7 @@ events:
 ```go
 module gitlab.com/ta-microservices/catalog
 
-go 1.25.3
+go 1.27.4
 
 require (
     gitlab.com/ta-microservices/common v1.8.0

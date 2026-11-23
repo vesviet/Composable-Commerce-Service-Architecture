@@ -1,12 +1,12 @@
 # 🔐 Auth Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8000/9000
 
 **Service Name**: Auth Service  
-**Version**: v1.2.8  
+**Version**: v1.4.0  
 **Review Status**: ✅ Reviewed (Feb 2026 — 0 P0, 3 P1 fixed, 5 P2 tracked)  
 **Production Ready**: 85%  
 

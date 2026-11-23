@@ -208,17 +208,17 @@ sequenceDiagram
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | Go 1.25 · Kratos v2 (Google's microservice framework) |
-| **Frontend** | Next.js (customer) · React + Ant Design (admin) |
+| **Backend** | Go 1.27.4 · Kratos v2.9.2 (Google's microservice framework) |
+| **Frontend** | Next.js 16 (customer) · React 18 + Vite + Ant Design (admin) |
 | **Database** | PostgreSQL 15+ (per-service isolation) |
 | **Cache** | Redis 7+ (caching, sessions, distributed locks) |
 | **Search** | Elasticsearch 8.11+ |
 | **Messaging** | Dapr PubSub (Redis Streams) + Transactional Outbox |
 | **API** | gRPC (internal) + REST via gRPC-Gateway (external) |
 | **Deploy** | Docker · Kubernetes (k3d) · ArgoCD (GitOps) |
-| **Observability** | Prometheus · Grafana · Jaeger (OpenTelemetry) |
+| **Observability** | Prometheus · Grafana · OpenTelemetry (OTLP / Jaeger) |
 | **Service Discovery** | Consul |
-| **Shared Library** | `common` — outbox, idempotency, health, config, gRPC factories |
+| **Shared Library** | `common` v1.37.0 — outbox, idempotency, health, config, gRPC factories |
 
 ### Architecture Layers
 

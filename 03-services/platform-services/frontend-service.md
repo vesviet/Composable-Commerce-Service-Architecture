@@ -1,7 +1,7 @@
 # 🌐 Frontend Services - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 3000 (Customer Frontend) / 3001 (Admin Dashboard)
 

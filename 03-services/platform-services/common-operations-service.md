@@ -1,12 +1,12 @@
 # ⚙️ Common Operations Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8018/9018
 
 **Service Name**: Common Operations Service
-**Version**: v1.2.3
+**Version**: v1.3.0
 **Review Status**: 🔄 Active
 **Production Ready**: ✅ Active
 
@@ -128,7 +128,7 @@ Common-Operations Service provides task orchestration, bulk operations (import/e
 ## Development
 
 ### Local Setup
-1. **Prerequisites**: Go 1.25+, Docker, PostgreSQL, Redis, Dapr (optional for events)
+1. **Prerequisites**: Go 1.27.4+, Docker, PostgreSQL, Redis, Dapr (optional for events)
 2. **Config**: Copy/adjust `configs/config.yaml`; set database source and optional Redis
 3. **Migrations**: `make migrate-up` (requires `DATABASE_URL` or script)
 4. **Run**: `make run` (from repo root: `go run ./cmd/operations -conf ./configs`)

@@ -1,11 +1,11 @@
 # Analytics Service
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8019/9019
 
-**Version**: analytics/v1.4.0
+**Version**: v1.3.1
 **Service Type**: Operational
 **Status**: Active - Production Ready
 
@@ -754,7 +754,7 @@ The service used `internal/domain`, `internal/usecase`, and `internal/repository
 ## Development
 
 ### Local Setup
-1. **Prerequisites**: Go 1.25+, Docker, PostgreSQL, Redis
+1. **Prerequisites**: Go 1.27.4+, Docker, PostgreSQL, Redis
 2. **Configuration**: Copy `.env.example` to `.env`
 3. **Database**: Run migrations with `make migrate-up`
 4. **Services**: Start dependencies via docker-compose

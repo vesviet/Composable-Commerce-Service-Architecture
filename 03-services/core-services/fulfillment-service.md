@@ -1,12 +1,12 @@
 # 📦 Fulfillment Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8008/9008
 
 **Service Name**: Fulfillment Service
-**Version**: v1.2.2
+**Version**: v1.3.0
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: ✅ 100%
 
@@ -99,7 +99,7 @@ The Fulfillment Service manages the end-to-end order fulfillment process, includ
 ## Development
 
 ### Local Setup
-1. Prerequisites: Go 1.25+, Docker, PostgreSQL
+1. Prerequisites: Go 1.27.4+, Docker, PostgreSQL
 2. Clone repo and setup dependencies
 3. Configure environment variables
 4. Run `make run` to start service

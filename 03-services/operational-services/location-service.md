@@ -1,12 +1,12 @@
 # 🗺️ Location Service - Geographic Data & Delivery Zones
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: HTTP 8007 / gRPC 9007
 
 **Service Name**: Location Service  
-**Version**: v1.0.10  
+**Version**: v1.1.0  
 **Production Ready**: 90%  
 **Code Review**: [Location Service Review Checklist](../../10-appendix/workflow/location-review-checklist.md)  
 

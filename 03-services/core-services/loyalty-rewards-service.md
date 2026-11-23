@@ -1,12 +1,12 @@
 # 🏅 Loyalty Rewards Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8014/9014
 
 **Service Name**: Loyalty Rewards Service
-**Version**: v1.2.4
+**Version**: v1.3.0
 **Review Status**: 🔄 Active
 **Production Ready**: ⚠️ Pending Review
 
@@ -117,7 +117,7 @@ The Loyalty Rewards Service manages customer loyalty programs for the microservi
 ## Development
 
 ### Local Setup
-1. Prerequisites: Go 1.25+, Docker, PostgreSQL, Redis
+1. Prerequisites: Go 1.27.4+, Docker, PostgreSQL, Redis
 2. Clone repository and setup configs
 3. Run database migrations
 4. Start service with `make run`

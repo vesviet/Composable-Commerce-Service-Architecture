@@ -1,12 +1,12 @@
 # Notification Service
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-22  
+> **Last Updated**: 2026-11-23  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: HTTP 8009 / gRPC 9009
 
 **Service Name**: Notification Service  
-**Version**: notification/v1.2.0
+**Version**: v1.2.0
 
 > **Deep Dive**: Full architecture and channel details in [platform-services/notification-service.md](../platform-services/notification-service.md).
 
