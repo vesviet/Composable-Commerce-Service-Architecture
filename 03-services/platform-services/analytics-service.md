@@ -16,7 +16,7 @@
 The Analytics Service provides business intelligence and analytics capabilities for the e-commerce platform. It aggregates data from multiple services via Dapr PubSub to deliver real-time and historical insights on revenue, customer behavior, product performance, inventory, and operational metrics.
 
 > [!NOTE]
-> **Remediation Status (2026-02-12)**: Phase 2 remediation complete — 20 of 26 issues addressed. Phase 1 (12 fixes) + Phase 2 (8 fixes): trace_id/cart_id propagation, schema versioning, fail-closed validation, real conversion funnel, EnhancedEventProcessor enabled with bounded dedup, reconciliation service, and data retention with table partitioning. See [§ Remediation Status](#remediation-status) for details.
+> **Remediation Status (2026-11-23)**: Phase 3 remediation complete — operational analytics mock responses replaced with parameterized PostgreSQL queries, `AggregateMarketingAnalytics` & `GetEventProcessingMetrics` implemented, real-time Redis `HINCRBY` product metric counters enabled, and Phase 1–2 hardening preserved.
 
 ## Architecture
 

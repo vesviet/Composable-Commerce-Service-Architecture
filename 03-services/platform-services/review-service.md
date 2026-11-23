@@ -7,9 +7,9 @@
 
 **Service Name**: Review Service
 **Version**: v1.4.1
-**Review Status**: ✅ Production Ready
+**Review Status**: ✅ Production Ready (Outbox + Idempotency + DLQ)  
 **Production Ready**: 98%  
-**Common Package**: v1.37.0  
+**Common Package**: v1.37.1  
 
 ---
 

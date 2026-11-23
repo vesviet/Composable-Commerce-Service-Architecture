@@ -160,7 +160,7 @@ graph LR
 ### Documentation Metrics
 - **Documentation Coverage**: 23/23 services documented ✅
 - **Architecture Compliance**: Clean Architecture + DI (Wire) across all services ✅
-- **Event Infrastructure**: Outbox pattern in 19/21 services, idempotency in 19/21 services, DLQ in 16/21 services ✅
+- **Event Infrastructure**: Outbox pattern in 19/21 services, idempotency in 19/21 services, DLQ in 17/21 services ✅
 - **Testing Coverage**: Needs improvement (target 80%+)
 
 ---
@@ -288,7 +288,7 @@ graph LR
 **Documentation Version**: 2.2.0  
 **Last Updated**: 2026-11-23  
 **Coverage**: 23/23 services documented  
-**Maturity**: 19/21 Go services production-ready, 2 near-production — see [SERVICE_INDEX.md](../SERVICE_INDEX.md)  
+**Maturity**: 21/21 Go services production-ready — see [SERVICE_INDEX.md](../SERVICE_INDEX.md)  
 **Review Status**: ✅ Audited and cleaned up (March 2, 2026)
 
 **Quick Reference**: See [SERVICE_INDEX.md](../SERVICE_INDEX.md) for complete service catalog

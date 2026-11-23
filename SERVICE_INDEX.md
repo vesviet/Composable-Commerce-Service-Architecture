@@ -27,8 +27,8 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | 14 | **Loyalty** | Post-Purchase | 8014 | 9014 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 15 | **Gateway** | Platform | 80 | — | `v1.2.1` | 🟢 Production | ✅ | — | ✅ | ✅ |
 | 16 | **Search** | Platform | 8017 | 9017 | `v1.1.0` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 17 | **Analytics** | Platform | 8019 | 9019 | `v1.3.1` | 🟡 Near-prod | ✅ | — | ✅ | ✅ |
-| 18 | **Review** | Platform | 8016 | 9016 | `v1.4.1` | 🟡 Near-prod | ✅ | ✅ | ✅ | — |
+| 17 | **Analytics** | Platform | 8019 | 9019 | `v1.3.1` | 🟢 Production | ✅ | — | ✅ | ✅ |
+| 18 | **Review** | Platform | 8016 | 9016 | `v1.4.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 19 | **Common Ops** | Platform | 8018 | 9018 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | — |
 | 20 | **Notification** | Operations | 8009 | 9009 | `v1.2.0` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 21 | **Location** | Operations | 8007 | 9007 | `v1.1.1` | 🟢 Production | ✅ | ✅ | — | — |
@@ -36,8 +36,8 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | — | **Admin** | UI (React 18 + Vite) | 3001 | — | `v1.0.0` | — | — | — | — | — |
 
 **Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable  
-**Coverage (21 Go services)**: Worker 21/21 · Outbox 19/21 · Idempotency 19/21 · DLQ 16/21  
-**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; all 21/21 Go services pin `common v1.37.1`). Total API & schema footprint: `525` Proto RPCs and `341` Goose SQL migrations. Remaining `🟡 Near-prod` services (2/21): `analytics` (pending Phase 3 remediation / cross-service stubs & outbox) and `review` (pending DLQ).
+**Coverage (21 Go services)**: Worker 21/21 · Outbox 19/21 · Idempotency 19/21 · DLQ 17/21  
+**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; all 21/21 Go services pin `common v1.37.1`). Total API & schema footprint: `525` Proto RPCs and `342` Goose SQL migrations. All 21/21 Go services are 🟢 Production-ready (`analytics` is a passive event consumer with Outbox N/A).
 
 ---
 
