@@ -6,7 +6,7 @@
 > **Ports**: 3000 (Customer Frontend) / 3001 (Admin Dashboard)
 
 **Services**: Admin Dashboard & Customer Frontend  
-**Version**: v1.1.0 (Frontend — Next.js 16) · v1.0.0 (Admin — React 18 + Vite)  
+**Version**: v1.1.0 (Frontend — Next.js 16 + React 19) · v1.0.0 (Admin — React 19 + Vite)  
 **Review Status**: 🟡 In Progress (Both services need completion)  
 **Production Ready**: 70% (Admin: 75%, Customer: 70%)  
 

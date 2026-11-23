@@ -1,7 +1,7 @@
 # 📦 Service Index
 
 > **Last Updated**: 2026-11-23 (sync with workspace repos & `common` v1.37.1) | **Total**: 21 Go services + 2 frontends  
-> **Stack**: Go 1.27.4 (21/21 Go services) · Kratos v2.9.2 · `common` v1.37.1 · Next.js 16 · React 18 · PostgreSQL · Redis · Dapr · Kubernetes
+> **Stack**: Go 1.27.4 (21/21 Go services) · Kratos v2.9.2 · `common` v1.37.1 · Next.js 16 · React 19 · PostgreSQL · Redis · Dapr · Kubernetes
 
 ---
 
@@ -33,7 +33,7 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | 20 | **Notification** | Operations | 8009 | 9009 | `v1.2.0` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 21 | **Location** | Operations | 8007 | 9007 | `v1.1.1` | 🟢 Production | ✅ | ✅ | — | — |
 | — | **Frontend** | UI (Next.js 16) | 3000 | — | `v1.1.0` | — | — | — | — | — |
-| — | **Admin** | UI (React 18 + Vite) | 3001 | — | `v1.0.0` | — | — | — | — | — |
+| — | **Admin** | UI (React 19 + Vite) | 3001 | — | `v1.0.0` | — | — | — | — | — |
 
 **Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable  
 **Coverage (21 Go services)**: Worker 21/21 · Outbox 19/21 · Idempotency 19/21 · DLQ 17/21  

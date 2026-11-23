@@ -2,7 +2,7 @@
 
 > **Last Updated**: 2026-11-23 (full 30-repository codebase index)  
 > **Standard:** Shopify / Shopee / Lazada Architecture Patterns  
-> **Stack**: Go 1.27.4 (21/21 Go services + `common`) · Kratos v2.9.2 · `common` v1.37.1 · OpenTelemetry · Next.js 16 · React 18 · PostgreSQL · Redis · Elasticsearch · Dapr · Kubernetes  
+> **Stack**: Go 1.27.4 (21/21 Go services + `common`) · Kratos v2.9.2 · `common` v1.37.1 · OpenTelemetry · Next.js 16 · React 19 · PostgreSQL · Redis · Elasticsearch · Dapr · Kubernetes  
 > **Maturity**: 21/21 services 🟢 Production-ready (see [SERVICE_INDEX.md](SERVICE_INDEX.md))
 
 This file is the canonical repository and codebase map. For per-service maturity, versions, and ports, use [SERVICE_INDEX.md](SERVICE_INDEX.md). For deployment state and GitOps health, use [`gitops/README.md`](../gitops/README.md) and the [GitOps review checklist](10-appendix/checklists/gitops/review_checklist.md). Note: all 20 DB-backed Go services (all except `gateway`) also include a `cmd/migrate/` Goose migration CLI.
@@ -12,7 +12,7 @@ This file is the canonical repository and codebase map. For per-service maturity
 - **21 Go Services** (`100%` on Go `1.27.4`, Kratos `v2.9.2`, `common v1.37.1`, OpenTelemetry, `go-redis/v9`, `0` legacy Gin)
 - **525 Proto RPCs** across 21 Go services · **342 Goose SQL migrations** across 20 DB-backed services
 - **1 Shared Go Library**: `common v1.37.1` (`23` packages; pinned by all 21 Go services)
-- **2 Frontend Apps**: `frontend` (`v1.1.0`, Next.js 16 + React 18) · `admin` (`v1.0.0`, React 18 + Vite)
+- **2 Frontend Apps**: `frontend` (`v1.1.0`, Next.js 16 + React 19) · `admin` (`v1.0.0`, React 19 + Vite)
 - **6 Supporting Repos**: `gitops`, `gitlab-ci-templates`, `docs`, `qa-auto`, `microservices-agent-skills` (`v5.10.0`), `vesviet`
 
 ## 🏗️ Core Business Services
@@ -110,7 +110,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
 - **`gitops`** — Kustomize, ArgoCD manifests, cluster config (`6fbcb24c`: Go 1.27.4 rollout ConfigMaps, NetworkPolicies, and overlays)
 - **`frontend`** — Customer Next.js 16 + Ant Design Web Application (`v1.1.0`)
-- **`admin`** — Backoffice React 18 + Vite + Ant Design Application (`v1.0.0`)
+- **`admin`** — Backoffice React 19 + Vite + Ant Design Application (`v1.0.0`)
 - **`qa-auto`** — Automated E2E / QA test suite (Playwright)
 - **`docs`** — Platform documentation, ADRs, OpenAPI/event specs, workflows, and runbooks
 - **`gitlab-ci-templates`** — Shared GitLab CI/CD pipeline templates (`lint-test` on `golang:1.27.4-alpine`, `lint-test-frontend` on `node:22-alpine` with enforced strict `npm ci` gates, `build-image`, `update-gitops-image-tag`)

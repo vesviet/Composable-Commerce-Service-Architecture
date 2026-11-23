@@ -11,7 +11,7 @@
 
 ## Overview
 
-The Admin Service is a comprehensive administrative panel built with React 18, Vite, and Ant Design. It provides a full-featured interface for managing all aspects of the e-commerce platform including products, orders, customers, inventory, pricing, promotions, and system settings. The service serves as the primary tool for administrators to manage daily operations and monitor business performance.
+The Admin Service is a comprehensive administrative panel built with React 19, Vite, and Ant Design. It provides a full-featured interface for managing all aspects of the e-commerce platform including products, orders, customers, inventory, pricing, promotions, and system settings. The service serves as the primary tool for administrators to manage daily operations and monitor business performance.
 
 ## Architecture
 
