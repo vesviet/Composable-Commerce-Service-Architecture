@@ -811,7 +811,7 @@ Service level agreements for security operations:
 - **[System Overview](system-overview.md)** - Overall system architecture
 - **[API Architecture](api-architecture.md)** - API security standards
 - **[Operations Security](../06-operations/security/)** - Operational security procedures
-- **[Development Security](../07-development/security/)** - Secure development practices
+- **[Development Security](../06-operations/security/README.md)** - Secure development practices
 
 ---
 

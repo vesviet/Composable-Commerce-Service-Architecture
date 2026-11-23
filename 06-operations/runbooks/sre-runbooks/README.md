@@ -187,9 +187,9 @@ curl http://localhost:8500/v1/health/service/SERVICE-NAME
 
 - [API Contracts](../../../04-apis/openapi/) - OpenAPI specifications
 - [Event Contracts](../../../04-apis/event-schemas/) - JSON Schema event definitions
-- [Architecture Decisions](../adr/) - ADR documents
-- [Design Docs](../design/) - Technical design documents
-- [DDD Context Map](../ddd/context-map.md) - Domain boundaries
+- [Architecture Decisions](../../../08-architecture-decisions/README.md) - ADR documents
+- [Design Docs](../../../01-architecture/README.md) - Technical design documents
+- [DDD Context Map](../../../02-business-domains/README.md) - Domain boundaries
 
 ---
 

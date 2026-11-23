@@ -660,13 +660,13 @@ echo "=== Alert Maintenance Complete ==="
 ## 📚 Related Documentation
 
 ### **Operational Documentation**
-- [Monitoring Overview](../monitoring/README.md) - Monitoring and alerting
-- [Security Operations](../security/README.md) - Security procedures
+- [Monitoring Overview](../../monitoring/README.md) - Monitoring and alerting
+- [Security Operations](../../security/README.md) - Security procedures
 - [Incident Response](../incident-response/README.md) - Incident procedures
 
 ### **Service Documentation**
 - [Service Runbooks](../sre-runbooks/README.md) - Service-specific procedures
-- [Service Documentation](../../03-services/README.md) - Service details
+- [Service Documentation](../../../03-services/README.md) - Service details
 
 ---
 

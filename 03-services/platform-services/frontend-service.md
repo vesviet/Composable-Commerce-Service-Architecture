@@ -359,7 +359,7 @@ const CheckoutFlow = () => {
 
 | Component | Admin Dashboard | Customer Frontend | Purpose |
 |-----------|-----------------|-------------------|---------|
-| **Framework** | React 18 | Next.js 14 | UI framework |
+| **Framework** | React 19 | Next.js 16 + React 19 | UI framework |
 | **Build Tool** | Vite | Next.js (built-in) | Development/build |
 | **Language** | TypeScript | TypeScript | Type safety |
 | **Styling** | Tailwind CSS | Tailwind CSS | CSS framework |

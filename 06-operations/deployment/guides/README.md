@@ -19,7 +19,7 @@ This section contains essential deployment guides and best practices for the mic
 
 ### 🎯 What You'll Find Here
 - **[Quick Action Guide](./QUICK_ACTION_GUIDE.md)** - Fast deployment procedures
-- **[Service Configuration](./service-configuration-guide.md)** - Service setup and configuration
+- ****Service Configuration** *(planned)*** - Service setup and configuration
 
 ---
 
@@ -62,7 +62,7 @@ argocd app get service-name
 
 ### **Essential Guides**
 - **[Quick Action Guide](./QUICK_ACTION_GUIDE.md)** - Fast deployment commands
-- **[Service Configuration](./service-configuration-guide.md)** - Service setup procedures
+- ****Service Configuration** *(planned)*** - Service setup procedures
 
 ---
 
@@ -114,7 +114,7 @@ kubectl logs -f deployment/service-name
 - When a service needs to communicate with other services
 - Khi troubleshoot connection issues
 
-### 3. [Configuration Best Practices](./configuration-best-practices.md)
+### 3. **Configuration Best Practices** *(planned)*
 **Purpose**: Best practices for configuring microservices
 
 **Main contents**:
@@ -136,18 +136,18 @@ kubectl logs -f deployment/service-name
 ## 🎯 Quick Start Guide
 
 ### For New Services
-1. **Read [Service Configuration Guide](./service-configuration-guide.md)** to understand the standard structure
+1. **Read **Service Configuration Guide** *(planned)*** to understand the standard structure
 2. **Copy a template** from a similar service (for example: `customer-service`)
 3. **Update configuration** theo service-specific requirements
-4. **Review [Common Service Dependencies](./common-service-dependencies.md)** to configure dependencies
-5. **Apply [Configuration Best Practices](./configuration-best-practices.md)**
+4. **Review **Common Service Dependencies** *(planned)*** to configure dependencies
+5. **Apply **Configuration Best Practices** *(planned)***
 6. **Validate configuration** using `helm template` and `kubectl --dry-run`
 
 ### For Existing Services
-1. **Review configuration** using [Config Review Checklist](../argocd/applications/CONFIG_REVIEW_CHECKLIST.md)
-2. **Standardize configuration** theo [Config Standardization Checklist](../argocd/applications/CONFIG_STANDARDIZATION_CHECKLIST.md)
-3. **Apply best practices** from [Configuration Best Practices](./configuration-best-practices.md)
-4. **Update dependencies** theo [Common Service Dependencies](./common-service-dependencies.md)
+1. **Review configuration** using [Config Review Checklist](../../../10-appendix/checklists/gitops/review_checklist.md)
+2. **Standardize configuration** theo **Config Standardization Checklist** *(planned)*
+3. **Apply best practices** from **Configuration Best Practices** *(planned)*
+4. **Update dependencies** theo **Common Service Dependencies** *(planned)*
 5. **Test and validate** changes
 
 ---
@@ -155,8 +155,8 @@ kubectl logs -f deployment/service-name
 ## 🔍 Configuration Review Process
 
 ### 1. Pre-Review Preparation
-- [ ] Read [Service Configuration Guide](./service-configuration-guide.md)
-- [ ] Prepare [Config Review Checklist](../argocd/applications/CONFIG_REVIEW_CHECKLIST.md)
+- [ ] Read **Service Configuration Guide** *(planned)*
+- [ ] Prepare [Config Review Checklist](../../../10-appendix/checklists/gitops/review_checklist.md)
 - [ ] Identify service category (standard, high-traffic, worker)
 
 ### 2. Configuration Review
@@ -193,21 +193,21 @@ kubectl logs -f deployment/service-name
 
 ### 1. Configuration Issues
 **Issue**: Service does not start
-**Solution**: Check [Service Configuration Guide](./service-configuration-guide.md) section "Common Issues"
+**Solution**: Check **Service Configuration Guide** *(planned)* section "Common Issues"
 
 **Issue**: Health checks fail
-**Solution**: Review health-check configuration in [Configuration Best Practices](./configuration-best-practices.md)
+**Solution**: Review health-check configuration in **Configuration Best Practices** *(planned)*
 
 ### 2. Dependency Issues
 **Issue**: Cannot connect to database/Redis  
-**Solution**: Check [Common Service Dependencies](./common-service-dependencies.md) section "Common Issues"
+**Solution**: Check **Common Service Dependencies** *(planned)* section "Common Issues"
 
 **Issue**: Service discovery is not working
 **Solution**: Verify Consul configuration and FQDN usage
 
 ### 3. Resource Issues
 **Issue**: Pod was OOMKilled
-**Solution**: Review resource allocation in [Configuration Best Practices](./configuration-best-practices.md)
+**Solution**: Review resource allocation in **Configuration Best Practices** *(planned)*
 
 **Issue**: CPU throttling  
 **Solution**: Adjust CPU limits theo service category
@@ -327,9 +327,9 @@ kubectl describe secret {service-name}-secret
 ## 📚 Additional Resources
 
 ### Internal Documentation
-- [System Architecture Overview](../../SYSTEM_ARCHITECTURE_OVERVIEW.md)
-- [Common Package Documentation](../../common/README.md)
-- [ArgoCD Applications](../../argocd/applications/)
+- [System Architecture Overview](../../../01-architecture/system-overview.md)
+- [Common Package Documentation](../../../../common/README.md)
+- [ArgoCD Applications](../../../../gitops/README.md)
 
 ### External Resources
 - [Kubernetes Documentation](https://kubernetes.io/docs/)

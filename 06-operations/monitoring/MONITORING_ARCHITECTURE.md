@@ -463,15 +463,15 @@ scrape_configs:
 ## 📚 Related Documentation
 
 ### **Implementation Guides**
-- [Metrics Implementation](./METRICS.md) - Detailed metrics setup
-- [Logging Implementation](./LOGGING.md) - ELK stack setup
-- [Tracing Implementation](./TRACING.md) - Jaeger setup
+- **Metrics Implementation** *(planned)* - Detailed metrics setup
+- **Logging Implementation** *(planned)* - ELK stack setup
+- **Tracing Implementation** *(planned)* - Jaeger setup
 - [Alerting Setup](./ALERTING.md) - Alert configuration
 
 ### **Operations**
-- [Dashboard Catalog](./DASHBOARDS.md) - Available dashboards
+- **Dashboard Catalog** *(planned)* - Available dashboards
 - [Troubleshooting](../platform/TROUBLESHOOTING.md) - Common issues
-- [Maintenance](./MAINTENANCE.md) - System maintenance
+- **Maintenance** *(planned)* - System maintenance
 
 ---
 

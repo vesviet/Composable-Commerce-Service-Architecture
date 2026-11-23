@@ -36,7 +36,7 @@ This document describes the complete inventory management workflow including sto
 
 ## 🔄 **Inventory Management Workflow**
 
-**Data ownership and sync:** Availability data ownership and event flow are defined in [inventory-data-ownership-adr.md](../integration-flows/inventory-data-ownership-adr.md). **Warehouse** is the source of truth for stock; **Catalog** and **Search** consume `warehouse.inventory.stock_changed` events (Catalog: cache invalidation; Search: index update). Reservation vs allocation terminology and lifecycle are in the same ADR.
+**Data ownership and sync:** Availability data ownership and event flow are defined in [inventory-data-ownership-adr.md](../../08-architecture-decisions/ADR-024-inventory-data-ownership.md). **Warehouse** is the source of truth for stock; **Catalog** and **Search** consume `warehouse.inventory.stock_changed` events (Catalog: cache invalidation; Search: index update). Reservation vs allocation terminology and lifecycle are in the same ADR.
 
 ---
 

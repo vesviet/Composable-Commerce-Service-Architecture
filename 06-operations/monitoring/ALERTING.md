@@ -524,8 +524,8 @@ Level 5: CTO (1 hour)
 
 ### **Implementation Guides**
 - [Monitoring Architecture](./MONITORING_ARCHITECTURE.md) - Overall architecture
-- [Metrics Collection](./METRICS.md) - Metrics setup
-- [Dashboard Guide](./DASHBOARDS.md) - Dashboard creation
+- [Metrics Collection](./MONITORING_ARCHITECTURE.md) - Metrics setup
+- [Dashboard Guide](./MONITORING_ARCHITECTURE.md) - Dashboard creation
 - [Runbooks](../runbooks/README.md) - Incident response procedures
 
 ### **External Resources**

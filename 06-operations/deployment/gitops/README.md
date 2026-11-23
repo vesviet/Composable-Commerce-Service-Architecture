@@ -19,9 +19,9 @@ This section contains comprehensive documentation for our **Kustomize-based GitO
 ### 🎯 What You'll Find Here
 
 - **[GitOps Overview](./GITOPS_OVERVIEW.md)** - Complete Kustomize-based GitOps strategy
-- **[Repository Structure](./REPOSITORY_STRUCTURE.md)** - GitOps repository organization
-- **[Deployment Patterns](./DEPLOYMENT_PATTERNS.md)** - Kustomize deployment strategies
-- **[Best Practices](./BEST_PRACTICES.md)** - Kustomize and GitOps best practices
+- ****Repository Structure** *(planned)*** - GitOps repository organization
+- ****Deployment Patterns** *(planned)*** - Kustomize deployment strategies
+- ****Best Practices** *(planned)*** - Kustomize and GitOps best practices
 - **[Troubleshooting](../../platform/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ### ⚠️ Migration Notice
@@ -100,33 +100,33 @@ gitops/
 
 ### 🚀 Getting Started
 - **[GitOps Overview](./GITOPS_OVERVIEW.md)** - Start here for complete understanding
-- **[Quick Start Guide](./QUICK_START.md)** - Get Kustomize-based GitOps running
+- ****Quick Start Guide** *(planned)*** - Get Kustomize-based GitOps running
 - **[Installation Guide](../kubernetes/INSTALLATION.md)** - Detailed setup instructions
 - **[Migration Guide](../../../01-architecture/gitops-migration.md)** - ApplicationSet to Kustomize
 
 ### 🏗️ Architecture & Design
 - **[Architecture Overview](./GITOPS_OVERVIEW.md#architecture)** - System design
-- **[Repository Structure](./REPOSITORY_STRUCTURE.md)** - Kustomize organization
-- **[Deployment Patterns](./DEPLOYMENT_PATTERNS.md)** - Kustomize deployment strategies
-- **[Sync Waves](./SYNC_WAVES.md)** - Ordered deployment with dependencies
+- ****Repository Structure** *(planned)*** - Kustomize organization
+- ****Deployment Patterns** *(planned)*** - Kustomize deployment strategies
+- ****Sync Waves** *(planned)*** - Ordered deployment with dependencies
 
 ### 🔧 Implementation
-- **[Kustomize Guide](./KUSTOMIZE_GUIDE.md)** - Complete Kustomize usage
-- **[Base + Overlays](./BASE_OVERLAYS.md)** - Environment management
-- **[Components](./COMPONENTS.md)** - Reusable configuration
-- **[Configuration Management](./CONFIGURATION.md)** - Config and secrets
-- **[Monitoring & Observability](./MONITORING.md)** - Track deployments
+- ****Kustomize Guide** *(planned)*** - Complete Kustomize usage
+- ****Base + Overlays** *(planned)*** - Environment management
+- ****Components** *(planned)*** - Reusable configuration
+- ****Configuration Management** *(planned)*** - Config and secrets
+- ****Monitoring & Observability** *(planned)*** - Track deployments
 
 ### 🔒 Security & Compliance
-- **[GitOps Security](./GITOPS_SECURITY.md)** - Security best practices
-- **[Access Control](./ACCESS_CONTROL.md)** - RBAC and permissions
-- **[Audit & Compliance](./AUDIT_COMPLIANCE.md)** - Compliance requirements
+- ****GitOps Security** *(planned)*** - Security best practices
+- ****Access Control** *(planned)*** - RBAC and permissions
+- ****Audit & Compliance** *(planned)*** - Compliance requirements
 
 ### 🛠️ Operations
 - **[Troubleshooting](../../platform/TROUBLESHOOTING.md)** - Common issues and fixes
-- **[Debugging Guide](./DEBUGGING.md)** - Advanced debugging
-- **[Recovery Procedures](./RECOVERY.md)** - Disaster recovery
-- **[Maintenance](./MAINTENANCE.md)** - Regular maintenance tasks
+- ****Debugging Guide** *(planned)*** - Advanced debugging
+- ****Recovery Procedures** *(planned)*** - Disaster recovery
+- ****Maintenance** *(planned)*** - Regular maintenance tasks
 
 ---
 
@@ -269,10 +269,10 @@ argocd app get my-service
 ### Core Platform
 - [ArgoCD Documentation](../argocd/README.md) - ArgoCD-specific guides
 - [Kubernetes Deployment](../kubernetes/README.md) - K8s deployment patterns
-- [CI/CD Pipeline](../../development/cicd/README.md) - Build and test pipeline
+- [CI/CD Pipeline](../../../07-development/workflows/ci-cd-pipeline.md) - Build and test pipeline
 
 ### Platform Engineering
-- [Platform Standards](../../development/standards/README.md) - Engineering standards
+- [Platform Standards](../../../07-development/standards/README.md) - Engineering standards
 - [Monitoring Guide](../../monitoring/README.md) - Observability setup
 - [Security Guidelines](../../security/README.md) - Security practices
 

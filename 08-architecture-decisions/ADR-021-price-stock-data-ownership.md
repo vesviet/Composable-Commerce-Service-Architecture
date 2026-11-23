@@ -16,7 +16,7 @@ Both services maintain representations of price and stock data, creating ambigui
 2. When should a consumer query Catalog vs. Search for this data?
 3. How should data staleness be handled?
 
-This is related to but distinct from [ADR: Inventory Data Ownership](../05-workflows/integration-flows/inventory-data-ownership-adr.md), which covers the Warehouse → Catalog/Search flow.
+This is related to but distinct from [ADR: Inventory Data Ownership](./ADR-024-inventory-data-ownership.md), which covers the Warehouse → Catalog/Search flow.
 
 ## Decision
 
@@ -101,7 +101,7 @@ The Search Service's Elasticsearch index should be treated as a **read-optimized
 
 ## References
 
-- [Inventory Data Ownership ADR](../05-workflows/integration-flows/inventory-data-ownership-adr.md)
+- [Inventory Data Ownership ADR](./ADR-024-inventory-data-ownership.md)
 - `catalog/internal/biz/product/product_price_stock.go` — Catalog price/stock logic
 - `search/internal/biz/sync_usecase.go` — Search sync pipeline (buildProductIndexDoc)
 - [Search & Discovery Architecture](../02-business-domains/content/search-discovery.md)

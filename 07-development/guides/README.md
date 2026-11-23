@@ -9,21 +9,21 @@
 
 ### **Core Development**
 - **[Testing Guide](./testing-guide.md)** - Comprehensive testing standards and practices
-- **[API Development](./api-development.md)** - REST and gRPC API development
-- **[Database Development](./database-development.md)** - Database design and development
-- **[Event Development](./event-development.md)** - Event-driven development patterns
+- **[API Development](../../04-apis/api-standards.md)** - REST and gRPC API development
+- ****Database Development** *(planned)*** - Database design and development
+- ****Event Development** *(planned)*** - Event-driven development patterns
 
 ### **Quality & Performance**
-- **[Performance Guidelines](./performance-guidelines.md)** - Code performance optimization
-- **[Security Development](./security-development.md)** - Secure coding practices
-- **[Error Handling Guide](./error-handling.md)** - Error handling patterns
-- **[Logging Best Practices](./logging-best-practices.md)** - Structured logging
+- ****Performance Guidelines** *(planned)*** - Code performance optimization
+- ****Security Development** *(planned)*** - Secure coding practices
+- ****Error Handling Guide** *(planned)*** - Error handling patterns
+- ****Logging Best Practices** *(planned)*** - Structured logging
 
 ### **Advanced Topics**
-- **[Migration Guide](./migration-guide.md)** - Database and code migrations
-- **[Monitoring Development](./monitoring-development.md)** - Application monitoring setup
-- **[Debugging Guide](./debugging-guide.md)** - Advanced debugging techniques
-- **[Documentation Standards](./documentation-standards.md)** - Documentation best practices
+- ****Migration Guide** *(planned)*** - Database and code migrations
+- ****Monitoring Development** *(planned)*** - Application monitoring setup
+- ****Debugging Guide** *(planned)*** - Advanced debugging techniques
+- ****Documentation Standards** *(planned)*** - Documentation best practices
 
 ---
 
@@ -53,21 +53,21 @@
 
 ### **Beginner Path**
 1. **[Testing Guide](./testing-guide.md)** - Foundation of quality code
-2. **[API Development](./api-development.md)** - Core development skill
-3. **[Database Development](./database-development.md)** - Data management
-4. **[Error Handling Guide](./error-handling.md)** - Robust programming
+2. **[API Development](../../04-apis/api-standards.md)** - Core development skill
+3. ****Database Development** *(planned)*** - Data management
+4. ****Error Handling Guide** *(planned)*** - Robust programming
 
 ### **Intermediate Path**
-1. **[Event Development](./event-development.md)** - Microservices communication
-2. **[Performance Guidelines](./performance-guidelines.md)** - Code optimization
-3. **[Security Development](./security-development.md)** - Secure practices
-4. **[Logging Best Practices](./logging-best-practices.md)** - Observability
+1. ****Event Development** *(planned)*** - Microservices communication
+2. ****Performance Guidelines** *(planned)*** - Code optimization
+3. ****Security Development** *(planned)*** - Secure practices
+4. ****Logging Best Practices** *(planned)*** - Observability
 
 ### **Advanced Path**
-1. **[Migration Guide](./migration-guide.md)** - Complex changes
-2. **[Monitoring Development](./monitoring-development.md)** - Production readiness
-3. **[Debugging Guide](./debugging-guide.md)** - Problem-solving
-4. **[Documentation Standards](./documentation-standards.md)** - Knowledge sharing
+1. ****Migration Guide** *(planned)*** - Complex changes
+2. ****Monitoring Development** *(planned)*** - Production readiness
+3. ****Debugging Guide** *(planned)*** - Problem-solving
+4. ****Documentation Standards** *(planned)*** - Knowledge sharing
 
 ---
 

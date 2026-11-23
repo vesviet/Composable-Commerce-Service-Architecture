@@ -282,7 +282,7 @@ Complete customer loyalty and rewards journey covering account creation, points 
 
 ## References
 
-- [Loyalty Service Documentation](../../03-services/operational-services/loyalty-service.md)
+- [Loyalty Service Documentation](../../03-services/core-services/loyalty-rewards-service.md)
 - [Customer Service Integration](../../03-services/core-services/customer-service.md)
 - [Order Service Integration](../../03-services/core-services/order-service.md)
-- [Loyalty Program API](../../04-apis/loyalty-api.md)
+- [Loyalty Program API](../../04-apis/README.md)

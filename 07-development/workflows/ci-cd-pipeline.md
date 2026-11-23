@@ -56,4 +56,4 @@ A standard run on a feature branch (`feature/*`) or `develop` / `main` triggers 
 
 ## 🔗 Related Workflows
 - [Git Workflow](./git-workflow.md)
-- [Release Process](./release-process.md)
+- **Release Process** *(planned)*

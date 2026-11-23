@@ -16,7 +16,7 @@ Complete guide to set up your development environment with all required tools an
 Learn the development workflow by making your first code change.
 
 ### 3. **Development Tools** (15-30 minutes)
-📖 **[IDE & Tools Setup](./ide-tools-setup.md)**  
+📖 **[IDE & Tools Setup](../tools/ide-setup.md)**  
 Configure your IDE and essential development tools for maximum productivity.
 
 ---
@@ -61,24 +61,24 @@ Configure your IDE and essential development tools for maximum productivity.
 
 ### **Experienced Developer Path** (New to Codebase)
 1. **[Architecture Decisions](../../08-architecture-decisions/README.md)** - Technical decisions
-2. **[Service Integration](../standards/service-integration-standards.md)** - Integration patterns
-3. **[Platform Engineering](../standards/platform-engineering/README.md)** - Advanced patterns
-4. **[API Development](../guides/api-development.md)** - API standards
-5. **[Performance Guidelines](../guides/performance-guidelines.md)** - Optimization
+2. **[Service Integration](../../04-apis/api-standards.md)** - Integration patterns
+3. **[Platform Engineering](../standards/README.md)** - Advanced patterns
+4. **[API Development](../../04-apis/api-standards.md)** - API standards
+5. ****Performance Guidelines** *(planned)*** - Optimization
 
 ### **Platform Engineer Path** (Infrastructure Focus)
-1. **[Platform Engineering](../standards/platform-engineering/README.md)** - Platform standards
+1. **[Platform Engineering](../standards/README.md)** - Platform standards
 2. **[Deployment Guide](../../06-operations/deployment/README.md)** - Deployment processes
 3. **[Monitoring & Observability](../../06-operations/monitoring/README.md)** - Operations
-4. **[Security Standards](../guides/security-development.md)** - Security practices
-5. **[Troubleshooting Guide](./troubleshooting.md)** - Problem resolution
+4. **[Security Standards](../../06-operations/security/README.md)** - Security practices
+5. ****Troubleshooting Guide** *(planned)*** - Problem resolution
 
 ---
 
 ## 🔧 Essential Tools
 
 ### **Required Tools**
-- **Go 1.25.3+**: Primary development language
+- **Go 1.27.4+**: Primary development language
 - **Docker Desktop**: Containerization and local services
 - **Git**: Version control
 - **VS Code/GoLand**: IDE with Go extensions

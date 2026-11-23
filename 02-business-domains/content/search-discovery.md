@@ -69,7 +69,7 @@ graph TB
 
 ## 1. Initial Backfill (`cmd/sync`)
 
-> **Source**: [sync_usecase.go](file:///home/user/microservices/search/internal/biz/sync_usecase.go) | [README_SYNC.md](file:///home/user/microservices/search/README_SYNC.md)
+> **Source**: `search/internal/biz/sync_usecase.go` | `search/README_SYNC.md`
 
 ### 1.1 When to Run
 - First deployment of Search Service
@@ -180,7 +180,7 @@ cd search
 
 ## 2. Real-Time Event Sync (Worker)
 
-> **Source**: [product_consumer.go](file:///home/user/microservices/search/internal/service/product_consumer.go) | [price_consumer.go](file:///home/user/microservices/search/internal/service/price_consumer.go) | [consumer.go](file:///home/user/microservices/search/internal/service/consumer.go)
+> **Source**: `search/internal/service/product_consumer.go` | `search/internal/service/price_consumer.go` | `search/internal/service/consumer.go`
 
 ### 2.1 Event Topology
 
@@ -309,7 +309,7 @@ sequenceDiagram
 
 ## 3. Product Search Flow
 
-> **Source**: [search_usecase.go](file:///home/user/microservices/search/internal/biz/search_usecase.go) | [search_handlers.go](file:///home/user/microservices/search/internal/service/search_handlers.go)
+> **Source**: `search/internal/biz/search_usecase.go` | `search/internal/service/search_handlers.go`
 
 ### 3.1 Sequence Diagram
 
@@ -472,7 +472,7 @@ Query params:
 
 ## 4. Autocomplete
 
-> **Source**: [search_usecase.go → Autocomplete/AutocompleteAdvanced](file:///home/user/microservices/search/internal/biz/search_usecase.go#L357-L417) | [autocomplete.go](file:///home/user/microservices/search/internal/data/elasticsearch/autocomplete.go)
+> **Source**: `search/internal/biz/search_usecase.go` (`Autocomplete/AutocompleteAdvanced`, L357-L417) | `search/internal/data/elasticsearch/autocomplete.go`
 
 ### 4.1 Types
 
@@ -520,7 +520,7 @@ GET /api/v1/search/popular          # Popular searches by period
 
 ## 5. Product Detail Page (PDP)
 
-> **Source**: [product_read.go → GetProduct](file:///home/user/microservices/catalog/internal/biz/product/product_read.go#L13-L59) | [product_price_stock.go](file:///home/user/microservices/catalog/internal/biz/product/product_price_stock.go)
+> **Source**: `catalog/internal/biz/product/product_read.go` (`GetProduct`, L13-L59) | `catalog/internal/biz/product/product_price_stock.go`
 
 ### 5.1 Data Source: Catalog Service (NOT Search)
 
@@ -617,7 +617,7 @@ Pipeline:
 
 **Use for**: Admin product management, simple paginated browse, internal tools
 
-> **Source**: [product_read.go → ListProducts](file:///home/user/microservices/catalog/internal/biz/product/product_read.go#L161-L327)
+> **Source**: `catalog/internal/biz/product/product_read.go` (`ListProducts`, L161-L327)
 
 ```
 GET /admin/v1/products?offset=0&limit=20&category_id=xxx&status=active
@@ -660,7 +660,7 @@ Pipeline:
 
 ## 7. Elasticsearch Index Mapping
 
-> **Source**: [mapping.json](file:///home/user/microservices/search/mapping.json)
+> **Source**: `search/mapping.json`
 
 ### 7.1 Index: `products_search` (alias)
 
@@ -813,7 +813,7 @@ graph TB
 
 ## 11. CMS Content Search
 
-> **Source**: [cms_search_usecase.go](file:///home/user/microservices/search/internal/biz/cms_search_usecase.go) | [cms_consumer.go](file:///home/user/microservices/search/internal/service/cms_consumer.go)
+> **Source**: `search/internal/biz/cms_search_usecase.go` | `search/internal/service/cms_consumer.go`
 
 Separate ES index for CMS content (help articles, blog posts, FAQs, policy pages).
 

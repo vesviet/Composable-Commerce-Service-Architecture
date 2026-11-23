@@ -19,7 +19,7 @@
 
 ### **📊 Monitoring & Observability**
 - **[Monitoring Overview](monitoring/)** - Complete observability strategy
-- **[Metrics Collection](monitoring/METRICS.md)** - Prometheus metrics and dashboards
+- **[Metrics Collection](monitoring/MONITORING_ARCHITECTURE.md)** - Prometheus metrics and dashboards
 - **[Alerting Strategy](monitoring/ALERTING.md)** - Alert rules and notification channels
 - **[Monitoring Architecture](monitoring/MONITORING_ARCHITECTURE.md)** - Observability stack design
 
@@ -124,7 +124,7 @@
 2. **[Monitoring & Alerting](monitoring/)** - System performance tracking
 3. **[Security Incidents](security/INCIDENT_RESPONSE.md)** - Security breach response
 4. **[Platform Troubleshooting](platform/TROUBLESHOOTING.md)** - Platform issue resolution
-5. **[Performance Optimization](monitoring/METRICS.md)** - Performance tuning
+5. **[Performance Optimization](monitoring/MONITORING_ARCHITECTURE.md)** - Performance tuning
 
 ### **🏗️ For Platform Engineers**
 1. **[Platform Architecture](platform/PLATFORM_ARCHITECTURE.md)** - Understand platform design

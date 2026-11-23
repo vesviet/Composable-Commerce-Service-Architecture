@@ -10,15 +10,15 @@
 ### **Core Workflows**
 - **[Git Workflow](./git-workflow.md)** - Branching strategy and Git best practices
 - **[CI/CD Pipeline Flow](./ci-cd-pipeline.md)** - Continuous Integration and Delivery pipeline stages
-- **[Feature Development](./feature-development.md)** - End-to-end feature development process
-- **[Release Process](./release-process.md)** - Release and deployment workflow
-- **[Hotfix Process](./hotfix-process.md)** - Emergency fix procedures
+- ****Feature Development** *(planned)*** - End-to-end feature development process
+- ****Release Process** *(planned)*** - Release and deployment workflow
+- ****Hotfix Process** *(planned)*** - Emergency fix procedures
 
 ### **Quality Workflows**
-- **[Code Review Process](./code-review-process.md)** - Code review standards and procedures
-- **[Testing Workflow](./testing-workflow.md)** - Testing strategies and processes
-- **[Bug Fix Process](./bug-fix-process.md)** - Bug fixing workflow
-- **[Documentation Process](./documentation-process.md)** - Documentation standards
+- ****Code Review Process** *(planned)*** - Code review standards and procedures
+- ****Testing Workflow** *(planned)*** - Testing strategies and processes
+- ****Bug Fix Process** *(planned)*** - Bug fixing workflow
+- ****Documentation Process** *(planned)*** - Documentation standards
 
 ---
 
@@ -127,25 +127,25 @@ graph TD
 ### **Choose Your Workflow**
 
 #### **New Feature Development**
-📖 **[Feature Development](./feature-development.md)**
+📖 ****Feature Development** *(planned)***
 - Use for: New features, enhancements, major changes
 - Timeframe: Days to weeks
 - Process: Planning → Design → Development → Review → Deploy
 
 #### **Bug Fixes**
-📖 **[Bug Fix Process](./bug-fix-process.md)**
+📖 ****Bug Fix Process** *(planned)***
 - Use for: Non-critical bugs, improvements
 - Timeframe: Hours to days
 - Process: Analysis → Fix → Test → Deploy
 
 #### **Critical Issues**
-📖 **[Hotfix Process](./hotfix-process.md)**
+📖 ****Hotfix Process** *(planned)***
 - Use for: Production outages, security issues
 - Timeframe: Minutes to hours
 - Process: Emergency fix → Quick test → Immediate deploy
 
 #### **Regular Releases**
-📖 **[Release Process](./release-process.md)**
+📖 ****Release Process** *(planned)***
 - Use for: Scheduled releases, version updates
 - Timeframe: Weekly/Bi-weekly
 - Process: Preparation → Testing → Release → Validation
@@ -271,7 +271,7 @@ graph TD
 - **[Architecture Decisions](../../08-architecture-decisions/README.md)**: Technical decisions
 - **[Development Standards](../standards/README.md)**: Coding standards
 - **[Service Documentation](../../03-services/README.md)**: Service implementations
-- **[Platform Engineering](../standards/platform-engineering/README.md)**: Advanced patterns
+- **[Platform Engineering](../standards/README.md)**: Advanced patterns
 
 ### **External Resources**
 - **[DevOps Handbook](https://itrevolution.com/the-devops-handbook/)**: DevOps practices

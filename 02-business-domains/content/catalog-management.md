@@ -57,7 +57,7 @@ graph TB
 
 ## 1. Write Operations (Create/Update/Delete)
 
-> **Source**: [product_write.go](file:///home/user/microservices/catalog/internal/biz/product/product_write.go)
+> **Source**: `catalog/internal/biz/product/product_write.go`
 
 ### 1.1 Sequence Diagram
 
@@ -132,7 +132,7 @@ Same transactional outbox pattern:
 
 ## 2. Read Operations — Product Detail
 
-> **Source**: [product_read.go → GetProduct](file:///home/user/microservices/catalog/internal/biz/product/product_read.go#L13-L59)
+> **Source**: `catalog/internal/biz/product/product_read.go` (`GetProduct`, L13-L59)
 
 ### 2.1 Multi-Layer Cache
 
@@ -174,7 +174,7 @@ Optimized for multi-product fetch (e.g., cart, order confirmation):
 
 ## 3. Read Operations — Product List
 
-> **Source**: [product_read.go → ListProducts](file:///home/user/microservices/catalog/internal/biz/product/product_read.go#L161-L327)
+> **Source**: `catalog/internal/biz/product/product_read.go` (`ListProducts`, L161-L327)
 
 ### 3.1 Data Source
 
@@ -269,7 +269,7 @@ sequenceDiagram
 
 ## 5. Price & Stock Enrichment
 
-> **Source**: [product_price_stock.go](file:///home/user/microservices/catalog/internal/biz/product/product_price_stock.go)
+> **Source**: `catalog/internal/biz/product/product_price_stock.go`
 
 ### 5.1 Design: Lazy-Loading Cache
 
@@ -298,7 +298,7 @@ Cache Strategy:
 
 ## 6. Product Visibility Rules
 
-> **Source**: [product_visibility.go](file:///home/user/microservices/catalog/internal/biz/product/product_visibility.go)
+> **Source**: `catalog/internal/biz/product/product_visibility.go`
 
 ### 6.1 Rule Engine
 
@@ -332,7 +332,7 @@ The Search Service calls `BatchCheckProductVisibility()` as a **post-filter** af
 - **[Search & Discovery](search-discovery.md)** — ES sync, search pipeline, product lists
 - **[Review Management](review-management.md)** — Product ratings integration
 - **[Catalog Service](../../03-services/core-services/catalog-service.md)** — Technical service details
-- **[Catalog OpenAPI](file:///home/user/microservices/catalog/openapi.yaml)** — API specification
+- **Catalog OpenAPI** (`catalog/openapi.yaml`) — API specification
 
 ---
 

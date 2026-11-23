@@ -87,4 +87,4 @@ sequenceDiagram
 
 ## Issues Checklist
 
-See [docs/10-appendix/checklists/review_issues.md](../../10-appendix/checklists/review_issues.md) for current gaps and risks.
+See [docs/10-appendix/checklists/review_issues.md](../../10-appendix/review-service/review-review.md) for current gaps and risks.

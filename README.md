@@ -135,7 +135,7 @@ graph TD
 | Layer | Technology |
 |-------|-----------|
 | **Backend** | Go 1.27.4 (21/21 Go services) · Kratos v2.9.2 (Google's microservice framework) |
-| **Frontend** | Next.js 16 + Ant Design (customer) · React 18 + Vite + Ant Design (admin) |
+| **Frontend** | Next.js 16 + React 19 + Ant Design (customer) · React 19 + Vite + Ant Design (admin) |
 | **Database** | PostgreSQL 15+ (per-service isolation) |
 | **Cache** | Redis 7+ (caching, sessions, distributed locks) |
 | **Search** | Elasticsearch 8.11+ |

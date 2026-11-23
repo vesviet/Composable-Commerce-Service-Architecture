@@ -617,8 +617,8 @@ dlq_monitoring:
 
 ### Documentation Links
 - [Event Validation + DLQ Flow](event-validation-dlq-flow.md)
-- [Integration Tests](test/integration/README.md)
-- [Service Architecture](../platform-engineering/README.md)
+- **Integration Tests**: `test/integration/` *(per-service suite)*
+- [Service Architecture](../../07-development/standards/README.md)
 
 ### Monitoring Dashboards
 - **Grafana**: Event Processing Dashboard

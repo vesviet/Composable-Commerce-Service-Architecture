@@ -287,4 +287,4 @@ Third-party integrations workflow covering payment gateways, shipping carriers, 
 - [Payment Service Documentation](../../03-services/core-services/payment-service.md)
 - [Shipping Service Documentation](../../03-services/core-services/shipping-service.md)
 - [Notification Service Documentation](../../03-services/operational-services/notification-service.md)
-- [API Integration Standards](../../07-development/standards/api-integration-standards.md)
+- [API Integration Standards](../../04-apis/api-standards.md)

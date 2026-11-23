@@ -21,35 +21,35 @@ This section contains runbooks for responding to security incidents and major op
 - **Impact**: Complete system outage or major security breach
 - **Escalation**: Immediate management notification
 - **Runbooks**:
-  - [Security Breach](./security-breach-runbook.md)
-  - [Complete System Outage](./system-outage-runbook.md)
-  - [Data Breach](./data-breach-runbook.md)
+  - **Security Breach** *(planned)*
+  - **Complete System Outage** *(planned)*
+  - **Data Breach** *(planned)*
 
 #### **🟠 HIGH (P1)**
 - **Response Time**: Within 15 minutes
 - **Impact**: Significant service degradation
 - **Escalation**: Team lead notification
 - **Runbooks**:
-  - [Service Outage](./service-outage-runbook.md)
-  - [DDoS Attack](./ddos-attack-runbook.md)
-  - [Database Failure](./database-failure-runbook.md)
+  - **Service Outage** *(planned)*
+  - **DDoS Attack** *(planned)*
+  - **Database Failure** *(planned)*
 
 #### **🟡 MEDIUM (P2)**
 - **Response Time**: Within 1 hour
 - **Impact**: Limited service impact
 - **Escalation**: Service owner notification
 - **Runbooks**:
-  - [Performance Degradation](./performance-degradation-runbook.md)
-  - [Partial Service Outage](./partial-outage-runbook.md)
-  - [Security Incident](./security-incident-runbook.md)
+  - **Performance Degradation** *(planned)*
+  - **Partial Service Outage** *(planned)*
+  - **Security Incident** *(planned)*
 
 #### **🟢 LOW (P3)**
 - **Response Time**: Within 24 hours
 - **Impact**: Minor issues
 - **Escalation**: Team notification
 - **Runbooks**:
-  - [Configuration Issue](./configuration-issue-runbook.md)
-  - [Minor Security Issue](./minor-security-issue-runbook.md)
+  - **Configuration Issue** *(planned)*
+  - **Minor Security Issue** *(planned)*
 
 ---
 
@@ -399,12 +399,12 @@ kubectl get networkpolicies --all-namespaces
 ## 🔗 Related Documentation
 
 ### **Security Documentation**
-- [Security Operations](../security/README.md) - Security framework
+- [Security Operations](../../security/README.md) - Security framework
 - [Incident Response](../../security/INCIDENT_RESPONSE.md) - Security incident procedures
 - [Security Architecture](../../security/SECURITY_ARCHITECTURE.md) - Security design
 
 ### **Operational Documentation**
-- [Monitoring Overview](../monitoring/README.md) - Monitoring and alerting
+- [Monitoring Overview](../../monitoring/README.md) - Monitoring and alerting
 - [Service Runbooks](../sre-runbooks/README.md) - Service-specific procedures
 - [GitOps Overview](../../deployment/gitops/GITOPS_OVERVIEW.md) - Deployment procedures
 

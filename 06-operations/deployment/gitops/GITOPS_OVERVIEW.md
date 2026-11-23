@@ -297,18 +297,18 @@ groups:
 
 ### Core GitOps
 - [ArgoCD Setup Guide](../kubernetes/ARGOCD_SETUP_GUIDE.md)
-- [Deployment Patterns](../deployment/README.md)
-- [Configuration Management](../configuration/README.md)
+- [Deployment Patterns](../README.md)
+- [Configuration Management](../guides/README.md)
 
 ### Advanced Topics
-- [Multi-Cluster GitOps](./MULTI_CLUSTER_GITOPS.md)
-- [Progressive Delivery](./PROGRESSIVE_DELIVERY.md)
-- [GitOps Security](./GITOPS_SECURITY.md)
+- **Multi-Cluster GitOps** *(planned)*
+- **Progressive Delivery** *(planned)*
+- **GitOps Security** *(planned)*
 
 ### Troubleshooting
 - [Common Issues](../../platform/TROUBLESHOOTING.md)
-- [Debugging Guide](./DEBUGGING.md)
-- [Recovery Procedures](./RECOVERY.md)
+- **Debugging Guide** *(planned)*
+- **Recovery Procedures** *(planned)*
 
 ---
 
@@ -324,7 +324,7 @@ groups:
 
 ### Next Steps
 1. Read the [ArgoCD Setup Guide](../kubernetes/ARGOCD_SETUP_GUIDE.md)
-2. Review [Deployment Patterns](../deployment/README.md)
+2. Review [Deployment Patterns](../README.md)
 3. Set up your first application
 4. Configure monitoring and alerts
 

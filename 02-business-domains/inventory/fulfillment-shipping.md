@@ -60,10 +60,10 @@ sequenceDiagram
 - Action: Order publishes one unified event: `orders.order.status_changed`.
 
 Code map:
-- [Order publishes order status events](../..//order/internal/biz/order/events.go)
-- [Order publishes order status events](../../order/internal/biz/order/events.go)
-- [Order event publisher (topic: orders.order.status_changed)](../../order/internal/events/publisher.go)
-- [Order constants (topics)](../../order/internal/constants/constants.go)
+- Order publishes order status events (`../order/internal/biz/order/events.go`)
+- [Order publishes order status events](../../../order/internal/biz/order/events.go)
+- [Order event publisher (topic: orders.order.status_changed)](../../../order/internal/events/publisher.go)
+- [Order constants (topics)](../../../order/internal/constants/constants.go)
 
 ### 2) Fulfillment consumes `orders.order.status_changed` → create fulfillment(s)
 
@@ -73,10 +73,10 @@ Code map:
   - Immediately call `StartPlanning()` for each fulfillment.
 
 Code map:
-- [Fulfillment consumes order_status_changed](../../fulfillment/internal/data/eventbus/order_status_consumer.go)
-- [Observer → Biz delegation](../../fulfillment/internal/observer/order_status_changed/fulfillment_sub.go)
-- [Biz: order status handler](../../fulfillment/internal/biz/fulfillment/order_status_handler.go)
-- [Biz: CreateFromOrderMulti (multi-warehouse)](../../fulfillment/internal/biz/fulfillment/fulfillment.go)
+- [Fulfillment consumes order_status_changed](../../../fulfillment/internal/data/eventbus/order_status_consumer.go)
+- [Observer → Biz delegation](../../../fulfillment/internal/observer/order_status_changed/fulfillment_sub.go)
+- [Biz: order status handler](../../../fulfillment/internal/biz/fulfillment/order_status_handler.go)
+- [Biz: CreateFromOrderMulti (multi-warehouse)](../../../fulfillment/internal/biz/fulfillment/fulfillment.go)
 
 ### 3) Fulfillment lifecycle (pick/pack) → publish `fulfillments.fulfillment.status_changed`
 
@@ -109,11 +109,11 @@ stateDiagram-v2
 Every successful transition publishes a unified status event for downstream consumers.
 
 Code map:
-- [Fulfillment status transitions (source of truth)](../../fulfillment/internal/constants/fulfillment_status.go)
-- [Fulfillment event topics/types](../../fulfillment/internal/constants/event_topics.go)
-- [Biz: publishes fulfillment status changed](../../fulfillment/internal/biz/fulfillment/fulfillment.go)
-- [Outbox-backed publisher (writes to outbox)](../../fulfillment/internal/events/outbox_publisher.go)
-- [Outbox worker (publishes to Dapr pub/sub)](../../fulfillment/internal/worker/outbox/outbox_worker.go)
+- [Fulfillment status transitions (source of truth)](../../../fulfillment/internal/constants/fulfillment_status.go)
+- [Fulfillment event topics/types](../../../fulfillment/internal/constants/event_topics.go)
+- [Biz: publishes fulfillment status changed](../../../fulfillment/internal/biz/fulfillment/fulfillment.go)
+- [Outbox-backed publisher (writes to outbox)](../../../fulfillment/internal/events/outbox_publisher.go)
+- Outbox worker (publishes to Dapr pub/sub) (`fulfillment/internal/worker/outbox/outbox_worker.go`)
 
 ### 4) Packed → publish `packages.package.status_changed` → Shipping reacts
 
@@ -122,9 +122,9 @@ Code map:
 - Shipping consumes package events and creates/updates shipment records.
 
 Code map:
-- [Fulfillment publishes package status changed](../../fulfillment/internal/events/publisher.go)
-- [Shipping consumes packages.package.status_changed](../../shipping/internal/data/eventbus/package_status_consumer.go)
-- [Shipping outbox helpers for shipment events](../../shipping/internal/biz/shipment/outbox_helpers.go)
+- [Fulfillment publishes package status changed](../../../fulfillment/internal/events/publisher.go)
+- [Shipping consumes packages.package.status_changed](../../../shipping/internal/data/eventbus/package_status_consumer.go)
+- [Shipping outbox helpers for shipment events](../../../shipping/internal/biz/shipment/outbox_helpers.go)
 
 ### 5) Order status tracking (processing → shipped → delivered)
 
@@ -133,8 +133,8 @@ Order can update its customer-facing status based on:
 - Shipping delivery confirmation events (delivered)
 
 Code map:
-- [Order HTTP event handler (shipment + delivery + fulfillment)](../../order/internal/service/event_handler.go)
-- [Order worker consumer (fulfillment.status_changed mapping)](../../order/internal/data/eventbus/fulfillment_consumer.go)
+- [Order HTTP event handler (shipment + delivery + fulfillment)](../../../order/internal/service/event_handler.go)
+- [Order worker consumer (fulfillment.status_changed mapping)](../../../order/internal/data/eventbus/fulfillment_consumer.go)
 
 ---
 

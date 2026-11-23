@@ -89,5 +89,5 @@ Useful commands for local debugging.
 
 ## Documentation
 
-- [Service Documentation](../docs/03-services/<group>/{servicename}-service.md)
-- [API Reference](../docs/04-apis/{servicename}-api.md)
+- `Service Documentation`: `../docs/03-services/<group>/{servicename}-service.md`
+- `API Reference`: `../docs/04-apis/{servicename}-api.md`

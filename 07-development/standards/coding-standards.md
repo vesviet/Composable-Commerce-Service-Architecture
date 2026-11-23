@@ -12,9 +12,9 @@ This document is the **single reference** to follow when writing or reviewing co
 - **Developers**: Day-to-day coding, PRs, and refactors.
 - **AI agents**: When generating or modifying code, follow these rules so output matches project conventions.
 
-**Canonical references**: [API Architecture](../../01-architecture/api-architecture.md) (proto & versioning), [Development Review Checklist](./development-review-checklist.md), [Common Package Usage](./common-package-usage.md).
+**Canonical references**: [API Architecture](../../01-architecture/api-architecture.md) (proto & versioning), [Development Review Checklist](./development-review-checklist.md), [Common Package Usage](../../08-architecture-decisions/ADR-017-common-library-architecture.md).
 
-**Common package**: The `common` package must stay **base-only** (utilities, helpers, repository base, events infra, validation, errors, config). Do not add domain interfaces, DTOs, or per-service definitions to common; types and contracts belong to the owning service. See [Common Package Cleanup Plan](../../10-appendix/checklists/v3/common-package-cleanup-plan.md) for the full principle and checklist.
+**Common package**: The `common` package must stay **base-only** (utilities, helpers, repository base, events infra, validation, errors, config). Do not add domain interfaces, DTOs, or per-service definitions to common; types and contracts belong to the owning service. See [Common Package Cleanup Plan](../../10-appendix/review-service/common-review-checklist.md) for the full principle and checklist.
 
 ---
 
@@ -103,7 +103,7 @@ const (
 - **Developers and AI agents**: When adding or reviewing code in the **common** package, keep it **base-only**.
   - **Do** provide: repository base, event helpers, validation helpers, errors, config loader, middleware, observability (health, metrics, tracing), generic utils (pagination, retry, uuid, etc.).
   - **Do not** add: domain interfaces (e.g. `UserService`, `OrderService`), domain DTOs (e.g. `User`, `OrderInfo`), or per-service helpers (e.g. `CreateAuthClient()`, `CreateUserClient()`). Types and service contracts belong to the **owning service**; consumers import from that service (or define minimal interfaces in their own biz layer).
-- Prefer **generic APIs** in common (e.g. `CreateClient(serviceName, target)` instead of one method per service). See [Common Package Cleanup Plan](../../10-appendix/checklists/v3/common-package-cleanup-plan.md).
+- Prefer **generic APIs** in common (e.g. `CreateClient(serviceName, target)` instead of one method per service). See [Common Package Cleanup Plan](../../10-appendix/review-service/common-review-checklist.md).
 
 ---
 
@@ -294,7 +294,7 @@ Use this when writing or generating code:
 - [ ] **Layers**: Biz = domain logic; data = persistence; service = thin handlers.
 - [ ] **Logging**: Structured, with context; no secrets in logs.
 - [ ] **Validation**: All external input validated; no raw SQL with user input.
-- [ ] **Common**: Prefer common package utilities over local duplicates (see [Common Package Usage](./common-package-usage.md)). Keep common **base-only**—no domain interfaces/DTOs or per-service definitions (see §1.7).
+- [ ] **Common**: Prefer common package utilities over local duplicates (see [Common Package Usage](../../08-architecture-decisions/ADR-017-common-library-architecture.md)). Keep common **base-only**—no domain interfaces/DTOs or per-service definitions (see §1.7).
 
 ---
 
@@ -304,8 +304,8 @@ Use this when writing or generating code:
 |-----|--------|
 | [API Architecture](../../01-architecture/api-architecture.md) | Proto style, versioning, `make api` |
 | [Development Review Checklist](./development-review-checklist.md) | PR and review criteria |
-| [Common Package Usage](./common-package-usage.md) | Shared libraries and patterns |
-| [Common Package Cleanup Plan](../../10-appendix/checklists/v3/common-package-cleanup-plan.md) | Common = base-only; process and plan |
+| [Common Package Usage](../../08-architecture-decisions/ADR-017-common-library-architecture.md) | Shared libraries and patterns |
+| [Common Package Cleanup Plan](../../10-appendix/review-service/common-review-checklist.md) | Common = base-only; process and plan |
 | [Team Lead Code Review Guide](./TEAM_LEAD_CODE_REVIEW_GUIDE.md) | Review process |
 
 ---

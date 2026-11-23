@@ -9,14 +9,14 @@
 
 ### **Core Tools**
 - **[IDE & Tools Setup](./ide-setup.md)** - VS Code/GoLand configuration
-- **[Debugging Tools](./debugging-tools.md)** - Debugging techniques and tools
-- **[Testing Tools](./testing-tools.md)** - Testing frameworks and utilities
-- **[API Development Tools](./api-tools.md)** - API design and testing tools
+- ****Debugging Tools** *(planned)*** - Debugging techniques and tools
+- ****Testing Tools** *(planned)*** - Testing frameworks and utilities
+- ****API Development Tools** *(planned)*** - API design and testing tools
 
 ### **Productivity Tools**
-- **[Productivity Tools](./productivity-tools.md)** - Tools to boost developer productivity
-- **[Code Generation](./code-generation.md)** - Protobuf, OpenAPI, and code generation
-- **[Performance Tools](./performance-tools.md)** - Performance analysis and optimization
+- ****Productivity Tools** *(planned)*** - Tools to boost developer productivity
+- ****Code Generation** *(planned)*** - Protobuf, OpenAPI, and code generation
+- ****Performance Tools** *(planned)*** - Performance analysis and optimization
 
 ---
 
@@ -74,7 +74,7 @@
 
 #### ✅ **Go Development**
 ```bash
-# Go 1.25.3+
+# Go 1.27.4+
 go version
 
 # Essential Go tools

@@ -49,8 +49,8 @@ The Fulfillment process handles order fulfillment from order confirmation to shi
 | Step | Event Type | Topic | Publisher | Subscribers | Payload Schema |
 |------|------------|-------|-----------|--------------|----------------|
 | 1 | `order.order.status_changed` | `order.status_changed` | Order Service | Fulfillment | [order.status_changed.schema.json](../../../04-apis/event-schemas/order.status_changed.schema.json) |
-| 2 | `fulfillment.fulfillment.created` | `fulfillment.created` | Fulfillment Service | Shipping, Warehouse | [fulfillment.created.schema.json](../json-schema/fulfillment.created.schema.json) |
-| 3 | `fulfillment.fulfillment.completed` | `fulfillment.completed` | Fulfillment Service | Order, Shipping | [fulfillment.completed.schema.json](../json-schema/fulfillment.completed.schema.json) |
+| 2 | `fulfillment.fulfillment.created` | `fulfillment.created` | Fulfillment Service | Shipping, Warehouse | [fulfillment.created.schema.json](../../../04-apis/event-schemas/README.md) |
+| 3 | `fulfillment.fulfillment.completed` | `fulfillment.completed` | Fulfillment Service | Order, Shipping | [fulfillment.completed.schema.json](../../../04-apis/event-schemas/README.md) |
 
 ## Flow Charts
 

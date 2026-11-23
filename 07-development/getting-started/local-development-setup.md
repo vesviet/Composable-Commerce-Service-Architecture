@@ -31,7 +31,7 @@ chmod +x scripts/setup-dev.sh
 
 #### Go Development Environment
 ```bash
-# Install Go 1.25.3
+# Install Go 1.27.4
 # macOS
 brew install go@1.25
 
@@ -169,7 +169,7 @@ ENABLE_HOT_RELOAD=true
 ```
 
 #### GoLand Setup
-1. Configure Go SDK to point to Go 1.25.3
+1. Configure Go SDK to point to Go 1.27.4
 2. Enable Go Modules integration
 3. Configure file watchers for hot reload
 4. Set up Docker integration

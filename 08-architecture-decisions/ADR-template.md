@@ -40,5 +40,5 @@ What is being decided? What option/solution is chosen?
 
 ## References
 
-- [Reference 1](URL)
-- [Reference 2](URL)
+- Reference 1: `<URL>`
+- Reference 2: `<URL>`

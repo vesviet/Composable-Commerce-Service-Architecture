@@ -139,9 +139,9 @@ All process documents include Mermaid diagrams that can be viewed:
 ## 🔗 Related Documentation
 
 - [Event Contracts](../../../04-apis/event-schemas/) - Event schemas
-- [Service Documentation](../services/) - Service details
+- [Service Documentation](../../../03-services/README.md) - Service details
 - [OpenAPI Specs](../../../04-apis/openapi/) - API contracts
-- [DDD Context Map](../ddd/context-map.md) - Domain boundaries
+- [DDD Context Map](../../../02-business-domains/README.md) - Domain boundaries
 
 ## 📖 Standards
 

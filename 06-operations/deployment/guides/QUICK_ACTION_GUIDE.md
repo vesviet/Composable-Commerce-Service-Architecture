@@ -196,7 +196,7 @@ kubectl logs -l app=auth-service --tail=50
 ## 📞 **Need Help?**
 
 - **Slack**: #devops-support
-- **Documentation**: [Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)
+- **Documentation**: **Implementation Checklist** *(planned)*
 - **Rollback**: All changes are in git, easy to revert
 
 ---

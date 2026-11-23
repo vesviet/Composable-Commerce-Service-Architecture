@@ -181,23 +181,23 @@
 ## 🔗 Related Documentation
 
 ### Architecture Documentation
-- [System Architecture Overview](../SYSTEM_ARCHITECTURE_OVERVIEW.md) - Complete system architecture
-- [System Completeness Assessment](../SYSTEM_COMPLETENESS_ASSESSMENT.md) - Current system status
+- [System Architecture Overview](../../../01-architecture/system-overview.md) - Complete system architecture
+- [System Completeness Assessment](../../../SERVICE_INDEX.md) - Current system status
 - [Codebase Index](../../../CODEBASE_INDEX.md) - Service inventory and structure
-- [ArgoCD Services Status](../argocd/PENDING_SERVICES.md) - Deployment status
+- [ArgoCD Services Status](../../../../gitops/README.md) - Deployment status
 
 ### Technical Documentation
 - [Process Template](../../../10-appendix/templates/templates/process-template.md) - Template for creating new processes
 - [Event Contracts](../../../04-apis/event-schemas/) - Event schemas referenced in processes
-- [Service Documentation](../services/) - Individual service details
+- [Service Documentation](../../../03-services/README.md) - Individual service details
 - [OpenAPI Specs](../../../04-apis/openapi/) - API contracts and specifications
-- [DDD Context Map](../ddd/context-map.md) - Domain boundaries and relationships
+- [DDD Context Map](../../../02-business-domains/README.md) - Domain boundaries and relationships
 
 ### Operational Documentation
-- [Deployment Guides](../deployment/) - Service deployment procedures
-- [Monitoring Runbooks](../monitoring/) - Observability and alerting
-- [Security Policies](../security/) - Security and compliance guidelines
-- [Performance Benchmarks](../performance/) - System performance metrics
+- [Deployment Guides](../../../06-operations/deployment/README.md) - Service deployment procedures
+- [Monitoring Runbooks](../../../06-operations/monitoring/README.md) - Observability and alerting
+- [Security Policies](../../../06-operations/security/README.md) - Security and compliance guidelines
+- [Performance Benchmarks](../../../01-architecture/performance-architecture.md) - System performance metrics
 
 ## 🚀 Usage Guidelines
 

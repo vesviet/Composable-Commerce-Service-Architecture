@@ -843,7 +843,7 @@ groups:
 - **[System Overview](system-overview.md)** - Overall system architecture
 - **[Microservices Design](microservices-design.md)** - Service design patterns
 - **[Operations Monitoring](../06-operations/monitoring/)** - Operational monitoring
-- **[Development Performance](../07-development/performance/)** - Development performance guidelines
+- **[Development Performance](../07-development/guides/README.md)** - Development performance guidelines
 
 ---
 

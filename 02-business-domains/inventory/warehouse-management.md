@@ -1934,8 +1934,8 @@ Response 200:
 - [Code Review: Warehouse Service](../../10-appendix/checklists/active/production-readiness-issues.md#warehouse-service)
 - [Code Review: Order Service](../../10-appendix/checklists/active/production-readiness-issues.md#order-service)
 - [Code Review: Catalog Service](../../10-appendix/checklists/active/production-readiness-issues.md#catalog-service)
-- [Database Schema: Inventory Tables](../database/warehouse-schema.md)
-- [Event Specifications: Stock Events](../events/warehouse-events.md)
+- [Database Schema: Inventory Tables](../../03-services/core-services/warehouse-service.md)
+- [Event Specifications: Stock Events](../../04-apis/event-schemas/README.md)
 
 ---
 

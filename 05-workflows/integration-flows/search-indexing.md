@@ -287,5 +287,5 @@ Elasticsearch indexing and search workflows covering real-time product indexing,
 
 - [Search Service Documentation](../../03-services/platform-services/search-service.md)
 - [Catalog Service Integration](../../03-services/core-services/catalog-service.md)
-- [Elasticsearch Configuration](../../06-operations/infrastructure/elasticsearch-setup.md)
+- [Elasticsearch Configuration](../../08-architecture-decisions/ADR-012-search-architecture-elasticsearch.md)
 - [Search API Specification](../../04-apis/openapi/search.openapi.yaml)

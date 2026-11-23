@@ -23,7 +23,7 @@ End-to-end customer-facing processes
 - **[wishlist.md](customer-journey/wishlist.md)** - Wishlist management, back-in-stock and price-drop notification flows
 - **[guest-checkout.md](customer-journey/guest-checkout.md)** - Guest cart, anonymous checkout, cart merge on login, post-purchase account creation
 - **[returns-exchanges.md](customer-journey/returns-exchanges.md)** - Return and exchange processes, seller appeal, chargeback handling, partial refund negotiation
-- **[loyalty-rewards.md](customer-journey/loyalty-rewards.md)** - Loyalty program, points, and rewards workflows
+- **[loyalty-rewards.md](../02-business-domains/post-purchase/loyalty-rewards-management.md)** - Loyalty program, points, and rewards workflows
 - **[product-reviews.md](customer-journey/product-reviews.md)** - Product review and rating workflows
 
 #### **[Operational Flows](operational-flows/)**

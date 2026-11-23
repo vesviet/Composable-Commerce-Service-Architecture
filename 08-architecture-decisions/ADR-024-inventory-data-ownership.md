@@ -217,10 +217,10 @@ Services MUST adhere to these rules:
 
 ## References
 
-- [Warehouse Service Architecture](../warehouse/README.md)
-- [Event-Driven Data Sync](../data-synchronization-checklist.md)
+- [Warehouse Service Architecture](../03-services/core-services/warehouse-service.md)
+- [Event-Driven Data Sync](../05-workflows/integration-flows/data-synchronization.md)
 - [Reservation Lifecycle State Machine](#reservation-lifecycle) (below)
-- [Catalog Service Caching Strategy](../../catalog/docs/caching-strategy.md)
+- [Catalog Service Caching Strategy](../03-services/core-services/catalog-service.md)
 
 ---
 

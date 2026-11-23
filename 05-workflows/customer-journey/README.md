@@ -51,7 +51,7 @@ Our customer journey documentation covers three critical phases of the customer 
 
 **Business Impact**: Customer satisfaction, inventory management, fraud prevention, cost optimization
 
-### **[Loyalty & Rewards](loyalty-rewards.md)**
+### **[Loyalty & Rewards](../../02-business-domains/post-purchase/loyalty-rewards-management.md)**
 **Customer loyalty program and rewards journey**
 
 - **Scope**: Complete loyalty program participation from enrollment to redemption

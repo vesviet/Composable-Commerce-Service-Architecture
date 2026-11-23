@@ -552,4 +552,4 @@ When converting a new service from Docker Compose to K8s:
 - [Main K8s Guide](./README.md)
 - [Dapr Documentation](https://docs.dapr.io/operations/hosting/kubernetes/)
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Warehouse Example](file:///home/tuananh/microservices/k8s-local/services/warehouse/)
+- **Warehouse Example** — `gitops/apps/warehouse/` (legacy local manifests: `k8s-local/services/warehouse/`)

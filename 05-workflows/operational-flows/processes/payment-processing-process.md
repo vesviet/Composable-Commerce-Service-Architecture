@@ -73,12 +73,12 @@ This process is designed to work with the accompanying checklist + implementatio
 | Step | Event Type | Topic | Publisher | Subscribers | Payload Schema |
 |------|------------|-------|-----------|-------------|----------------|
 | 1 | `order.created` | `order.created` | Order Service | Payment Service | [order.created.schema.json](../../../04-apis/event-schemas/order.created.schema.json) |
-| 2 | `payment.authorized` | `payment.authorized` | Payment Service | Order Service | [payment.authorized.schema.json](../json-schema/payment.authorized.schema.json) |
-| 3 | `payment.failed` | `payment.failed` | Payment Service | Order Service | [payment.failed.schema.json](../json-schema/payment.failed.schema.json) |
-| 4 | `order.shipped` | `order.shipped` | Fulfillment/Order Service | Payment Service | [order.shipped.schema.json](../json-schema/order.shipped.schema.json) |
-| 5 | `payment.captured` | `payment.captured` | Payment Service | Order Service | [payment.captured.schema.json](../json-schema/payment.captured.schema.json) |
+| 2 | `payment.authorized` | `payment.authorized` | Payment Service | Order Service | [payment.authorized.schema.json](../../../04-apis/event-schemas/README.md) |
+| 3 | `payment.failed` | `payment.failed` | Payment Service | Order Service | [payment.failed.schema.json](../../../04-apis/event-schemas/README.md) |
+| 4 | `order.shipped` | `order.shipped` | Fulfillment/Order Service | Payment Service | [order.shipped.schema.json](../../../04-apis/event-schemas/README.md) |
+| 5 | `payment.captured` | `payment.captured` | Payment Service | Order Service | [payment.captured.schema.json](../../../04-apis/event-schemas/README.md) |
 | 6 | `gateway.webhook.received` | `gateway.webhook.received` | Payment Service | Payment Service (worker) | N/A |
-| 7 | `payment.refunded` | `payment.refunded` | Payment Service | Order Service | [payment.refunded.schema.json](../json-schema/payment.refunded.schema.json) |
+| 7 | `payment.refunded` | `payment.refunded` | Payment Service | Order Service | [payment.refunded.schema.json](../../../04-apis/event-schemas/README.md) |
 | 8 | `payment.dispute.created` | `payment.dispute.created` | Payment Service | Ops/Order Service | N/A |
 
 ## Flow Charts
@@ -250,4 +250,4 @@ sequenceDiagram
 - `docs/checklists/payment-processing-logic-checklist.md`
 - [Payment Service Documentation](../../../03-services/core-services/payment-service.md)
 - [Order Placement Process](./order-placement-process.md)
-- [Refund Processing Process](./refund-processing-process.md)
+- [Refund Processing Process](../../../02-business-domains/post-purchase/return-refund-management.md)

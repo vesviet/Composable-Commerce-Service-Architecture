@@ -2,7 +2,7 @@
 
 **Purpose**: Document and verify reservation release triggers and flows for inventory management  
 **Date**: 2026-01-31  
-**Related**: [Inventory Data Ownership ADR](./inventory-data-ownership-adr.md)
+**Related**: [Inventory Data Ownership ADR](../../08-architecture-decisions/ADR-024-inventory-data-ownership.md)
 
 ## Overview
 

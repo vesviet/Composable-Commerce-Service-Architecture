@@ -48,9 +48,9 @@ The Inventory Reservation process handles stock reservation for orders, ensuring
 |------|------------|-------|-----------|--------------|----------------|
 | 1 | `order.order.created` | `order.created` | Order Service | Warehouse | [order.created.schema.json](../../../04-apis/event-schemas/order.created.schema.json) |
 | 2 | `warehouse.inventory.reserved` | `inventory.reserved` | Warehouse Service | Order | [inventory.reserved.schema.json](../../../04-apis/event-schemas/inventory.reserved.schema.json) |
-| 3 | `order.order.cancelled` | `order.cancelled` | Order Service | Warehouse | [order.cancelled.schema.json](../json-schema/order.cancelled.schema.json) |
-| 4 | `warehouse.inventory.released` | `inventory.released` | Warehouse Service | Order | [inventory.released.schema.json](../json-schema/inventory.released.schema.json) |
-| 5 | `fulfillment.fulfillment.completed` | `fulfillment.completed` | Fulfillment Service | Warehouse | [fulfillment.completed.schema.json](../json-schema/fulfillment.completed.schema.json) |
+| 3 | `order.order.cancelled` | `order.cancelled` | Order Service | Warehouse | [order.cancelled.schema.json](../../../04-apis/event-schemas/README.md) |
+| 4 | `warehouse.inventory.released` | `inventory.released` | Warehouse Service | Order | [inventory.released.schema.json](../../../04-apis/event-schemas/README.md) |
+| 5 | `fulfillment.fulfillment.completed` | `fulfillment.completed` | Fulfillment Service | Warehouse | [fulfillment.completed.schema.json](../../../04-apis/event-schemas/README.md) |
 
 ## Flow Charts
 

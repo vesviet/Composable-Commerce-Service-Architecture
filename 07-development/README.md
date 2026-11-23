@@ -44,7 +44,7 @@ This section contains comprehensive documentation for developers working on the 
 - **[Coding Standards](./standards/coding-standards.md)** - Go coding standards and best practices
 - **[Code Review Guide](./standards/TEAM_LEAD_CODE_REVIEW_GUIDE.md)** - Code review procedures
 - **[Service Review Process](./standards/service-review-release-prompt.md)** - Service review and release process
-- **[Platform Engineering](./standards/platform-engineering/)** - Platform development standards
+- **[Platform Engineering](./standards/README.md)** - Platform development standards
 
 ### **🚀 Getting Started**
 - **[Local Development Setup](./getting-started/)** - Environment setup and tooling
@@ -67,9 +67,9 @@ This section contains comprehensive documentation for developers working on the 
 4. **[Development Workflow](./workflows/)** - Learn development workflow
 
 ### **For Service Development**
-1. **[Service Standards](./standards/service-integration-standards.md)** - Service integration patterns
+1. **[Service Standards](../04-apis/api-standards.md)** - Service integration patterns
 2. **[Testing Standards](./standards/)** - Testing procedures
-3. **[Platform Engineering](./standards/platform-engineering/)** - Platform standards
+3. **[Platform Engineering](./standards/README.md)** - Platform standards
 4. **[Code Review Process](./standards/service-review-release-prompt.md)** - Review and release process
 
 ---
@@ -174,7 +174,7 @@ func TestCreateUser(t *testing.T) {
 ### **Quality & Operations**
 - **[Operations](../06-operations/README.md)** - Deployment and operations
 - **[Testing](./standards/)** - Testing frameworks and utilities
-- **[Platform Engineering](./standards/platform-engineering/)** - Platform operations
+- **[Platform Engineering](./standards/README.md)** - Platform operations
 
 ---
 
@@ -183,7 +183,7 @@ func TestCreateUser(t *testing.T) {
 ### **Internal Resources**
 - **[Architecture Decisions](../08-architecture-decisions/README.md)** - Learn from past decisions
 - **[Service Examples](../03-services/)** - Reference implementations
-- **[Platform Engineering](standards/platform-engineering/)** - Advanced patterns
+- **[Platform Engineering](./standards/README.md)** - Advanced patterns
 
 ### **External Resources**
 - **[Effective Go](https://golang.org/doc/effective_go.html)** - Go best practices
@@ -204,7 +204,7 @@ func TestCreateUser(t *testing.T) {
 ### **Experienced Developer Onboarding**
 1. **[Architecture Overview](../01-architecture/README.md)** - Understand system design
 2. **[Domain Knowledge](../02-business-domains/README.md)** - Learn business context
-3. **[Platform Standards](standards/platform-engineering/)** - Advanced development patterns
+3. **[Platform Standards](./standards/README.md)** - Advanced development patterns
 4. **[Operations](../06-operations/README.md)** - Understand deployment and operations
 
 ---

@@ -85,7 +85,7 @@ The Order Placement process handles the complete flow from cart checkout to orde
 |------|------------|-------|-----------|--------------|----------------|
 | 1 | `order.order.created` | `order.created` | Order Service | Payment, Warehouse, Notification, Customer | [order.created.schema.json](../../../04-apis/event-schemas/order.created.schema.json) |
 | 2 | `warehouse.inventory.reserved` | `inventory.reserved` | Warehouse Service | Order | [inventory.reserved.schema.json](../../../04-apis/event-schemas/inventory.reserved.schema.json) |
-| 3 | `payment.payment.authorized` | `payment.authorized` | Payment Service | Order | [payment.authorized.schema.json](../json-schema/payment.authorized.schema.json) |
+| 3 | `payment.payment.authorized` | `payment.authorized` | Payment Service | Order | [payment.authorized.schema.json](../../../04-apis/event-schemas/README.md) |
 | 4 | `order.order.status_changed` | `order.status_changed` | Order Service | Fulfillment, Shipping, Notification | [order.status_changed.schema.json](../../../04-apis/event-schemas/order.status_changed.schema.json) |
 
 ### Event Details
