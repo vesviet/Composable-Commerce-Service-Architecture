@@ -32,8 +32,8 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | 19 | **Common Ops** | Platform | 8018 | 9018 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | — |
 | 20 | **Notification** | Operations | 8009 | 9009 | `v1.2.0` | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
 | 21 | **Location** | Operations | 8007 | 9007 | `v1.1.1` | 🟢 Production | ✅ | ✅ | — | — |
-| — | **Frontend** | UI (Next.js 16) | 3000 | — | `v1.0.1` | — | — | — | — | — |
-| — | **Admin** | UI (React 18 + Vite) | 3001 | — | `main` (untagged) | — | — | — | — | — |
+| — | **Frontend** | UI (Next.js 16) | 3000 | — | `v1.1.0` | — | — | — | — | — |
+| — | **Admin** | UI (React 18 + Vite) | 3001 | — | `v1.0.0` | — | — | — | — | — |
 
 **Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable  
 **Coverage (21 Go services)**: Worker 21/21 · Outbox 19/21 · Idempotency 19/21 · DLQ 16/21  

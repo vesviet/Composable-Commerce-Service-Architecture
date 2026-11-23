@@ -12,7 +12,7 @@ This file is the canonical repository and codebase map. For per-service maturity
 - **21 Go Services** (`100%` on Go `1.27.4`, Kratos `v2.9.2`, `common v1.37.0`, OpenTelemetry, `go-redis/v9`, `0` legacy Gin)
 - **525 Proto RPCs** across 21 Go services · **341 Goose SQL migrations** across 20 DB-backed services
 - **1 Shared Go Library**: `common v1.37.1` (`23` packages; services currently pin `v1.37.0`)
-- **2 Frontend Apps**: `frontend` (`v1.0.1`, Next.js 16 + React 18) · `admin` (`main`, React 18 + Vite)
+- **2 Frontend Apps**: `frontend` (`v1.1.0`, Next.js 16 + React 18) · `admin` (`v1.0.0`, React 18 + Vite)
 - **6 Supporting Repos**: `gitops`, `gitlab-ci-templates`, `docs`, `qa-auto`, `microservices-agent-skills` (`v5.10.0`), `vesviet`
 
 ## 🏗️ Core Business Services
@@ -109,11 +109,11 @@ These form the backbone of the e-commerce transaction and user domains:
   - Worker: Background processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
 - **`gitops`** — Kustomize, ArgoCD manifests, cluster config (`6fbcb24c`: Go 1.27.4 rollout ConfigMaps, NetworkPolicies, and overlays)
-- **`frontend`** — Customer Next.js 16 + Ant Design Web Application (`v1.0.1`)
-- **`admin`** — Backoffice React 18 + Vite + Ant Design Application (`main`)
+- **`frontend`** — Customer Next.js 16 + Ant Design Web Application (`v1.1.0`)
+- **`admin`** — Backoffice React 18 + Vite + Ant Design Application (`v1.0.0`)
 - **`qa-auto`** — Automated E2E / QA test suite (Playwright)
 - **`docs`** — Platform documentation, ADRs, OpenAPI/event specs, workflows, and runbooks
-- **`gitlab-ci-templates`** — Shared GitLab CI/CD pipeline templates (`lint-test` on `golang:1.27.4-alpine`, `build-image`, `update-gitops-image-tag`)
+- **`gitlab-ci-templates`** — Shared GitLab CI/CD pipeline templates (`lint-test` on `golang:1.27.4-alpine`, `lint-test-frontend` on `node:22-alpine` with enforced strict `npm ci` gates, `build-image`, `update-gitops-image-tag`)
 - **`microservices-agent-skills`** — Global Engineering Pack `v5.10.0` (39 roles, 184 skills, 25 workflows, 21 overlays including rule-only `ecommerce-microservices`; paired with workspace [`.agent/`](../.agent/) 23 microservices skills & 7 workflows — see [MICROSERVICES_AGENT_SKILLS_INDEX.md](MICROSERVICES_AGENT_SKILLS_INDEX.md))
 - **`vesviet`** — Content / marketing website repository (Hugo/Astro knowledge base & radar)
 

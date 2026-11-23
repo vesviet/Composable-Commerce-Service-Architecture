@@ -5,7 +5,7 @@
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 3001
 
-**Version**: main (untagged)  
+**Version**: v1.0.0  
 **Service Type**: Platform  
 **Status**: ✅ **COMPLETED** - Production Ready
 
