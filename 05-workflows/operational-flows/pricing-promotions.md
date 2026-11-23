@@ -279,4 +279,4 @@ Dynamic pricing and promotion management workflow covering price calculation, pr
 - [Pricing Service Documentation](../../03-services/core-services/pricing-service.md)
 - [Promotion Service Documentation](../../03-services/core-services/promotion-service.md)
 - [Catalog Service Integration](../../03-services/core-services/catalog-service.md)
-- [Pricing API Specification](../../04-apis/pricing-api.md)
+- [Pricing API Specification](../../04-apis/openapi/pricing.openapi.yaml)

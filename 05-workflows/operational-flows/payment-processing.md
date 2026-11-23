@@ -450,7 +450,7 @@ If chargeback is lost:
 
 - [Payment Service Documentation](../../03-services/core-services/payment-service.md)
 - [Order Service Integration](../../03-services/core-services/order-service.md)
-- [Payment Gateway APIs](../../04-apis/payment-api.md)
+- [Payment Gateway APIs](../../04-apis/openapi/payment.openapi.yaml)
 - [Payment Processing Sequence Diagram](../sequence-diagrams/checkout-payment-flow.mmd)
 - [Idempotency & Saga Patterns](../integration-flows/idempotency-saga.md)
 - [Seller & Merchant Flow — Escrow & Payout](./seller-merchant.md)

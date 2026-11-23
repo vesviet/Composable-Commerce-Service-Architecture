@@ -306,7 +306,7 @@ groups:
 - [GitOps Security](./GITOPS_SECURITY.md)
 
 ### Troubleshooting
-- [Common Issues](./TROUBLESHOOTING.md)
+- [Common Issues](../../platform/TROUBLESHOOTING.md)
 - [Debugging Guide](./DEBUGGING.md)
 - [Recovery Procedures](./RECOVERY.md)
 

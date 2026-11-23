@@ -616,7 +616,7 @@ dlq_monitoring:
 ## 📞 Support & Resources
 
 ### Documentation Links
-- [Event Validation + DLQ Flow](workflow/event-validation-dlq-flow.md)
+- [Event Validation + DLQ Flow](event-validation-dlq-flow.md)
 - [Integration Tests](test/integration/README.md)
 - [Service Architecture](../platform-engineering/README.md)
 

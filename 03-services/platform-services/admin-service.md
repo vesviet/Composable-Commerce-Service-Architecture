@@ -249,4 +249,4 @@ npm run lint
 - [React Documentation](https://react.dev)
 - [Vite Documentation](https://vite.dev)
 - [Ant Design Documentation](https://ant.design)
-- [API Gateway Documentation](../04-apis/api-gateway.md)
+- [API Gateway Documentation](../../04-apis/openapi/gateway.openapi.yaml)

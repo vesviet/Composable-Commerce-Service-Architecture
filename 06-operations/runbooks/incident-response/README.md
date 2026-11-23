@@ -400,13 +400,13 @@ kubectl get networkpolicies --all-namespaces
 
 ### **Security Documentation**
 - [Security Operations](../security/README.md) - Security framework
-- [Incident Response](../security/INCIDENT_RESPONSE.md) - Security incident procedures
-- [Security Architecture](../security/SECURITY_ARCHITECTURE.md) - Security design
+- [Incident Response](../../security/INCIDENT_RESPONSE.md) - Security incident procedures
+- [Security Architecture](../../security/SECURITY_ARCHITECTURE.md) - Security design
 
 ### **Operational Documentation**
 - [Monitoring Overview](../monitoring/README.md) - Monitoring and alerting
 - [Service Runbooks](../sre-runbooks/README.md) - Service-specific procedures
-- [GitOps Overview](../deployment/gitops/GITOPS_OVERVIEW.md) - Deployment procedures
+- [GitOps Overview](../../deployment/gitops/GITOPS_OVERVIEW.md) - Deployment procedures
 
 ---
 

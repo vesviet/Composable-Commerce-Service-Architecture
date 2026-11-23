@@ -274,4 +274,4 @@ echo -e "\n=== Check Complete ==="
 
 **Quick Reference Version**: 1.0
 **Full Manual**: [Event Processing Manual](event-processing-manual.md)
-**Runbook**: [SRE Runbook](sre-runbooks/search-event-processing-runbook.md)
+**Runbook**: [SRE Runbook](../runbooks/sre-runbooks/search-event-processing-runbook.md)

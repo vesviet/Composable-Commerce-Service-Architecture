@@ -283,7 +283,7 @@ Complete product review and rating customer journey covering review submission, 
 
 ## References
 
-- [Review Service Documentation](../../03-services/operational-services/review-service.md)
+- [Review Service Documentation](../../03-services/platform-services/review-service.md)
 - [Order Service Integration](../../03-services/core-services/order-service.md)
 - [Catalog Service Integration](../../03-services/core-services/catalog-service.md)
-- [Review API Specification](../../04-apis/review-api.md)
+- [Review API Specification](../../04-apis/openapi/review.openapi.yaml)

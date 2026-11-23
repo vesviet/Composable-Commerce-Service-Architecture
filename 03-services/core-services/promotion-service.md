@@ -267,6 +267,6 @@ promotion/
 
 ## References
 
-- [Code Review Checklist](../../10-appendix/checklists/v2/promotion_service_code_review.md)
-- [TODO List](../../10-appendix/checklists/v2/promotion_service_todos.md)
+- [Code Review Checklist](../../10-appendix/workflow/promotion-review-checklist.md)
+- [Promotion Service Review](../../10-appendix/checklists/workflow/promotion-service-review.md)
 - [Service README](../../../promotion/README.md)

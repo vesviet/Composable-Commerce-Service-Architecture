@@ -22,7 +22,7 @@ This section contains comprehensive documentation for our **Kustomize-based GitO
 - **[Repository Structure](./REPOSITORY_STRUCTURE.md)** - GitOps repository organization
 - **[Deployment Patterns](./DEPLOYMENT_PATTERNS.md)** - Kustomize deployment strategies
 - **[Best Practices](./BEST_PRACTICES.md)** - Kustomize and GitOps best practices
-- **[Troubleshooting](./TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Troubleshooting](../../platform/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ### ⚠️ Migration Notice
 
@@ -101,7 +101,7 @@ gitops/
 ### 🚀 Getting Started
 - **[GitOps Overview](./GITOPS_OVERVIEW.md)** - Start here for complete understanding
 - **[Quick Start Guide](./QUICK_START.md)** - Get Kustomize-based GitOps running
-- **[Installation Guide](./INSTALLATION.md)** - Detailed setup instructions
+- **[Installation Guide](../kubernetes/INSTALLATION.md)** - Detailed setup instructions
 - **[Migration Guide](../../../01-architecture/gitops-migration.md)** - ApplicationSet to Kustomize
 
 ### 🏗️ Architecture & Design
@@ -123,7 +123,7 @@ gitops/
 - **[Audit & Compliance](./AUDIT_COMPLIANCE.md)** - Compliance requirements
 
 ### 🛠️ Operations
-- **[Troubleshooting](./TROUBLESHOOTING.md)** - Common issues and fixes
+- **[Troubleshooting](../../platform/TROUBLESHOOTING.md)** - Common issues and fixes
 - **[Debugging Guide](./DEBUGGING.md)** - Advanced debugging
 - **[Recovery Procedures](./RECOVERY.md)** - Disaster recovery
 - **[Maintenance](./MAINTENANCE.md)** - Regular maintenance tasks
@@ -282,7 +282,7 @@ argocd app get my-service
 
 ### Documentation
 - **Start Here**: [GitOps Overview](./GITOPS_OVERVIEW.md)
-- **Quick Issues**: [Troubleshooting](./TROUBLESHOOTING.md)
+- **Quick Issues**: [Troubleshooting](../../platform/TROUBLESHOOTING.md)
 - **Deep Dive**: [Architecture](./GITOPS_OVERVIEW.md#architecture)
 
 ### Support Channels

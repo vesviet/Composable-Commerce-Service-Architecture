@@ -287,6 +287,6 @@ Multi-carrier shipping and delivery tracking workflow covering carrier selection
 ## References
 
 - [Shipping Service Documentation](../../03-services/core-services/shipping-service.md)
-- [Fulfillment Service Integration](../../03-services/operational-services/fulfillment-service.md)
+- [Fulfillment Service Integration](../../03-services/core-services/fulfillment-service.md)
 - [Location Service Integration](../../03-services/operational-services/location-service.md)
-- [Shipping API Specification](../../04-apis/shipping-api.md)
+- [Shipping API Specification](../../04-apis/openapi/shipping.openapi.yaml)

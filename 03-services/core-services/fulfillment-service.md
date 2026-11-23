@@ -130,5 +130,5 @@ grpcurl -plaintext localhost:9008 list
 
 ## References
 
-- [API Documentation](../04-apis/fulfillment-api.md)
+- [API Documentation](../../04-apis/openapi/fulfillment.openapi.yaml)
 - [Related Services](./order-service.md)

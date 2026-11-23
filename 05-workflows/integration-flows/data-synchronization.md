@@ -283,5 +283,5 @@ Real-time data synchronization patterns ensuring consistent data across services
 
 - [Event Processing Workflow](./event-processing.md)
 - [Catalog Service Documentation](../../03-services/core-services/catalog-service.md)
-- [Search Service Documentation](../../03-services/core-services/search-service.md)
+- [Search Service Documentation](../../03-services/platform-services/search-service.md)
 - [Data Architecture Overview](../../01-architecture/data-architecture.md)

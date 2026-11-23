@@ -8,7 +8,7 @@
 **Service Name**: Location Service  
 **Version**: v1.1.1  
 **Production Ready**: 90%  
-**Code Review**: [Location Service Code Review Checklist](../../10-appendix/checklists/v2/location_service_code_review.md)  
+**Code Review**: [Location Service Code Review Checklist](../../10-appendix/service-review-checklists/location-review-checklist.md)  
 
 > **Related**: Updated operational overview in [operational-services/location-service.md](../operational-services/location-service.md).
 
@@ -489,7 +489,7 @@ delivery:
 ## Recent Updates (2026-01-29)
 
 - ✅ Updated dependencies: `common@v1.8.3`, `kratos@v2.9.2`
-- ✅ Code review completed: [Location Service Code Review Checklist](../../10-appendix/checklists/v2/location_service_code_review.md)
+- ✅ Code review completed: [Location Service Code Review Checklist](../../10-appendix/service-review-checklists/location-review-checklist.md)
 - ⚠️ P1 Issues Identified:
   - Health check implementation needs actual connectivity checks
   - Error mapping to gRPC status codes needs verification

@@ -13,16 +13,16 @@ This guide provides a comprehensive **3-phase migration approach** for migrating
 ### 🎯 Migration Scope
 
 #### **Magento Modules to Microservices**
-- **Catalog Management** → [Catalog Service](../../03-services/catalog/)
-- **Customer Management** → [Customer Service](../../03-services/customer/)
-- **Order Management** → [Order Service](../../03-services/order/)
-- **Payment Processing** → [Payment Service](../../03-services/payment/)
-- **Shipping & Fulfillment** → [Fulfillment Service](../../03-services/fulfillment/)
-- **Product Reviews** → [Review Service](../../03-services/review/)
-- **Search & Navigation** → [Search Service](../../03-services/search/)
-- **Promotions & Coupons** → [Promotion Service](../../03-services/promotion/)
-- **Loyalty & Rewards** → [Loyalty Service](../../03-services/loyalty-rewards/)
-- **Inventory / Stock** → [Warehouse Service](../../03-services/warehouse/)
+- **Catalog Management** → [Catalog Service](../../03-services/core-services/catalog-service.md)
+- **Customer Management** → [Customer Service](../../03-services/core-services/customer-service.md)
+- **Order Management** → [Order Service](../../03-services/core-services/order-service.md)
+- **Payment Processing** → [Payment Service](../../03-services/core-services/payment-service.md)
+- **Shipping & Fulfillment** → [Fulfillment Service](../../03-services/core-services/fulfillment-service.md)
+- **Product Reviews** → [Review Service](../../03-services/platform-services/review-service.md)
+- **Search & Navigation** → [Search Service](../../03-services/platform-services/search-service.md)
+- **Promotions & Coupons** → [Promotion Service](../../03-services/core-services/promotion-service.md)
+- **Loyalty & Rewards** → [Loyalty Service](../../03-services/core-services/loyalty-rewards-service.md)
+- **Inventory / Stock** → [Warehouse Service](../../03-services/core-services/warehouse-service.md)
 
 > [!WARNING]
 > **This migration has 3 non-trivial technical challenges** that must be addressed before starting:

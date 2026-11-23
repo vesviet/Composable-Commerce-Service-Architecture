@@ -288,7 +288,7 @@ graph LR
 **Documentation Version**: 2.2.0  
 **Last Updated**: 2026-11-23  
 **Coverage**: 23/23 services documented  
-**Maturity**: 16/21 Go services production-ready, 5 near-production — see [SERVICE_INDEX.md](../SERVICE_INDEX.md)  
+**Maturity**: 19/21 Go services production-ready, 2 near-production — see [SERVICE_INDEX.md](../SERVICE_INDEX.md)  
 **Review Status**: ✅ Audited and cleaned up (March 2, 2026)
 
 **Quick Reference**: See [SERVICE_INDEX.md](../SERVICE_INDEX.md) for complete service catalog

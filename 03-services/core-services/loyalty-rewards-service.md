@@ -153,7 +153,7 @@ See CHANGELOG.md for detailed version history.
 
 ## References
 
-- [API Documentation](../04-apis/loyalty-api.md)
+- [API Documentation](../../04-apis/openapi/loyalty-rewards.openapi.yaml)
 - [Order Service](./order-service.md)
 - [Customer Service](./customer-service.md)
 - [Notification Service](../operational-services/notification-service.md)

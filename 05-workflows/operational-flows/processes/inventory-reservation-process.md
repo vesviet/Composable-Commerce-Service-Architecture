@@ -46,8 +46,8 @@ The Inventory Reservation process handles stock reservation for orders, ensuring
 
 | Step | Event Type | Topic | Publisher | Subscribers | Payload Schema |
 |------|------------|-------|-----------|--------------|----------------|
-| 1 | `order.order.created` | `order.created` | Order Service | Warehouse | [order.created.schema.json](../json-schema/order.created.schema.json) |
-| 2 | `warehouse.inventory.reserved` | `inventory.reserved` | Warehouse Service | Order | [inventory.reserved.schema.json](../json-schema/inventory.reserved.schema.json) |
+| 1 | `order.order.created` | `order.created` | Order Service | Warehouse | [order.created.schema.json](../../../04-apis/event-schemas/order.created.schema.json) |
+| 2 | `warehouse.inventory.reserved` | `inventory.reserved` | Warehouse Service | Order | [inventory.reserved.schema.json](../../../04-apis/event-schemas/inventory.reserved.schema.json) |
 | 3 | `order.order.cancelled` | `order.cancelled` | Order Service | Warehouse | [order.cancelled.schema.json](../json-schema/order.cancelled.schema.json) |
 | 4 | `warehouse.inventory.released` | `inventory.released` | Warehouse Service | Order | [inventory.released.schema.json](../json-schema/inventory.released.schema.json) |
 | 5 | `fulfillment.fulfillment.completed` | `fulfillment.completed` | Fulfillment Service | Warehouse | [fulfillment.completed.schema.json](../json-schema/fulfillment.completed.schema.json) |
@@ -208,7 +208,7 @@ stateDiagram-v2
 
 ## Related Documentation
 
-- [Warehouse Service Documentation](../services/warehouse-service.md)
+- [Warehouse Service Documentation](../../../03-services/core-services/warehouse-service.md)
 - [Order Placement Process](./order-placement-process.md)
 - [Fulfillment Process](./fulfillment-process.md)
 

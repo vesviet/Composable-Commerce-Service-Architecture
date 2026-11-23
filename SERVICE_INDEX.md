@@ -1,7 +1,7 @@
 # 📦 Service Index
 
-> **Last Updated**: 2026-11-23 (sync with workspace repos & `common` v1.37.0) | **Total**: 21 Go services + 2 frontends  
-> **Stack**: Go 1.27.4 (21/21 Go services) · Kratos v2.9.2 · `common` v1.37.0 · Next.js 16 · React 18 · PostgreSQL · Redis · Dapr · Kubernetes
+> **Last Updated**: 2026-11-23 (sync with workspace repos & `common` v1.37.1) | **Total**: 21 Go services + 2 frontends  
+> **Stack**: Go 1.27.4 (21/21 Go services) · Kratos v2.9.2 · `common` v1.37.1 · Next.js 16 · React 18 · PostgreSQL · Redis · Dapr · Kubernetes
 
 ---
 
@@ -16,12 +16,12 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | 3 | **Customer** | CRM & Analytics | 8003 | 9003 | `v1.4.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 4 | **Catalog** | Product & Content | 8015 | 9015 | `v1.5.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 5 | **Pricing** | Product & Content | 8002 | 9002 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 6 | **Promotion** | Product & Content | 8011 | 9011 | `v1.4.1` | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
+| 6 | **Promotion** | Product & Content | 8011 | 9011 | `v1.4.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 7 | **Checkout** | Commerce Flow | 8010 | 9010 | `v1.6.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 8 | **Order** | Commerce Flow | 8004 | 9004 | `v1.4.0` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 9 | **Payment** | Commerce Flow | 8005 | 9005 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 10 | **Warehouse** | Inventory | 8006 | 9006 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 11 | **Fulfillment** | Order Fulfillment | 8008 | 9008 | `v1.3.1` | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
+| 11 | **Fulfillment** | Order Fulfillment | 8008 | 9008 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 12 | **Shipping** | Logistics | 8012 | 9012 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 13 | **Return** | Post-Purchase | 8013 | 9013 | `v1.2.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 14 | **Loyalty** | Post-Purchase | 8014 | 9014 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
@@ -30,14 +30,14 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | 17 | **Analytics** | Platform | 8019 | 9019 | `v1.3.1` | 🟡 Near-prod | ✅ | — | ✅ | ✅ |
 | 18 | **Review** | Platform | 8016 | 9016 | `v1.4.1` | 🟡 Near-prod | ✅ | ✅ | ✅ | — |
 | 19 | **Common Ops** | Platform | 8018 | 9018 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | — |
-| 20 | **Notification** | Operations | 8009 | 9009 | `v1.2.0` | 🟡 Near-prod | ✅ | ✅ | ✅ | ✅ |
+| 20 | **Notification** | Operations | 8009 | 9009 | `v1.2.0` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 21 | **Location** | Operations | 8007 | 9007 | `v1.1.1` | 🟢 Production | ✅ | ✅ | — | — |
 | — | **Frontend** | UI (Next.js 16) | 3000 | — | `v1.1.0` | — | — | — | — | — |
 | — | **Admin** | UI (React 18 + Vite) | 3001 | — | `v1.0.0` | — | — | — | — | — |
 
 **Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable  
 **Coverage (21 Go services)**: Worker 21/21 · Outbox 19/21 · Idempotency 19/21 · DLQ 16/21  
-**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; services currently pin `common v1.37.0`, while `common` library latest release is `v1.37.1`). Total API & schema footprint: `525` Proto RPCs and `341` Goose SQL migrations.
+**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; all 21/21 Go services pin `common v1.37.1`). Total API & schema footprint: `525` Proto RPCs and `341` Goose SQL migrations. Remaining `🟡 Near-prod` services (2/21): `analytics` (pending Phase 3 remediation / cross-service stubs & outbox) and `review` (pending DLQ).
 
 ---
 
@@ -124,7 +124,7 @@ This file is the canonical source of truth for per-service maturity, versions, a
 
 Shared packages used across services (`gitlab.com/ta-microservices/common`):
 
-> **Recent Highlights**: `v1.37.1` standardizes `.golangci.yml` v2 and resolves all 123 lint findings; `v1.37.0` upgrades to Go `1.27.4` and removes legacy Gin middleware; `v1.36.0` hardens security, concurrency, resilience, and test coverage across shared helpers; `v1.35.3` added JWT multi-secret key rotation in `middleware/auth.go`. (All 21/21 Go services currently pin `common v1.37.0` across 23 packages.)
+> **Recent Highlights**: `v1.37.1` standardizes `.golangci.yml` v2 and resolves all 123 lint findings; `v1.37.0` upgrades to Go `1.27.4` and removes legacy Gin middleware; `v1.36.0` hardens security, concurrency, resilience, and test coverage across shared helpers; `v1.35.3` added JWT multi-secret key rotation in `middleware/auth.go`. (All 21/21 Go services pin `common v1.37.1` across 23 packages.)
 
 | Package | Purpose | Status |
 |---------|---------|--------|

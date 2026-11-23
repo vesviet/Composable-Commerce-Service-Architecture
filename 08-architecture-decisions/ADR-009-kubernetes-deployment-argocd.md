@@ -212,7 +212,7 @@ Total Deployment Time: 35-45 minutes
 - **Reason**: Better environment management, consistency, and scalability
 - **Status**: ✅ Completed
 - **Services Migrated**: 24 deployable services
-- **Documentation**: See [GitOps Migration Guide](../../01-architecture/gitops-migration.md)
+- **Documentation**: See [GitOps Migration Guide](../01-architecture/gitops-migration.md)
 
 ### Key Changes:
 1. **Repository Structure**: Moved from `argocd/` to dedicated `gitops/` repo
@@ -229,7 +229,7 @@ Total Deployment Time: 35-45 minutes
 - [GitOps Principles](https://www.weave.works/technologies/gitops/)
 - [ArgoCD Best Practices](https://argo-cd.readthedocs.io/en/stable/operator-manual/best-practices/)
 - [Kustomize Best Practices](https://kubectl.docs.kubernetes.io/guides/config_management/introduction/)
-- [GitOps Migration Guide](../../01-architecture/gitops-migration.md)
+- [GitOps Migration Guide](../01-architecture/gitops-migration.md)
 - [Tilt Documentation](https://tilt.dev/)
 
 ---

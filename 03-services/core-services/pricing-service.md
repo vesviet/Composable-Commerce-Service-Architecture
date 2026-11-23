@@ -503,7 +503,7 @@ pricing:
 ### Remaining Items
 - ⏸️ **Test coverage**: Skipped per user request (Target: 80%+ for future implementation)
 
-**Full TODO List**: [`docs/10-appendix/checklists/v2/pricing_service_todos.md`](../../10-appendix/checklists/v2/pricing_service_todos.md)
+**Full Review Checklist**: [`pricing-review-checklist.md`](../../10-appendix/workflow/pricing-review-checklist.md)
 
 ---
 

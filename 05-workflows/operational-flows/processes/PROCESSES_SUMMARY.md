@@ -183,14 +183,14 @@
 ### Architecture Documentation
 - [System Architecture Overview](../SYSTEM_ARCHITECTURE_OVERVIEW.md) - Complete system architecture
 - [System Completeness Assessment](../SYSTEM_COMPLETENESS_ASSESSMENT.md) - Current system status
-- [Codebase Index](../CODEBASE_INDEX.md) - Service inventory and structure
+- [Codebase Index](../../../CODEBASE_INDEX.md) - Service inventory and structure
 - [ArgoCD Services Status](../argocd/PENDING_SERVICES.md) - Deployment status
 
 ### Technical Documentation
-- [Process Template](../templates/process-template.md) - Template for creating new processes
-- [Event Contracts](../json-schema/) - Event schemas referenced in processes
+- [Process Template](../../../10-appendix/templates/templates/process-template.md) - Template for creating new processes
+- [Event Contracts](../../../04-apis/event-schemas/) - Event schemas referenced in processes
 - [Service Documentation](../services/) - Individual service details
-- [OpenAPI Specs](../openapi/) - API contracts and specifications
+- [OpenAPI Specs](../../../04-apis/openapi/) - API contracts and specifications
 - [DDD Context Map](../ddd/context-map.md) - Domain boundaries and relationships
 
 ### Operational Documentation

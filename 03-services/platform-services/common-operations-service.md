@@ -161,6 +161,6 @@ See service root `CHANGELOG.md` if present; otherwise see git history and releas
 
 ## References
 
-- [API / OpenAPI](openapi.yaml in service root or `/docs/openapi.yaml` when served)
-- [Service Checklist v3](../../10-appendix/checklists/v3/common-operations_service_checklist_v3.md)
+- [API / OpenAPI](../../04-apis/openapi/common-operations.openapi.yaml)
+- [Service Review Checklist](../../10-appendix/workflow/common-operations-review-checklist.md)
 - [Common-Operations README](../../../common-operations/README.md)

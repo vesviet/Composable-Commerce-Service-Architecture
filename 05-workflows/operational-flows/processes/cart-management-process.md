@@ -61,8 +61,8 @@ The Cart Management process handles shopping cart operations including adding it
 
 | Step | Event Type | Topic | Publisher | Subscribers | Payload Schema |
 |------|------------|-------|-----------|--------------|----------------|
-| 1 | `order.cart.item_added` | `cart.item_added` | Order Service | Analytics, Recommendation | [cart.item_added.schema.json](../json-schema/cart.item_added.schema.json) |
-| 2 | `order.cart.checked_out` | `cart.checked_out` | Order Service | Analytics, Marketing | [cart.checked_out.schema.json](../json-schema/cart.checked_out.schema.json) |
+| 1 | `order.cart.item_added` | `cart.item_added` | Order Service | Analytics, Recommendation | [cart.item_added.schema.json](../../../04-apis/event-schemas/cart.item_added.schema.json) |
+| 2 | `order.cart.checked_out` | `cart.checked_out` | Order Service | Analytics, Marketing | [cart.checked_out.schema.json](../../../04-apis/event-schemas/cart.checked_out.schema.json) |
 
 ## Flow Charts
 
@@ -256,6 +256,6 @@ This process may still support *pre-checkout* cart validation operations (e.g. v
 
 ## Related Documentation
 
-- [Order Service Documentation](../services/order-service.md)
+- [Order Service Documentation](../../../03-services/core-services/order-service.md)
 - [Order Placement Process](./order-placement-process.md)
 

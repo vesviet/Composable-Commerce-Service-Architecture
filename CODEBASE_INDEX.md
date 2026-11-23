@@ -2,16 +2,16 @@
 
 > **Last Updated**: 2026-11-23 (full 30-repository codebase index)  
 > **Standard:** Shopify / Shopee / Lazada Architecture Patterns  
-> **Stack**: Go 1.27.4 (21/21 Go services + `common`) · Kratos v2.9.2 · `common` v1.37.0 · OpenTelemetry · Next.js 16 · React 18 · PostgreSQL · Redis · Elasticsearch · Dapr · Kubernetes  
-> **Maturity**: 16/21 services 🟢 Production-ready · 5 services 🟡 Near-prod (see [SERVICE_INDEX.md](SERVICE_INDEX.md))
+> **Stack**: Go 1.27.4 (21/21 Go services + `common`) · Kratos v2.9.2 · `common` v1.37.1 · OpenTelemetry · Next.js 16 · React 18 · PostgreSQL · Redis · Elasticsearch · Dapr · Kubernetes  
+> **Maturity**: 19/21 services 🟢 Production-ready · 2 services 🟡 Near-prod (see [SERVICE_INDEX.md](SERVICE_INDEX.md))
 
 This file is the canonical repository and codebase map. For per-service maturity, versions, and ports, use [SERVICE_INDEX.md](SERVICE_INDEX.md). For deployment state and GitOps health, use [`gitops/README.md`](../gitops/README.md) and the [GitOps review checklist](10-appendix/checklists/gitops/review_checklist.md). Note: all 20 DB-backed Go services (all except `gateway`) also include a `cmd/migrate/` Goose migration CLI.
 
 ## 📊 Workspace Snapshot (30 Repositories)
 
-- **21 Go Services** (`100%` on Go `1.27.4`, Kratos `v2.9.2`, `common v1.37.0`, OpenTelemetry, `go-redis/v9`, `0` legacy Gin)
+- **21 Go Services** (`100%` on Go `1.27.4`, Kratos `v2.9.2`, `common v1.37.1`, OpenTelemetry, `go-redis/v9`, `0` legacy Gin)
 - **525 Proto RPCs** across 21 Go services · **341 Goose SQL migrations** across 20 DB-backed services
-- **1 Shared Go Library**: `common v1.37.1` (`23` packages; services currently pin `v1.37.0`)
+- **1 Shared Go Library**: `common v1.37.1` (`23` packages; pinned by all 21 Go services)
 - **2 Frontend Apps**: `frontend` (`v1.1.0`, Next.js 16 + React 18) · `admin` (`v1.0.0`, React 18 + Vite)
 - **6 Supporting Repos**: `gitops`, `gitlab-ci-templates`, `docs`, `qa-auto`, `microservices-agent-skills` (`v5.10.0`), `vesviet`
 
@@ -103,7 +103,7 @@ These form the backbone of the e-commerce transaction and user domains:
 - **`gateway`** — API Gateway (Routing, Auth, Rate Limiting, Circuit Breaker, OpenTelemetry tracing) (`v1.2.1` · 4 RPCs · 0 migrations)
   - API: HTTP main server (`cmd/gateway/`)
   - Worker: Background processing (`cmd/worker/`)
-- **`common`** — Shared Go Library `v1.37.1` (`gitlab.com/ta-microservices/common`; Go 1.27.4, 23 packages, legacy Gin removed, `.golangci.yml` v2 standardized; services pin `v1.37.0`)
+- **`common`** — Shared Go Library `v1.37.1` (`gitlab.com/ta-microservices/common`; Go 1.27.4, 23 packages, legacy Gin removed, `.golangci.yml` v2 standardized; pinned by all 21 Go services)
 - **`common-operations`** — Admin/Support Aggregation API (`v1.3.1` · 11 RPCs · 11 migrations)
   - API: HTTP/gRPC main server (`cmd/common-operations/`)
   - Worker: Background processing (`cmd/worker/`)

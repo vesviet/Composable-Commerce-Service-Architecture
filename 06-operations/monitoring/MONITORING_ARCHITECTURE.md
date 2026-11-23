@@ -470,7 +470,7 @@ scrape_configs:
 
 ### **Operations**
 - [Dashboard Catalog](./DASHBOARDS.md) - Available dashboards
-- [Troubleshooting](./TROUBLESHOOTING.md) - Common issues
+- [Troubleshooting](../platform/TROUBLESHOOTING.md) - Common issues
 - [Maintenance](./MAINTENANCE.md) - System maintenance
 
 ---

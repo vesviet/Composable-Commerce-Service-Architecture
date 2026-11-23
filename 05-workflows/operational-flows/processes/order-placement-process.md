@@ -54,28 +54,28 @@ The Order Placement process handles the complete flow from cart checkout to orde
 
 #### Order Service
 - **Port:** 8004 (HTTP), 9004 (gRPC)
-- **Documentation:** [Order Service Docs](../services/order-service.md)
-- **API Spec:** [OpenAPI](../openapi/order.openapi.yaml)
+- **Documentation:** [Order Service Docs](../../../03-services/core-services/order-service.md)
+- **API Spec:** [OpenAPI](../../../04-apis/openapi/order.openapi.yaml)
 
 #### Catalog Service
 - **Port:** 8001 (HTTP), 9001 (gRPC)
-- **Documentation:** [Catalog Service Docs](../services/catalog-service.md)
-- **API Spec:** [OpenAPI](../openapi/catalog.openapi.yaml)
+- **Documentation:** [Catalog Service Docs](../../../03-services/core-services/catalog-service.md)
+- **API Spec:** [OpenAPI](../../../04-apis/openapi/catalog.openapi.yaml)
 
 #### Pricing Service
 - **Port:** 8002 (HTTP), 9002 (gRPC)
-- **Documentation:** [Pricing Service Docs](../services/pricing-service.md)
-- **API Spec:** [OpenAPI](../openapi/pricing.openapi.yaml)
+- **Documentation:** [Pricing Service Docs](../../../03-services/core-services/pricing-service.md)
+- **API Spec:** [OpenAPI](../../../04-apis/openapi/pricing.openapi.yaml)
 
 #### Warehouse Service
 - **Port:** 8009 (HTTP), 9009 (gRPC)
-- **Documentation:** [Warehouse Service Docs](../services/warehouse-service.md)
-- **API Spec:** [OpenAPI](../openapi/warehouse.openapi.yaml)
+- **Documentation:** [Warehouse Service Docs](../../../03-services/core-services/warehouse-service.md)
+- **API Spec:** [OpenAPI](../../../04-apis/openapi/warehouse.openapi.yaml)
 
 #### Payment Service
 - **Port:** 8005 (HTTP), 9005 (gRPC)
-- **Documentation:** [Payment Service Docs](../services/payment-service.md)
-- **API Spec:** [OpenAPI](../openapi/payment.openapi.yaml)
+- **Documentation:** [Payment Service Docs](../../../03-services/core-services/payment-service.md)
+- **API Spec:** [OpenAPI](../../../04-apis/openapi/payment.openapi.yaml)
 
 ## Event Flow
 
@@ -83,10 +83,10 @@ The Order Placement process handles the complete flow from cart checkout to orde
 
 | Step | Event Type | Topic | Publisher | Subscribers | Payload Schema |
 |------|------------|-------|-----------|--------------|----------------|
-| 1 | `order.order.created` | `order.created` | Order Service | Payment, Warehouse, Notification, Customer | [order.created.schema.json](../json-schema/order.created.schema.json) |
-| 2 | `warehouse.inventory.reserved` | `inventory.reserved` | Warehouse Service | Order | [inventory.reserved.schema.json](../json-schema/inventory.reserved.schema.json) |
+| 1 | `order.order.created` | `order.created` | Order Service | Payment, Warehouse, Notification, Customer | [order.created.schema.json](../../../04-apis/event-schemas/order.created.schema.json) |
+| 2 | `warehouse.inventory.reserved` | `inventory.reserved` | Warehouse Service | Order | [inventory.reserved.schema.json](../../../04-apis/event-schemas/inventory.reserved.schema.json) |
 | 3 | `payment.payment.authorized` | `payment.authorized` | Payment Service | Order | [payment.authorized.schema.json](../json-schema/payment.authorized.schema.json) |
-| 4 | `order.order.status_changed` | `order.status_changed` | Order Service | Fulfillment, Shipping, Notification | [order.status_changed.schema.json](../json-schema/order.status_changed.schema.json) |
+| 4 | `order.order.status_changed` | `order.status_changed` | Order Service | Fulfillment, Shipping, Notification | [order.status_changed.schema.json](../../../04-apis/event-schemas/order.status_changed.schema.json) |
 
 ### Event Details
 
@@ -94,7 +94,7 @@ The Order Placement process handles the complete flow from cart checkout to orde
 
 **Published By:** Order Service  
 **Topic:** `order.created`  
-**Schema:** [`order.created.schema.json`](../json-schema/order.created.schema.json)
+**Schema:** [`order.created.schema.json`](../../../04-apis/event-schemas/order.created.schema.json)
 
 **Payload:**
 ```json
@@ -515,11 +515,11 @@ flowchart TD
 
 ## Related Documentation
 
-- [Event Contracts](../json-schema/) - Event schemas
-- [Order Service Documentation](../services/order-service.md)
+- [Event Contracts](../../../04-apis/event-schemas/) - Event schemas
+- [Order Service Documentation](../../../03-services/core-services/order-service.md)
 - [Payment Processing Process](./payment-processing-process.md)
 - [Fulfillment Process](./fulfillment-process.md)
-- [OpenAPI Specs](../openapi/) - API contracts
+- [OpenAPI Specs](../../../04-apis/openapi/) - API contracts
 
 ## Version History
 

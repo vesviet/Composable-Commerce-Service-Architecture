@@ -49,7 +49,7 @@ The Shipping process handles shipment creation, carrier integration, and trackin
 | Step | Event Type | Topic | Publisher | Subscribers | Payload Schema |
 |------|------------|-------|-----------|--------------|----------------|
 | 1 | `fulfillment.fulfillment.completed` | `fulfillment.completed` | Fulfillment Service | Shipping | [fulfillment.completed.schema.json](../json-schema/fulfillment.completed.schema.json) |
-| 2 | `shipping.shipment.created` | `shipment.created` | Shipping Service | Order, Notification | [shipment.created.schema.json](../json-schema/shipment.created.schema.json) |
+| 2 | `shipping.shipment.created` | `shipment.created` | Shipping Service | Order, Notification | [shipment.created.schema.json](../../../04-apis/event-schemas/shipment.created.schema.json) |
 | 3 | `shipping.tracking.updated` | `tracking.updated` | Shipping Service | Order, Notification | [tracking.updated.schema.json](../json-schema/tracking.updated.schema.json) |
 | 4 | `shipping.delivery.confirmed` | `delivery.confirmed` | Shipping Service | Order, Payment | [delivery.confirmed.schema.json](../json-schema/delivery.confirmed.schema.json) |
 
@@ -197,7 +197,7 @@ flowchart TD
 
 ## Related Documentation
 
-- [Shipping Service Documentation](../services/shipping-service.md)
+- [Shipping Service Documentation](../../../03-services/core-services/shipping-service.md)
 - [Fulfillment Process](./fulfillment-process.md)
 - [Order Placement Process](./order-placement-process.md)
 

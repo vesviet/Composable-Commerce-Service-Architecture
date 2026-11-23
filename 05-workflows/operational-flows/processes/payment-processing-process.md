@@ -72,7 +72,7 @@ This process is designed to work with the accompanying checklist + implementatio
 
 | Step | Event Type | Topic | Publisher | Subscribers | Payload Schema |
 |------|------------|-------|-----------|-------------|----------------|
-| 1 | `order.created` | `order.created` | Order Service | Payment Service | [order.created.schema.json](../json-schema/order.created.schema.json) |
+| 1 | `order.created` | `order.created` | Order Service | Payment Service | [order.created.schema.json](../../../04-apis/event-schemas/order.created.schema.json) |
 | 2 | `payment.authorized` | `payment.authorized` | Payment Service | Order Service | [payment.authorized.schema.json](../json-schema/payment.authorized.schema.json) |
 | 3 | `payment.failed` | `payment.failed` | Payment Service | Order Service | [payment.failed.schema.json](../json-schema/payment.failed.schema.json) |
 | 4 | `order.shipped` | `order.shipped` | Fulfillment/Order Service | Payment Service | [order.shipped.schema.json](../json-schema/order.shipped.schema.json) |
@@ -248,6 +248,6 @@ sequenceDiagram
 ## Related Documentation
 
 - `docs/checklists/payment-processing-logic-checklist.md`
-- [Payment Service Documentation](../services/payment-service.md)
+- [Payment Service Documentation](../../../03-services/core-services/payment-service.md)
 - [Order Placement Process](./order-placement-process.md)
 - [Refund Processing Process](./refund-processing-process.md)
