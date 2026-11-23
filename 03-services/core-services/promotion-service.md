@@ -6,7 +6,7 @@
 > **Ports**: 8011/9011
 
 **Service Name**: Promotion Service
-**Version**: v1.4.0
+**Version**: v1.4.1
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: ✅ 100%
 

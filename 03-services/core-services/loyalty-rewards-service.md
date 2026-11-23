@@ -6,7 +6,7 @@
 > **Ports**: 8014/9014
 
 **Service Name**: Loyalty Rewards Service
-**Version**: v1.3.0
+**Version**: v1.3.1
 **Review Status**: 🔄 Active
 **Production Ready**: ⚠️ Pending Review
 

@@ -6,7 +6,7 @@
 > **Ports**: 8018/9018
 
 **Service Name**: Common Operations Service
-**Version**: v1.3.0
+**Version**: v1.3.1
 **Review Status**: 🔄 Active
 **Production Ready**: ✅ Active
 

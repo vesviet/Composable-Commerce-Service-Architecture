@@ -6,7 +6,7 @@
 > **Ports**: 8000/9000
 
 **Service Name**: Auth Service  
-**Version**: v1.4.0  
+**Version**: v1.4.1  
 **Review Status**: ✅ Reviewed (Feb 2026 — 0 P0, 3 P1 fixed, 5 P2 tracked)  
 **Production Ready**: 85%  
 

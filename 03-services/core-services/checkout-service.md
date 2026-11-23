@@ -6,7 +6,7 @@
 > **Ports**: HTTP `8010` | gRPC `9010`
 
 **Service Name**: Checkout Service
-**Version**: v1.6.0
+**Version**: v1.6.1
 **Review Status**: ✅ Reviewed
 **Production Ready**: 100%
 

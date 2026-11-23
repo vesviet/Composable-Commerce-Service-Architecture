@@ -6,7 +6,7 @@
 > **Ports**: 8012/9012
 
 **Service Name**: Shipping Service
-**Version**: v1.3.0
+**Version**: v1.3.1
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: ✅ 100%  
 

@@ -6,7 +6,7 @@
 > **Ports**: 8007/9007
 
 **Service Name**: Location Service  
-**Version**: v1.1.0  
+**Version**: v1.1.1  
 **Production Ready**: 90%  
 **Code Review**: [Location Service Code Review Checklist](../../10-appendix/checklists/v2/location_service_code_review.md)  
 

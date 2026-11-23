@@ -6,7 +6,7 @@
 > **Ports**: 8016/9016
 
 **Service Name**: Review Service
-**Version**: v1.4.0
+**Version**: v1.4.1
 **Review Status**: ✅ Production Ready
 **Production Ready**: 98%  
 **Common Package**: v1.37.0  

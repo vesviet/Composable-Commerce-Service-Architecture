@@ -6,7 +6,7 @@
 > **Ports**: 8006/9006
 
 **Service Name**: Warehouse Service
-**Version**: v1.3.0
+**Version**: v1.3.1
 **Review Status**: ✅ **COMPLETED** - Production Ready
 **Production Ready**: 100%
 **Code Review Date**: 2026-02-24

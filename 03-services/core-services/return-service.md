@@ -6,7 +6,7 @@
 > **Ports**: 8013/9013
 
 **Service Name**: Return Service  
-**Version**: v1.2.0  
+**Version**: v1.2.1  
 **Review Status**: ✅ Production Ready  
 **Production Ready**: 100% (All critical issues resolved, dependencies updated)  
 

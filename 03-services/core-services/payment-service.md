@@ -6,7 +6,7 @@
 > **Ports**: 8005/9005
 
 **Service Name**: Payment Service  
-**Version**: v1.3.0  
+**Version**: v1.3.1  
 **Review Status**: ✅ **COMPLETED** - Production Ready  
 **Production Ready**: ✅ 100%  
 **PCI DSS Compliance**: ✅ Level 1 Certified  

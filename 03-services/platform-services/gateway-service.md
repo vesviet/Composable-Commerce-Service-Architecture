@@ -6,7 +6,7 @@
 > **Ports**: HTTP `80` | gRPC `81`
 
 **Service Name**: Gateway Service
-**Version**: v1.2.0
+**Version**: v1.2.1
 **Review Status**: ✅ Reviewed
 **Production Ready**: 100%
 

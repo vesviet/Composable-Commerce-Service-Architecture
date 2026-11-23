@@ -6,7 +6,7 @@
 > **Ports**: HTTP 8007 / gRPC 9007
 
 **Service Name**: Location Service  
-**Version**: v1.1.0  
+**Version**: v1.1.1  
 **Production Ready**: 90%  
 **Code Review**: [Location Service Review Checklist](../../10-appendix/workflow/location-review-checklist.md)  
 

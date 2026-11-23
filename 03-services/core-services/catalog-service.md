@@ -6,7 +6,7 @@
 > **Ports**: 8015/9015
 
 **Service Name**: Catalog Service  
-**Version**: v1.5.0  
+**Version**: v1.5.1  
 **Review Status**: ✅ COMPLETED - Production Ready  
 **Production Ready**: 100%  
 **Code Review Date**: 2026-03-05  
