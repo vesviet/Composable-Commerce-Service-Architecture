@@ -1,5 +1,8 @@
 # 🧪 QC Test Report - Admin Panel
 
+> [!NOTE]
+> **Historical Snapshot (Archived):** This admin QC report dates from 2026-02-26 and is retained for audit reference only. Its reported blocking defects were resolved and superseded by the 2026-11-23 verification (`63` Playwright routes verified with `0` hard fails across storefront and admin).
+
 | Field            | Value                                                      |
 | :--------------- | :--------------------------------------------------------- |
 | **Test Date**    | 2026-02-26                                                 |

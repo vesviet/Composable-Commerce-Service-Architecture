@@ -1,6 +1,6 @@
 # 📦 Service Index
 
-> **Last Updated**: 2026-11-23 (sync with workspace repos & `common` v1.37.1) | **Total**: 21 Go services + 2 frontends  
+> **Last Updated**: 2026-11-24 (sync with workspace repos & `common` v1.37.1) | **Total**: 21 Go services + 2 frontends  
 > **Stack**: Go 1.27.4 (21/21 Go services) · Kratos v2.9.2 · `common` v1.37.1 · Next.js 16 · React 19 · PostgreSQL · Redis · Dapr · Kubernetes
 
 ---
@@ -37,7 +37,7 @@ This file is the canonical source of truth for per-service maturity, versions, a
 
 **Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable  
 **Coverage (21 Go services)**: Worker 21/21 · Outbox 19/21 · Idempotency 19/21 · DLQ 17/21  
-**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; all 21/21 Go services pin `common v1.37.1`). Total API & schema footprint: `525` Proto RPCs and `342` Goose SQL migrations. All 21/21 Go services are 🟢 Production-ready (`analytics` is a passive event consumer with Outbox N/A).
+**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; all 21/21 Go services pin `common v1.37.1`). Total API & schema footprint: `565` Proto RPCs and `358` Goose SQL migrations. All 21/21 Go services are 🟢 Production-ready (`analytics` is a passive event consumer with Outbox N/A).
 
 ---
 
@@ -73,7 +73,7 @@ This file is the canonical source of truth for per-service maturity, versions, a
 ### 🔐 Identity & Access
 | Service | Purpose | Key Dependencies |
 |---------|---------|-----------------|
-| **Auth** | JWT (RS256), OAuth2 (Google/Facebook/GitHub), MFA (TOTP) | PostgreSQL, Redis |
+| **Auth** | JWT (RS256), Session Management, Token Rotation (OAuth2 & MFA TOTP planned) | PostgreSQL, Redis |
 | **User** | User profiles, RBAC, service access control | Auth |
 | **Customer** | Customer profiles, addresses, segmentation, audit logging, LTV analytics | Order (events), Auth |
 

@@ -1,5 +1,8 @@
 # 🧪 QC Test Report - Order Flow
 
+> [!NOTE]
+> **Historical Snapshot (Archived):** This production QC report dates from 2026-02-26 and is retained for audit reference only. All blocking order-lifecycle and image/pricing defects documented below were resolved and superseded by the 2026-11-23 verification (`54/54` full lifecycle E2E checks passing and `63` Playwright routes with `0` hard fails).
+
 | Field            | Value                                                      |
 | :--------------- | :--------------------------------------------------------- |
 | **Test Date**    | 2026-02-26                                                 |

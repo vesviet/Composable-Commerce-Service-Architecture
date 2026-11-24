@@ -1,0 +1,84 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "version": "1.0.0",
+  "color": {
+    "primitive": {
+      "slate": {
+        "50": { "$type": "color", "$value": "#f8fafc", "$description": "oklch(0.984 0.003 247)" },
+        "100": { "$type": "color", "$value": "#f1f5f9", "$description": "oklch(0.968 0.007 247)" },
+        "200": { "$type": "color", "$value": "#e2e8f0", "$description": "oklch(0.929 0.013 255)" },
+        "600": { "$type": "color", "$value": "#475569", "$description": "oklch(0.446 0.043 257)" },
+        "900": { "$type": "color", "$value": "#0f172a", "$description": "oklch(0.208 0.042 265)" }
+      },
+      "cobalt": {
+        "50": { "$type": "color", "$value": "#eff6ff", "$description": "oklch(0.970 0.014 254)" },
+        "500": { "$type": "color", "$value": "#3b82f6", "$description": "oklch(0.623 0.214 259)" },
+        "600": { "$type": "color", "$value": "#2563eb", "$description": "oklch(0.546 0.245 262)" },
+        "700": { "$type": "color", "$value": "#1d4ed8", "$description": "oklch(0.488 0.243 264)" }
+      },
+      "amber": {
+        "50": { "$type": "color", "$value": "#fffbeb" },
+        "700": { "$type": "color", "$value": "#b45309" }
+      },
+      "emerald": {
+        "700": { "$type": "color", "$value": "#15803d" }
+      },
+      "red": {
+        "700": { "$type": "color", "$value": "#b91c1c" }
+      }
+    },
+    "semantic": {
+      "surface": {
+        "canvas": { "$type": "color", "$value": "{color.primitive.slate.50}", "$description": "Primary page canvas" },
+        "card": { "$type": "color", "$value": "#ffffff", "$description": "Elevated card and drawer surface" },
+        "subtle": { "$type": "color", "$value": "{color.primitive.slate.100}", "$description": "Muted container surface" }
+      },
+      "ink": {
+        "primary": { "$type": "color", "$value": "{color.primitive.slate.900}", "$description": "WCAG AAA primary text (>15:1)" },
+        "muted": { "$type": "color", "$value": "{color.primitive.slate.600}", "$description": "WCAG AA secondary text (7.5:1)" }
+      },
+      "brand": {
+        "primary": { "$type": "color", "$value": "{color.primitive.cobalt.700}", "$description": "Primary action CTA (#1d4ed8)" },
+        "primaryHover": { "$type": "color", "$value": "#1e40af", "$description": "Primary CTA hover state" },
+        "accent": { "$type": "color", "$value": "{color.primitive.amber.700}", "$description": "Promotional accent" }
+      },
+      "border": {
+        "subtle": { "$type": "color", "$value": "{color.primitive.slate.200}", "$description": "Default card and divider border" }
+      },
+      "status": {
+        "success": { "$type": "color", "$value": "{color.primitive.emerald.700}" },
+        "warning": { "$type": "color", "$value": "{color.primitive.amber.700}" },
+        "danger": { "$type": "color", "$value": "{color.primitive.red.700}" }
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": { "$type": "fontFamily", "$value": ["Plus Jakarta Sans", "system-ui", "sans-serif"] },
+      "mono": { "$type": "fontFamily", "$value": ["JetBrains Mono", "ui-monospace", "monospace"] }
+    },
+    "fontVariantNumeric": {
+      "financial": { "$type": "other", "$value": "tabular-nums" }
+    }
+  },
+  "spacing": {
+    "xs": { "$type": "dimension", "$value": "4px" },
+    "sm": { "$type": "dimension", "$value": "8px" },
+    "md": { "$type": "dimension", "$value": "16px" },
+    "lg": { "$type": "dimension", "$value": "24px" },
+    "xl": { "$type": "dimension", "$value": "32px" }
+  },
+  "radius": {
+    "sm": { "$type": "dimension", "$value": "6px" },
+    "md": { "$type": "dimension", "$value": "8px" },
+    "lg": { "$type": "dimension", "$value": "12px" },
+    "full": { "$type": "dimension", "$value": "9999px" }
+  },
+  "elevation": {
+    "card": { "$type": "shadow", "$value": "0 1px 2px 0 rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.06)" }
+  },
+  "motion": {
+    "fast": { "$type": "duration", "$value": "150ms" },
+    "normal": { "$type": "duration", "$value": "200ms" }
+  }
+}

@@ -1,6 +1,6 @@
 # 🗂️ Microservices Codebase Index
 
-> **Last Updated**: 2026-11-23 (full 30-repository codebase index)  
+> **Last Updated**: 2026-11-24 (full 30-repository codebase index)  
 > **Standard:** Shopify / Shopee / Lazada Architecture Patterns  
 > **Stack**: Go 1.27.4 (21/21 Go services + `common`) · Kratos v2.9.2 · `common` v1.37.1 · OpenTelemetry · Next.js 16 · React 19 · PostgreSQL · Redis · Elasticsearch · Dapr · Kubernetes  
 > **Maturity**: 21/21 services 🟢 Production-ready (see [SERVICE_INDEX.md](SERVICE_INDEX.md))
@@ -10,7 +10,7 @@ This file is the canonical repository and codebase map. For per-service maturity
 ## 📊 Workspace Snapshot (30 Repositories)
 
 - **21 Go Services** (`100%` on Go `1.27.4`, Kratos `v2.9.2`, `common v1.37.1`, OpenTelemetry, `go-redis/v9`, `0` legacy Gin)
-- **525 Proto RPCs** across 21 Go services · **342 Goose SQL migrations** across 20 DB-backed services
+- **565 Proto RPCs** across 21 Go services · **358 Goose SQL migrations** across 20 DB-backed services
 - **1 Shared Go Library**: `common v1.37.1` (`23` packages; pinned by all 21 Go services)
 - **2 Frontend Apps**: `frontend` (`v1.1.0`, Next.js 16 + React 19) · `admin` (`v1.0.0`, React 19 + Vite)
 - **6 Supporting Repos**: `gitops`, `gitlab-ci-templates`, `docs`, `qa-auto`, `microservices-agent-skills` (`v5.10.0`), `vesviet`
@@ -29,7 +29,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - API: HTTP/gRPC main server (`cmd/customer/`)
   - Worker: Async Outbox/Event processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
-- **`catalog`** — Product Catalog (EAV, 25k+ SKUs) (`v1.5.1` · 72 RPCs · 35 migrations)
+- **`catalog`** — Product Catalog (EAV, 25k+ SKUs) (`v1.5.1` · 72 RPCs · 36 migrations)
   - API: HTTP/gRPC main server (`cmd/catalog/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
@@ -47,7 +47,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
 
 ## 📦 Operations & Logistics
-- **`warehouse`** — Multi-Warehouse Inventory & Stock Reservations (`v1.3.1` · 67 RPCs · 42 migrations)
+- **`warehouse`** — Multi-Warehouse Inventory & Stock Reservations (`v1.3.1` · 67 RPCs · 43 migrations)
   - API: HTTP/gRPC main server (`cmd/warehouse/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
@@ -63,7 +63,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - API: HTTP/gRPC main server (`cmd/location/`)
   - Worker: Async Outbox processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
-- **`return`** — Returns, Exchanges, Refund Processing (`v1.2.1` · 10 RPCs · 6 migrations)
+- **`return`** — Returns, Exchanges, Refund Processing (`v1.2.1` · 10 RPCs · 7 migrations)
   - API: HTTP/gRPC main server (`cmd/return/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
@@ -73,11 +73,11 @@ These form the backbone of the e-commerce transaction and user domains:
   - API: HTTP/gRPC main server (`cmd/pricing/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
-- **`promotion`** — Campaigns, Coupons, Tiered Discounts (`v1.4.1` · 25 RPCs · 17 migrations)
+- **`promotion`** — Campaigns, Coupons, Tiered Discounts (`v1.4.1` · 25 RPCs · 18 migrations)
   - API: HTTP/gRPC main server (`cmd/promotion/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
-- **`loyalty-rewards`** — Points, Tiers, Rewards, Referrals (`v1.3.1` · 22 RPCs · 13 migrations)
+- **`loyalty-rewards`** — Points, Tiers, Rewards, Referrals (`v1.3.1` · 22 RPCs · 14 migrations)
   - API: HTTP/gRPC main server (`cmd/loyalty-rewards/`)
   - Worker: Async Outbox/Event processing (`cmd/worker/`)
   - Migrate & Tools: Goose migration CLI (`cmd/migrate/`), config test tool (`cmd/test_config/`)
@@ -94,7 +94,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - API: HTTP/gRPC main server (`cmd/server/`)
   - Worker: Async event/cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
-- **`notification`** — Multi-Channel Notifications (Email, SMS, Push) (`v1.2.0` · 32 RPCs · 13 migrations)
+- **`notification`** — Multi-Channel Notifications (Email, SMS, Push) (`v1.2.0` · 32 RPCs · 14 migrations)
   - API: HTTP/gRPC main server (`cmd/notification/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
@@ -109,10 +109,10 @@ These form the backbone of the e-commerce transaction and user domains:
   - Worker: Background processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
 - **`gitops`** — Kustomize, ArgoCD manifests, cluster config (`6fbcb24c`: Go 1.27.4 rollout ConfigMaps, NetworkPolicies, and overlays)
-- **`frontend`** — Customer Next.js 16 + Ant Design Web Application (`v1.1.0`)
-- **`admin`** — Backoffice React 19 + Vite + Ant Design Application (`v1.0.0`)
+- **`frontend`** — Customer Next.js 16 + Tailwind CSS Web Application (`v1.1.0`, design system: [DESIGN.md](DESIGN.md) & [design-tokens-spec.json](design-tokens-spec.json))
+- **`admin`** — Backoffice React 19 + Vite + Ant Design Application (`v1.0.0`, aligned with [DESIGN.md](DESIGN.md))
 - **`qa-auto`** — Automated E2E / QA test suite (Playwright)
-- **`docs`** — Platform documentation, ADRs, OpenAPI/event specs, workflows, and runbooks
+- **`docs`** — Platform documentation, ADRs, Design System ([DESIGN.md](DESIGN.md)), OpenAPI/event specs, workflows, and runbooks
 - **`gitlab-ci-templates`** — Shared GitLab CI/CD pipeline templates (`lint-test` on `golang:1.27.4-alpine`, `lint-test-frontend` on `node:22-alpine` with enforced strict `npm ci` gates, `build-image`, `update-gitops-image-tag`)
 - **`microservices-agent-skills`** — Global Engineering Pack `v5.10.0` (39 roles, 184 skills, 25 workflows, 21 overlays including rule-only `ecommerce-microservices`; paired with workspace [`.agent/`](../.agent/) 23 microservices skills & 7 workflows — see [MICROSERVICES_AGENT_SKILLS_INDEX.md](MICROSERVICES_AGENT_SKILLS_INDEX.md))
 - **`vesviet`** — Content / marketing website repository (Hugo/Astro knowledge base & radar)
