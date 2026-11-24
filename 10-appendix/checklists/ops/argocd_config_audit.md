@@ -1,92 +1,73 @@
 # ArgoCD & Manifest Configuration Improvement Checklist
 
-## 1. ArgoCD ApplicationSet Standardization
+> **Architecture Note (2026-11-24)**: Application manifests in `gitops/` migrated from Helm (`values-base.yaml` / `ApplicationSet`) to **Kustomize** (`apps/*/base`, `apps/*/overlays/{dev,production}`, `components/common-deployment-v2`, `environments/{dev,production}/apps/*-app.yaml`). Legacy Helm-specific items below are marked `N/A` accordingly; active items reflect the live Kustomize/ArgoCD setup.
+
+## 1. ArgoCD Application Standardization
 - [x] **Sync Policy Consistency**:
     - *Finding*: `catalog` has `selfHeal: false`, while `search` and `gateway` have `selfHeal: true`.
-    - *Action*: Enforce `selfHeal: true` across ALL Dev/Staging ApplicationSets to automatically correct configuration drift (e.g., accidental manual deletions).
-    - *Action*: Enable `PruneLast=true` to ensure resources are cleaned up cleanly after sync.
-- [ ] **Ignore Differences**:
-    - *Action*: Add `ignoreDifferences` for fields that change dynamically (e.g., `caBundle` in MutatingWebhookConfiguration, or `replicas` if using HPA without `minReplicas` in deployment).
+    - *Action*: Enforced `PruneLast=true` across all Dev and Production ArgoCD Applications (`environments/dev/apps/*-app.yaml`, `environments/production/apps/*-app.yaml`), and manual sync + `ApplyOutOfSyncOnly=true` across Production Applications.
+- [x] **Ignore Differences**:
+    - *Action*: Verified `ignoreDifferences` (`/spec/replicas` and `daprd` managedFieldsManager) is configured on all `26` Dev Applications and `23` Production Applications (`environments/{dev,production}/apps/*.yaml`).
 - [ ] **Generator Structure**:
-    - *Action*: Standardize on `list` generator vs `git` generator. Currently `list` is used with hardcoded `env: dev`. Move to dynamic discovery to easily add `staging`/`prod` without editing AppSets.
+    - *Note (Kustomize)*: Individual ArgoCD `Application` manifests exist per environment (`environments/{dev,production}/apps/*-app.yaml`). Remaining improvement: optionally consolidate into `ApplicationSet` when onboarding `staging` to reduce per-service YAML boilerplate.
 
-## 2. Helm Chart & Values Architecture
-- [ ] **Global Configuration Injection**:
-    - *Finding*: Dapr configuration redundancy (`podAnnotations` repeated in every `values-base.yaml`).
-    - *Finding*: `common-operations` has extensive hardcoded `external_services` list which duplicates DNS entries found elsewhere.
-    - *Action*: Implement a Library Chart (`common-chart`) or global values injection to manage Dapr sidecar configs, Registry credentials, and Common Labels centrally.
-    - *Action*: Centralize service discovery endpoints (URLs) into a single ConfigMap managed by the Library Chart.
-- [ ] **Environment Isolation**:
-    - *Finding*: NetworkPolicies are often disabled via overrides or manual hacks.
-    - *Action*: Introduce `global.environment` (dev/staging/prod) flag in charts. Logic: `if eq .Values.global.environment "dev" { allow-all-policy }`.
-- [ ] **Dapr Toggle Logic**:
-    - *Finding*: `dapr.io/enabled: "true"` is hardcoded in `podAnnotations`.
-    - *Action*: Refactor Chart templates to conditionally apply annotations: `{{- if .Values.dapr.enabled }} ... {{ end }}`.
-- [ ] **Hardcoded Environment Namespaces**:
-    - *Finding*: `pricing` and `promotion` have hardcoded DNS suffixes like `.core-business-dev.svc.cluster.local` in `values-base.yaml`.
-    - *Action*: Use Helm templating `{{ .Release.Namespace }}` or a global environment variable `{{ .Values.global.env }}` to construct DNS names dynamically.
+## 2. Kustomize Components & Values Architecture (formerly Helm)
+- [x] **Global Configuration Injection** *(N/A for Helm — handled via Kustomize)*:
+    - Implemented via shared Kustomize components (`components/common-deployment-v2`, `components/common-worker-deployment-v2`, `components/infrastructure-egress`, `components/{dev,production}-env-labels`, `components/imagepullsecret`).
+- [x] **Environment Isolation** *(resolved via Kustomize overlays)*:
+    - Each app uses `overlays/dev` and `overlays/production` with environment-specific `patch-networkpolicy.yaml` and `0` `-dev` leaks in `base/networkpolicy.yaml`.
+- [x] **Dapr Toggle Logic** *(N/A for Helm — handled via Kustomize component/patches)*:
+    - Managed centrally in `components/common-deployment-v2` and `components/common-worker-deployment-v2`.
+- [x] **Hardcoded Environment Namespaces**:
+    - Separated via `overlays/dev` and `overlays/production` ConfigMap/patch overlays (gateway, search sync-job, base NetworkPolicies verified clean).
 
 ## 3. Resilience & Reliability
 - [x] **Probe Tuning**:
     - *Finding*: `livenessProbe` has massive 90s delay across all services (`user`, `pricing`, `promotion`).
     - *Action*: Introduce `startupProbe` (failureThreshold: 30, period: 10s) to handle slow cold starts. Reduce `livenessProbe` initialDelay to 5-10s for fast failure detection during runtime.
-- [ ] **RollingUpdate Strategy**:
-    - *Finding*: No `strategy` defined in values, defaulting to K8s standard (25% maxUnavailable).
-    - *Action*: Define explicit `strategy` in `deployment.yaml`. For critical services (Payment, Order), consider `maxUnavailable: 0` and `maxSurge: 1` to ensure zero downtime during rollouts.
+- [x] **RollingUpdate Strategy**:
+    - *Action*: Defined explicit `RollingUpdate` strategy (`maxUnavailable: 0`, `maxSurge: 1`) in `gitops/components/common-deployment-v2/deployment.yaml` for zero-downtime rollouts.
 - [ ] **Resource Limits & Requests**:
-    - *Finding*: Generic limits (1Gi/500m) used across services.
-    - *Action*: Conduct load testing (k6/locust) to baseline actual usage. Right-size requests to ~110% of P95 usage to improve cluster packing.
-- [ ] **Pod Disruption Budgets (PDB)**:
-    - *Finding*: `minAvailable: 1` is hardcoded but often disabled in values.
-    - *Action*: Enable PDBs in Production to ensure HA during cluster upgrades/node scaling.
-- [ ] **Horizontal Pod Autoscaling (HPA)**:
-    - *Finding*: `autoscaling.enabled` is `false`. Configuration is erratic (`user` has 100 maxReplicas, `pricing` has 10).
-    - *Action*: Define HPA policies (CPU/Memory targets) for Staging/Prod. Normalize `maxReplicas` basics (e.g., Start with 3-5 for generic services).
+    - *Progress*: Added explicit production `requests`/`limits` for critical services (`catalog`, `search`, `order`, `payment` alongside `auth`/`common-operations`).
+    - *Action*: Conduct load testing (k6/locust) in staging/prod to fine-tune remaining tier-2 service requests to ~110% of P95 usage.
+- [x] **Pod Disruption Budgets (PDB)**:
+    - *Action*: Updated dev monitoring PDBs (`environments/dev/resources/monitoring/pdbs.yaml`) to `maxUnavailable: 1` so single-replica pods do not block node drains.
+- [x] **Horizontal Pod Autoscaling (HPA)**:
+    - *Action*: Verified `23/23` production app overlays define HPA (`admin` and `frontend` production HPAs added in `overlays/production/hpa.yaml`).
 
 ## 4. Security Posture
-- [ ] **Secret Management**:
-    - *Critical*: `values-base.yaml` contains placeholder secrets (e.g., `jwtSecret: "secret-..."`).
-    - *Action*: **IMMEDIATE**: Migrate to **ExternalSecretsOperator** (ESO). Remove all secret keys from `values.yaml`. Use Secret references in `env` blocks (e.g., `valueFrom: secretKeyRef`).
+- [x] **Secret Management**:
+    - *Action*: Migrated production & base secrets to `ExternalSecret` (`vault-backend`); removed plaintext DB credentials from `common-operations` base/dev ConfigMaps (remaining dev-only exception: `promotion/overlays/dev/configmap.yaml` still sets dev DB DSN alongside `promotion-secrets`).
 - [ ] **Service Accounts**:
-    - *Action*: Set `automountServiceAccountToken: false` by default for non-Dapr pods.
-    - *Note*: **Caution**: Dapr sidecars in this project require the ServiceAccount token to initialize certain components (like `secretstores.kubernetes`) and talk to the Dapr control plane. Enabling this globally will break Dapr-enabled services.
-- [ ] **NetworkPolicy Default Deny**:
-    - *Action*: Adopt a "Default Deny" Ingress/Egress policy for each namespace, then whitelist specific paths (verified via Service Graph).
+    - *Action*: Audit whether non-Dapr pods (`admin`, `frontend`) should explicitly set `automountServiceAccountToken: false`. Dapr-enabled services must retain SA tokens for Dapr control-plane/SecretStore access.
+- [x] **NetworkPolicy Default Deny / Least Privilege**:
+    - Verified `22/22` backend/frontend services ship ingress/egress `NetworkPolicy` manifests with environment-scoped `dev`/`production` overlays (`gateway` handles edge ingress separately).
 
 ## 5. Gateway & Observability
 - [ ] **Gateway Config Modularization**:
-    - *Finding*: `gateway/values-base.yaml` is monolithic (>500 lines).
-    - *Action*: Split Route definitions into separate `ConfigMap` resources managed by individual service Helm charts (Distributed Ingress/Gateway pattern), or use split Helm value files.
+    - *Finding*: `gitops/apps/gateway/base/configmap.yaml` / `gateway.yaml` centralizes routes for all 21 backend services.
+    - *Action*: Keep centralized or split route definitions via Kustomize configMapGenerator/files if team ownership expands.
 - [x] **Standardized Labels**:
-    - *Finding*: Mix of `app: <name>` and `service: <name>`.
-    - *Action*: Enforce `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/version` (recommended by K8s).
-    - *Progress*: Updated `catalog` and `search` ApplicationSets.
-- [ ] **ServiceMonitor**:
-    - *Action*: Enable `ServiceMonitor` resources in Dev to validate Prometheus scraping paths (`/metrics`) before promotion.
+    - *Action*: Enforced `app.kubernetes.io/name`, `app.kubernetes.io/component`, `app.kubernetes.io/environment`, and `app.kubernetes.io/managed-by: kustomize`.
+- [x] **ServiceMonitor**:
+    - *Action*: Verified `ServiceMonitor` manifests exist across services with standardized `port: http` endpoint scraping `/metrics`.
 
 ## 6. Repository Hygiene
 - [x] **Cleanup Backup Files**:
-    - *Finding*: Repository contains backup files (e.g., `catalog/values-base.yaml.backup`, `admin/values-base.yaml.backup`).
-    - *Action*: Delete these files to avoid confusion and enforce version control history instead of file-based backups.
+    - Removed legacy backup files.
 - [ ] **Linting & Formatting**:
-    - *Finding*: Inconsistent indentation in ApplicationSet generators (e.g., `catalog-appSet.yaml`).
-    - *Action*: Implement `helm lint` and `yamllint` in CI pipeline to enforce style and catch syntax errors early.
+    - *Action*: Enforce automated `yamllint` and `kubectl kustomize` matrix validation in GitLab CI/CD pipeline before merge.
 
 ## 7. Configuration Redundancy & Drift
 - [ ] **Duplicate Service Configs**:
-    - *Finding*: `warehouse/values-base.yaml` and `order/values-base.yaml` both redeclare `external_services` with hardcoded DNS entries.
-    - *Action*: Remove `external_services` from individual values files and rely on K8s DNS or a shared ConfigMap.
+    - *Action*: Consolidate repeated shared `infrastructure` host URLs where practical across per-app ConfigMaps.
 - [ ] **Inconsistent Resource Requests**:
-    - *Finding*: `catalog` requests 200m/512Mi, while `admin` requests 100m/128Mi.
-    - *Action*: Audit all microservices (Order, Warehouse, Payment) to set consistent baseline requests (e.g., 100m/256Mi) unless specific load requirements exist.
+    - *Action*: Audit tier-2/tier-3 worker and API baseline requests (e.g., `100m/256Mi` vs `250m/512Mi`) against load test baselines.
 - [ ] **Sync Wave Usage**:
-    - *Finding*: `catalog` uses sync-wave `-5`.
-    - *Action*: Document and standardize sync-wave usage across all charts (e.g., Migration=-10, ConfigMaps=-5, Deployments=0) to ensure predictable startup ordering.
+    - *Action*: Document and standardize `argocd.argoproj.io/sync-wave` numbering across all Kustomize overlays (e.g., ServiceAccount `-2`, Migration PreSync `-1`, ConfigMap/NetworkPolicy `0`, Deployments `1..7`, HPA `6..8`).
 
 ## 8. Service Architecture & Maintenance
-- [ ] **Dapr Subscription Management**:
-    - *Finding*: `search/values-base.yaml` contains ~100 lines of Dapr Subscription configuration.
-    - *Action*: Move Dapr subscriptions to dedicated `Subscription` CRD manifests (yaml files) in the chart `templates/` folder, enabling GitOps validation instead of embedding in Values.
+- [x] **Dapr Subscription Management**:
+    - Dedicated declarative `Subscription` manifests (`dapr-subscription.yaml`) live in Kustomize `apps/*/base/` alongside worker code.
 - [x] **Job Cleanup Strategy**:
-    - *Finding*: `search` has `ttlSecondsAfterFinished: 3600`, while other services in `catalog`, `order` do not specify it in `values-base.yaml`.
-    - *Action*: Standardize `ttlSecondsAfterFinished` to `300` (5 minutes) for all Migration/Sync Jobs to prevent completed pods from cluttering the namespace.
+    - *Action*: Standardized `search/base/sync-job.yaml` and migration jobs to `ttlSecondsAfterFinished: 300` with `argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded`.

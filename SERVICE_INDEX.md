@@ -37,7 +37,7 @@ This file is the canonical source of truth for per-service maturity, versions, a
 
 **Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable  
 **Coverage (21 Go services)**: Worker 21/21 · Outbox 19/21 · Idempotency 19/21 · DLQ 17/21  
-**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; all 21/21 Go services pin `common v1.37.1`). Total API & schema footprint: `565` Proto RPCs and `358` Goose SQL migrations. All 21/21 Go services are 🟢 Production-ready (`analytics` is a passive event consumer with Outbox N/A).
+**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; all 21/21 Go services pin `common v1.37.1`). Total API & schema footprint: `570` Proto RPCs and `361` Goose SQL migrations. All 21/21 Go services are 🟢 Production-ready (`analytics` is a passive event consumer with Outbox N/A).
 
 ---
 
@@ -73,7 +73,7 @@ This file is the canonical source of truth for per-service maturity, versions, a
 ### 🔐 Identity & Access
 | Service | Purpose | Key Dependencies |
 |---------|---------|-----------------|
-| **Auth** | JWT (RS256), Session Management, Token Rotation (OAuth2 & MFA TOTP planned) | PostgreSQL, Redis |
+| **Auth** | JWT (RS256), Session Management, Token Rotation, OAuth2 (Google/GitHub/Facebook), TOTP MFA & recovery codes | PostgreSQL, Redis |
 | **User** | User profiles, RBAC, service access control | Auth |
 | **Customer** | Customer profiles, addresses, segmentation, audit logging, LTV analytics | Order (events), Auth |
 
@@ -81,7 +81,7 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | Service | Purpose | Key Dependencies |
 |---------|---------|-----------------|
 | **Gateway** | API routing, auth, rate limiting, circuit breaker, BFF | All services |
-| **Search** | Full-text search, autocomplete, event-driven indexing, DLQ reprocessing | Elasticsearch, Catalog (events) |
+| **Search** | Full-text search, visual search, index/history RPCs, synonyms & boost merchandising, DLQ reprocessing | Elasticsearch, Catalog (events), PostgreSQL |
 | **Analytics** | Revenue, order, customer, fulfillment, shipping metrics (real event-based) | All services (events) |
 | **Review** | Product reviews, ratings, content moderation | Catalog, Customer |
 | **Common Ops** | Task orchestration, file operations, MinIO integration | MinIO |

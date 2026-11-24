@@ -1,51 +1,50 @@
 # 🚩 UNFIXED ISSUES — CONSOLIDATED CHECKLIST
 
-**Generated**: 2026-03-07  
+**Generated**: 2026-03-07 (verified & synchronized: 2026-11-24)  
 **Source**: All 21 workflow review files in `docs/10-appendix/checklists/workflow/`  
-**Purpose**: Single source of truth for unresolved issues. Assign to 5 agents.
+**Purpose**: Single source of truth for unresolved workflow review issues.
 
 ---
 
 ## 📊 Summary
 
-| Severity | Count | Impact |
-|----------|-------|--------|
-| 🔴 P0 — Critical | **7** | Data loss, financial risk, compile blockers |
-| 🟡 P1 — High | **26** | Reliability, consistency, missing flows |
-| 🔵 P2 — Nice to Have | **45** | Tech debt, cleanup, observability |
-| **Total** | **78** | |
+| Severity | Initial | Remaining Open | Impact |
+|----------|---------|----------------|--------|
+| 🔴 P0 — Critical | **7** | **0** ✅ | All P0 blockers resolved & verified |
+| 🟡 P1 — High | **26** | **0** ✅ | All P1 reliability/consistency fixes implemented |
+| 🔵 P2 — Nice to Have | **77** *(in sections below)* | **72** *(backlog)* | Tech debt, cleanup, optional feature enhancements |
 
 ---
 
 ## 🔴 P0 — CRITICAL (Must Fix Immediately)
 
-### P0-01: Payment subscribes to dead topic `orders.order.completed` — escrow never released
+### ~~P0-01: Payment subscribes to dead topic `orders.order.completed` — escrow never released~~ [FIXED ✅]
 - **Source**: `order-lifecycle-deep-review.md` P0-2026-01
 - **Service**: payment
-- **File**: `payment/internal/data/eventbus/order_completed_consumer.go`
-- **Fix**: Subscribe to `orders.order.status_changed`, filter `new_status == "delivered"/"completed"`
-- [ ] Assigned to: ___
+- **File**: `payment/internal/data/eventbus/order_status_changed_consumer.go`
+- **Fix Applied**: Subscribed to `orders.order.status_changed` with routing on `"delivered"` and `"completed"` to trigger escrow release (`markPaymentCompleted`).
+- [x] Verified resolved
 
-### P0-02: Payment subscribes to dead topic `orders.order.cancelled` — void never triggered
+### ~~P0-02: Payment subscribes to dead topic `orders.order.cancelled` — void never triggered~~ [FIXED ✅]
 - **Source**: `order-lifecycle-deep-review.md` P0-2026-02
 - **Service**: payment
-- **File**: `payment/internal/data/eventbus/order_consumer.go`
-- **Fix**: Subscribe to `orders.order.status_changed`, filter `new_status == "cancelled"`
-- [ ] Assigned to: ___
+- **File**: `payment/internal/data/eventbus/order_status_changed_consumer.go`
+- **Fix Applied**: Subscribed to `orders.order.status_changed` filtering `new_status == "cancelled"` to invoke `voidAuthorizedPayments`.
+- [x] Verified resolved
 
-### P0-03: Warehouse `StockReconciliationJob` NOT wired into `newWorkers()` — job never runs
+### ~~P0-03: Warehouse `StockReconciliationJob` NOT wired into `newWorkers()` — job never runs~~ [FIXED ✅]
 - **Source**: `inventory-warehouse-review.md` WH-P0-V3-01
 - **Service**: warehouse
-- **File**: `cmd/worker/wire_gen.go:108`
-- **Fix**: Add param to `newWorkers()`, regenerate wire
-- [ ] Assigned to: ___
+- **File**: `warehouse/cmd/worker/wire_gen.go`
+- **Fix Applied**: Wired `stockReconciliationJob *cron.StockReconciliationJob` into `newWorkers()`.
+- [x] Verified resolved
 
-### P0-04: Warehouse `ReservationCleanupJob` NOT wired — missing ContinuousWorker interface
+### ~~P0-04: Warehouse `ReservationCleanupJob` NOT wired — missing ContinuousWorker interface~~ [FIXED ✅]
 - **Source**: `inventory-warehouse-review.md` WH-P0-V3-02
 - **Service**: warehouse
-- **File**: `internal/worker/cron/reservation_cleanup_job.go`
-- **Fix**: Implement `Name()`, `HealthCheck()`, `GetBaseWorker()`, `StopChan()` + wire
-- [ ] Assigned to: ___
+- **File**: `warehouse/internal/worker/cron/reservation_cleanup_job.go`, `warehouse/cmd/worker/wire_gen.go`
+- **Fix Applied**: Implemented `Name()`, `HealthCheck()`, `GetBaseWorker()`, `Start()`, `Stop()` and wired `reservationCleanupJob` into `newWorkers()`.
+- [x] Verified resolved
 
 ### ~~P0-05: Loyalty `handleReturnCompleted` method body MISSING — compile blocker~~ [FIXED ✅]
 - **Source**: `return-refund-review.md` RET-P0-04
@@ -87,25 +86,25 @@
 
 | # | Issue | Service | Source | Fix |
 |---|-------|---------|-------|-----|
-| P1-07 | Order status `completed` NOT reachable from `delivered` — missing transition | order | `order-lifecycle-deep-review` P1-2026-01 | Add `completed` to `OrderStatusDelivered` transitions |
-| P1-08 | Payment worker missing `dapr-subscription.yaml` entirely | payment | `order-lifecycle-deep-review` P1-2026-03 | Create YAML with correct topics |
-| P1-09 | `ConfirmCODCollection` bypasses state machine (`CanTransitionTo` not called) | payment | `payment-review` V3-01 | Add `CanTransitionTo` check |
-| P1-10 | `voidAuthorizedPayments` ignores `pending`/`requires_action` on cancel | payment | `payment-review` V3-02 | Cancel/void all non-final payments |
-| P1-11 | `capturePayment` (scheduled) skips `CanTransitionTo` on failure path | payment | `payment-review` V3-03 | Add validation before setting failed |
+| ~~P1-07~~ | ~~Order status `completed` NOT reachable from `delivered` — missing transition~~ [FIXED ✅] | order | `order-lifecycle-deep-review` P1-2026-01 | `order/internal/constants/constants.go:177` transitions to `OrderStatusCompleted` |
+| ~~P1-08~~ | ~~Payment worker missing `dapr-subscription.yaml` entirely~~ [FIXED ✅] | payment | `order-lifecycle-deep-review` P1-2026-03 | Added `gitops/apps/payment/base/dapr-subscription.yaml` |
+| ~~P1-09~~ | ~~`ConfirmCODCollection` bypasses state machine (`CanTransitionTo` not called)~~ [FIXED ✅] | payment | `payment-review` V3-01 | `payment/internal/biz/payment/cod.go:135` enforces `CanTransitionTo` |
+| ~~P1-10~~ | ~~`voidAuthorizedPayments` ignores `pending`/`requires_action` on cancel~~ [FIXED ✅] | payment | `payment-review` V3-02 | `order_status_changed_consumer.go:171-175` voids `authorized`, `pending`, `requires_action` |
+| ~~P1-11~~ | ~~`capturePayment` (scheduled) skips `CanTransitionTo` on failure path~~ [FIXED ✅] | payment | `payment-review` V3-03 | `payment/internal/biz/payment/usecase.go:853` enforces `CanTransitionTo` |
 
 ### Fulfillment & Shipping Domain
 
 | # | Issue | Service | Source | Fix |
 |---|-------|---------|-------|-----|
-| P1-12 | `compensatePackageShipped` hardcodes `StatusProcessing` as rollback target | fulfillment | `fulfillment-shipping-review` P1-2 | Track actual pre-shipped status |
-| P1-13 | `handlePackageCreated` fails if `order_id` missing from event metadata | shipping | `fulfillment-shipping-review` EC17 | Verify fulfillment publishes `order_id` |
-| P1-14 | `ShipFulfillment` marks SHIPPED even when shipping client is nil | fulfillment | `fulfillment-shipping-review` EC20 | Return error instead of warning |
+| ~~P1-12~~ | ~~`compensatePackageShipped` hardcodes `StatusProcessing` as rollback target~~ [FIXED ✅] | fulfillment | `fulfillment-shipping-review` P1-2 | Replaced with `FulfillmentStatusCompensationPending` -> `Compensated` (`fulfillment_lifecycle.go`, `shipment_returned/fulfillment_sub.go`) |
+| ~~P1-13~~ | ~~`handlePackageCreated` fails if `order_id` missing from event metadata~~ [FIXED ✅] | fulfillment | `fulfillment-shipping-review` EC17 | Populated `order_id` in `Package.Metadata` + shared `buildPackageEventMetadata` |
+| ~~P1-14~~ | ~~`ShipFulfillment` marks SHIPPED even when shipping client is nil~~ [FIXED ✅] | fulfillment | `fulfillment-shipping-review` EC20 | `fulfillment_dispatch.go:404-431` emits transactional outbox `shipping.delivery.requested` event |
 
 ### Warehouse Domain
 
 | # | Issue | Service | Source | Fix |
 |---|-------|---------|-------|-----|
-| P1-15 | `ProductCreatedConsumer` handler is no-op — no inventory record created | warehouse | `inventory-warehouse-review` WH-P1-V3-01 | Implement `GetOrCreateInventory` or remove |
+| ~~P1-15~~ | ~~`ProductCreatedConsumer` handler is no-op — no inventory record created~~ [CLOSED ✅ — BY DESIGN] | warehouse | `inventory-warehouse-review` WH-P1-V3-01 | Intentionally logs `[NEW_PRODUCT_NO_INVENTORY]` (`warehouse_sub.go`) for explicit admin initialization |
 
 ### Notification Domain
 
@@ -118,7 +117,7 @@
 
 | # | Issue | Service | Source | Fix |
 |---|-------|---------|-------|-----|
-| P1-18 | Stock consumer idempotency is in-memory only (`sync.Map`) — lost on restart | pricing | `pricing-promotion-tax-review` V2-06 | Replace with Redis `SET NX EX` |
+| ~~P1-18~~ | ~~Stock consumer idempotency is in-memory only (`sync.Map`) — lost on restart~~ [FIXED ✅] | pricing | `pricing-promotion-tax-review` V2-06 | `pricing/internal/data/eventbus/stock_consumer.go:58` uses Redis `SetNX` with TTL |
 
 ### Search Domain
 
@@ -133,10 +132,10 @@
 
 | # | Issue | Service | Source | Fix |
 |---|-------|---------|-------|-----|
-| P1-23 | No stale return cleanup cron (7d pending, 14d approved auto-cancel) | return | `return-refund-review` RET-P1-06 | Add cleanup cron |
-| P1-24 | No DLQ worker for permanently failed outbox events | return | `return-refund-review` RET-P1-07 | Add DLQ processing |
-| P1-25 | Exchange failure not compensated — no retry event | return | `return-refund-review` RET-P1-08 | Add retry event publish |
-| P1-26 | Order status dual-path conflict (gRPC sets `returned`, event sets `partially_returned`) | return, order | `return-refund-review` RET-P1-09 | Remove gRPC call, rely on event |
+| ~~P1-23~~ | ~~No stale return cleanup cron (7d pending, 14d approved auto-cancel)~~ [FIXED ✅] | return | `return-refund-review` RET-P1-06 | Implemented `return/internal/worker/stale_return_cleanup.go` (daily cron, 7d pending & 14d approved) |
+| ~~P1-24~~ | ~~No DLQ worker for permanently failed outbox events~~ [FIXED ✅] | return | `return-refund-review` RET-P1-07 | Implemented `return/internal/worker/dlq_worker.go` |
+| ~~P1-25~~ | ~~Exchange failure not compensated — no retry event~~ [FIXED ✅] | return | `return-refund-review` RET-P1-08 | Implemented `return.exchange_retry` in `return/internal/worker/compensation_worker.go` |
+| ~~P1-26~~ | ~~Order status dual-path conflict (gRPC sets `returned`, event sets `partially_returned`)~~ [FIXED ✅] | return, order | `return-refund-review` RET-P1-09 | `orders.return.completed` owns `returned`/`partially_returned` via `order/internal/data/eventbus/return_consumer.go`; `return_approval.go` only transitions `return_requested`/`completed` |
 
 ---
 
@@ -155,7 +154,7 @@
 ### Cart & Checkout
 | # | Issue | Source |
 |---|-------|--------|
-| P2-07 | Loyalty point redemption not in checkout flow | `cart-checkout-deep-review` P2-CC-03 |
+| ~~P2-07~~ | ~~Loyalty point redemption not in checkout flow~~ [FIXED ✅] | `frontend` `/checkout` + `/api/v1/loyalty/points/redeem` |
 | P2-08 | Promo expiry race between validation and apply | `cart-checkout-deep-review` P2-CC-04 |
 | P2-09 | Dual `warehouseClient`/`warehouseInventoryService` interface | `cart-checkout-deep-review` P2-CC-07 |
 | P2-10 | `MaxOrderAmount` hardcoded as constant | `cart-checkout-deep-review` P2-CC-08 |
@@ -181,8 +180,8 @@
 | # | Issue | Source |
 |---|-------|--------|
 | P2-24 | Review Service Workers embedded in main binary — no independent scaling | `cross-cutting-concerns-review` XC2-P1-002 |
-| P2-25 | Custom Outbox Workers not fully standardized (Checkout missing SKIP LOCKED) | `cross-cutting-concerns-review` XC2-P2-004 |
-| P2-26 | No GDPR/PDPA Data Erasure API | `cross-cutting-concerns-review` XC2-P2-006 |
+| ~~P2-25~~ | ~~Custom Outbox Workers not fully standardized~~ [FIXED ✅] | `common/outbox` across Go outbox workers (`promotion` standardized 2026-11-24, `location` already on `common/outbox`) |
+| ~~P2-26~~ | ~~No GDPR/PDPA Data Erasure API~~ [FIXED ✅] | `customer/internal/biz/customer/gdpr.go` & `wishlist_gdpr_http.go` |
 | P2-27 | DLQ not configured in 4 event consumer services | `cross-cutting-concerns-review` XC2-NEW-001 |
 | P2-28 | Idempotency still fragmented — 6+ mechanisms | `cross-cutting-concerns-review` XC2-NEW-002 |
 | P2-29 | Auth event consumers still incomplete | `cross-cutting-concerns-review` XC2-NEW-003 |
@@ -277,23 +276,19 @@
 
 ---
 
-## 📋 Agent Assignment — Status (Updated 2026-03-08)
+## 📋 Workstream Status (Updated 2026-11-24)
 
-| Agent | Domain | Status | Task File |
-|-------|--------|--------|-----------|
-| **Agent 1** | Payment & Order | ✅ **ALL DONE** | _(deleted)_ |
-| **Agent 2** | Warehouse & Inventory | ✅ **ALL DONE** | _(deleted)_ |
-| **Agent 3** | Customer & Identity | ✅ **ALL DONE** | _(deleted)_ |
-| **Agent 4** | Notification, Search & Analytics | ✅ **ALL DONE** (P0+P1+P2) | _(deleted)_ |
-| **Agent 5** | Return, Fulfillment, Pricing | ✅ **ALL DONE** → Agent 8 | _(deleted)_ |
-| **Agent 6** | Comment Rule Violations | ✅ **ALL DONE** (230 violations) | _(deleted)_ |
-| **Agent 7** | Outbox Pattern Migration | 🔴 **1/6 done** — custom workers remain | [AGENT-7-OUTBOX-MIGRATION.md](agent-tasks/AGENT-7-OUTBOX-MIGRATION.md) |
-| **Agent 8** | Return, Fulfillment, Shipping, Pricing | ✅ **ALL DONE** | _(deleted)_ |
-| **Agent 9** | Analytics, Notification, Search P2 | ✅ **ALL DONE** | _(deleted)_ |
-| **Agent 10** | Event Topology & Dead Topics | 🆕 **2 P0 + 5 P1 + 3 P2** | [AGENT-10-EVENT-TOPOLOGY.md](agent-tasks/AGENT-10-EVENT-TOPOLOGY.md) |
-| **Agent 11** | Order, Payment, Warehouse Remaining | 🆕 **2 P0 + 5 P1 + 14 P2** | [AGENT-11-ORDER-PAYMENT-WAREHOUSE.md](agent-tasks/AGENT-11-ORDER-PAYMENT-WAREHOUSE.md) |
+| Workstream | Domain | Status | Reference |
+|---|---|---|---|
+| **Track 1** | Payment & Order | ✅ **ALL DONE** | P0-01/02, P1-07..11 |
+| **Track 2** | Warehouse & Inventory | ✅ **ALL DONE** | P0-03/04, P1-15 |
+| **Track 3** | Customer & Identity | ✅ **ALL DONE** | P1-01..06, P2-26, P2-30/31 |
+| **Track 4** | Notification, Search & Analytics | ✅ **ALL DONE** (P0+P1+P2-19..22) | P1-16/17, P1-19..22 |
+| **Track 5** | Return, Fulfillment, Shipping, Pricing | ✅ **ALL DONE** (P1) | P1-12..14, P1-18, P1-23..26 |
+| **Track 6** | Code Hygiene & Comment Rules | ✅ **ALL DONE** | 230 cleanups |
+| **Track 7** | Outbox Pattern Standardization | ✅ **ALL DONE** | Standardized on `common/outbox` (`promotion` & `location` verified) |
 
-> **Active agents**: 7, 10, 11. Total remaining: **5 P0 + 16 P1 + 23 P2 = 44 issues**.
+> **Remaining open across P0 & P1**: **0 P0 + 0 P1** (all blocking and high-priority items resolved; remaining items in the P2 section are low-priority backlog enhancements/tech debt).
 
 ---
 
