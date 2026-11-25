@@ -1,6 +1,6 @@
 # ArgoCD & Manifest Configuration Improvement Checklist
 
-> **Architecture Note (2026-11-24)**: Application manifests in `gitops/` migrated from Helm (`values-base.yaml` / `ApplicationSet`) to **Kustomize** (`apps/*/base`, `apps/*/overlays/{dev,production}`, `components/common-deployment-v2`, `environments/{dev,production}/apps/*-app.yaml`). Legacy Helm-specific items below are marked `N/A` accordingly; active items reflect the live Kustomize/ArgoCD setup.
+> **Architecture Note (2026-11-25)**: Application manifests in `gitops/` migrated from Helm (`values-base.yaml` / `ApplicationSet`) to **Kustomize** (`apps/*/base`, `apps/*/overlays/{dev,production}`, `components/common-deployment-v2`, `environments/{dev,production}/apps/*-app.yaml`). Legacy Helm-specific items below are marked `N/A` accordingly; active items reflect the live Kustomize/ArgoCD setup.
 
 ## 1. ArgoCD Application Standardization
 - [x] **Sync Policy Consistency**:
@@ -37,11 +37,11 @@
 
 ## 4. Security Posture
 - [x] **Secret Management**:
-    - *Action*: Migrated production & base secrets to `ExternalSecret` (`vault-backend`); removed plaintext DB credentials from `common-operations` base/dev ConfigMaps (remaining dev-only exception: `promotion/overlays/dev/configmap.yaml` still sets dev DB DSN alongside `promotion-secrets`).
-- [ ] **Service Accounts**:
-    - *Action*: Audit whether non-Dapr pods (`admin`, `frontend`) should explicitly set `automountServiceAccountToken: false`. Dapr-enabled services must retain SA tokens for Dapr control-plane/SecretStore access.
+    - *Action*: Migrated all service secrets to `ExternalSecret` (`vault-backend`), standardized secret filenames to `secrets.yaml` across all apps, and removed remaining plaintext dev DB/JWT credentials (`promotion/overlays/dev/configmap.yaml`, `common-operations`).
+- [x] **Service Accounts**:
+    - *Action*: Disabled SA token automount (`automountServiceAccountToken: false`) on non-Dapr UI deployments (`gitops/apps/admin/base/deployment.yaml`, `gitops/apps/frontend/base/deployment.yaml`), while retaining SA tokens for Dapr sidecars.
 - [x] **NetworkPolicy Default Deny / Least Privilege**:
-    - Verified `22/22` backend/frontend services ship ingress/egress `NetworkPolicy` manifests with environment-scoped `dev`/`production` overlays (`gateway` handles edge ingress separately).
+    - Verified `22/22` backend/frontend services ship ingress/egress `NetworkPolicy` manifests with environment-scoped `dev`/`production` overlays (`analytics` API vs `analytics-worker` separated with worker ingress denied; `gateway` handles edge ingress separately).
 
 ## 5. Gateway & Observability
 - [ ] **Gateway Config Modularization**:
@@ -54,17 +54,17 @@
 
 ## 6. Repository Hygiene
 - [x] **Cleanup Backup Files**:
-    - Removed legacy backup files.
-- [ ] **Linting & Formatting**:
-    - *Action*: Enforce automated `yamllint` and `kubectl kustomize` matrix validation in GitLab CI/CD pipeline before merge.
+    - Removed legacy backup files and stale unreferenced `environments/dev/resources/databases/postgresql.yaml`.
+- [x] **Linting & Formatting**:
+    - *Action*: Enforced automated YAML syntax, security guardrails, and `kubectl kustomize` matrix validation (`659` YAML files, `49` targets) via `gitops/scripts/validate-kustomize.sh` and `gitops/.gitlab-ci.yml`.
 
 ## 7. Configuration Redundancy & Drift
 - [ ] **Duplicate Service Configs**:
     - *Action*: Consolidate repeated shared `infrastructure` host URLs where practical across per-app ConfigMaps.
 - [ ] **Inconsistent Resource Requests**:
     - *Action*: Audit tier-2/tier-3 worker and API baseline requests (e.g., `100m/256Mi` vs `250m/512Mi`) against load test baselines.
-- [ ] **Sync Wave Usage**:
-    - *Action*: Document and standardize `argocd.argoproj.io/sync-wave` numbering across all Kustomize overlays (e.g., ServiceAccount `-2`, Migration PreSync `-1`, ConfigMap/NetworkPolicy `0`, Deployments `1..7`, HPA `6..8`).
+- [x] **Sync Wave Usage**:
+    - *Action*: Documented and standardized `argocd.argoproj.io/sync-wave` tiers (`-5` secrets/PVCs, `-2` SA, `-1` PreSync migrations, `0` ConfigMaps/NetworkPolicies/Services, `1..7` Deployments/Rollouts, `3..8` HPA/PDB) in `gitops/README.md`.
 
 ## 8. Service Architecture & Maintenance
 - [x] **Dapr Subscription Management**:

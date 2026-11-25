@@ -1,6 +1,6 @@
 # GitOps Go-Live Readiness Review
 
-**Review date**: 2026-03-14 (verified & synchronized: 2026-11-24)  
+**Review date**: 2026-03-14 (verified & synchronized: 2026-11-25)  
 **Reviewer**: Platform / DevOps Engineering  
 **Scope**: `gitops/` repository — Kustomize-based App-of-Apps pattern  
 **Environments**: `dev` and `production`
@@ -95,9 +95,8 @@
 
 ### P1 — HIGH (Affects functionality or security)
 
-- [ ] **DEV-09: Hardcoded credentials in ConfigMaps** *(mostly resolved — 1 dev overlay file remains)*
-  - ✅ Cleaned all base Redis passwords (`K8sD3v_redis_2026x`), `fulfillment`, and `common-operations` base/dev ConfigMaps (plus added `COMMON_OPERATIONS_DATA_DATABASE_SOURCE` override in Go config).
-  - **Remaining**: `gitops/apps/promotion/overlays/dev/configmap.yaml` (lines 22–23) still sets dev `PROMOTION_DATA_DATABASE_SOURCE` and `DATABASE_URL` alongside `promotion-secrets`.
+- [x] **DEV-09: Hardcoded credentials in ConfigMaps** ✅ **RESOLVED**
+  - Cleaned plaintext DB/Redis/JWT credentials across all base/dev ConfigMaps (including `common-operations` base/dev and `promotion/overlays/dev/configmap.yaml`, which now relies on `promotion-secrets` `ExternalSecret`); enforced in CI via `gitops/scripts/validate-kustomize.sh`.
 
 - [x] **DEV-10: `review/base/kustomization.yaml` missing `dapr-subscription.yaml`** ✅ **RESOLVED** (`- dapr-subscription.yaml` included)
 
@@ -107,36 +106,31 @@
 
 - [x] **DEV-13: `metrics-server.yaml` not in kustomization** ✅ **RESOLVED** (`monitoring/metrics-server.yaml` included in `environments/dev/resources/kustomization.yaml`)
 
-- [ ] **DEV-14: Services missing secrets** *(mostly resolved — only `minio` dev remains)*
-  - ✅ `common-operations` uses `ExternalSecret` (`common-operations-secrets`); `admin` and `frontend` are static UI bundles with no runtime secrets (`N/A`).
-  - **Remaining**: Dev `minio-app` credentials hardening.
+- [x] **DEV-14: Services missing secrets** ✅ **RESOLVED**
+  - All backend services use `ExternalSecret` (`vault-backend`); `admin` and `frontend` are static UI bundles (`automountServiceAccountToken: false`); hardened `minio/base/{external-secret,init-job}.yaml` (`sync-wave: "-5"`, `MINIO_ROOT_PASSWORD` via `secretKeyRef: minio-credentials/root-password`, `ttlSecondsAfterFinished: 300`, resource bounds).
 
-- [ ] **DEV-15: Redis has no persistence**
-  - `redis-current.yaml`: no AOF/RDB configured → data lost on pod restart
-  - **Fix**: Enable `appendonly yes` or use `redis-ha.yaml` alternative.
+- [x] **DEV-15: Redis has no persistence** ✅ **RESOLVED**
+  - Added `--dir /data --appendonly yes --appendfsync everysec --save "900 1" --save "300 10"` to `environments/dev/resources/databases/redis-current.yaml`.
 
 ### P2 — MEDIUM (Quality & maintainability)
 
-- [ ] **DEV-16: Ingress has no TLS**
-  - `environments/dev/resources/ingress/ingressroute.yaml` still uses `web` (HTTP) without `websecure`.
-  - **Fix**: Standardize TLS on `ingressroute.yaml` or retire in favor of `ingress-current.yaml` if unused.
+- [x] **DEV-16: Ingress has no TLS** ✅ **RESOLVED**
+  - Switched all 5 `IngressRoute` resources in `environments/dev/resources/ingress/ingressroute.yaml` to `entryPoints: [websecure]` with `tls.secretName: microservices-tls-dev` and added `api.tanhdev.com` to `ingress-current.yaml` SAN list.
 
 - [x] **DEV-17: Redis DB allocation collision** ✅ **RESOLVED** (`0` DB collisions across `gitops/apps/*/base/configmap.yaml`)
 
-- [ ] **DEV-18: Tracing endpoint inconsistency** *(mostly resolved)*
-  - ✅ 18+ services use `jaeger-collector.monitoring.svc.cluster.local:14268`; **Remaining**: `catalog/base/configmap.yaml` and `pricing/base/configmap.yaml` still specify `jaeger.infrastructure.svc.cluster.local:14268`.
+- [x] **DEV-18: Tracing endpoint inconsistency** ✅ **RESOLVED**
+  - Updated remaining `catalog/base/configmap.yaml` and `pricing/base/configmap.yaml` tracing endpoints to `http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces`.
 
 - [x] **DEV-19: ServiceMonitor port name mismatch** ✅ **RESOLVED** (`0` ServiceMonitors using `port: http-svc`; all standardized to `port: http`)
 
 - [x] **DEV-20: Deprecated `patchesStrategicMerge:` in kustomizations** ✅ **RESOLVED** (`0` `patchesStrategicMerge:` remaining)
 
-- [ ] **DEV-21: Secret file naming inconsistent**
-  - `secret.yaml` (singular): `11` files vs `secrets.yaml` (plural): `14` files.
-  - **Fix**: Standardize naming convention across overlays.
+- [x] **DEV-21: Secret file naming inconsistent** ✅ **RESOLVED**
+  - Standardized all `11` `secret.yaml` files under `gitops/apps/` to `secrets.yaml` and updated all referencing `kustomization.yaml` files (`0` `secret.yaml` remaining under `gitops/apps/`).
 
-- [ ] **DEV-22: Alertmanager uses `emptyDir` — state lost on restart**
-  - Alert state, silences, notification log lost on pod restart
-  - **Fix**: Use small PVC (~1Gi).
+- [x] **DEV-22: Alertmanager uses `emptyDir` — state lost on restart** ✅ **RESOLVED**
+  - Replaced `emptyDir: {}` in `environments/dev/resources/monitoring/alertmanager.yaml` with `alertmanager-pvc` (`PersistentVolumeClaim`, `1Gi`, `sync-wave: "-5"`).
 
 - [x] **DEV-23: PDB blocks eviction on single-replica monitoring pods** ✅ **RESOLVED**
   - Updated Prometheus, Grafana, and Alertmanager PDBs in `environments/dev/resources/monitoring/pdbs.yaml` from `minAvailable: 1` to `maxUnavailable: 1`.
@@ -145,22 +139,19 @@
 
 - [x] **DEV-25: Orphaned/duplicate monitoring config files** ✅ **RESOLVED** (`environments/dev/resources/kustomization.yaml` uses `prometheus-alert-rules.yaml` and excludes `critical-services-alerts.yaml`)
 
-- [ ] **DEV-26: `postgresql.yaml` malformed**
-  - `environments/dev/resources/databases/postgresql.yaml` (mixed Kustomization/Service YAML) still present on disk.
-  - **Fix**: Remove stale `postgresql.yaml` once confirmed unreferenced (`postgresql-svc.yaml` is active in kustomization).
+- [x] **DEV-26: `postgresql.yaml` malformed** ✅ **RESOLVED**
+  - Deleted unreferenced stale `environments/dev/resources/databases/postgresql.yaml` (active dev database uses `databases/postgresql-svc.yaml`).
 
-- [ ] **DEV-27: `auth-db.yaml` (CloudNativePG) has duplicate Cluster resource**
-  - `environments/dev/resources/databases/postgresql-clusters/auth-db.yaml` still contains a second `kind: Cluster` spec.
-  - **Fix**: Remove duplicate block.
+- [x] **DEV-27: `auth-db.yaml` (CloudNativePG) has duplicate Cluster resource** ✅ **RESOLVED**
+  - Merged `serviceAccountTemplate` into the primary `Cluster` spec and removed duplicate `Cluster` block in `environments/dev/resources/databases/postgresql-clusters/auth-db.yaml`.
 
 - [x] **DEV-28: CloudNativePG cluster templates labeled `environment: production`** ✅ **RESOLVED**
-  - Updated `18/18` cluster manifests in `environments/dev/resources/databases/postgresql-clusters/` to `app.kubernetes.io/environment: dev` (note: `databases/redis-sentinel.yaml` still retains `environment: production`).
+  - Updated `18/18` cluster manifests in `environments/dev/resources/databases/postgresql-clusters/` and `databases/redis-sentinel.yaml` to `app.kubernetes.io/environment: dev`.
 
 - [x] **DEV-29: Order service timeout too low (1s)** ✅ **RESOLVED** (`order/base/configmap.yaml` HTTP/gRPC timeouts set to `30s`)
 
-- [ ] **DEV-30: PVC size inconsistency for PostgreSQL**
-  - `postgresql.yaml` references `20Gi` while active deployment/PVC configs differ.
-  - **Fix**: Standardize when retiring stale `postgresql.yaml`.
+- [x] **DEV-30: PVC size inconsistency for PostgreSQL** ✅ **RESOLVED**
+  - Removed stale `environments/dev/resources/databases/postgresql.yaml` (`20Gi` mismatch resolved).
 
 - [x] **DEV-31: Review ConfigMap label is `placeholder` instead of `review`** ✅ **RESOLVED** (`review/base/configmap.yaml` uses `review`)
 
@@ -266,13 +257,13 @@
 
 ---
 
-## Summary (Updated 2026-11-24)
+## Summary (Updated 2026-11-25)
 
 | Environment | Open P0 | Open P1 | Open P2 | Open Total |
 |-------------|---------|---------|---------|------------|
 | **Production** | 0 ✅ | 0 ✅ | 2 | **2** (`PROD-13`, `PROD-14` external cluster/Vault infra) |
-| **Dev** | 0 ✅ | 3 | 7 | **10** (partial `promotion` dev DSN + optional dev hygiene) |
+| **Dev** | 0 ✅ | 0 ✅ | 0 ✅ | **0** |
 | **Base (cross-env)** | 0 ✅ | 0 ✅ | 0 ✅ | **0** |
-| **Total remaining** | **0** | **3** | **9** | **12** |
+| **Total remaining** | **0** | **0** | **2** | **2** |
 
 > **Verdict**: All GitOps manifest P0 and production P1 blockers are resolved and verified via `kubectl kustomize`. Remaining production go-live work is external infrastructure/secrets provisioning (apply `production-cluster.yaml`, Vault HA + KMS auto-unseal, and populate real OAuth2/Payment provider secrets in Vault).

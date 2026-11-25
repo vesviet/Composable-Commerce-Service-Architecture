@@ -280,22 +280,23 @@ If needed, historical findings should be moved into:
 - [x] Fix live broken service paths first: `payment -> customer` and `shipping -> order/fulfillment/notification`.
 - [x] Normalize NetworkPolicy namespace selectors to `kubernetes.io/metadata.name`.
 - [x] Review every NetworkPolicy port against the real runtime call path, not naming conventions alone.
-- [ ] Choose one Dapr pubsub/component ownership model for `dev` and apply it consistently.
+- [x] Choose one Dapr pubsub/component ownership model for `dev` and apply it consistently. *(Verified 2026-11-25: central `pubsub-redis`/`statestore-redis`/`dapr-config` in `environments/dev/resources/service-discovery/` + per-app `apps/*/base/dapr-subscription.yaml`; documented in `gitops/README.md`)*
 - [x] Gate cross-app hooks and indexing jobs behind explicit dependency rules.
 - [x] Unify namespace naming across root resources and child apps.
-- [ ] Remove plaintext secrets from Git and document the real bootstrap model.
+- [x] Remove plaintext secrets from Git and document the real bootstrap model. *(Verified 2026-11-25: `ExternalSecret` + `vault-backend` across apps, `0` hardcoded `postgres:microservices` in `apps/**/configmap.yaml`, documented in `gitops/README.md`)*
 - [x] Add CI checks:
   - [x] `kubectl kustomize gitops/environments/dev` — PASS (46991 lines)
   - [x] `kubectl kustomize gitops/environments/production` — PASS (963 lines)
-- [ ] Rewrite `gitops/README.md` to match the repo that exists today.
+  - [x] Automated CI matrix & security guardrails (`gitops/scripts/validate-kustomize.sh` + `gitops/.gitlab-ci.yml`: `659` YAML files, `49` targets PASS)
+- [x] Rewrite `gitops/README.md` to match the repo that exists today. *(Updated 2026-11-25 for Kustomize v2 components, ExternalSecrets, Sync Waves, Dapr ownership, and validation CLI)*
 
 ## Exit Criteria For "Dev Is Safe Enough To Test Like Prod"
 
 - [x] Dev renders cleanly without deprecation noise or missing-resource errors.
 - [x] Secret backend and app sync order are deterministic.
 - [x] `payment` and `shipping` can reach every downstream endpoint defined in their current dev config. *(NetworkPolicy fixed; needs live re-validation)*
-- [ ] Event-driven namespaces receive the Dapr components they reference.
+- [x] Event-driven namespaces receive the Dapr components they reference. *(Central `infrastructure` PubSub/StateStore + per-service `dapr-subscription.yaml`, including `analytics/base/dapr-subscription.yaml`)*
 - [x] Namespace layout is consistent and documented.
-- [ ] No active plaintext application secrets remain in Git.
+- [x] No active plaintext application secrets remain in Git. *(Enforced via `validate-kustomize.sh`)*
 - [x] ArgoCD project permissions are narrowed to intended resource classes.
-- [ ] Documentation matches actual deployment topology.
+- [x] Documentation matches actual deployment topology. *(`gitops/README.md` updated 2026-11-25)*
