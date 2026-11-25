@@ -323,8 +323,8 @@ git push origin v1.0.7
 cd /home/user/microservices/gitops && git pull origin main
 # Verify newTag matches latest commit hash
 
-# Check pod status
-ssh tuananh@dev.tanhdev.com -p 8785 "kubectl get pods -n {serviceName}-dev -w"
+# Check pod status (using $DEV_SSH from .agent/config/environment.sh)
+ssh "$DEV_SSH" "kubectl get pods -n {serviceName}-dev -w"
 ```
 
 ---

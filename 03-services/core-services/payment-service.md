@@ -874,7 +874,7 @@ module gitlab.com/ta-microservices/payment
 go 1.27.4
 
 require (
-    gitlab.com/ta-microservices/common v1.9.5
+    gitlab.com/ta-microservices/common v1.37.1
     gitlab.com/ta-microservices/customer v1.1.1
     gitlab.com/ta-microservices/order v1.1.0
     github.com/go-kratos/kratos/v2 v2.9.2

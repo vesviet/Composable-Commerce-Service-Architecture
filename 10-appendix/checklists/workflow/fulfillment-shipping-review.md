@@ -437,14 +437,14 @@ Order "orders.order_cancelled" → Fulfillment (✅ via order_status_changed)
 
 ### 🔧 Future Refactor (Not Blocking)
 
-- [ ] Remove deprecated `EventBus` from shipping biz layer and update tests to verify outbox events directly
-- [ ] Align outbound topic constants with actual Dapr topics (remove `shipping.` prefix)
-- [ ] Move proto shipping IDs from int64 to string to eliminate metadata workaround
-- [ ] Add typed sentinel error for QC-required in `MarkReadyToShip`
-- [ ] Add explicit carrier rate comparison for rate shopping (§9.3)
-- [ ] Implement Click & Collect flow (§9.2)
-- [ ] Implement carrier delivery SLA tracking (§9.5)
-- [ ] Implement late shipment penalty calculation (§9.5)
+- [x] ✅ FIXED (`P2-33`): Removed deprecated `DaprEventBus` + `ShipmentEventHandler` wiring from `shipping/cmd/shipping/{main.go,wire.go}`
+- [x] ✅ FIXED (`P2-34`): `handlePackageCreated` reads `event.Metadata["currency"]` (`package_status_handler.go:83-88`)
+- [x] ✅ FIXED (`P2-36`): Increased `fulfillment`/`shipping` worker production resources (`256Mi/512Mi`) + `worker-hpa.yaml`
+- [x] ✅ FIXED (`P2-35`): Added typed sentinel errors `ErrQCRequired`/`ErrQCNotPassed` (`fulfillment/internal/constants/fulfillment_status.go`)
+- ⏳ Backlog Feature: Carrier rate comparison for rate shopping (§9.3)
+- ⏳ Backlog Feature: Click & Collect flow (§9.2)
+- ⏳ Backlog Feature: Carrier delivery SLA tracking (§9.5)
+- ⏳ Backlog Feature: Late shipment penalty calculation (§9.5)
 
 ---
 

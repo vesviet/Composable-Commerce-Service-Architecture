@@ -21,8 +21,8 @@
 ✅ **Tất cả services đã sử dụng versioned imports** - không còn `replace` directives trong go.mod
 
 Các services hiện đang sử dụng semantic versioning cho dependencies:
-- `common`: v1.22.0 - v1.23.1
-- Service APIs: v1.0.x - v1.3.x
+- `common`: `v1.37.1` (unified across all 21 Go services)
+- Service APIs: `v1.1.0` - `v1.6.1`
 
 ---
 
@@ -32,7 +32,7 @@ Các services hiện đang sử dụng semantic versioning cho dependencies:
 
 | # | Service | Module | Current Version | Lý do |
 |---|---------|--------|-----------------|-------|
-| 0 | **common** | `gitlab.com/ta-microservices/common` | v1.23.1 | Shared library — tất cả services đều depend |
+| 0 | **common** | `gitlab.com/ta-microservices/common` | `v1.37.1` | Shared library — tất cả services đều depend |
 
 ---
 
@@ -91,8 +91,8 @@ Các service không có outbound gRPC call đến service khác trong hệ thố
 
 | # | Service | Dir | HTTP | gRPC | Depends on |
 |---|---------|-----|------|------|------------|
-| 15 | **fulfillment** | `fulfillment/` | 8008 | 9008 | common + catalog, shipping, warehouse API |
-| 16 | **return** | `return/` | 8013 | 9013 | common + order, payment, shipping, warehouse API |
+| 15 | **fulfillment** | `fulfillment/` | 8008 | 9008 | common + catalog, order, shipping, warehouse API |
+| 16 | **return** | `return/` | 8013 | 9013 | common + order, payment, shipping, warehouse API (runtime HTTP category policy check via catalog) |
 | 17 | **search** | `search/` | 8017 | 9017 | common + catalog, pricing, warehouse API |
 | 18 | **loyalty-rewards** | `loyalty-rewards/` | 8014 | 9014 | common + customer, notification, order API |
 | 19 | **common-operations** | `common-operations/` | 8018 | 9018 | common + customer, notification, order, user, warehouse API |
@@ -145,8 +145,8 @@ Bảng tổng hợp dependencies của từng service (dựa trên go.mod analys
 | **review** | common, catalog, order, user |
 | **order** | common, catalog, customer, notification, payment, pricing, promotion, shipping, user, warehouse |
 | **promotion** | common, catalog, customer, pricing, review, shipping |
-| **fulfillment** | common, catalog, shipping, warehouse |
-| **return** | common, order, payment, shipping, warehouse |
+| **fulfillment** | common, catalog, order, shipping, warehouse |
+| **return** | common, order, payment, shipping, warehouse (runtime HTTP call to catalog category API) |
 | **search** | common, catalog, pricing, warehouse |
 | **loyalty-rewards** | common, customer, notification, order |
 | **common-operations** | common, customer, notification, order, user, warehouse |

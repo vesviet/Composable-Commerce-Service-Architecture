@@ -304,11 +304,11 @@
 
 ### 🔵 Normal (P2 — backlog)
 
-- [ ] **P2-1**: Add outbox event in `ConfirmPromotionUsage` for downstream analytics
-- [ ] **P2-2**: Remove dead code (`publishPromotionEvent`, `publishBulkCouponsEvent`)
+- [x] **P2-1**: ✅ Persists `promotion.usage_confirmed` outbox event inside `InTx` (`promotion/internal/biz/promotion_usecase.go:262-275`, tracks `P2-64`)
+- [x] **P2-2**: ✅ Removed dead `publishPromotionEvent`, `publishBulkCouponsEvent` across `promotion/` (tracks `P2-65`)
 - [x] **P2-3**: ✅ Add `networkpolicy.yaml` to kustomization resources
 - [x] **P2-4**: ✅ Throttle outbox cleanup (every 120 polls ~10 min)
-- [ ] **P2-5**: Return outbox save error from `ReleasePromotionUsage` tx or escalate
+- [x] **P2-5**: ✅ Returns error and rolls back tx on outbox save failure in `ReleasePromotionUsage` (`promotion_usecase.go:376-383`, tracks `P2-66`)
 
 ---
 

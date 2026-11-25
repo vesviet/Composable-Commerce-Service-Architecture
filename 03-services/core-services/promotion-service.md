@@ -1,7 +1,7 @@
 # 🏷️ Promotion Service - Complete Documentation
 
 > **Owner**: Platform Team  
-> **Last Updated**: 2026-11-23  
+> **Last Updated**: 2026-11-25  
 > **Architecture**: [Clean Architecture](../../01-architecture/) | [Service Map](../../SERVICE_INDEX.md)  
 > **Ports**: 8011/9011
 
@@ -110,6 +110,9 @@ promotion/
 - `UpdatePromotion` - Update promotion (admin only)
 - `DeletePromotion` - Delete promotion (admin only)
 - `ValidatePromotions` - Validate promotions for cart/order
+- `ReservePromotion` - Reserve promotion/coupon usage with configurable TTL (`checkout_session_id`, `reservation_expires_at`, `'reserved'` status)
+- `ConfirmPromotionReservation` - Confirm reserved promotion/coupon usage upon order creation
+- `ReleasePromotionReservation` - Release reserved promotion/coupon usage on checkout failure or expiration
 
 ### Coupon Management
 - `ListCoupons` - List coupons with filtering
@@ -130,7 +133,7 @@ promotion/
 - `campaigns` - Campaign definitions
 - `promotions` - Promotion rules and configurations
 - `coupons` - Coupon codes and metadata
-- `promotion_usage` - Usage tracking and analytics
+- `promotion_usage` - Usage tracking, analytics, and TTL reservations (`checkout_session_id`, `reservation_expires_at`, statuses `'reserved'`/`'confirmed'`/`'expired'`, cleaned up by `ReservationCleanupWorker`)
 - `catalog_price_index` - Indexed catalog prices for performance
 - `outbox_events` - Transactional outbox for event publishing
 

@@ -3,7 +3,7 @@
 **Reviewed**: 2026-03-07
 **Pattern Reference**: Shopify, Shopee, Lazada + `docs/10-appendix/ecommerce-platform-flows.md` §10
 **Services Involved**: return, order, payment, warehouse, shipping, notification, loyalty-rewards
-**Status**: 🔴 1 P0 OPEN | Remaining: 4 P1, 5 P2
+**Status**: ✅ 0 P0 OPEN | **0 P1 OPEN** | Wave 1 P2s (`RET-P2-01/04/06/08`) FIXED · `RET-P2-05/07/09` Deferred (Synced 2026-11-25)
 **Audit**: 2026-03-07 — Full code re-review of all consumers, GitOps, workers, and event wiring
 
 ---
@@ -322,34 +322,34 @@ CONSUMERS (verified matching topics):
 | RET-P0-01 | ~~Double refund: direct gRPC + event consumer~~ | return | ✅ FIXED | Removed `processReturnRefund()` from completed case. Refund is event-driven only. |
 | RET-P0-02 | ~~Notification topic mismatch~~ | notification | ✅ FIXED | Constants corrected to `orders.return.approved` and `payment.payment.refunded`. |
 | RET-P0-03 | ~~No worker binary separation~~ | return | ✅ FIXED | Created `cmd/worker/`, `common-worker-deployment-v2`, worker GitOps. |
-| **RET-P0-04** | **Loyalty-rewards `handleReturnCompleted` method body MISSING** | loyalty-rewards | 🔴 OPEN | `consumer.go:72` calls `c.handleReturnCompleted` but the method is not defined anywhere in the codebase. The consumer is wired (`workers.go:105-108,207-208`) and subscribes to `orders.return.completed` with DLQ, but the handler function body does not exist. **This is a compile blocker** — service cannot be built. Loyalty points earned on original order are NOT clawed back on return. |
+| RET-P0-04 (`P0-05`) | ~~Loyalty-rewards `handleReturnCompleted` method body MISSING~~ | loyalty-rewards | ✅ FIXED | Implemented `return_completed_event.go` + wired at `consumer.go:100`; points clawed back on return completion. |
 
 ### 🟡 P1 — High Priority
 
 | ID | Issue | Service(s) | Status | Fix Description |
 |----|-------|------------|--------|-----------------|
 | RET-P1-01 | ~~Order status not restored on rejection/cancellation~~ | return | ✅ FIXED | Added `orderService.UpdateOrderStatus(orderID, "completed")` on rejection and cancellation. |
-| RET-P1-02 | ~~Loyalty points not clawed back on return~~ | loyalty-rewards | ❌ NOT FIXED (see P0-04) | Consumer wired but handler method missing. Previous review incorrectly marked as FIXED. |
+| RET-P1-02 | ~~Loyalty points not clawed back on return~~ | loyalty-rewards | ✅ FIXED | Implemented `return_completed_event.go` + clawback handler (see `RET-P0-04`). |
 | RET-P1-03 | ~~No cancellation event~~ | return | ✅ FIXED | Added `orders.return.cancelled` outbox event. |
 | RET-P1-04 | ~~Compensation worker no max retry~~ | return | ✅ FIXED | `maxCompensationRetries = 5`. Events exceeding limit marked `dlq`. |
 | RET-P1-05 | ~~Partial return → order status~~ | order | ✅ FIXED | `OrderStatusPartiallyReturned` logic in `order/return_consumer.go:137-151`. |
-| **RET-P1-06** | **No stale return cleanup cron** | return | 🟡 OPEN | `pending` returns after 7d and `approved` returns not shipped after 14d should auto-cancel. |
-| **RET-P1-07** | **No DLQ worker for failed outbox events** | return | 🟡 OPEN | Events that permanently fail stay in `failed` status with no resolution. |
-| **RET-P1-08** | **Exchange failure not compensated** | return | 🟡 OPEN | `processExchangeOrder` failure logged as non-blocking (L452-454) with no retry event. |
-| **RET-P1-09** | **Order status dual-path conflict** | return, order | 🟡 OPEN | gRPC always sets `returned`; Order consumer correctly distinguishes `partially_returned`. If gRPC runs first for partial return, it overwrites with wrong terminal status. Should remove gRPC call and rely solely on event-driven Order consumer. |
+| RET-P1-06 (`P1-23`) | ~~No stale return cleanup cron~~ | return | ✅ FIXED | Implemented `return/internal/worker/stale_return_cleanup.go` (daily cron: 7d pending & 14d approved auto-cancel). |
+| RET-P1-07 (`P1-24`) | ~~No DLQ worker for failed outbox events~~ | return | ✅ FIXED | Implemented `return/internal/worker/dlq_worker.go`. |
+| RET-P1-08 (`P1-25`) | ~~Exchange failure not compensated~~ | return | ✅ FIXED | Implemented `return.exchange_retry` in `return/internal/worker/compensation_worker.go`. |
+| RET-P1-09 (`P1-26`) | ~~Order status dual-path conflict~~ | return, order | ✅ FIXED | `orders.return.completed` owns `returned`/`partially_returned` via `order/internal/data/eventbus/return_consumer.go`; gRPC path no longer overwrites. |
 
 ### 🟢 P2 — Nice to Have
 
 | ID | Issue | Service(s) | Fix Description |
 |----|-------|------------|-----------------|
-| RET-P2-01 | Migration schema drift | return | Add migration to match full GORM model. Don't rely on auto-migration. |
-| RET-P2-02 | ~~Auto-approve for small amounts~~ | return | Implement `auto_approve_limit` config usage (config exists: `100`). |
-| RET-P2-03 | ~~Stale return cleanup cron~~ | return | Promoted to P1-06. |
+| RET-P2-01 (`P2-67`) | ~~Migration schema drift~~ | return | ✅ FIXED — `return/migrations/005_reconcile_schema_with_model.sql` reconciles schema with `model/return.go`. |
+| RET-P2-02 | ~~Auto-approve for small amounts~~ | return | ✅ FIXED — `auto_approve_limit` wired. |
+| RET-P2-03 | ~~Stale return cleanup cron~~ | return | ✅ FIXED (promoted to `RET-P1-06` / `P1-23`). |
 | RET-P2-04 | ~~Add HPA~~ | return (gitops) | ✅ FIXED — `hpa.yaml` added with min=2, max=4. |
-| RET-P2-05 | Exchange price difference | return | Calculate and handle price diff between original and exchange products. |
-| RET-P2-06 | Evidence upload (photo/video) | return | Add `EvidenceURLs []string` to CreateReturnItemRequest. |
-| RET-P2-07 | Refund to store credit option | return, payment | Add `RefundMethod` enum (original, store_credit) per Shopify/Lazada. |
-| RET-P2-08 | Return window per category | return, catalog | Configurable `ReturnWindowDays` per product category (e.g., 7d electronics, 30d apparel). |
+| RET-P2-05 (`P2-68`) | Exchange price difference *(Deferred — Product Spec)* | return | Deferred — requires Pricing gRPC lookup + extra-charge/partial-refund settlement flow. |
+| RET-P2-06 (`P2-69`) | ~~Evidence upload (photo/video)~~ | return, gateway, admin, frontend | ✅ FIXED (Wave 1) — `return/migrations/007_*`, `POST/GET /api/v1/returns/evidence`, `gateway` 50MB allowlist, `admin` & `frontend` UX. |
+| RET-P2-07 (`P2-70`) | Refund to store credit *(Deferred — Product Spec)* | return, payment | Deferred — requires wallet/store-credit ledger design across `return`/`payment`/`loyalty-rewards`. |
+| RET-P2-08 (`P2-71`) | ~~Return window per category~~ | return, catalog, admin, frontend | ✅ FIXED (Wave 1) — `catalog` `return_window_days` (`CatalogPolicyClient`), `return` per-item eligibility, `admin` CategoriesPage & `frontend` modal. |
 | RET-P2-09 | Dispute & escalation flow | return | Implement `escalated`, `in_mediation` statuses + admin mediation (§10.5). |
 
 ---

@@ -23,7 +23,7 @@ All visual values flow through a strict two-tier hierarchy backed by [design-tok
 
 | Surface | Variance / Density | Motion | Brand Expression |
 | :--- | :--- | :--- | :--- |
-| **Storefront (`frontend`)** | Calm editorial commerce grid, generous whitespace (`16px`/`24px` container rhythm) | Subtle state feedback (`150ms–200ms` transitions), strict `prefers-reduced-motion` bypass | Cobalt Blue `#1d4ed8` (`oklch(0.49 0.21 262)`) primary CTA + Warm Amber `#b45309` campaign accents on `#f8fafc` neutral canvas |
+| **Storefront (`frontend`)** | Calm editorial commerce grid, generous whitespace (`16px`/`24px` container rhythm) | Subtle state feedback (`150ms–200ms` transitions), strict `prefers-reduced-motion` bypass | Cobalt Blue `#1d4ed8` (`oklch(0.488 0.243 264)`) primary CTA + Warm Amber `#b45309` campaign accents on `#f8fafc` neutral canvas |
 | **Operations (`admin`)** | Compact B2B operational tables, dense form drawers (`16px` card padding) | Instant table/modal feedback, no ornamental bounce | Same `#1d4ed8` Cobalt action primary + Slate `#0f172a` high-contrast table ink |
 
 ## 3. Concentric Radii & Elevation
@@ -32,7 +32,7 @@ Maintain concentric geometry on nested containers using:
 
 $$R_{\text{outer}} = R_{\text{inner}} + \text{padding}$$
 
-- **Nested control inside card:** `6px` (`--radius-sm`) input/button inside `8px`–`12px` (`--radius-md`/`--radius-lg`) card with `16px` padding (`0.75rem`).
+- **Nested control inside card:** Use `6px` (`--radius-sm`) controls inside `12px` (`--radius-lg`, `0.75rem`) cards with `6px` spacing when tight-nesting, or standard `16px` (`1rem`) card padding pairing `6px`–`8px` inner controls (`--radius-sm`/`--radius-md`) with `12px` outer card radius.
 - **Pill badges:** `9999px` (`--radius-full`) only for compact status chips and count badges.
 - **Elevation:** Crisp `1px` borders (`#e2e8f0`) + lightweight multi-layer shadows on cards/drawers rather than heavy drop-shadows.
 

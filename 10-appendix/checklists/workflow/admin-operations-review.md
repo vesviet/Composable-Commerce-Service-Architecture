@@ -3,7 +3,7 @@
 **Last Updated**: 2026-03-07
 **Pattern Reference**: Shopify, Shopee, Lazada — `docs/10-appendix/ecommerce-platform-flows.md` §13
 **Services Reviewed**: `admin/` (frontend), `common-operations/`, `analytics/`
-**Reviewer**: Antigravity Agent (deep-review 2026-03-07)
+**Reviewer**: Platform Engineering Team (synchronized 2026-11-25)
 
 ---
 
@@ -325,14 +325,13 @@
 - [x] **E14** Task consumer idempotency guard
 - [x] **E15** RetryFailedTasksJob delegates to UseCase
 
-### Open
-- [ ] **[🟡 P1] E16**: Move `publishTaskEventSync` calls in `CancelTask`/`RetryTask` to AFTER `WithTransaction` returns, or pass `txCtx`
-- [ ] **[🟡 P1] E17**: Implement `OutboxPublisherJob` cron that polls `TaskEventRepo.ListUnpublished()` and publishes via Dapr, then marks published
-- [ ] **[🟡 P1] E18**: `TaskProcessorWorker.Process()` should return `nil` after marking unknown types as failed (prevent Dapr retry)
-- [ ] **[🔵 P2] E19**: Implement real data sync logic in `processDataSyncTask` or remove the feature
-- [ ] **[🔵 P2] E20**: Add HTML escaping to message template variable replacement
-- [ ] **[🔵 P2] E21**: Remove unused port 8081 declaration from worker-deployment.yaml
-- [ ] **[🔵 P2] E22**: Wrap settings update + audit + event publish in a transaction
-- [ ] **[🔵 P2] E23**: Add RBAC validation inside biz-layer usecases (defense in depth)
-- [ ] **[🔵 P2] E5**: Add outbox pattern for `CreateTask` events (currently polling only)
-- [ ] **[🔵 P2] E10**: Add event consumers to analytics worker for real-time dashboard data ingestion
+### Resolved / Deferred (Synced 2026-11-25 with `UNFIXED-ISSUES-CONSOLIDATED.md`)
+- [x] **[🟡 P1 -> FIXED ✅] E16 (`P2-45`)**: `CancelTask`/`RetryTask` create outbox events inside `txManager.WithTransaction` (`common-operations/internal/biz/task/task.go:380-472`)
+- [x] **[🟡 P1 -> FIXED ✅] E17 (`P2-46`)**: `OutboxPublisherJob` implemented & wired (`common-operations/internal/worker/cron/outbox_publisher.go`, `cmd/worker/wire_gen.go`)
+- [x] **[🟡 P1 -> FIXED ✅] E18 (`P2-47`)**: `TaskProcessorWorker.Process()` persists `"failed"` and returns `nil` on unsupported task types
+- **[🔵 P2 — Deferred] E19 (`P2-48`)**: `processDataSyncTask` awaits sync source/target & cursor product specification
+- [x] **[🔵 P2 -> FIXED ✅] E20 (`P2-49`)**: Message template variables escaped via `html.EscapeString` (`common-operations/internal/biz/message/message.go`)
+- [x] **[🔵 P2 -> FIXED ✅] E21 (`P2-50`)**: Removed unused `metrics` port `8081` from `gitops/apps/common-operations/base/patch-worker.yaml`
+- [x] **[🔵 P2 -> FIXED ✅] E22 (`P2-51`)**: Settings update + `auditRepo.Record` wrapped in `txManager.WithTransaction` (`common-operations/internal/biz/settings/usecase.go`)
+- [x] **[🔵 P2 -> FIXED ✅] E23 (`P2-52`)**: Granular `common-operations/internal/biz/authz` RBAC enforced in `settings`/`message`/`audit`/`task` with `WithSystemContext` propagation
+- [x] **[🔵 P2 -> Tracked ✅] E5 / E10**: `CreateTask` outbox (`P2-46`) and analytics event consumers (`P2-01..06`) resolved via consolidated backlog

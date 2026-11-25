@@ -143,7 +143,7 @@ graph TD
 | **API** | gRPC (internal) + REST via gRPC-Gateway (external) |
 | **Deploy** | Docker · Kubernetes (k3d) · ArgoCD (GitOps) |
 | **Observability** | Prometheus · Grafana · OpenTelemetry (OTLP / Jaeger) |
-| **Shared Library** | `common` v1.37.0 — outbox, idempotency, health, config, server, JWT key rotation, circuit breaker (legacy Gin removed) |
+| **Shared Library** | `common` v1.37.1 — outbox, idempotency, health, config, server, JWT key rotation, circuit breaker (legacy Gin removed) |
 
 ---
 
@@ -200,9 +200,9 @@ make api            # Generate proto code
 
 | Pattern | Purpose | Used By |
 |---------|---------|---------|
-| **Transactional Outbox** | Reliable event publishing (DB + event in single transaction) | 19/21 Go services (all except Gateway, Analytics) |
-| **Event Idempotency** | Deduplicate events with `event_idempotency` table | 19/21 Go services (all except Auth, Location) |
-| **Dead Letter Queue** | Failed event processing → DLQ for manual review | 16/21 Go services (all except Auth, User, Location, Review, Common Ops) |
+| **Transactional Outbox** | Reliable event publishing (DB + event in single transaction) | 18/21 Go services (all except Gateway, Analytics, Search) |
+| **Event Idempotency** | Deduplicate events with `event_idempotency` table | 18/21 Go services (all except Auth, User, Location) |
+| **Dead Letter Queue** | Failed event processing → DLQ for manual review | 17/21 Go services (all except Auth, User, Location, Common Ops) |
 | **Circuit Breaker** | Prevent cascade failures on downstream service outages | Analytics (PG writes), Gateway |
 | **Saga / Compensation** | Distributed transactions with rollback on failure | Checkout → Order → Payment → Warehouse |
 | **CQRS** | Separate read/write paths for performance | Search (read-optimized Elasticsearch) |

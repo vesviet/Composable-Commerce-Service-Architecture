@@ -11,9 +11,9 @@
 
 | Danh mục | Kết quả |
 |----------|--------|
-| 🔴 P0 — Critical (data loss / stock corruption) | **2 open** (3 đã fix v1, 1 đã fix v2) |
-| 🟡 P1 — High (reliability / consistency) | **1 open** (5 đã fix v2) |
-| 🔵 P2 — Medium (edge case / observability) | **3 open** (7 đã fix v1/v2) |
+| 🔴 P0 — Critical (data loss / stock corruption) | **0 open ✅** (all 5 fixed) |
+| 🟡 P1 — High (reliability / consistency) | **0 open ✅** (`WH-P1-V3-01` closed BY DESIGN per `P1-15`) |
+| 🔵 P2 — Medium (edge case / observability) | **0 open ✅** (all P2 items `P2-37..39` resolved) |
 | ✅ Đã hoạt động tốt | 25+ areas |
 
 **Cập nhật so với v2**: Xác nhận tất cả P1 từ v2 đã fix trong code. Phát hiện mới: `StockReconciliationJob` & `ReservationCleanupJob` không được wire vào worker, `ProductCreatedConsumer` handler no-op, Production overlay thiếu configmap/secrets.
@@ -58,9 +58,7 @@
 **Tác động**: Reconciliation job chạy hourly để detect drift giữa `quantity_reserved` và actual sum từ `inventory_reservations`. Không chạy → drift tích tụ qua thời gian → stock hiển thị sai cho customer (over-sell risk hoặc phantom unavailable stock).
 
 **Fix**:
-- [ ] Thêm `stockReconciliationJob *cron.StockReconciliationJob` vào `newWorkers()` params
-- [ ] Thêm `stockReconciliationJob` vào call site tại `wire_gen.go:108`
-- [ ] Regenerate wire: `cd cmd/worker && wire`
+- [x] ✅ FIXED (`P0-03`): Added `stockReconciliationJob *cron.StockReconciliationJob` into `newWorkers()` in `warehouse/cmd/worker/wire_gen.go`
 
 ---
 
@@ -77,9 +75,7 @@
 **Tác động**: `ReservationExpiryWorker` (expiry/) xử lý individual reservations nhưng `ReservationCleanupJob` là batch processor (every 5 min, batch 100). Nếu `ReservationExpiryWorker` bị lag, `ReservationCleanupJob` là safety net — nhưng nó không chạy!
 
 **Fix**:
-- [ ] Thêm methods `Name()`, `HealthCheck()`, `GetBaseWorker()`, `StopChan()` vào `ReservationCleanupJob` (implement `ContinuousWorker`)
-- [ ] Add vào `wire.go` inject list + thêm parameter vào `newWorkers()`
-- [ ] Regenerate wire: `cd cmd/worker && wire`
+- [x] ✅ FIXED (`P0-04`): Implemented `ContinuousWorker` methods on `ReservationCleanupJob` and wired into `newWorkers()`
 
 ---
 
@@ -138,8 +134,7 @@ func (s WarehouseSub) Handle(ctx context.Context, data interface{}) error {
 3. `ReserveStock` không fail với "inventory not found" khi customer cố mua sản phẩm mới
 
 **Fix**:
-- [ ] Implement handler: `uc.inventoryUsecase.GetOrCreateInventory(ctx, productID, warehouseID)` với qty=0
-- [ ] Hoặc: Remove consumer nếu quyết định inventory chỉ tạo qua bulk import/API
+- [x] ✅ CLOSED BY DESIGN (`P1-15`): `ProductCreatedConsumer` intentionally logs `[NEW_PRODUCT_NO_INVENTORY]` (`warehouse_sub.go`) for explicit admin initialization
 
 ---
 
@@ -159,7 +154,7 @@ func (s WarehouseSub) Handle(ctx context.Context, data interface{}) error {
 **Tác động**: Orphan inventory records, potential phantom reservations.
 
 **Fix**:
-- [ ] Subscribe `catalog.product.deleted` → `ReleaseReservationsByProductID` + deactivate inventory
+- [x] ✅ FIXED (`P2-38`): Implemented `warehouse/internal/data/eventbus/product_deleted_consumer.go` & `observer/product_deleted/warehouse_sub.go`
 
 ---
 
@@ -187,9 +182,9 @@ func (s WarehouseSub) Handle(ctx context.Context, data interface{}) error {
 
 | Vấn đề | File | Severity | Status |
 |--------|------|----------|--------|
-| StockReconciliationJob không wired → không chạy | `wire_gen.go:108` | 🔴 P0 | **OPEN** |
-| ReservationCleanupJob không wired → không chạy | `wire_gen.go:108` | 🔴 P0 | **OPEN** |
-| `OutboxWorker.cleanupOldEvents` hardcoded 7 ngày | `outbox_worker.go:115` | 🔵 P2 | OPEN |
+| StockReconciliationJob wiring | `wire_gen.go` | 🔴 P0 | **✅ FIXED (`P0-03`)** |
+| ReservationCleanupJob wiring | `wire_gen.go` | 🔴 P0 | **✅ FIXED (`P0-04`)** |
+| `OutboxWorker.cleanupOldEvents` configurable 30d retention | `outbox_worker.go` | 🔵 P2 | **✅ FIXED (`P2-39`)** |
 | Không có DLQ drain consumer | wire_gen.go | 🔵 P2 | Accepted |
 
 ### 🔵 P2-V3-02: `OutboxWorker.cleanupOldEvents` hardcoded 7 ngày — config nói 30 ngày
@@ -202,8 +197,7 @@ func (s WarehouseSub) Handle(ctx context.Context, data interface{}) error {
 - `OutboxCleanupJob`: daily at 3AM, configurable retention
 
 **Fix**:
-- [ ] Remove inline cleanup từ `OutboxWorker` (để `OutboxCleanupJob` handle), hoặc
-- [ ] Inject `OutboxRetentionDays` config vào `OutboxWorker`
+- [x] ✅ FIXED (`P2-39`): `warehouse/internal/worker/{outbox_worker,cron/outbox_cleanup_job}.go` defaults to 30d and reads `OutboxRetentionDays`
 
 ---
 
@@ -324,21 +318,21 @@ func (s WarehouseSub) Handle(ctx context.Context, data interface{}) error {
 - [x] WH-P0-002: FulfillmentCancelled double inbound TX → ✅ FIXED v1
 - [x] WH-P0-003: Outbox FetchPending không SKIP LOCKED → ✅ FIXED v1
 - [x] WH-P0-NEW (v2): Verify `TimeslotValidatorJob`, `CapacityMonitorJob`, `DailyResetJob` → ✅ WIRED in v3 verification
-- [ ] **WH-P0-V3-01**: `StockReconciliationJob` NOT in `newWorkers()` — job never runs. Cần wire vào worker binary.
-- [ ] **WH-P0-V3-02**: `ReservationCleanupJob` NOT wired — missing `ContinuousWorker` interface methods + not constructed in wire_gen.
+- [x] **WH-P0-V3-01 (`P0-03`)**: ✅ FIXED — `StockReconciliationJob` wired in `warehouse/cmd/worker/wire_gen.go`
+- [x] **WH-P0-V3-02 (`P0-04`)**: ✅ FIXED — `ReservationCleanupJob` implements `ContinuousWorker` & wired in `wire_gen.go`
 
 ### P1 — High (reliability)
 
 - [x] WH-P1-001: fulfillment completion → directStockDeduct → ✅ FIXED v1
 - [x] WH-P1-002: Worker GitOps probes + secretRef → ✅ FIXED v1
-- [⚠️] WH-P1-003: Multi-warehouse return restock → warehouse defensive OK, return service pending
+- [x] WH-P1-003: Multi-warehouse return restock → ✅ verified end-to-end
 - [x] WH-P1-004: AdjustStock ExecuteRequest idempotency → ✅ FIXED v1
 - [x] WH-P1-NEW-01 (v2): StockChangeDetectorJob → outbox ✅
 - [x] WH-P1-NEW-02 (v2): LowStockEvent → outbox ✅
 - [x] WH-P1-NEW-03 (v2): BackorderAllocationUsecase → outbox ✅
 - [x] WH-P1-NEW-04 (v2): StockReconciliationJob → outbox ✅
 - [x] WH-P1-NEW-05 (v2): StopChan() fix → ✅
-- [ ] **WH-P1-V3-01**: `ProductCreatedConsumer` handler no-op — `WarehouseSub.Handle()` returns nil without creating inventory record
+- [x] **WH-P1-V3-01 (`P1-15`)**: ✅ CLOSED BY DESIGN — Intentionally logs `[NEW_PRODUCT_NO_INVENTORY]` for explicit admin initialization
 
 ### P2 — Medium (quality / observability)
 
@@ -348,9 +342,9 @@ func (s WarehouseSub) Handle(ctx context.Context, data interface{}) error {
 - [x] P2-NEW-04 (v2): OUTBOX_RETENTION_DAYS in configmap ✅
 - [x] P2-NEW-06 (v2): ExpireReservation outbox ✅
 - [x] P2-NEW-07 (v2): GetQueueByPriority FOR UPDATE → ✅ FIXED (clause.Locking added)
-- [ ] **P2-NEW-05 (v2)**: Production overlay missing configmap/secrets
-- [ ] **P2-V3-01**: No handler for `catalog.product.deleted`
-- [ ] **P2-V3-02**: `OutboxWorker.cleanupOldEvents` hardcoded 7d vs config 30d
+- [x] **P2-NEW-05 (v2) (`P2-37`)**: ✅ FIXED — `gitops/apps/warehouse/overlays/production/{configmap,secrets}.yaml` wired in `kustomization.yaml`
+- [x] **P2-V3-01 (`P2-38`)**: ✅ FIXED — `product_deleted_consumer.go` & `observer/product_deleted/warehouse_sub.go`
+- [x] **P2-V3-02 (`P2-39`)**: ✅ FIXED — Configurable 30d `OutboxRetentionDays`
 
 ---
 

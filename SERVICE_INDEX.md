@@ -1,6 +1,6 @@
 # 📦 Service Index
 
-> **Last Updated**: 2026-11-24 (sync with workspace repos & `common` v1.37.1) | **Total**: 21 Go services + 2 frontends  
+> **Last Updated**: 2026-11-25 (sync with workspace repos & `common` v1.37.1) | **Total**: 21 Go services + 2 frontends  
 > **Stack**: Go 1.27.4 (21/21 Go services) · Kratos v2.9.2 · `common` v1.37.1 · Next.js 16 · React 19 · PostgreSQL · Redis · Dapr · Kubernetes
 
 ---
@@ -12,7 +12,7 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | # | Service | Domain | HTTP | gRPC | Version | Maturity | Worker | Outbox | Idempotency | DLQ |
 |---|---------|--------|------|------|---------|----------|--------|--------|-------------|-----|
 | 1 | **Auth** | Identity & Access | 8000 | 9000 | `v1.4.1` | 🟢 Production | ✅ | ✅ | — | — |
-| 2 | **User** | Identity & Access | 8001 | 9001 | `v1.1.0` | 🟢 Production | ✅ | ✅ | ✅ | — |
+| 2 | **User** | Identity & Access | 8001 | 9001 | `v1.1.0` | 🟢 Production | ✅ | ✅ | — | — |
 | 3 | **Customer** | CRM & Analytics | 8003 | 9003 | `v1.4.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 4 | **Catalog** | Product & Content | 8015 | 9015 | `v1.5.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 5 | **Pricing** | Product & Content | 8002 | 9002 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
@@ -25,8 +25,8 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | 12 | **Shipping** | Logistics | 8012 | 9012 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 13 | **Return** | Post-Purchase | 8013 | 9013 | `v1.2.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 14 | **Loyalty** | Post-Purchase | 8014 | 9014 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
-| 15 | **Gateway** | Platform | 80 | — | `v1.2.1` | 🟢 Production | ✅ | — | ✅ | ✅ |
-| 16 | **Search** | Platform | 8017 | 9017 | `v1.1.0` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
+| 15 | **Gateway** | Platform | 80 | 81 | `v1.2.1` | 🟢 Production | ✅ | — | ✅ | ✅ |
+| 16 | **Search** | Platform | 8017 | 9017 | `v1.1.0` | 🟢 Production | ✅ | — | ✅ | ✅ |
 | 17 | **Analytics** | Platform | 8019 | 9019 | `v1.3.1` | 🟢 Production | ✅ | — | ✅ | ✅ |
 | 18 | **Review** | Platform | 8016 | 9016 | `v1.4.1` | 🟢 Production | ✅ | ✅ | ✅ | ✅ |
 | 19 | **Common Ops** | Platform | 8018 | 9018 | `v1.3.1` | 🟢 Production | ✅ | ✅ | ✅ | — |
@@ -36,8 +36,8 @@ This file is the canonical source of truth for per-service maturity, versions, a
 | — | **Admin** | UI (React 19 + Vite) | 3001 | — | `v1.0.0` | — | — | — | — | — |
 
 **Legend**: 🟢 Production-ready · 🟡 Near-production · 🟠 Partial implementation · ✅ Implemented · — Not applicable  
-**Coverage (21 Go services)**: Worker 21/21 · Outbox 19/21 · Idempotency 19/21 · DLQ 17/21  
-**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; all 21/21 Go services pin `common v1.37.1`). Total API & schema footprint: `570` Proto RPCs and `361` Goose SQL migrations. All 21/21 Go services are 🟢 Production-ready (`analytics` is a passive event consumer with Outbox N/A).
+**Coverage (21 Go services)**: Worker 21/21 · Outbox 18/21 · Idempotency 18/21 · DLQ 17/21  
+**Stack Notes**: All 21/21 Go services and `common` are unified on Go `1.27.4`, Kratos `v2.9.2`, `.golangci.yml` v2, `go-redis/v9`, and OpenTelemetry tracing (`0` legacy Gin; all 21/21 Go services pin `common v1.37.1`). Total API & schema footprint: `568` Proto RPCs and `344` forward Goose SQL migrations (`364` total `.sql` files including `order` `.down.sql`). All 21/21 Go services are 🟢 Production-ready (`gateway`, `analytics`, and `search` do not use Transactional Outbox).
 
 ---
 

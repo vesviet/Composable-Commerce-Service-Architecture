@@ -38,7 +38,7 @@
 ### Pricing Data Mismatch Risks
 
 - [x] **[FIXED]** `promo_deleted_sub.go` handler implemented — orphan discounts cleaned up.
-- [ ] **[V2-01] ⚠️ Stock consumer idempotency is in-memory only (`sync.Map`, 5-min TTL)** — `stock_consumer.go:31–52`. When the pricing worker pod restarts, `processedEvents` and `lastSeqMap` are reset. Dapr may re-deliver stock events → duplicate dynamic pricing triggers.
+- [x] **[V2-01] ✅ Fixed** — Replaced `sync.Map` with Redis `SetNX` with TTL in `pricing/internal/data/eventbus/stock_consumer.go:58` (tracks `P1-18`).
   - *Shopee/Lazada pattern*: Idempotency stored in Redis or PostgreSQL, not in-process memory.
   - **Fix**: Replace `sync.Map` with Redis `SET NX EX` per event ID.
 - [x] **[V3-01] ✅ Fixed** — Added `promotion.deactivated` subscription to `promo_consumer.go:ConsumePromoEvents`, routed to `HandlePromotionDeleted`. Added `EventTypePromotionDeactivated` constant and DLQ topic.

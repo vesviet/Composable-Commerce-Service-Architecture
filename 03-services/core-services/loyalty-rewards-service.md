@@ -7,8 +7,8 @@
 
 **Service Name**: Loyalty Rewards Service
 **Version**: v1.3.1
-**Review Status**: 🔄 Active
-**Production Ready**: ⚠️ Pending Review
+**Review Status**: ✅ **COMPLETED** - Production Ready
+**Production Ready**: 🟢 Production Ready
 
 ## Overview
 
@@ -26,7 +26,7 @@ The Loyalty Rewards Service manages customer loyalty programs for the microservi
 - **Analytics**: Provide insights into loyalty program performance and customer engagement
 
 ### Dependencies
-- **Upstream services**: order (for purchase-based earning), customer (for account linking), notification (for reward notifications)
+- **Upstream services**: order (purchase earning), customer (account linking), notification (reward notifications), review (`review.approved`/`review.rejected` event consumption)
 - **Downstream services**: None (service is consumed by frontend and other business services)
 - **External dependencies**: PostgreSQL (data storage), Redis (caching), Dapr (event publishing)
 
@@ -34,7 +34,10 @@ The Loyalty Rewards Service manages customer loyalty programs for the microservi
 
 ### gRPC Services
 - **Service**: `api.loyalty.v1.LoyaltyService`
-- **Proto location**: `loyalty-rewards/api/loyalty/v1/`
+- **Proto location**: `loyalty-rewards/api/loyalty/v1/` (22 Proto RPCs across core + sub-services)
+- **Consumed review events**:
+  - `review.approved` (DLQ: `dlq.review.approved`) — awards flat bonuses (`+50` verified review, `+25` photo bonus, capped at `5/month` per customer)
+  - `review.rejected` (DLQ: `dlq.review.rejected`) — invokes `RevokePointsBySource` to claw back previously awarded review points
 - **Key methods**:
   - `Health(Empty) → HealthResponse` - Service health check
   - `GetAnalytics(GetAnalyticsRequest) → GetAnalyticsResponse` - Cross-domain analytics

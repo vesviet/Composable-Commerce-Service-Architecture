@@ -375,7 +375,7 @@ Based on the `AI-OPTIMIZED CODE REVIEW GUIDE`.
 - **[Checkout Service Runbook](../../06-operations/runbooks/sre-runbooks/gateway-runbook.md)** - Operational procedures (Note: Checkout-specific runbook TBD)
 
 ### **Quality Assurance**
-- **[Cart Flow Issues Checklist](../../10-appendix/checklists/workflow/cart-checkout-review.md)** - Known issues and remediation
+- **[Cart & Checkout Flow Review](../../10-appendix/checklists/workflow/cart-checkout-deep-review.md)** - Known issues and remediation
 - **[Production Readiness Issues](../../10-appendix/checklists/active/production-readiness-issues.md)** - System-wide quality checklist
 
 ### **Architecture & Patterns**

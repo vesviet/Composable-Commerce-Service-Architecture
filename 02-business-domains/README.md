@@ -113,6 +113,8 @@ Each domain represents a bounded context with:
 - **Inventory**: 3 operational workflows documented  
 - **Customer**: 4 customer-facing processes documented
 - **Content**: 3 content management processes documented
+- **Post-Purchase**: 2 post-purchase workflows documented (Returns/Refunds, Loyalty & Rewards)
+- **Platform & Operations**: 3 operational workflows documented (Analytics, Audit Logs, Notifications)
 
 ### **Maturity**
 - **Well-Defined Boundaries**: ✅ Clear domain separation

@@ -3,6 +3,7 @@
 > **Date**: 2026-03-27  
 > **Topic**: Full production-readiness review cho `common` package — tất cả modules  
 > **Scope**: `common/events`, `common/outbox`, `common/middleware`, `common/security`, `common/errors`, `common/grpc`, `common/config`, `common/worker`, `common/idempotency`, `common/data`, `common/repository`, `common/client`, `common/utils/*` (18 subdirs)  
+> **Current Status (2026-11-25)**: Historical design/security audit baseline (`common v1.23.x`); platform is now standardized on **`common v1.37.1`** across all 21 Go services. See `UNFIXED-ISSUES-CONSOLIDATED.md` (`0` open P0/P1).  
 > **Panel**: 📐 Agent A (Architect) + 🛡️ Agent B (Security/Perf) + 💻 Agent C (Senior Go) + 🛠️ Agent E (DevOps/SRE) + 🧪 Agent F (QA)
 
 ---

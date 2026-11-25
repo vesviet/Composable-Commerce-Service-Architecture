@@ -2,7 +2,7 @@
 
 **Services**: Auth · User · Customer · Loyalty-Rewards  
 **Reference**: [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) §1 · Shopify/Shopee/Lazada patterns  
-**Previous Review**: [customer-identity-review.md](customer-identity-review.md) (2026-02-24)  
+**Previous Review**: [archive/customer-identity-review.md](archive/customer-identity-review.md) (2026-02-24)  
 **Status Legend**: ✅ OK · ⚠️ Risk · ❌ Issue · 🔴 P0 · 🟡 P1 · 🔵 P2
 
 ---
@@ -96,7 +96,7 @@ But `gitops/apps/loyalty-rewards/base/dapr-subscription.yaml` only has 3 subscri
 
 **Problem**: `gitops/apps/loyalty-rewards/base/configmap.yaml:12-13`:
 ```yaml
-database-url: "postgres://postgres:microservices@postgresql:5432/loyalty_rewards_db?sslmode=disable"
+database-url: "postgres://<user>:<redacted>@postgresql:5432/loyalty_rewards_db?sslmode=disable"
 redis-url: "redis://redis:6379/0"
 ```
 Plaintext DB password in ConfigMap (not Secret). All other services (auth, customer, user) have credentials in `Secret` only.
@@ -221,8 +221,8 @@ All items marked `[x]` in previous review Sections 9 and 12 remain valid:
 |---------|--------------|-----------|-----------------|---------------|
 | Auth | ✅ `session_cleanup.go` | Session cleanup (1h ticker) | None | N/A |
 | User | ✅ `outbox_worker.go` | None | None | ✅ |
-| Customer | ✅ Worker deployment | Cleanup (3AM), Segment eval (2AM), Stats sync (hourly) | `auth.login`, `auth.password_changed`, `orders.order.status_changed` | ❌ **Missing** |
-| Loyalty | ✅ Worker deployment | Points expiration (24h) | `customer.created`, `customer.deleted`, `orders.order.status_changed`, `orders.return.completed` | ❌ **No-op stub** |
+| Customer | ✅ Worker deployment | Cleanup (3AM), Segment eval (2AM), Stats sync (hourly) | `auth.login`, `auth.password_changed`, `orders.order.status_changed` | ✅ Fixed (`P1-02`) |
+| Loyalty | ✅ Worker deployment | Points expiration (24h, Redis lock `P2-30`) | `customer.*`, `orders.*`, `review.approved`, `review.rejected` (+ DLQs) | ✅ Fixed (`P1-03`) |
 
 ---
 
@@ -239,32 +239,22 @@ All items marked `[x]` in previous review Sections 9 and 12 remain valid:
 
 ## Priority Action Items
 
-### 🔴 P0 — Must Fix Immediately
+### ✅ Resolved Action Items (Synced 2026-11-25 with `UNFIXED-ISSUES-CONSOLIDATED.md`)
 
-| # | Service | Action |
-|---|---------|--------|
-| 1 | LOYALTY | Move `database-url` and `redis-url` from `configmap.yaml` to a proper `secret.yaml` |
-
-### 🟡 P1 — Fix Before Release  
-
-| # | Service | Action |
-|---|---------|--------|
-| 2 | CUSTOMER | Add outbox worker to flush `customer.created/updated/deleted` events to Dapr |
-| 3 | LOYALTY | Fix `OutboxPublisherAdapter.PublishEvent` — wire actual `DaprEventPublisher` so outbox relay publishes events |
-| 4 | LOYALTY | Add `orders.return.completed` + DLQ to `gitops/apps/loyalty-rewards/base/dapr-subscription.yaml` |
-| 5 | AUTH | Either implement `UserRegisteredEvent` publish or remove dead struct + document frontend-orchestrated registration |
-| 6 | AUTH/USER/LOYALTY | Update worker `patch-worker.yaml` with Dapr annotations, port, env vars (follow customer's pattern) |
-| 7 | CUSTOMER | Add declarative Dapr subscription YAML to gitops for `auth.login`, `auth.password_changed`, `orders.order.status_changed` |
-
-### 🔵 P2 — Nice to Have
-
-| # | Service | Action |
-|---|---------|--------|
-| 8 | LOYALTY | Add distributed lock (Redis SETNX) for points expiration cron |
-| 9 | CUSTOMER | Consolidate `service/event_handler.go` duplicate with `data/eventbus/*_consumer.go` — single processing path |
-| 10 | ALL | Standardize event JSON field naming (camelCase vs snake_case) across services |
+| # | Service | Outcome |
+|---|---------|---------|
+| 1 (`P0-06`) | LOYALTY | ✅ **FIXED** — Moved DB/Redis URLs to `secrets.yaml` |
+| 2 (`P1-02`) | CUSTOMER | ✅ **FIXED** — Outbox worker active |
+| 3 (`P1-03`) | LOYALTY | ✅ **FIXED** — Wired real `DaprEventPublisher` in `OutboxPublisherAdapter` |
+| 4 (`P1-04`) | LOYALTY | ✅ **FIXED** — Added `orders.return.completed`, `review.approved`, `review.rejected` + DLQs |
+| 5 (`P1-01`) | AUTH | ✅ **FIXED** — Documented intentional frontend-orchestrated registration |
+| 6 (`P1-05`) | AUTH/USER/LOYALTY | ✅ **FIXED** — Added Dapr config to `patch-worker.yaml` across all 3 services |
+| 7 | CUSTOMER | ✅ **FIXED** — Declarative Dapr subscription YAML configured |
+| 8 (`P2-30`) | LOYALTY | ✅ **FIXED** — Distributed Redis lock on points expiration cron |
+| 9 (`P2-31`) | CUSTOMER | ✅ **FIXED** — Removed duplicate `service/event_handler.go` / `dapr_subscription.go` |
+| 10 (`P2-32`) | ALL | ⏳ **Deferred (Product/Contract Spec)** — Cross-service JSON wire case standardization |
 
 ---
 
 *Generated: 2026-03-07 — Fresh codebase audit against ecommerce-platform-flows.md §1*  
-*Cross-reference: [customer-identity-review.md](customer-identity-review.md) for historical context*
+*Cross-reference: [archive/customer-identity-review.md](archive/customer-identity-review.md) for historical context*

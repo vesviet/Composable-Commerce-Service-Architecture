@@ -160,7 +160,7 @@ graph LR
 ### Documentation Metrics
 - **Documentation Coverage**: 23/23 services documented ✅
 - **Architecture Compliance**: Clean Architecture + DI (Wire) across all services ✅
-- **Event Infrastructure**: Outbox pattern in 19/21 services, idempotency in 19/21 services, DLQ in 17/21 services ✅
+- **Event Infrastructure**: Outbox pattern in 18/21 services, idempotency in 18/21 services, DLQ in 17/21 services ✅
 - **Testing Coverage**: Needs improvement (target 80%+)
 
 ---

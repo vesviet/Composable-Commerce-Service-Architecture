@@ -4,7 +4,7 @@
 **Audit**: 2026-03-02 — Deep code verification confirmed ALL P0/P1/P2 items below resolved  
 **Pattern Reference**: Shopify, Shopee, Lazada  
 **Scope**: `checkout` service + `order` service — Cart & Checkout Flows (Section 5)  
-**Status**: ✅ ALL P0/P1 Fixed, most P2 Fixed — remaining P2 gaps: loyalty at checkout, dual interface cleanup
+**Status**: ✅ ALL P0/P1/P2 Fixed (synced 2026-11-25 against `UNFIXED-ISSUES-CONSOLIDATED.md` `P2-07..15`)
 
 ---
 
@@ -301,12 +301,12 @@ Workers registered via `wire_gen.go` (inferred from file structure):
 |---|---|---|---|
 | P2-CC-01 | ~~Dead `TopicCheckoutCompleted`~~ | checkout | ✅ FIXED — removed with "intentionally removed" comment |
 | P2-CC-02 | ~~`default_country: "US"` mismatch~~ | checkout | ✅ FIXED — changed to `"VN"` |
-| P2-CC-03 | Loyalty point redemption at checkout not implemented | checkout | ❌ OPEN (backlog) |
-| P2-CC-04 | Promo expiry race between validation and apply | checkout | ❌ OPEN — mitigated by DLQ + MaxRetries=10 |
-| P2-CC-05 | Rollback errors silently swallowed | checkout | ❌ OPEN |
-| P2-CC-06 | `shouldRunWorker()` returns false for event mode | checkout | ❌ OPEN |
-| P2-CC-07 | Dual warehouseClient interface | order | ❌ OPEN |
-| P2-CC-08 | `MaxOrderAmount` hardcoded as constant | checkout | ❌ OPEN — has comment but not configurable |
+| P2-CC-03 (`P2-07`) | ~~Loyalty point redemption at checkout~~ | checkout, frontend | ✅ FIXED — `/checkout` + `/api/v1/loyalty/points/redeem` |
+| P2-CC-04 (`P2-08`) | ~~Promo expiry race between validation and apply~~ | promotion, checkout, frontend | ✅ FIXED (Wave 1) — `promotion` TTL reservation (`ReservePromotion`/`ConfirmPromotionReservation`/`ReleasePromotionReservation`) + `checkout` single-lock `ReservePromotionsStep` & `PROMO_EXPIRED` fail-fast + frontend recovery |
+| P2-CC-05 | ~~Rollback errors compensated~~ | checkout | ✅ FIXED — `CheckoutSessionCleanupWorker` (`P2-11`) writes `model.FailedCompensation` + pre-order rollback releases |
+| P2-CC-06 | ~~`shouldRunWorker()` event mode~~ | checkout | ✅ FIXED — `checkout` uses Kratos worker runner (`gitops/apps/checkout/base/patch-worker.yaml`) |
+| P2-CC-07 (`P2-09`) | ~~Dual warehouseClient interface~~ | checkout | ✅ FIXED — `checkout/internal/biz/checkout/usecase.go:28` & `adapter.NewWarehouseAdapter` |
+| P2-CC-08 (`P2-10`) | ~~`MaxOrderAmount` hardcoded as constant~~ | checkout | ✅ FIXED — Configurable via `SetCheckoutConfig` / `getMaxOrderAmount` (`checkout/internal/config/config.go`) |
 
 ---
 

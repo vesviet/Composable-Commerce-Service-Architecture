@@ -30,7 +30,7 @@
 |----|-------|-------------|
 | XC2-P0-001 | Gateway worker Dapr subscription `pubsubname: event-bus` | ✅ Gateway now uses `common-worker-deployment-v2` Kustomize component with correct Dapr annotations. `kustomization.yaml` has Dapr app-id replacement and patch-worker template. |
 | XC2-P0-002 | Review service Dapr subscription `pubsubname: pubsub` | ✅ `gitops/apps/review/base/dapr-subscription.yaml:8` confirms `pubsubname: pubsub-redis`. |
-| XC2-P0-003 | Customer outbox worker missing `FOR UPDATE SKIP LOCKED` | ✅ `customer/internal/data/postgres/outbox_event.go` now wraps `common/outbox.GormRepository` which has `SELECT ... FOR UPDATE SKIP LOCKED` at [gorm_repository.go:94](file:///Users/tuananh/Desktop/myproject/microservice/common/outbox/gorm_repository.go#L85-L94). |
+| XC2-P0-003 | Customer outbox worker missing `FOR UPDATE SKIP LOCKED` | ✅ `customer/internal/data/postgres/outbox_event.go` now wraps `common/outbox.GormRepository` which has `SELECT ... FOR UPDATE SKIP LOCKED` at [gorm_repository.go:85-94](../../../../common/outbox/gorm_repository.go#L85-L94). |
 | XC2-P0-004 | Order outbox worker missing `FOR UPDATE SKIP LOCKED` | ✅ `order/internal/data/postgres/outbox.go:78` has `FOR UPDATE SKIP LOCKED` in raw SQL. Test covers this at `outbox_test.go:44`. |
 
 ### P1 Issues — Fixed

@@ -599,13 +599,13 @@ features:
 ```go
 module gitlab.com/ta-microservices/auth
 
-go 1.24
+go 1.27.4
 
 require (
-    gitlab.com/ta-microservices/common v1.9.5
+    gitlab.com/ta-microservices/common v1.37.1
     gitlab.com/ta-microservices/customer v1.1.4
     gitlab.com/ta-microservices/user v1.0.5
-    github.com/go-kratos/kratos/v2 v2.9.1
+    github.com/go-kratos/kratos/v2 v2.9.2
     github.com/golang-jwt/jwt/v5 v5.2.1
     github.com/redis/go-redis/v9 v9.5.1
     gorm.io/gorm v1.25.10

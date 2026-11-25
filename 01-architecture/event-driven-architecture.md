@@ -98,7 +98,7 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
 | `warehouse.inventory.released` | Inventory released (kept in reference) | Warehouse Service | (TBD) | Publish call-site not confirmed (search for literal `warehouse.inventory.released` in warehouse service) | (TBD) | No topic-based DLQ found (`dlq.warehouse.inventory.released` not present) |
 
 **Notes**:
-- Detailed trace doc: `docs/workfllow/event-ref/warehouse/README.md`.
+- Detailed warehouse event traces: [Warehouse Service Docs](../03-services/core-services/warehouse-service.md).
 - `warehouse.inventory.stock_changed` is currently published from multiple places using **string literals**.
 
 ### 8. Fulfillment Domain
@@ -115,27 +115,49 @@ If a topic appears in multiple places, prefer the **publisher’s service consta
   - `fulfillment/internal/events/fulfillment_events.go`
   - `fulfillment/internal/events/picklist_events.go`
   - `fulfillment/internal/events/package_events.go`
-- Detailed trace doc: `docs/workfllow/event-ref/fulfillment/README.md`.
+- Detailed fulfillment event traces: [Fulfillment Service Docs](../03-services/core-services/fulfillment-service.md).
 
 ### 9. Promotion Domain
 
 | Topic | Description | Publisher Service | Payload Reference |
 |-------|-------------|--------------------|-------------------|
-| `promotions.campaign.created` | New campaign created | Promotion Service | `promotion/internal/events/campaign_events.go` |
-| `promotions.campaign.updated` | Campaign updated | Promotion Service | `promotion/internal/events/campaign_events.go` |
-| `promotions.campaign.deleted` | Campaign deleted | Promotion Service | `promotion/internal/events/campaign_events.go` |
-| `promotions.campaign.activated` | Campaign activated | Promotion Service | `promotion/internal/events/campaign_events.go` |
-| `promotions.campaign.deactivated` | Campaign deactivated | Promotion Service | `promotion/internal/events/campaign_events.go` |
-| `promotions.promotion.created` | New promotion created | Promotion Service | `promotion/internal/events/promotion_events.go` |
-| `promotions.promotion.updated` | Promotion updated | Promotion Service | `promotion/internal/events/promotion_events.go` |
-| `promotions.promotion.deleted` | Promotion deleted | Promotion Service | `promotion/internal/events/promotion_events.go` |
-| `promotions.coupon.created` | Coupon created | Promotion Service | `promotion/internal/events/coupon_events.go` |
-| `promotions.coupon.updated` | Coupon updated | Promotion Service | `promotion/internal/events/coupon_events.go` |
-| `promotions.coupon.deleted` | Coupon deleted | Promotion Service | `promotion/internal/events/coupon_events.go` |
-| `promotions.coupon.bulk_created` | Bulk coupons created | Promotion Service | `promotion/internal/events/coupon_events.go` |
-| `promotions.coupon.applied` | Coupon applied | Promotion Service | `promotion/internal/events/coupon_events.go` |
+| `campaign.created` | New campaign created | Promotion Service | `promotion/internal/events/campaign_events.go` |
+| `campaign.updated` | Campaign updated | Promotion Service | `promotion/internal/events/campaign_events.go` |
+| `campaign.deleted` | Campaign deleted | Promotion Service | `promotion/internal/events/campaign_events.go` |
+| `campaign.activated` | Campaign activated | Promotion Service | `promotion/internal/events/campaign_events.go` |
+| `campaign.deactivated` | Campaign deactivated | Promotion Service | `promotion/internal/events/campaign_events.go` |
+| `promotion.created` | New promotion created | Promotion Service | `promotion/internal/events/promotion_events.go` |
+| `promotion.updated` | Promotion updated | Promotion Service | `promotion/internal/events/promotion_events.go` |
+| `promotion.deleted` | Promotion deleted | Promotion Service | `promotion/internal/events/promotion_events.go` |
+| `promotion.deactivated` | Promotion deactivated | Promotion Service | `promotion/internal/events/promotion_events.go` |
+| `promotion.usage_confirmed` | Promotion usage confirmed for order | Promotion Service | `promotion/internal/biz/promotion_usecase.go` |
+| `promotion.release_failed` | Promotion release compensation alert | Promotion Service | `promotion/internal/constants/constants.go` |
+| `coupon.created` | Coupon created | Promotion Service | `promotion/internal/events/coupon_events.go` |
+| `coupon.updated` | Coupon updated | Promotion Service | `promotion/internal/events/coupon_events.go` |
+| `coupon.deleted` | Coupon deleted | Promotion Service | `promotion/internal/events/coupon_events.go` |
+| `coupon.bulk_created` | Bulk coupons created | Promotion Service | `promotion/internal/events/coupon_events.go` |
+| `coupon.applied` | Coupon applied | Promotion Service | `promotion/internal/events/coupon_events.go` |
 
-### 10. System Events
+### 10. Review Domain
+
+| Topic | Description | Publisher Service | Payload (Go type) | Primary Consumers | DLQ / Retry Trace |
+|-------|-------------|-------------------|-------------------|------------------|------------------|
+| `review.created` | New review created | Review Service | `events.ReviewCreatedEvent` | Internal moderation | Outbox `review/internal/worker/outbox_worker.go` |
+| `review.updated` | Review content/photos updated | Review Service | `events.ReviewUpdatedEvent` | Internal / re-moderation | Outbox `review/internal/worker/outbox_worker.go` |
+| `review.approved` | Review approved (`is_verified`, `has_photos`, `photo_count`, `approved_at`) | Review Service | `events.ReviewApprovedEvent` | Search worker, Loyalty-Rewards worker | `dlq.review.approved` |
+| `review.rejected` | Review rejected (`customer_id`, `reason`, `rejected_at`) | Review Service | `events.ReviewRejectedEvent` | Loyalty-Rewards worker (revokes review/photo bonus) | `dlq.review.rejected` |
+| `review.unverified` | Verified badge stripped on return | Review Service | `events.ReviewUpdatedEvent` | Rating/Search consumers | Outbox `review/internal/worker/outbox_worker.go` |
+| `rating.updated` | Product aggregate rating updated | Review Service | `events.RatingUpdatedEvent` | Search worker | `dlq.rating.updated` |
+
+### 11. Loyalty-Rewards Domain
+
+| Topic | Description | Publisher Service | Payload (Go type) | Consumed Topics | DLQ / Retry Trace |
+|-------|-------------|-------------------|-------------------|-----------------|------------------|
+| `loyalty.account.created` / `updated` | Loyalty account lifecycle | Loyalty-Rewards | `events.AccountEvent` | Notification / Analytics | Outbox `loyalty-rewards/internal/worker/` |
+| `loyalty.points.earned` / `redeemed` / `deducted` / `expired` | Points accrued, spent, revoked, or expired | Loyalty-Rewards | `events.Points*Event` | Notification / Analytics | Consumes `customer.created/deleted`, `orders.order.status_changed`, `orders.return.completed`, `review.approved` (`dlq.review.approved`), `review.rejected` (`dlq.review.rejected`) |
+| `loyalty.tier.upgraded` / `reward.redeemed` / `referral.completed` | Tier, reward voucher, referral milestones | Loyalty-Rewards | `events.*Event` | Notification / Customer | Outbox + `processed_events` idempotency |
+
+### 12. System Events
 
 | Topic | Description | Publisher Service | Payload Reference |
 |-------|-------------|--------------------|-------------------|

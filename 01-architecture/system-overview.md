@@ -1,6 +1,6 @@
 # 🏗️ System Architecture Overview
 
-**Last Updated**: March 2, 2026  
+**Last Updated**: 2026-11-25  
 **Platform Status**: Production-Ready (23/23 Services Deployed)  
 **Audience**: Business Stakeholders & Technical Teams
 
@@ -13,7 +13,7 @@ Our e-commerce platform is built on a modern **microservices architecture** with
 ### Key Business Benefits
 - ✅ **Scalable**: Each service scales independently (e.g., 10× Order during flash sales, 1× Analytics)
 - ✅ **Reliable**: Service isolation — if Review crashes, customers still shop and pay
-- ✅ **Event-Driven**: Transactional outbox guarantees zero data loss across 17 services
+- ✅ **Event-Driven**: Transactional outbox guarantees zero data loss across 18 Go services
 - ✅ **VN-First**: Native VNPay, MoMo integration; GHN & Grab shipping carriers
 - ✅ **Zero License Fees**: Full source ownership, no vendor lock-in
 
@@ -105,15 +105,15 @@ graph TB
 | Service | Port | Business Function | Key Features |
 |---------|------|------------------|--------------|
 | **Catalog** | :8015 | Product catalog | EAV pattern, 25K+ SKUs, categories, attributes |
-| **Pricing** | :8014 | Dynamic pricing | Rule engine, warehouse-specific prices, scheduled prices |
-| **Promotion** | :8020 | Campaigns & coupons | BOGO, tiered discounts, coupon validation |
+| **Pricing** | :8002 | Dynamic pricing | Rule engine, warehouse-specific prices, scheduled prices |
+| **Promotion** | :8011 | Campaigns & coupons | BOGO, tiered discounts, coupon validation, TTL reservations |
 | **Search** | :8017 | Product discovery | Elasticsearch, full-text, faceted, autocomplete |
 
 ### 🛒 Commerce (3 Services)
 
 | Service | Port | Business Function | Key Features |
 |---------|------|------------------|--------------|
-| **Checkout** | :8018 | Cart & checkout | Cart management, checkout flow, stock validation |
+| **Checkout** | :8010 | Cart & checkout | Cart management, checkout flow, promo & stock reservation |
 | **Order** | :8004 | Order lifecycle | Creation → confirmation → fulfillment → delivery |
 | **Payment** | :8005 | Payment processing | VNPay, MoMo, Stripe, COD; payment saga with DLQ |
 
@@ -123,25 +123,25 @@ graph TB
 |---------|------|------------------|--------------|
 | **Warehouse** | :8006 | Inventory management | Multi-warehouse, stock reservation with TTL, batch picking |
 | **Fulfillment** | :8008 | Order fulfillment | Pick/pack/ship workflow, quality control |
-| **Shipping** | :8007 | Shipping logistics | GHN, Grab integration, webhook tracking, label generation |
-| **Location** | :8016 | Geographic data | Vietnam provinces/districts/wards, delivery zones |
+| **Shipping** | :8012 | Shipping logistics | GHN, Grab integration, webhook tracking, label generation |
+| **Location** | :8007 | Geographic data | Vietnam provinces/districts/wards, delivery zones |
 
 ### 🎁 Post-Purchase (3 Services)
 
 | Service | Port | Business Function | Key Features |
 |---------|------|------------------|--------------|
-| **Return** | :8019 | Returns & refunds | Return requests, automated refunds, restock, exchanges |
-| **Loyalty-Rewards** | :8021 | Rewards program | Points, tiers, referral bonuses, campaigns |
-| **Review** | :8010 | Product reviews | Ratings, text reviews, moderation, verified purchase |
+| **Return** | :8013 | Returns & refunds | Category return windows, evidence upload, automated refunds, restock, exchanges |
+| **Loyalty-Rewards** | :8014 | Rewards program | Points, tiers, referral & photo-review bonuses, campaigns |
+| **Review** | :8016 | Product reviews | Ratings, photo reviews, moderation, verified purchase |
 
 ### 📡 Platform Services (4 Services)
 
 | Service | Port | Business Function | Key Features |
 |---------|------|------------------|--------------|
-| **Analytics** | :8012 | Business intelligence | Event-based metrics, revenue, cohort analysis |
+| **Analytics** | :8019 | Business intelligence | Event-based metrics, revenue, cohort analysis |
 | **Notification** | :8009 | Multi-channel notifications | Email, SMS, push; template engine |
-| **Gateway** | :8080 | API gateway | Auth middleware, rate limiting, routing, CORS |
-| **Common-Operations** | :8022 | Task orchestration | Shared operational tasks, health checks |
+| **Gateway** | :80 | API gateway | Auth middleware, rate limiting, routing, CORS (gRPC :81) |
+| **Common-Operations** | :8018 | Task orchestration | Shared operational tasks, RBAC-guarded admin ops, health checks |
 
 ### 🌐 Frontends (2 Services)
 
@@ -218,7 +218,7 @@ sequenceDiagram
 | **Deploy** | Docker · Kubernetes (k3d) · ArgoCD (GitOps) |
 | **Observability** | Prometheus · Grafana · OpenTelemetry (OTLP / Jaeger) |
 | **Service Discovery** | Consul |
-| **Shared Library** | `common` v1.37.0 — outbox, idempotency, health, config, gRPC factories |
+| **Shared Library** | `common` v1.37.1 — outbox, idempotency, health, config, gRPC factories |
 
 ### Architecture Layers
 
@@ -245,9 +245,9 @@ sequenceDiagram
 
 | Pattern | Purpose | Services Using |
 |---------|---------|---------------|
-| **Transactional Outbox** | Reliable event publishing (DB + event in single TX) | 17 services |
-| **Event Idempotency** | Deduplicate events with `event_idempotency` table | Warehouse, Search, Shipping, Loyalty |
-| **Dead Letter Queue** | Failed events → DLQ for manual review | Order, Checkout, Payment, Search |
+| **Transactional Outbox** | Reliable event publishing (DB + event in single TX) | 18/21 Go services (all except Gateway, Analytics, Search) |
+| **Event Idempotency** | Deduplicate events with `event_idempotency` table | 18/21 Go services (all except Auth, User, Location) |
+| **Dead Letter Queue** | Failed events → DLQ for manual review | 17/21 Go services (all except Auth, User, Location, Common Ops) |
 | **Circuit Breaker** | Prevent cascade failures | Analytics (PG writes), Gateway |
 | **Saga / Compensation** | Distributed transactions with rollback | Checkout → Order → Payment → Warehouse |
 | **CQRS** | Separate read/write paths | Search (read-optimized Elasticsearch) |
@@ -310,5 +310,5 @@ sequenceDiagram
 ---
 
 **Document Status**: ✅ Current  
-**Last Updated**: March 2, 2026  
+**Last Updated**: 2026-11-25  
 **Maintained By**: Platform Architecture Team

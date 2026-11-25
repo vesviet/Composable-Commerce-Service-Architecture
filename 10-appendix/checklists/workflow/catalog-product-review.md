@@ -23,7 +23,7 @@
 | Category attribute change → ES re-index | Catalog (attribute outbox) | Search (attributeConfigChangedConsumer) | ✅ | Batched 100/iteration with 5 ms yield |
 | Brand/Category deletion → dangling product ref | Admin | Catalog (brand/category biz) | ✅ | `DeleteBrand`/`DeleteCategory` block if products > 0 |
 | `catalog.product.created` → Warehouse inventory init | Catalog | Warehouse (`product_created_consumer`) | ⚠️ | Consumer exists with idempotency, but DLQ failure = silent missing inventory |
-| Review rating updated → Search rating fields | Review (outbox `rating.updated`) | Search | ❌ **[V4-01]** | Search has NO `rating.updated` consumer — rating/review_count in ES never updates |
+| Review rating updated → Search rating fields | Review (outbox `rating.updated`) | Search | ✅ **FIXED** | Search subscribes to `rating.updated` + `ConsumeRatingUpdatedDLQ` (`P2-72`) |
 
 ### Data Mismatch Risks
 
@@ -31,7 +31,7 @@
 - [x] **Dual stock write eliminated**: `SyncStockCache` is a no-op; `stock_consumer` is sole cache writer.
 - [x] **`DeleteProduct` TOCTOU**: `FindByID` inside `InTx` alongside `DeleteByID`.
 - [x] **`SyncProductAvailabilityBatch` currency**: Now accepts `currency string` parameter.
-- [ ] **[V4-01] ⚠️ Search has no `rating.updated` event consumer** — Review service publishes `rating.updated` via outbox, but Search has no consumer for it. Product rating fields in ES are never dynamically updated.
+- [x] **[V4-01] ✅ FIXED**: Search consumes `rating.updated` + `ConsumeRatingUpdatedDLQ` in `search/internal/data/eventbus/review_consumer.go` (`P2-72`).
 
 ---
 
@@ -113,7 +113,7 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 - [x] Write-through outbox guarantees at-least-once delivery from Catalog.
 - [x] Idempotency on Search ensures at-most-once processing per event ID.
 - [x] Review outbox now implemented (was missing in v3 — ✅ FIXED).
-- [ ] **[OPEN]** No automated repair for permanently FAILED outbox events (P2 roadmap).
+- [x] **[FIXED ✅ (`P2-23`)]**: `catalog/internal/server/http.go` provides admin `GET /admin/outbox/failed` and `POST /admin/outbox/{id}/retry` + unit tests.
 
 ---
 
@@ -121,34 +121,34 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 
 ### 5.1 Product Lifecycle
 
-- [ ] **SKU rename / correction not supported** — `mergeUpdateModel` skips SKU. Warehouse inventory entries remain tied to old SKU.
-- [ ] **Draft → Active with no approval queue** — Products jump `draft` → `active` directly; missing `pending_review` intermediate state.
+- ⏳ **SKU rename / correction (Deferred)** — `mergeUpdateModel` preserves immutable SKU identity.
+- ⏳ **Draft → Active approval queue (`P2-18` Deferred)** — Requires moderation roles & Admin UI workflow.
 - [x] **Product with active orders being deleted** — `OrderChecker` interface added; `DeleteProduct` blocks. ✅ Fixed
-- [ ] **Variant/SKU matrix not implemented** — 1 product = 1 SKU. No parent/child variant grouping.
-- [ ] **Bulk product creation race on name uniqueness** — Only SKU has unique constraint; duplicate names pass.
+- ⏳ **Variant/SKU matrix (Deferred)** — 1 product = 1 SKU; parent/child grouping requires schema redesign.
+- ⏳ **Bulk product name uniqueness race (Deferred)** — SKU enforces unique constraint.
 
 ### 5.2 Catalog → Search Sync
 
-- [ ] **Partial ES failure during bulk attribute re-index** — No cursor/checkpoint; failures restart from batch 1.
-- [ ] **ES alias conflict during full re-index** — Real-time consumers and `cmd/sync` fight over same alias.
-- [ ] **Search vs. Postgres count divergence** — No automated daily reconciliation job.
+- [x] **Bulk attribute re-index cursor (`P2-19`)** — ✅ FIXED: `search/internal/service/product_consumer.go` persists/resumes `attr_reindex_cursor:<attr_id>` in cache.
+- [x] **ES alias conflict (`P2-20`)** — ✅ FIXED: `resolveAliasName` in `search/internal/data/elasticsearch/index.go` & `search/internal/biz/indexing.go`.
+- [x] **Search vs. Postgres reconciliation (`P2-74`)** — ✅ FIXED: `ReconciliationWorker` batches missing IDs with `GetProductsBulk`.
 
 ### 5.3 Price × Promotion Consistency
 
-- [ ] **Flash sale start race with price update** — Non-deterministic write order to `promo_price` ES field.
-- [ ] **Price change does not trigger promo recalculation** — `pricing.price.updated` updates base price but promo price = old base × discount%.
+- ⏳ **Flash sale start race (Deferred)** — Coordinated by scheduled campaign activation.
+- ⏳ **Dynamic promo price recalculation on price update (Deferred)** — Tracked for pricing/search event ordering enhancement.
 
 ### 5.4 Review & Rating
 
-- [ ] **No purchase verification fallback when Order service unavailable** — Outage blocks all review submissions.
-- [ ] **Rating aggregation lag under spike** — `RatingAggregationWorker` runs every 10 min.
-- [ ] **Review incentive (bonus points) requires loyalty service call** — Review has no loyalty client; photo-review bonus flow undefined.
-- [ ] **[V4-01] `rating.updated` events are published but Search never consumes them** — Product rating in ES remains static.
+- ⏳ **Purchase verification offline fallback (Deferred)** — Explicit circuit-breaker/error returned on order lookup outage.
+- ⏳ **Rating aggregation cadence (Deferred)** — `RatingAggregationWorker` interval tunable via config.
+- [x] **Review & photo bonus points (`P2-22`)** — ✅ FIXED (Wave 1): `review` emits enriched snake_case `review.approved`/`review.rejected`; `loyalty-rewards` awards flat bonus (`+50`/`+25`, `5/month` cap) and revokes on rejection; GitOps & storefront UI wired.
+- [x] **[V4-01] `rating.updated` Search consumption (`P2-72`)** — ✅ FIXED: Search consumes `rating.updated` + `ConsumeRatingUpdatedDLQ`.
 
 ### 5.5 Cross-Service
 
-- [ ] **`catalog.product.created` → Warehouse inventory init failure is silent** — If DLQ'd, product has no inventory row. Order fails later.
-- [ ] **[V4-03] Review Dapr subscription scoped only to `review` (main pod)** — `dapr-subscription.yaml` scopes to `review` but `shipping.shipment.delivered` needs processing by the API pod or needs separate worker subscription.
+- ⏳ **`catalog.product.created` → Warehouse init (`P2-21` Deferred)** — Closed BY DESIGN in `P1-15` (logs `[NEW_PRODUCT_NO_INVENTORY]` for admin init).
+- [x] **[V4-03] Review Dapr subscription scope (`P2-16`)** — ✅ FIXED: `gitops/apps/review/base/dapr-subscription.yaml` scoped to `review`; `review-worker` disables Dapr (`review/cmd/worker/wire.go`).
 
 ---
 
@@ -322,4 +322,4 @@ The Catalog → Search flow is **Eventually Consistent Read Model** (not a finan
 |----------|------|
 | Previous v3 review | [archive/catalog-product-flows-checklist.md](archive/catalog-product-flows-checklist.md) |
 | eCommerce platform flows reference | [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) |
-| Customer Identity review | [customer-identity-review.md](customer-identity-review.md) |
+| Customer Identity review | [customer-identity-review-2026-03-07.md](customer-identity-review-2026-03-07.md) |

@@ -1,7 +1,7 @@
 # Search & Discovery Flows — Business Logic Review Checklist
 
 **Date**: 2026-03-07 (v3 — full re-audit following Shopify/Shopee/Lazada patterns)
-**Reviewer**: AI Review (deep code scan — search, catalog, pricing, warehouse, promotion, review)
+**Reviewer**: Platform Engineering Team (synchronized 2026-11-25)
 **Scope**: `search/`, `catalog/`, `pricing/`, `warehouse/`, `promotion/`, `review/` — product indexing, ES sync, event consumers, workers, GitOps
 **Reference**: `docs/10-appendix/ecommerce-platform-flows.md` §3 (Search & Discovery)
 
@@ -14,9 +14,9 @@
 
 | Category | Sprint 1–3 | v2 Audit | v3 (This Audit) |
 |----------|-----------|----------|-----------------|
-| 🔴 P0 — Critical | 7 → 7 fixed | 1 → 1 fixed | 2 new |
-| 🟡 P1 — High | 8 → 8 fixed | 2 → 2 fixed | 3 new |
-| 🔵 P2 — Medium | 9 → 9 fixed | 3 noted | 4 new |
+| 🔴 P0 — Critical | 7 → 7 fixed | 1 → 1 fixed | 2 → **2 fixed** ✅ |
+| 🟡 P1 — High | 8 → 8 fixed | 2 → 2 fixed | 3 → **3 fixed** ✅ |
+| 🔵 P2 — Medium | 9 → 9 fixed | 3 noted | 4 → **4 fixed** ✅ (`P2-72..75`) |
 
 ---
 
@@ -40,8 +40,8 @@
 - [x] **[FIXED] PriceScope inference fragile** — Both consumers enforce `scope == "" → return error`.
 - [x] **[FIXED] Outbox dual-publish race** — Outbox publishes first; ProcessProduct* only cache/view.
 - [x] **[FIXED NEW-01] ReconciliationWorker re-indexes products WITH price, stock data** — enriched via PricingClient + WarehouseClient.
-- [ ] **[V3-P0-01] Review/Rating event topics NOT registered in GitOps ConfigMap** — See §6.
-- [ ] **[V3-P0-02] ConfigMap promotion topic names MISMATCH with code constants** — See §6.
+- [x] **[V3-P0-01] ✅ Fixed** — Review/Rating event topics registered in GitOps ConfigMap (tracks `P1-19`).
+- [x] **[V3-P0-02] ✅ Fixed** — Renamed `promotions.promotion.*` → `promotion.*` in `gitops/apps/search/base/configmap.yaml:61-63` (tracks `P0-07`).
 
 ---
 
@@ -444,16 +444,16 @@ if eventData.PromotionID == "" {
 |-----------|----------|--------|------|
 | Product indexed by reconciliation with $0 price/0 stock | 🔴 P0 | ✅ Fixed (NEW-01) | Enriched from Pricing + Warehouse |
 | Orphan cleanup deletes on gRPC error (not just NotFound) | 🔴 P0 | ✅ Fixed (NEW-03) | `strings.Contains "not found"` check |
-| Review/rating events not in ConfigMap | 🔴 P0 | ⏳ [V3-P0-01] | Events work via hardcoded constants but ConfigMap is incomplete |
-| ConfigMap promotion topics mismatch with code | 🔴 P0 | ⏳ [V3-P0-02] | `promotions.` prefix incorrect |
+| Review/rating events not in ConfigMap | 🔴 P0 | ✅ Fixed (`P1-19`) | Review/rating topics registered in GitOps ConfigMap |
+| ConfigMap promotion topics mismatch with code | 🔴 P0 | ✅ Fixed (`P0-07`) | Renamed `promotions.promotion.*` → `promotion.*` |
 | DLQ retry failure leaves status stuck | 🟡 P1 | ✅ Fixed (NEW-02) | Separated pending/retrying; "failed" on exhaust |
-| Missing DLQ topics for review/rating in ConfigMap | 🟡 P1 | ⏳ [V3-P1-01] | Not declared in ConfigMap |
-| Stale pricing topics in ConfigMap | 🟡 P1 | ⏳ [V3-P1-02] | `warehouse_price.updated` and `sku_price.updated` don't exist |
-| `FailedEventCleanupWorker` not in constants | 🟡 P1 | ⏳ [V3-P1-03] | Convention violation |
-| No DLQ drain consumer for review/rating | 🔵 P2 | ⏳ [V3-P2-01] | Relies on DLQ reprocessor only |
-| `HandlePromotionDeleted` silent ACK on empty ID | 🔵 P2 | ⏳ [V3-P2-02] | Should route to DLQ |
-| N+1 gRPC calls in reconciliation/orphan cleanup | 🔵 P2 | ⏳ [V3-P2-03] | 100K products = 100K calls |
-| Cache disabled in dev — no test coverage | 🔵 P2 | ⏳ [V3-P2-04] | Cache path never tested before prod |
+| Missing DLQ topics for review/rating in ConfigMap | 🟡 P1 | ✅ Fixed (`P1-20`) | Added `dlq.review.approved` and `dlq.rating.updated` |
+| Stale pricing topics in ConfigMap | 🟡 P1 | ✅ Fixed (`P1-21`) | Removed stale entries |
+| `FailedEventCleanupWorker` not in constants | 🟡 P1 | ✅ Fixed (`P1-22`) | Added constant in `worker_names.go` |
+| No DLQ drain consumer for review/rating | 🔵 P2 | ✅ Fixed (`P2-72`) | `ConsumeReviewApprovedDLQ`/`ConsumeRatingUpdatedDLQ` wired |
+| `HandlePromotionDeleted` silent ACK on empty ID | 🔵 P2 | ✅ Fixed (`P2-73`) | Returns error when `PromotionID == ""` |
+| N+1 gRPC calls in reconciliation/orphan cleanup | 🔵 P2 | ✅ Fixed (`P2-74`) | Batches missing IDs via `GetProductsBulk` |
+| Cache disabled in dev — no test coverage | 🔵 P2 | ✅ Fixed (`P2-75`) | Enabled in dev ConfigMap & covered by 4 unit test suites |
 | Attribute re-index no checkpoint cursor | 🔵 P2 | Prior audit | Batch cursor missing on partial failure |
 | ES alias conflict during full reindex | 🔵 P2 | Prior audit | Alias-aware write routing needed |
 | Soft-deleted product visible for up to 6h if delete DLQ'd | 🟡 P1 | ✅ Mitigated | Hourly `ReconciliationWorker` catches it |
@@ -463,14 +463,14 @@ if eventData.PromotionID == "" {
 
 ## 10. Summary: Issue Priority Matrix
 
-### 🔴 P0 — Must Fix Before Next Deploy
+### ✅ P0 — Resolved
 
 | ID | Description | Fix |
 |----|-------------|-----|
 | **[V3-P0-01]** | Review/Rating event topics NOT in GitOps ConfigMap | Add `review_approved` and `rating_updated` to `configmap.yaml` |
 | **[V3-P0-02]** | ConfigMap promotion topics use `promotions.` prefix — mismatch with code `promotion.*` | Correct to `promotion.created/updated/deleted` |
 
-### 🟡 P1 — Fix in Next Sprint
+### ✅ P1 — Resolved
 
 | ID | Description | Fix |
 |----|-------------|-----|
@@ -478,7 +478,7 @@ if eventData.PromotionID == "" {
 | **[V3-P1-02]** | Stale pricing topics in ConfigMap (`warehouse_price.updated`, `sku_price.updated`) | Remove stale entries |
 | **[V3-P1-03]** | `FailedEventCleanupWorker` not in `worker_names.go` constants | Add constant and reference it |
 
-### 🔵 P2 — Roadmap / Tech Debt
+### ✅ P2 — Resolved
 
 | ID | Description | Fix |
 |----|-------------|-----|

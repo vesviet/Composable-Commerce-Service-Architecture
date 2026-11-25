@@ -69,7 +69,7 @@ Warehouse Service is the **core service** that manages warehouse operations, inv
 - **gRPC**: 9006
 
 ### Technology Stack
-- **Framework**: Kratos v2.9.1
+- **Framework**: Kratos v2.9.2
 - **ORM**: GORM v1.25+
 - **Database**: PostgreSQL
 - **Cache**: Redis (db: 4)
@@ -555,7 +555,7 @@ features:
 
 ### Go Modules
 ```
-gitlab.com/ta-microservices/common             v1.16.0
+gitlab.com/ta-microservices/common             v1.37.1
 gitlab.com/ta-microservices/catalog            v1.3.3
 gitlab.com/ta-microservices/common-operations  v1.1.5
 gitlab.com/ta-microservices/location           v1.0.4

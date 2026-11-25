@@ -66,7 +66,7 @@ location/
 - **gRPC API**: `:9007` — Internal service communication
 - **Database**: PostgreSQL (`location_db`)
 - **Cache**: Redis for location & tree caching
-- **Dependencies**: `common@v1.23.1`, `shipping@v1.1.9`, `user@v1.0.11`, `warehouse@v1.2.3`
+- **Dependencies**: `common@v1.37.1`, `shipping@v1.1.9`, `user@v1.0.11`, `warehouse@v1.2.3`
 
 ---
 

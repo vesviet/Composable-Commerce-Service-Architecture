@@ -13,7 +13,7 @@
 The Payment Processing process handles payment authorization and capture for orders. It integrates with external payment gateways and ensures payment state transitions are safe under retries, duplicates (at-least-once delivery), and partial failures.
 
 This process is designed to work with the accompanying checklist + implementation guide:
-- `docs/checklists/payment-processing-logic-checklist.md`
+- [Payment Service Review](../../../10-appendix/checklists/workflow/payment-review.md)
 
 ### Success Criteria
 
@@ -247,7 +247,7 @@ sequenceDiagram
 
 ## Related Documentation
 
-- `docs/checklists/payment-processing-logic-checklist.md`
+- [Payment Service Review](../../../10-appendix/checklists/workflow/payment-review.md)
 - [Payment Service Documentation](../../../03-services/core-services/payment-service.md)
 - [Order Placement Process](./order-placement-process.md)
 - [Refund Processing Process](../../../02-business-domains/post-purchase/return-refund-management.md)

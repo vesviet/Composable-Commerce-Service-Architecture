@@ -29,20 +29,20 @@
 - [x] **Stock sync via event**: `warehouse` publishes `stock.changed` → `catalog-worker` consumes via `ConsumeStockChanged`
 - [x] **DLQ consumer**: `catalog-worker` has `ConsumeStockChangedDLQ` to drain failed stock events
 - [x] **Cron fallback**: `catalog` has `StockSyncJob` cron as periodic reconciliation backup
-- [ ] **RISK**: If `catalog-worker` is down when `stock.changed` fires, stock display in catalog may lag until DLQ is drained. No immediate alerting on DLQ depth
-- [ ] **RISK**: `StockSyncJob` cron interval not confirmed — if too long (e.g., 1h), stock display may be stale for extended periods
+- ⏳ **Backlog Note**: If `catalog-worker` is down when `stock.changed` fires, stock display in catalog lags until `ConsumeStockChangedDLQ` drains.
+- ⏳ **Backlog Note**: Confirm `StockSyncJob` cron interval tuning per load profile.
 
 ### 2.2 Pricing ↔ Catalog (Price Sync)
 
 - [x] **Price sync via event**: `pricing` publishes `price.updated` → `catalog-worker` consumes via `ConsumePriceUpdated` + `ConsumePriceBulkUpdated`
 - [x] **Unified consumer**: Phase 2 consolidates product/warehouse/sku price scopes into one consumer
-- [ ] **RISK**: Price change in `pricing` service doesn't trigger immediate cache invalidation in `catalog` service. A `MaterializedViewRefreshJob` cron handles view refresh but may be eventually consistent
-- [ ] **RISK**: If `price.updated` event fails and falls to DLQ, catalog shows stale price while order service may calculate correct price → **price mismatch at checkout is possible**
+- ⏳ **Backlog Note**: Price change in `pricing` relies on `ConsumePriceUpdated` + `MaterializedViewRefreshJob` (eventual consistency).
+- [x] ✅ **Mitigated**: Checkout revalidates authoritative prices (`ValidateCart`/calculate totals) against `pricing` before payment.
 
 ### 2.3 Order ↔ Warehouse (Inventory Reservation)
 
 - [x] **Reservation pattern**: Soft-reserve on order creation, confirm on payment, release on cancellation
-- [ ] **RISK**: If `order` creates reservation in warehouse but payment fails AND the cancellation event is lost, stock remains soft-locked indefinitely. Needs `warehouse-worker` reservation cleanup cron to expire stale reservations
+- [x] ✅ **FIXED (`P0-04`)**: `warehouse-worker` runs wired `ReservationCleanupJob` to expire stale reservations.
 - [x] **Cleanup cron**: `warehouse-worker` has `reservation_cleanup_job.go` ✅
 
 ### 2.4 Fulfillment ↔ Order (Status Sync)
@@ -56,12 +56,12 @@
 
 - [x] **Payment cron jobs**: `auto_capture.go`, `bank_transfer_expiry.go`, `cleanup.go`, `failed_payment_retry.go`, `payment_reconciliation.go`, `payment_status_sync.go`, `refund_processing.go`, `webhook_retry.go`
 - [x] **~~FIXED P0-1~~** `order.completed` consumer added to `payment-worker` → `OrderCompletedConsumer.HandleOrderCompleted` → `PaymentUsecase.MarkPaymentCompleted` transitions `captured → completed` and publishes `payment.status_changed`
-- [ ] **RISK**: Commission deduction (P1-2) still missing before payout
+- [x] ✅ **FIXED (`P1-2`)**: Commission deduction (`defaultCommissionRate = 0.10`) implemented in `MarkPaymentCompleted`; seller matrix (`P2-59`) deferred.
 
 ### 2.6 Shipping ↔ Order (Tracking)
 
 - [x] **Event consumer**: `shipping-worker` subscribes to `order.cancelled` and `package.status.changed`
-- [ ] **RISK**: Carrier webhook → `shipping` service tracking events are not explicitly published back to `order` service via event. If `shipment.tracking_updated` event is missing, order status won't advance from `SHIPPED` to `IN_TRANSIT` / `OUT_FOR_DELIVERY`
+- ⏳ **Backlog Note**: Carrier webhook tracking propagation (`SHIPPED` → `IN_TRANSIT` / `OUT_FOR_DELIVERY`) tracked under carrier tracking integration.
 
 ---
 
@@ -80,20 +80,20 @@
 
 - [x] **Outbox implemented**: `warehouse` has `outbox_worker.go`
 - [x] **Cron jobs**: `alert_cleanup_job`, `capacity_monitor_job`, `daily_reset_job`, `daily_summary_job`, `outbox_cleanup_job`, `reservation_cleanup_job`, `stock_change_detector`, `timeslot_validator_job`, `weekly_report_job`
-- [ ] **RISK**: `warehouse` provider shows only `NewImportWorker`, `NewOutboxWorker`, `cron.ProviderSet` — **no event consumer registered**. If `warehouse` needs to react to external events (e.g., `order.paid` to confirm reservation), this must be verified against actual business need
-- [ ] **QUESTION**: Does `warehouse` need to subscribe to `order.paid`? Current code shows only outbox + cron + import worker (no event consumer)
+- [x] ✅ **Verified**: Warehouse event consumers (`order_cancelled`, `fulfillment`, `return`, `product_deleted`) registered separately from cron/import providers.
+- ⏳ **Design Note (Deferred)**: Warehouse reservation confirmation occurs via `order` / `checkout` saga orchestration (`ConfirmReservation`).
 
 ### 3.3 Payment — Webhook Retry
 
 - [x] **Webhook retry cron**: `webhook_retry.go` handles failed payment gateway callbacks
 - [x] **Failed payment retry**: `failed_payment_retry.go` handles re-processing of failed payments
-- [ ] **RISK**: `payment-worker` uses `dapr.io/app-port: 8081` with `http` protocol for the worker. This is inconsistent with `fulfillment-worker` which uses `5005/grpc`. Both serve Dapr pub/sub subscriptions — protocol mismatch could affect subscription delivery reliability
+- [x] ✅ **FIXED (`P1-1`)**: Standardized `payment-worker` Dapr annotations to `app-port: "5005"` and `app-protocol: "grpc"`.
 
 ### 3.4 Shipping — Outbox Pattern
 
 - [x] **Outbox implemented**: `shipping` has `outbox_worker.go`
 - [x] **Event consumers**: `order_cancelled_consumer.go`, `package_status_consumer.go`
-- [ ] **RISK**: `shipping-worker` uses `dapr.io/app-port: 8081` with `http` protocol. If the eventbus server is started on gRPC port 5005 internally, Dapr sidecar app-port must match
+- [x] ✅ **FIXED (`P1-1`)**: Standardized `shipping-worker` Dapr annotations to `app-port: "5005"` and `app-protocol: "grpc"`.
 
 ---
 
@@ -116,31 +116,31 @@
 - [x] **Resource limits set**: 256Mi/100m → 512Mi/300m
 - [x] **Health probes**: liveness + readiness on port 8081 (health endpoint)
 - [x] **PDB configured**: `pdb.yaml` present
-- [ ] **RISK**: Worker has no HPA — if event backlog grows, cannot scale horizontally
+- [x] ✅ **FIXED (`P2-77`)**: Added `gitops/apps/catalog/overlays/production/worker-hpa.yaml` (`maxReplicas: 3`) in `kustomization.yaml`.
 
 ### 4.2 Fulfillment GitOps
 
 - [x] **Deployment + worker-deployment**: Both main and worker present
 - [x] **Worker uses gRPC/5005**: ✅ Correct Dapr config
 - [x] **Resource limits**: Set appropriately
-- [ ] **RISK**: No HPA for fulfillment-worker
+- [x] ✅ **FIXED (`P2-36`)**: Added `gitops/apps/fulfillment/overlays/production/worker-hpa.yaml` & `worker-resources.yaml`.
 
 ### 4.3 Warehouse GitOps
 
 - [x] **WORKER_MODE, ENABLE_CRON, ENABLE_CONSUMER env vars**: Only warehouse-worker explicitly sets these
 - [x] **No service.yaml for worker**: Worker is not registered in Consul (correct)
-- [ ] **Mismatch**: `dapr.io/app-port: 8081` with `http` but code uses gRPC eventbus consumer (if any subscription is registered) — see §4 above
+- [x] ✅ **FIXED (`P1-1`)**: `warehouse-worker` standardized to `5005/grpc`.
 
 ### 4.4 Payment GitOps
 
 - [x] **Main service**: `8005/http` for Dapr ✅
-- [ ] **Worker Dapr port**: `8081/http` — see §4 above, same inconsistency
-- [ ] **Missing outbox**: `payment-worker` has `event` + `cron` + `outbox` dirs but the `outbox` dir should be verified — if `payment` publishes any events via outbox, the outbox worker must be in the wire
+- [x] ✅ **FIXED (`P1-1`)**: `payment-worker` standardized to `5005/grpc`.
+- [x] ✅ **FIXED (`P2-56`)**: Single active `common/outbox` worker wired at `payment/internal/worker/event/outbox_worker.go`.
 
 ### 4.5 Shipping GitOps
 
 - [x] **Main service**: `8012/http` ✅
-- [ ] **Worker Dapr port**: `8081/http` — same inconsistency
+- [x] ✅ **FIXED (`P1-1`)**: `shipping-worker` standardized to `5005/grpc`.
 
 ---
 
@@ -148,43 +148,39 @@
 
 ### 5.1 Seller Onboarding Edge Cases
 
-- [ ] **KYC failure with partial data**: Seller uploads docs, KYC is rejected — are uploaded files cleaned up? Is state reset?
-- [ ] **Duplicate seller registration**: Same tax ID / business reg number — no dedup guard visible in `auth`/`user` service
-- [ ] **Bank account validation failure**: Seller payout bank setup fails — no retry flow
-- [ ] **Store profile without product**: Seller active but zero catalog items — should trigger onboarding reminder notification
+- ⏳ **Backlog / Deferred (`P2-2`)**: KYC document cleanup on rejection tracked under seller onboarding backlog.
+- ⏳ **Backlog / Deferred (`P2-3`)**: Duplicate seller tax ID / business registration dedup guard.
+- ⏳ **Backlog / Deferred**: Seller payout bank validation retry flow.
+- ⏳ **Backlog / Deferred**: Empty store onboarding reminder notification.
 
 ### 5.2 Seller Dashboard / Catalog Edge Cases
 
-- [ ] **Product approval mid-edit**: Seller edits a product while it's in `PENDING_APPROVAL` — race condition between admin approve and seller update
-- [ ] **Bulk import partial failure**: `warehouse` has `import_worker.go` — if row 500 of 1000 fails, are rows 1-499 rolled back or committed? No transactional import visible
-- [ ] **SKU-level price override during flash sale**: If seller updates SKU price while a flash sale is active, which price wins? No explicit priority resolution in `catalog`↔`pricing` event flow
-- [ ] **Product deletion with active orders**: `catalog.product.deleted` event published via outbox — are active `order`/`warehouse` reservation records referencing this SKU handled?
+- ⏳ **Backlog / Deferred (`P2-4`)**: Optimistic lock / edit freeze during `PENDING_APPROVAL`.
+- [x] ✅ **FIXED (`P1-4`)**: Warehouse bulk import wraps each batch in `uc.tx.InTx()`.
+- ⏳ **Backlog / Deferred**: Campaign priority vs seller SKU override precedence rule.
+- [x] ✅ **FIXED (`P1-5`, `P2-38`)**: `OrderChecker` blocks product deletion with active orders; `warehouse/internal/data/eventbus/product_deleted_consumer.go` cleans up reservations.
 
 ### 5.3 Order / Fulfillment Edge Cases
 
-- [ ] **Seller marks order shipped without tracking number**: `fulfillment` must enforce tracking number before status change — not confirmed
-- [ ] **Multi-warehouse order split**: If order splits across 2 warehouses, separate fulfillment tasks are created — but if one warehouse fails to pick, partial shipment state is unclear
+- ⏳ **Backlog / Deferred**: Tracking number pre-condition on seller shipment dispatch.
+- ⏳ **Backlog / Deferred**: Split-order partial pick rollback/state coordination.
 - [x] ~~**SLA breach calculation**~~: ✅ FIXED — `SLABreachDetectorJob` in fulfillment worker detects breach across `pending`, `planning`, `picking`, `packing` stages and publishes `fulfillments.fulfillment.sla_breach` events
 
 ### 5.4 Payment / Escrow Edge Cases
 
-- [ ] **Escrow release not triggered**: `payment-worker` only subscribes to `return.completed` and `order.cancelled`. **`order.completed` consumer is missing** — escrow release / seller payout on order completion has no trigger
-- [ ] **Refund after partial fulfillment**: If only part of the order is delivered and customer returns one item — partial refund calculation vs. seller commission deduction is not confirmed
+- [x] ✅ **FIXED (`P0-01`)**: `payment/internal/data/eventbus/order_status_changed_consumer.go` handles `delivered`/`completed` to trigger `markPaymentCompleted` escrow release.
+- ⏳ **Backlog / Deferred**: Partial-fulfillment pro-rated commission clawback calculation.
 - [x] ~~**Commission deduction timing**~~: ✅ FIXED — `payment/internal/biz/payment/usecase.go:925` has `defaultCommissionRate = 0.10` with full calculation before payout
 
 ### 5.5 Seller Performance Edge Cases
 
-- [ ] **Performance score calculation**: No scheduled job found that calculates seller rating (cancellation rate, late ship rate, response time)
-- [ ] **Automatic suspension trigger**: If seller exceeds policy violation threshold — no automation for suspension detected
-- [ ] **SIP (Seller Improvement Plan) trigger**: Flow spec §12.3 mentions SIP — not implemented in any service
+- ⏳ **Backlog / Deferred (`P2-1` / `P2-76`)**: Scheduled seller SLA scoring cron (tracked as `P2-76`).
+- ⏳ **Backlog / Deferred**: Automated seller policy suspension job.
+- ⏳ **Backlog / Deferred (`P2-6`)**: Seller Improvement Plan workflow.
 
 ### 5.6 B2B / Wholesale (Not Implemented)
 
-- [ ] **Bulk pricing tiers**: No tier pricing logic beyond standard `pricing` service rules
-- [ ] **B2B buyer approval workflow**: Not present
-- [ ] **Net-30 / credit terms**: Not present
-- [ ] **Purchase order management**: Not present
-- [ ] **Bulk invoice generation**: Not present
+- ⏳ **Deferred B2B Suite (`P2-5`)**: Bulk pricing tiers, B2B buyer approval, Net-30 terms, PO management, and bulk invoicing are out of current consumer release scope.
 
 ---
 
@@ -243,7 +239,7 @@
 
 | # | Risk | Affected Flow |
 |---|---|---|
-| P2-1 | Seller performance score not auto-calculated (cancellation rate, late ship, response time) | 12.3 |
+| P2-1 (`P2-76`) | Seller performance score not auto-calculated *(Deferred — Product / Cross-Service Spec)* | 12.3 |
 | P2-2 | KYC failure cleanup: uploaded docs not purged on rejection | 12.1 |
 | P2-3 | Duplicate seller registration guard (same tax ID) | 12.1 |
 | P2-4 | Product approval race condition (edit during pending approval) | 12.2 |
@@ -263,12 +259,12 @@
 - [x] ~~**[P1]**~~ ✅ SLA breach detection cron exists — `SLABreachDetectorJob` with per-stage thresholds
 - [x] ~~**[P1]**~~ ✅ Transaction wrapping added to `warehouse` bulk import — `uc.tx.InTx()` per batch
 - [x] ~~**[P1]**~~ ✅ `OrderChecker` interface blocks product deletion when active orders exist
-- [ ] **[P2]** Add seller performance score calculation cron (daily) in `analytics` or `fulfillment`
-- [ ] **[P2]** Add HPA for all worker deployments (at minimum `catalog-worker`, `notification-worker`)
-- [ ] **[P2]** Implement KYC document cleanup on rejection in `user`/`auth` service
-- [ ] **[P2]** Verify `pricing` and `promotion` services publish events via outbox pattern
-- [ ] **[P2]** Document B2B/wholesale as out-of-scope or create implementation plan
-- [ ] **[P2]** Verify `warehouse-worker` subscription need: does it need to consume `order.paid` to confirm reservations, or is reservation confirmed via gRPC call from `order` service directly?
+- ⏳ **[P2-1 -> `P2-76` Deferred]** Seller performance score calculation cron (requires SLA scoring spec)
+- [x] **[P2 -> FIXED ✅ (`P2-36`, `P2-77`)]** Worker HPAs added across `catalog-worker`, `fulfillment-worker`, `shipping-worker`, and `promotion`
+- ⏳ **[P2-2 Deferred]** KYC document cleanup on rejection in `user`/`auth`
+- [x] **[P2 -> FIXED ✅ (`P2-25`)]** `pricing` and `promotion` outbox workers verified & standardized on `common/outbox`
+- ⏳ **[P2-5 Deferred]** B2B/wholesale flows deferred beyond current release scope
+- [x] **[P2 -> Verified ✅]** Warehouse reservation confirmation occurs via checkout/order saga `ConfirmReservation` RPC
 
 ---
 

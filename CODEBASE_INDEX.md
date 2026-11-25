@@ -1,6 +1,6 @@
 # 🗂️ Microservices Codebase Index
 
-> **Last Updated**: 2026-11-24 (full 30-repository codebase index)  
+> **Last Updated**: 2026-11-25 (full 30-repository codebase index)  
 > **Standard:** Shopify / Shopee / Lazada Architecture Patterns  
 > **Stack**: Go 1.27.4 (21/21 Go services + `common`) · Kratos v2.9.2 · `common` v1.37.1 · OpenTelemetry · Next.js 16 · React 19 · PostgreSQL · Redis · Elasticsearch · Dapr · Kubernetes  
 > **Maturity**: 21/21 services 🟢 Production-ready (see [SERVICE_INDEX.md](SERVICE_INDEX.md))
@@ -10,7 +10,7 @@ This file is the canonical repository and codebase map. For per-service maturity
 ## 📊 Workspace Snapshot (30 Repositories)
 
 - **21 Go Services** (`100%` on Go `1.27.4`, Kratos `v2.9.2`, `common v1.37.1`, OpenTelemetry, `go-redis/v9`, `0` legacy Gin)
-- **570 Proto RPCs** across 21 Go services · **361 Goose SQL migrations** across 20 DB-backed services
+- **568 Proto RPCs** across 21 Go services · **344 forward Goose SQL migrations** (`364` total `.sql` files) across 20 DB-backed services
 - **1 Shared Go Library**: `common v1.37.1` (`23` packages; pinned by all 21 Go services)
 - **2 Frontend Apps**: `frontend` (`v1.1.0`, Next.js 16 + React 19) · `admin` (`v1.0.0`, React 19 + Vite)
 - **6 Supporting Repos**: `gitops`, `gitlab-ci-templates`, `docs`, `qa-auto`, `microservices-agent-skills` (`v5.10.0`), `vesviet`
@@ -29,7 +29,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - API: HTTP/gRPC main server (`cmd/customer/`)
   - Worker: Async Outbox/Event processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
-- **`catalog`** — Product Catalog (EAV, 25k+ SKUs) (`v1.5.1` · 72 RPCs · 36 migrations)
+- **`catalog`** — Product Catalog (EAV, 25k+ SKUs, per-category `return_window_days`) (`v1.5.1` · 72 RPCs · 37 migrations)
   - API: HTTP/gRPC main server (`cmd/catalog/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
@@ -63,7 +63,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - API: HTTP/gRPC main server (`cmd/location/`)
   - Worker: Async Outbox processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
-- **`return`** — Returns, Exchanges, Refund Processing (`v1.2.1` · 10 RPCs · 7 migrations)
+- **`return`** — Returns, Exchanges, Refund Processing, Evidence Upload, Category Return Windows (`v1.2.1` · 10 RPCs · 8 migrations)
   - API: HTTP/gRPC main server (`cmd/return/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
@@ -73,7 +73,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - API: HTTP/gRPC main server (`cmd/pricing/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
-- **`promotion`** — Campaigns, Coupons, Tiered Discounts (`v1.4.1` · 25 RPCs · 18 migrations)
+- **`promotion`** — Campaigns, Coupons, Tiered Discounts, TTL Reservations (`v1.4.1` · 28 RPCs · 19 migrations)
   - API: HTTP/gRPC main server (`cmd/promotion/`)
   - Worker: Async Outbox/Cron processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
@@ -87,7 +87,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
 - **`search`** — AI-Powered Product Search, Visual Search & Merchandising (`v1.1.0` · 19 RPCs · 15 migrations)
   - API: HTTP/gRPC main server (`cmd/search/`)
-  - Worker: Async Outbox/Cron processing (`cmd/worker/`)
+  - Worker: Async Event Consumers/Cron processing (`cmd/worker/`)
   - DLQ Worker: Dead-letter reprocessing (`cmd/dlq-worker/`)
   - Migrate & Sync: Goose DB migration CLI (`cmd/migrate/`), index sync tool (`cmd/sync/`)
 - **`analytics`** — Business Intelligence & Metrics (`v1.3.1` · 25 RPCs · 14 migrations)
@@ -108,7 +108,7 @@ These form the backbone of the e-commerce transaction and user domains:
   - API: HTTP/gRPC main server (`cmd/common-operations/`)
   - Worker: Background processing (`cmd/worker/`)
   - Migrate: Goose DB migration CLI (`cmd/migrate/`)
-- **`gitops`** — Kustomize, ArgoCD manifests, cluster config (`6fbcb24c`: Go 1.27.4 rollout ConfigMaps, NetworkPolicies, and overlays)
+- **`gitops`** — Kustomize, ArgoCD manifests, cluster config (`744ed0c7`: Go 1.27.4 rollout ConfigMaps, NetworkPolicies, and overlays)
 - **`frontend`** — Customer Next.js 16 + Tailwind CSS Web Application (`v1.1.0`, MFA/OAuth2, notification preferences, wishlist alerts, checkout loyalty redemption, design system: [DESIGN.md](DESIGN.md) & [design-tokens-spec.json](design-tokens-spec.json))
 - **`admin`** — Backoffice React 19 + Vite + Ant Design Application (`v1.0.0`, MFA/OAuth2 & profile security, Search Merchandising console, aligned with [DESIGN.md](DESIGN.md))
 - **`qa-auto`** — Automated E2E / QA test suite (Playwright)

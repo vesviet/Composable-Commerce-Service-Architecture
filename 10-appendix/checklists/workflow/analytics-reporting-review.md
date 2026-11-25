@@ -1,7 +1,7 @@
 # Analytics & Reporting Flow — Business Logic Review v3
 
 **Date**: 2026-03-07  
-**Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + codebase deep-dive)  
+**Reviewer**: Platform Engineering Team (synchronized 2026-11-25)  
 **Scope**: `analytics/` service — event ingestion, aggregation, reporting, real-time, worker, GitOps  
 **Baseline**: Previous checklist v2 (2026-02-26)
 
@@ -390,9 +390,9 @@ Since this path is only invoked via `ProcessIncomingEvent` (not the HTTP handler
 | **ANLT-V2-P1-008** | Server duplicate aggregation scheduler | ✅ **FIXED** |
 | **ANLT-V2-P1-009** | Return payload schema mismatch | ✅ **FIXED** |
 | **ANLT-V2-P1-010** | NetworkPolicy only covers backend component | ✅ **FIXED** |
-| **ANLT-V3-P1-001** | `ExecuteDataQualityCheck` spawns unmanaged goroutine | 🆕 OPEN |
-| **ANLT-V3-P1-002** | Reconciliation only checks 2 of 7+ event types | 🆕 OPEN |
-| **ANLT-V3-P1-003** | `BatchProcessEvents` missing routes for 5+ event types | 🆕 OPEN |
+| **ANLT-V3-P1-001 (`P2-01`)** | `ExecuteDataQualityCheck` bounded concurrency (`wg`, sem cap 16, `Shutdown`, timeout) | ✅ **FIXED** |
+| **ANLT-V3-P1-002 (`P2-02`)** | Reconciliation checks all tracked event types (`EventTypeCounts`, `SevenDayAverages`) | ✅ **FIXED** |
+| **ANLT-V3-P1-003 (`P2-03`)** | `BatchProcessEvents` routes fulfillment, shipping, payment, return, and `cart.converted` | ✅ **FIXED** |
 
 ### 🔵 P2 — Roadmap / Tech Debt
 
@@ -411,9 +411,9 @@ Since this path is only invoked via `ProcessIncomingEvent` (not the HTTP handler
 | **ANLT-V2-P2-011** | `fulfillments.fulfillment.sla_breach` not subscribed | ✅ **FIXED** |
 | **ANLT-V2-P2-012** | `/events/products`, `/events/customers` handlers no subs | Roadmap |
 | **ANLT-V3-P2-001** | Worker HPA missing (acceptable for cron-only) | Roadmap |
-| **ANLT-V3-P2-002** | Worker pods share API labels → NetworkPolicy too permissive | 🆕 OPEN |
-| **ANLT-V3-P2-003** | `updateProductMetrics` is a no-op stub | 🆕 OPEN |
-| **ANLT-V3-P2-004** | `ReconciliationReport.ProductViewEvents` never threshold-checked | 🆕 OPEN |
+| **ANLT-V3-P2-002 (`P2-04`)** | Split `analytics` (`backend`) and `analytics-worker` (`worker`, `ingress: []`) NetworkPolicy | ✅ **FIXED** |
+| **ANLT-V3-P2-003 (`P2-05`)** | `updateProductMetrics` wired to Redis hash counters & tested | ✅ **FIXED** |
+| **ANLT-V3-P2-004 (`P2-06`)** | `SevenDayAvgProductView` & `ProductViewEvents` threshold alert enforced | ✅ **FIXED** |
 
 ---
 

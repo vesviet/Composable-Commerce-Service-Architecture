@@ -69,8 +69,8 @@ return/
 │   ├── service/                   # Service Layer (gRPC/HTTP)
 │   ├── server/                    # HTTP/gRPC server, health, consul
 │   ├── config/                    # Configuration
-│   ├── client/                    # External service clients (stub)
-│   └── events/                    # Event publishing (stub)
+│   ├── client/                    # External service clients (Order, CatalogPolicyClient, Payment, Warehouse, Shipping)
+│   └── events/                    # Outbox & Dapr event publishing
 ├── api/
 │   └── return/v1/                # Protocol Buffers
 ├── migrations/                    # Database migrations
@@ -87,22 +87,23 @@ return/
 ### Service Dependencies
 
 #### Internal Dependencies (via gRPC)
-- **Order Service**: Order information and validation (gRPC client - stub implementation)
+- **Order Service**: Order information and validation (gRPC client)
   - Fetches order details via `GetOrder(orderID)`
   - Fetches order items via `GetOrderItems(orderID)`
   - **Important**: No local order models or repositories - all order data fetched from Order Service
-- **Payment Service**: Refund processing (gRPC client - stub implementation)
-- **Warehouse Service**: Restock coordination (gRPC client - stub implementation)
-- **Shipping Service**: Return shipping labels (gRPC client - stub implementation)
-- **Customer Service**: Customer data and communication (gRPC client - stub implementation)
-- **Notification Service**: Return status notifications (gRPC client - stub implementation)
+- **Payment Service**: Refund processing (gRPC client)
+- **Warehouse Service**: Restock coordination (gRPC client)
+- **Shipping Service**: Return shipping labels (gRPC client)
+- **Customer Service**: Customer data and communication (gRPC client)
+- **Notification Service**: Return status notifications (gRPC client)
+- **Catalog Service**: Per-category `return_window_days` policy lookup (`CatalogPolicyClient`)
 
 #### External Dependencies
 - **PostgreSQL**: Return data (`return_db`)
   - Tables: `return_requests`, `return_items`
   - No order-related tables (removed during cleanup)
 - **Redis**: Caching, workflow state (planned, not yet implemented)
-- **Dapr**: Event-driven communication (stub implementation - TODO #RETURN-001)
+- **Dapr**: Event-driven communication via Transactional Outbox
 
 ---
 
@@ -138,69 +139,55 @@ rpc GetReturnRequest(GetReturnRequestRequest) returns (GetReturnRequestResponse)
 
 #### Update Return Status
 ```protobuf
-rpc UpdateReturnStatus(UpdateReturnStatusRequest) returns (UpdateReturnStatusResponse) {
+rpc RejectReturn(RejectReturnRequest) returns (ReturnRequest) {
   option (google.api.http) = {
-    put: "/api/v1/returns/{return_id}/status"
+    post: "/api/v1/returns/{return_id}/reject"
     body: "*"
   };
 }
-```
 
-**Return Statuses**:
-- `requested` → `under_review` → `approved` → `items_received` → `completed`
-- `rejected`, `cancelled`
-
-### Return Processing
-
-#### Process Return Items
-```protobuf
-rpc ProcessReturnItems(ProcessReturnItemsRequest) returns (ProcessReturnItemsResponse) {
+rpc ReceiveItems(ReceiveItemsRequest) returns (ReturnRequest) {
   option (google.api.http) = {
-    post: "/api/v1/returns/{return_id}/process-items"
+    post: "/api/v1/returns/{return_id}/receive"
     body: "*"
   };
 }
-```
 
-#### Process Refund
-```protobuf
-rpc ProcessRefund(ProcessRefundRequest) returns (ProcessRefundResponse) {
+rpc ProcessRefund(ProcessRefundRequest) returns (ReturnRequest) {
   option (google.api.http) = {
     post: "/api/v1/returns/{return_id}/refund"
     body: "*"
   };
 }
-```
 
-#### Restock Items
-```protobuf
-rpc RestockItems(RestockItemsRequest) returns (RestockItemsResponse) {
+rpc CancelReturn(CancelReturnRequest) returns (ReturnRequest) {
   option (google.api.http) = {
-    post: "/api/v1/returns/{return_id}/restock"
+    post: "/api/v1/returns/{return_id}/cancel"
+    body: "*"
+  };
+}
+
+rpc CheckReturnEligibility(CheckReturnEligibilityRequest) returns (CheckReturnEligibilityResponse) {
+  option (google.api.http) = {
+    get: "/api/v1/orders/{order_id}/return-eligibility"
+    additional_bindings {
+      get: "/api/v1/returns/eligibility/{order_id}"
+    }
+  };
+}
+
+rpc CreateExchangeRequest(CreateExchangeRequestRequest) returns (ReturnRequest) {
+  option (google.api.http) = {
+    post: "/api/v1/returns/exchange"
     body: "*"
   };
 }
 ```
 
-### Return Analytics
-
-#### Get Return Analytics
-```protobuf
-rpc GetReturnAnalytics(GetReturnAnalyticsRequest) returns (GetReturnAnalyticsResponse) {
-  option (google.api.http) = {
-    get: "/api/v1/returns/analytics"
-  };
-}
-```
-
-#### Get Return Reasons
-```protobuf
-rpc GetReturnReasons(GetReturnReasonsRequest) returns (GetReturnReasonsResponse) {
-  option (google.api.http) = {
-    get: "/api/v1/returns/reasons"
-  };
-}
-```
+### Evidence Media Endpoints (HTTP)
+- `POST /api/v1/returns/evidence` — Upload return evidence image (50MB gateway limit allowlist, magic-byte & extension validated)
+- `GET /api/v1/returns/evidence/{filename}` — Serve stored return evidence media
+- **Fields**: `evidence_urls` (persisted array on return requests), `rejected_by` (moderator identity recorded on rejection), per-category `return_window_days` via `CatalogPolicyClient`
 
 ---
 
@@ -391,8 +378,8 @@ func (uc *ReturnUsecase) CreateReturnRequest(ctx context.Context, req *CreateRet
         returnItem := &ReturnItem{
             ReturnRequestID: returnReq.ID,
             OrderItemID:     item.OrderItemID,
-            ProductID:       "stub-product", // TODO: Fetch from Catalog Service
-            ProductSKU:      "stub-sku",     // TODO: Fetch from Catalog Service
+            ProductID:       item.ProductID,
+            ProductSKU:      item.ProductSKU,
             Quantity:        item.Quantity,
             Reason:          item.Reason,
         }
@@ -404,8 +391,8 @@ func (uc *ReturnUsecase) CreateReturnRequest(ctx context.Context, req *CreateRet
         return nil, err
     }
     
-    // 7. Publish return request created event (stub - TODO #RETURN-001)
-    // 8. Notify customer service (stub - TODO #RETURN-002)
+    // 7. Publish return.requested outbox event
+    // 8. Record evidence_urls and CatalogPolicyClient window check
     
     return returnReq, nil
 }
@@ -632,7 +619,7 @@ module gitlab.com/ta-microservices/return
 go 1.27.4
 
 require (
-    gitlab.com/ta-microservices/common v1.8.3
+    gitlab.com/ta-microservices/common v1.37.1
     github.com/go-kratos/kratos/v2 v2.9.2
     github.com/redis/go-redis/v9 v9.16.0
     gorm.io/gorm v1.31.1
@@ -749,112 +736,6 @@ GET /api/v1/returns/health/workflow
 - Removed all order-related models (`order.go`, `order_item.go`, `order_address.go`, `order_payment.go`, `order_status_history.go`, `cart.go`, `checkout_session.go`, `shipment.go`, `failed_compensation.go`)
 - Removed all order-related repositories (`order/`, `cart/`, `checkout/`, `item/`, `address/`, `payment/`, `status/`, `edit_history/`, `failed_compensation/`)
 - Refactored validation functions to use Order Service client instead of local models
-- Added `OrderService` interface and stub implementation
-- Updated Wire dependency injection
-
-**Impact**: Return Service now properly calls Order Service via gRPC for order information, maintaining proper service boundaries.
-
-### 📋 TODO LIST (Categorized with Issue Tracking)
-
-#### RETURN-001: Dapr Pub/Sub Implementation (P1 - High)
-**Location**: `return/internal/events/publisher.go`  
-**Count**: 11 stub methods  
-**Status**: Stub implementation  
-**Required**: Implement Dapr gRPC client for pub/sub (use gRPC, not HTTP callbacks)
-
-#### RETURN-002: External Service Client Implementation (P1 - High)
-**Location**: `return/internal/client/clients.go`, `return/internal/data/data.go`  
-**Count**: 3 stub clients  
-**Status**: Stub implementations  
-**Required**: Implement gRPC clients for Order Service, Catalog Service, Warehouse Service
-
-#### RETURN-003: Monitoring and Alerting (P2 - Normal)
-**Location**: `return/internal/biz/monitoring.go`  
-**Count**: 4 stub methods  
-**Status**: Nil implementations  
-**Required**: Implement Prometheus metrics and PagerDuty/Slack alerting
-
-### 🟡 CURRENT ISSUES
-
-#### P0-1: Missing Authentication & Authorization (P0 - Critical)
-- **Issue**: No authentication middleware on HTTP/gRPC servers
-- **Impact**: All endpoints publicly accessible
-- **Location**: `return/internal/server/http.go`, `return/internal/server/grpc.go`
-- **Fix**: Add authentication middleware using common package
-
-#### P1-1: Missing gRPC Error Code Mapping (P1 - High)
-- **Issue**: Service layer returns raw errors without gRPC code mapping
-- **Impact**: Poor API usability
-- **Location**: `return/internal/service/return.go`
-- **Fix**: Use `common/errors` package for structured error handling
-
-#### P1-2: Missing Health Checks (P1 - High)
-- **Issue**: No `/health/live` or `/health/ready` endpoints
-- **Impact**: Cannot monitor service health
-- **Location**: Missing health service
-- **Fix**: Implement health check service
-
-#### P2-1: No Caching Implementation (P2 - Normal)
-- **Issue**: No Redis caching for return requests
-- **Impact**: Potential performance bottlenecks
-- **Location**: Missing cache layer
-- **Fix**: Implement cache-aside pattern for return requests
-
----
-
-## 🚀 Development Guide
-
-### Local Development Setup
-```bash
-# Clone and setup
-git clone git@gitlab.com:ta-microservices/return.git
-cd return
-
-# Start dependencies
-docker-compose up -d postgres redis
-
-# Install dependencies
-go mod download
-
-# Run migrations
-make migrate-up
-
-# Generate protobuf code
-make api
-
-# Run service
-make run
-
-# Test return functionality
-curl -X POST http://localhost:8013/api/v1/returns \
-  -H "Content-Type: application/json" \
-  -d '{"order_id":"test-order-id","reason":"defective","items":[...]}'
-```
-
----
-
-## 📈 Performance Benchmarks
-
-### Return Operations (P95 Response Times)
-- **Create Return Request**: 234ms (with validation)
-- **Approve Return**: 345ms (with shipping label)
-- **Process Refund**: 567ms (with payment service)
-- **Restock Items**: 123ms (per item)
-
-### Throughput Targets
-- **Return Requests**: 50 req/sec sustained
-- **Return Processing**: 20 req/sec peak
-- **Analytics Queries**: 100 req/sec sustained
-
-### Success Metrics
-- **Return Approval Rate**: >85%
-- **Refund Success Rate**: >98%
-- **Return Processing Time**: <48 hours average
-- **Customer Satisfaction**: >4.5/5 rating
-
----
-
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-27  
-**Service Split**: Extracted from Order Service  
-**Production Readiness**: 95%
+- Added `OrderService`, `CatalogPolicyClient`, `PaymentService`, `WarehouseService`, and `ShippingService` production integrations (10 Proto RPCs + HTTP evidence endpoints)
+- Added `evidence_urls`, `rejected_by`, per-category `return_window_days` check, and Transactional Outbox event publishing
+- **Last Updated**: 2026-11-25 (`go 1.27.4`, `Kratos v2.9.2`, `common v1.37.1`)

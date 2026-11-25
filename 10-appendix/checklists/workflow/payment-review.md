@@ -419,8 +419,8 @@ All 3 consumers are essential for the payment lifecycle.
 |----------|------|
 | Previous review (v2) | This file (history preserved above) |
 | eCommerce platform flows reference | [ecommerce-platform-flows.md](../../ecommerce-platform-flows.md) |
-| Payment usecase | [usecase.go](file:///Users/tuananh/Desktop/myproject/microservice/payment/internal/biz/payment/usecase.go) |
-| Refund usecase | [usecase.go](file:///Users/tuananh/Desktop/myproject/microservice/payment/internal/biz/refund/usecase.go) |
-| Event consumer worker | [event_consumer_worker.go](file:///Users/tuananh/Desktop/myproject/microservice/payment/internal/worker/event/event_consumer_worker.go) |
-| Outbox worker (active) | [outbox_worker.go](file:///Users/tuananh/Desktop/myproject/microservice/payment/internal/worker/event/outbox_worker.go) |
-| GitOps kustomization | [kustomization.yaml](file:///Users/tuananh/Desktop/myproject/microservice/gitops/apps/payment/base/kustomization.yaml) |
+| Payment usecase | [usecase.go](../../../../payment/internal/biz/payment/usecase.go) |
+| Refund usecase | [usecase.go](../../../../payment/internal/biz/refund/usecase.go) |
+| Event consumer worker | [event_consumer_worker.go](../../../../payment/internal/worker/event/event_consumer_worker.go) |
+| Outbox worker (active) | [outbox_worker.go](../../../../payment/internal/worker/event/outbox_worker.go) |
+| GitOps kustomization | [kustomization.yaml](../../../../gitops/apps/payment/base/kustomization.yaml) |

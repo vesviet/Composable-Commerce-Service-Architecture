@@ -574,11 +574,11 @@ audit:
 ```go
 module gitlab.com/ta-microservices/user
 
-go 1.24
+go 1.27.4
 
 require (
-    gitlab.com/ta-microservices/common v1.8.5
-    github.com/go-kratos/kratos/v2 v2.9.1
+    gitlab.com/ta-microservices/common v1.37.1
+    github.com/go-kratos/kratos/v2 v2.9.2
     github.com/redis/go-redis/v9 v9.5.1
     gorm.io/gorm v1.25.10
     github.com/dapr/go-sdk v1.11.0

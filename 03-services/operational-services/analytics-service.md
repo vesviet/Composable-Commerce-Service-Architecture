@@ -77,7 +77,7 @@ analytics/
 - **gRPC API**: `:9019` — Analytics query API (dashboard, revenue, order, product, customer)
 - **Database**: PostgreSQL (`analytics_db`)
 - **Cache**: Redis for metrics caching and cache invalidation
-- **Dependencies**: `common@v1.23.1`
+- **Dependencies**: `common@v1.37.1`
 
 ---
 

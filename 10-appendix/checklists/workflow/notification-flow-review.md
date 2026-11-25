@@ -1,6 +1,6 @@
 # Notification Flows — Business Logic Review Checklist (v3)
 
-**Date**: 2026-03-07 | **Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + full codebase audit)
+**Date**: 2026-03-07 (synchronized 2026-11-25) | **Reviewer**: Platform Engineering Team
 **Scope**: `notification/` — channels, event consumers, worker, preference/opt-out, outbox, GitOps
 **Reference**: `docs/10-appendix/ecommerce-platform-flows.md` §11 (Notification Flows)
 
@@ -12,8 +12,8 @@
 |----------|--------|
 | 🔴 P0 — Critical (topic mismatch → dead consumers / data loss) | **✅ 3/3 fixed** |
 | 🟡 P1 — High (reliability / compliance / missing flows) | **✅ 4/4 fixed** |
-| 🔵 P2 — Medium (edge case / observability / cleanup) | **2 fixed, 4 open** |
-| 🆕 New findings in v3 | **3 items** |
+| 🔵 P2 — Medium (edge case / observability / cleanup) | **5 fixed ✅, 1 deferred (`NOTIF-P2-003`)** |
+| 🆕 New findings in v3 | **2 fixed ✅ (`P1-16/17`), 1 deferred (`NOTIF-NEW-003`)** |
 | ✅ Verified Working | 32+ areas |
 
 ---
@@ -385,15 +385,15 @@ Other services that should publish to `system.errors` but don't:
 
 ### 🟡 Fix Soon (2 items — Consistency & Resilience)
 
-1. **NOTIF-NEW-001**: Add retry + DLQ pattern to `AuthLoginConsumer` (consistent with other 4 consumers)
-2. **NOTIF-NEW-002**: Fix `OrderStatusConsumer.RecipientID` to use `CustomerID` instead of `ChangedBy`
+1. **NOTIF-NEW-001 (`P1-16`)**: ✅ FIXED — Added `handleWithRetry` + DLQ
+2. **NOTIF-NEW-002 (`P1-17`)**: ✅ FIXED — Parses `event.CustomerID`
 
 ### 🔵 Monitor / Plan (5 items)
 
 3. **NOTIF-P2-003**: Document orphan events (notification.created/delivered/failed) — no consumer
-4. **NOTIF-P2-004**: Plan multi-channel notification routing (currently hardcoded Telegram)
-5. **NOTIF-P2-005**: Set `RecipientID` from event's `CustomerID` in payment/return consumers
-6. **NOTIF-P2-006**: Verify worker Dapr protocol (HTTP vs gRPC) — add kustomize patch if events not delivered
+4. **NOTIF-P2-004 (`P2-41`)**: ✅ FIXED — Consumers pass `Channel: "auto"` resolved by `resolveChannel`
+5. **NOTIF-P2-005 (`P2-42`)**: ✅ FIXED — `payment_event_consumer.go` & `return_event_consumer.go` populate `RecipientID` from `event.CustomerID`
+6. **NOTIF-P2-006 (`P2-43`)**: ✅ FIXED — `gitops/apps/notification/base/patch-worker.yaml:9-10` uses `app-port: "5005"`, `app-protocol: "grpc"`
 7. **NOTIF-NEW-003**: Adopt `system.errors` publishing across all services (not notification fix)
 
 ---

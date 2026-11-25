@@ -1,6 +1,8 @@
 # Admin QA Testing Report
 
-## 🚩 PENDING ISSUES (Unfixed)
+> **Historical Snapshot Notice**: Captures the initial 2026-03 staging QA smoke run prior to backend & UI remediation sprints. See [UNFIXED-ISSUES-CONSOLIDATED.md](checklists/workflow/UNFIXED-ISSUES-CONSOLIDATED.md) and [admin-operations-review.md](checklists/workflow/admin-operations-review.md) for current verified status (`0` open P0/P1).
+
+## 🚩 Historical PENDING Log (Pre-Remediation Snapshot)
 
 - [Critical] [Admin - Dashboard/Global] 502 Bad Gateway: Intermittent availability on first load of the admin dashboard.
 - [Critical] [Admin - Dashboard/Global] CORS Policy Blocking: Endpoint `https://api.tanhdev.com/admin/v1/operations/tasks` missing `Access-Control-Allow-Origin` header. Occurs on every page.

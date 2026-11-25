@@ -149,8 +149,8 @@ flowchart TD
 **Trigger:** Customer adds product to cart
 
 **Authoritative implementation (code pointers):**
-- `order/internal/service/cart.go` → `CartService.AddToCart`
-- `order/internal/biz/cart/add.go` → `UseCase.AddToCart`
+- `checkout/internal/service/cart.go` → `CartService.AddToCart`
+- `checkout/internal/biz/cart/add.go` → `UseCase.AddToCart` (migrated from legacy `order/internal/biz/cart/`)
 
 **Actions (server-side, authoritative):**
 1. Validate quantity (e.g. positive, max-per-item constraints)

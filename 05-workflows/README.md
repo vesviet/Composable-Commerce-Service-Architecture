@@ -1,7 +1,7 @@
 # 🔄 Business Process Flows
 
 - **Purpose**: Detailed business process flows and sequence diagrams based on actual implementation
-- **Last Updated**: February 7, 2026
+- **Last Updated**: 2026-11-25
 - **Platform Scope**: 23 deployable services; current runtime maturity is tracked in [SERVICE_INDEX.md](../SERVICE_INDEX.md)
 - **Navigation**: [← Business Domains](../02-business-domains/README.md) | [← Back to Main](../README.md) | [Services →](../03-services/README.md)
 
@@ -68,7 +68,7 @@ Visual representations of system interactions
 ### **Service Architecture (23 Deployable Services)**
 Our workflows span across 23 specialized microservices organized into clear categories:
 
-**Core Business Services (13):**
+**Core Business Services (14):**
 - 🔐 Auth Service (authentication, JWT, OAuth2, MFA)
 - 👥 User Service (admin users, RBAC, permissions)
 - 👤 Customer Service (profiles, addresses, segments)
@@ -82,20 +82,20 @@ Our workflows span across 23 specialized microservices organized into clear cate
 - 📋 Fulfillment Service (pick, pack, ship workflow)
 - 🚚 Shipping Service (multi-carrier integration, tracking)
 - ↩️ Return Service (returns, exchanges, refunds)
+- 🎁 Loyalty Rewards Service (points, tiers, rewards)
 
-**Platform Services (5):**
+**Platform & Infrastructure Services (7 Go services):**
 - 🚪 Gateway Service (API routing, rate limiting, security)
 - 🔍 Search Service (Elasticsearch, analytics, recommendations)
 - 📈 Analytics Service (business intelligence, dashboards)
 - ⭐ Review Service (ratings, reviews, moderation)
 - 🔧 Common Operations Service (task orchestration, file ops)
-
-**Operational Services (5):**
 - 📧 Notification Service (email, SMS, push, in-app)
 - 🗺️ Location Service (geographic hierarchy, address validation)
-- 🎁 Loyalty Rewards Service (points, tiers, rewards)
-- 💻 Admin Service (admin panel frontend - React)
-- 🌐 Frontend Service (customer frontend - Next.js)
+
+**Frontend & Admin Apps (2):**
+- 💻 Admin App (admin panel frontend - React/Vite)
+- 🌐 Frontend Storefront (customer storefront - Next.js)
 
 **Infrastructure Services (5 - Non-deployable):**
 - Common library (shared code)

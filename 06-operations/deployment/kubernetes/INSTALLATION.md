@@ -235,7 +235,7 @@ docker --version || echo "❌ docker not found"
 
 ```bash
 # 1. Navigate to project root
-cd /home/tuananh/microservices
+cd <workspace-root>
 
 # 2. Run setup script
 ./k8s-local/setup-cluster.sh
@@ -257,7 +257,7 @@ kubectl get nodes
 
 ```bash
 # 1. Navigate to project root
-cd /home/tuananh/microservices
+cd <workspace-root>
 
 # 2. Start Tilt (if Tiltfile exists)
 tilt up

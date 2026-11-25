@@ -22,6 +22,7 @@ Common-Operations Service provides task orchestration, bulk operations (import/e
 - Secure upload/download URL generation (S3/MinIO/local)
 - Event publishing (task created, progress, completed, failed, cancelled) via Dapr
 - Settings management (e.g. payment settings) via HTTP
+- Granular RBAC enforcement via `internal/biz/authz` across HTTP/gRPC endpoints
 - Health checks (DB, Redis) via common observability
 
 ### Dependencies
@@ -131,7 +132,7 @@ Common-Operations Service provides task orchestration, bulk operations (import/e
 1. **Prerequisites**: Go 1.27.4+, Docker, PostgreSQL, Redis, Dapr (optional for events)
 2. **Config**: Copy/adjust `configs/config.yaml`; set database source and optional Redis
 3. **Migrations**: `make migrate-up` (requires `DATABASE_URL` or script)
-4. **Run**: `make run` (from repo root: `go run ./cmd/operations -conf ./configs`)
+4. **Run**: `make run` (from repo root: `go run ./cmd/common-operations -conf ./configs`)
 5. **Worker**: `make run` for worker entry point if using separate worker binary
 
 ### Testing
@@ -152,7 +153,7 @@ Common-Operations Service provides task orchestration, bulk operations (import/e
 kubectl logs -f deployment/common-operations -n <namespace>
 
 # Local
-go run ./cmd/operations -conf ./configs
+go run ./cmd/common-operations -conf ./configs
 ```
 
 ## Changelog

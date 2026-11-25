@@ -45,10 +45,11 @@ sequenceDiagram
     C->>F: Confirm order
     F->>G: POST /api/v1/checkout/complete
     G->>CH: CompleteCheckout(session_id)
-    CH->>O: CreateOrder(order_details)
+    CH->>CH: ReservePromotionsStep (ReservePromotion TTL + coupon lock; fail-fast on PROMO_EXPIRED)
+    CH->>O: CreateOrder(order_details, confirm_reservation)
     O->>W: ReserveInventory(order_items)
     W-->>O: Inventory reserved
-    O-->>CH: Order created (order_id)
+    O-->>CH: Order created (order_id; promo reservation confirmed; rollback/DLQ releases on failure)
     
     Note over C,A: Phase 5: Payment Processing
     CH->>P: ProcessPayment(order_id, payment_details)

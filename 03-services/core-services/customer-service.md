@@ -536,11 +536,11 @@ observability:
 ```go
 module gitlab.com/ta-microservices/customer
 
-go 1.24
+go 1.27.4
 
 require (
-    gitlab.com/ta-microservices/common v1.0.14
-    github.com/go-kratos/kratos/v2 v2.9.1
+    gitlab.com/ta-microservices/common v1.37.1
+    github.com/go-kratos/kratos/v2 v2.9.2
     github.com/google/uuid v1.6.0
     github.com/redis/go-redis/v9 v9.5.1
     gorm.io/gorm v1.25.10
@@ -552,7 +552,7 @@ require (
 ```
 
 ### Internal Dependencies
-- **common@v1.0.14**: Shared utilities, validation, events, repository patterns, **audit logging framework**
+- **common@v1.37.1**: Shared utilities, validation, events, repository patterns, **audit logging framework**
 - **Auth Service**: Customer authentication, session validation
 - **Order Service**: Order history, customer analytics
 - **Loyalty Service**: Points balance, rewards integration

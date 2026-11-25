@@ -732,7 +732,7 @@ failed → pending (controlled retry path)
 
 | Document | Path |
 |---|---|
-| Workflow Index (legacy) | [workflow-index.md](legacy/workflow-index.md) |
+| Workflow Review Index | [checklists/workflow/README.md](checklists/workflow/README.md) |
 | Service Deploy Order | [SERVICE_DEPLOY_ORDER.md](SERVICE_DEPLOY_ORDER.md) |
 | Checklists | [checklists/](checklists/) |
-| System Completeness Assessment | [legacy/SYSTEM_COMPLETENESS_ASSESSMENT.md](legacy/SYSTEM_COMPLETENESS_ASSESSMENT.md) |
+| Service Index & Maturity | [SERVICE_INDEX.md](../SERVICE_INDEX.md) |

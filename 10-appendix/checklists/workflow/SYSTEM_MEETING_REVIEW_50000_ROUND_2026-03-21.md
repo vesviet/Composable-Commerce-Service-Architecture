@@ -160,7 +160,7 @@ Mandatory outputs after this round:
 
 1. `P0/P1/P2` decisions with owner + ETA + impacted services
 2. Updated canonical checklist files in `docs/10-appendix/checklists/workflow/`
-3. Agent-task breakdown in `docs/10-appendix/checklists/workflow/agent-tasks/`
+3. Historical completed agent-task archive in `docs/10-appendix/checklists/workflow/archive/agent-tasks/`
 4. Verification evidence pack (commands + file refs + test status)
 5. Go/No-Go release recommendation
 

@@ -1,7 +1,7 @@
 # Order Lifecycle Flows — Business Logic Review Checklist
 
 **Date**: 2026-03-07 (v5 — all P0/P1/P2 fixes applied)
-**Reviewer**: AI Review (Shopify/Shopee/Lazada patterns + codebase deep-dive)
+**Reviewer**: Platform Engineering Team (synchronized 2026-11-25)
 **Scope**: `order/`, `fulfillment/`, `payment/`, `warehouse/`, `shipping/`, `return/`, `checkout/`, `loyalty-rewards/`, `promotion/` — event coordination, saga, outbox, GitOps
 **Reference**: `docs/10-appendix/ecommerce-platform-flows.md` §6 (Order Lifecycle)
 **Previous Version**: `order-lifecycle-deep-review.md` (v4, 2026-03-07)
@@ -479,22 +479,16 @@ order/constants.go:17  TopicOrderCancelled = "orders.order.cancelled" → Never 
 
 ## 📋 Remediation Actions
 
-### 🔴 Fix Now (Data Loss / Financial Risk)
+### ✅ Resolved in Codebase (Synced 2026-11-25)
 
-- [ ] **P0-2026-01**: Payment `OrderCompletedConsumer` → change to subscribe to `orders.order.status_changed`, filter `new_status == "delivered"/"completed"` for escrow release
-- [ ] **P0-2026-02**: Payment `OrderConsumer` → change to subscribe to `orders.order.status_changed`, filter `new_status == "cancelled"` for payment void
-
-### 🟡 Fix Soon (Reliability)
-
-- [ ] **P1-2026-01**: Add `completed` to `OrderStatusTransitions[delivered]` OR document that `delivered` is the terminal happy state
-- [ ] **P1-2026-02**: Add `orders.return.completed` (+ DLQ) to loyalty Dapr subscription YAML
-- [ ] **P1-2026-03**: Create `dapr-subscription.yaml` for payment worker with correct topics
-
-### 🔵 Monitor / Document
-
-- [ ] **P2-2026-01**: Add idempotency guard to Payment `HandleOrderCancelled`
-- [ ] **P2-2026-02**: Add idempotency guard to Payment `HandleOrderCompleted`
-- [ ] **P2-2026-03**: Remove dead constants `TopicOrderCompleted` / `TopicOrderCancelled` from order constants.go
+- [x] **P0-2026-01 (`P0-01`)**: ✅ FIXED — `payment/internal/data/eventbus/order_status_changed_consumer.go` subscribes to `orders.order.status_changed` (`delivered`/`completed` -> `markPaymentCompleted`)
+- [x] **P0-2026-02 (`P0-02`)**: ✅ FIXED — Subscribes to `orders.order.status_changed` (`new_status == "cancelled"` -> `voidAuthorizedPayments`)
+- [x] **P1-2026-01 (`P1-07`)**: ✅ FIXED — `order/internal/constants/constants.go:177` transitions to `OrderStatusCompleted`
+- [x] **P1-2026-02 (`P1-04`)**: ✅ FIXED — `orders.return.completed` (+ DLQ) in `gitops/apps/loyalty-rewards/base/dapr-subscription.yaml`
+- [x] **P1-2026-03 (`P1-08`)**: ✅ FIXED — `gitops/apps/payment/base/dapr-subscription.yaml` active
+- [x] **P2-2026-01 (`P2-53`)**: ✅ FIXED — `idempotencyHelper.CheckAndMark` in `order_status_changed_consumer.go:108-145`
+- [x] **P2-2026-02 (`P2-54`)**: ✅ FIXED — Idempotency guard covers `delivered`/`completed` paths
+- [x] **P2-2026-03 (`P2-55`)**: ✅ FIXED — Dead `TopicOrderCompleted` / `TopicOrderCancelled` constants removed
 
 ---
 

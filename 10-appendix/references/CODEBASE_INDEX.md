@@ -699,11 +699,11 @@ make run
 ```
 
 ### Development Scripts
-- [git-all.sh](file:///Users/tuananh/Desktop/myproject/microservice/git-all.sh) - Manage all services (git operations, start/stop)
-- [git-service.sh](file:///Users/tuananh/Desktop/myproject/microservice/git-service.sh) - Individual service operations
-- [create-order.sh](file:///Users/tuananh/Desktop/myproject/microservice/create-order.sh) - Test order creation
-- [create-order-advanced.sh](file:///Users/tuananh/Desktop/myproject/microservice/create-order-advanced.sh) - Advanced order testing
-- [sync-and-index.sh](file:///Users/tuananh/Desktop/myproject/microservice/sync-and-index.sh) - Sync remote changes
+- [git-all.sh](../../../git-all.sh) - Manage all services (git operations, start/stop)
+- [git-service.sh](../../../git-service.sh) - Individual service operations
+- [create-order.sh](../../../create-order.sh) - Test order creation
+- [create-order-advanced.sh](../../../create-order-advanced.sh) - Advanced order testing
+- `sync-and-index.sh` *(historical script)* - Sync remote changes
 
 ---
 
@@ -711,10 +711,10 @@ make run
 
 | Document | Purpose | Location |
 |----------|---------|----------|
-| Services Status | Current status of Review & Loyalty services | [SERVICES_QUICK_STATUS.md](file:///Users/tuananh/Desktop/myproject/microservice/SERVICES_QUICK_STATUS.md) |
-| Loyalty Review Checklist | Detailed implementation checklist | [REVIEW_LOYALTY_SERVICES_CHECKLIST.md](file:///Users/tuananh/Desktop/myproject/microservice/REVIEW_LOYALTY_SERVICES_CHECKLIST.md) |
-| Order Implementation | Order service checklist | [CREATE_ORDER_README.md](file:///Users/tuananh/Desktop/myproject/microservice/CREATE_ORDER_README.md) |
-| Docker Compose | Infrastructure setup | [docker-compose.yml](file:///Users/tuananh/Desktop/myproject/microservice/docker-compose.yml) |
+| Services Status | Current status of Review & Loyalty services | `SERVICES_QUICK_STATUS.md` *(historical; see [SERVICE_INDEX.md](../../SERVICE_INDEX.md))* |
+| Loyalty Review Checklist | Detailed implementation checklist | `REVIEW_LOYALTY_SERVICES_CHECKLIST.md` *(historical)* |
+| Order Implementation | Order service checklist | `CREATE_ORDER_README.md` *(historical)* |
+| Docker Compose | Infrastructure setup | `docker-compose.yml` *(historical local compose)* |
 
 ---
 
@@ -910,9 +910,9 @@ docker-compose down
 ## 📞 IMPORTANT FILES
 
 ### Root Level
-- [.cursorrules](file:///Users/tuananh/Desktop/myproject/microservice/.cursorrules) - Cursor AI rules (19KB)
-- [docker-compose.yml](file:///Users/tuananh/Desktop/myproject/microservice/docker-compose.yml) - Infrastructure
-- [git-all.sh](file:///Users/tuananh/Desktop/myproject/microservice/git-all.sh) - Manage all services
+- `.cursorrules` *(historical)* - Cursor AI rules (19KB)
+- `docker-compose.yml` *(historical)* - Infrastructure
+- [git-all.sh](../../../git-all.sh) - Manage all services
 
 ### Per Service
 - `README.md` - Service documentation
@@ -964,7 +964,7 @@ docker-compose down
 - 🔴 **Thiếu Trầm Trọng Tầng Repository & Service:** Adapter đâm chọc thẳng vào DB ở mọi nơi. Clean Architecture bị vứt xó.
 - 🔴 **Zero Tests:** Không một dòng Test Coverage nào. Không được phép merge lên Master.
 
-Xem chi tiết phương án đập đi xây lại tại [SERVICES_QUICK_STATUS.md](file:///Users/tuananh/Desktop/myproject/microservice/SERVICES_QUICK_STATUS.md).
+Xem chi tiết trạng thái hiện tại tại [SERVICE_INDEX.md](../../SERVICE_INDEX.md) *(file lịch sử `SERVICES_QUICK_STATUS.md` đã được hợp nhất)*.
 
 ---
 

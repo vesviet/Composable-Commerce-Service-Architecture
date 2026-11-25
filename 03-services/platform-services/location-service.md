@@ -65,7 +65,7 @@ location/
 - **gRPC API**: `:9007` - Internal communication
 - **Database**: PostgreSQL (`location_db`)
 - **Cache**: Redis (db: 7) for location data caching
-- **Common Package**: `gitlab.com/ta-microservices/common@v1.8.3`
+- **Common Package**: `gitlab.com/ta-microservices/common@v1.37.1`
 
 ---
 

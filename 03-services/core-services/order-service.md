@@ -529,10 +529,10 @@ features:
 ```go
 module gitlab.com/ta-microservices/order
 
-go 1.24
+go 1.27.4
 
 require (
-    gitlab.com/ta-microservices/common v1.8.3
+    gitlab.com/ta-microservices/common v1.37.1
     github.com/go-kratos/kratos/v2 v2.9.2
     github.com/redis/go-redis/v9 v9.5.1
     gorm.io/gorm v1.25.10
@@ -948,5 +948,5 @@ go test -run TestAddToCart_Concurrency -v
 - ✅ **P2 FIX: duplicate Preload**: Removed duplicate `Preload("StatusHistory")` in `FindByID` and `FindByOrderNumber`
 - ✅ **P2 Lint**: errcheck, staticcheck SA1019/SA1029 fixes
 - ✅ **P2 Cleanup**: Removed stale `security.test` (6.4MB), `validation.test` (25MB), `coverage.out`
-- ✅ **Dependencies**: common v1.23.1, catalog v1.3.9, pricing v1.2.1, warehouse v1.2.6
+- ✅ **Dependencies**: common v1.37.1, catalog v1.3.9, pricing v1.2.1, warehouse v1.2.6
 - ✅ **Build**: clean, lint 0 warnings, 7/7 test suites pass

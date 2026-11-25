@@ -493,12 +493,12 @@ func updateHelpfulStats(reviewID string) error {
 ## 📊 Event-Driven Architecture
 
 ### Published Events
-- `review.submitted` - Review submitted for moderation
-- `review.approved` - Review approved and published
-- `review.rejected` - Review rejected by moderation
-- `review.updated` - Review content updated
-- `review.helpful_voted` - Helpful vote cast
-- `product.rating.updated` - Product rating statistics updated
+- `review.created` - Review created and queued for moderation
+- `review.approved` - Review approved and published (`customer_id`, `order_id`, `is_verified`, `has_photos`, `photo_count`, `approved_at`)
+- `review.rejected` - Review rejected by moderation (`customer_id`, `reason`, `rejected_at`)
+- `review.updated` - Review content updated (triggers re-moderation when edited with photos; image URLs validated)
+- `review.unverified` - Verified badge revoked when return/refund invalidates purchase eligibility
+- `rating.updated` - Product rating statistics updated
 
 ### Consumed Events
 - `shipping.shipment.delivered` - Mark order eligible for review (90-day window)
@@ -573,7 +573,7 @@ reviews:
 - **P1 Fixed**: OpenTelemetry tracing spans added to all key biz operations
 - **P1 Fixed**: Outbox status case mismatch standardized to lowercase
 - **P2 Fixed**: Duplicate import, division-by-zero guard, default pageSize
-- **Dependencies**: Updated to `common@v1.23.1`, `catalog@v1.3.9`, `order@v1.1.9`, `user@v1.0.14`
+- **Dependencies**: Updated to `common@v1.37.1` (and cross-service gRPC clients)
 - **Linting**: ✅ golangci-lint 0 warnings
 - **Wire**: ✅ Regenerated for both review and worker binaries
 - **Replace Directives**: ✅ None

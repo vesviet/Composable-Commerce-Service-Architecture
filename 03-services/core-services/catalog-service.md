@@ -93,7 +93,7 @@ catalog/
 │   ├── brand/v1/                   # Brand APIs
 │   ├── cms/v1/                     # CMS APIs
 │   └── attribute/v1/               # Attribute APIs
-├── migrations/                     # Database migrations (25 files)
+├── migrations/                     # Database migrations (37 files)
 └── configs/                        # Environment configs
 ```
 
@@ -452,7 +452,7 @@ rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryReply) {
 **Features:**
 - Hierarchical structure (parent-child relationships)
 - URL slugs for SEO
-- Sort ordering for display
+- Sort ordering for display and category return policy inheritance (`return_window_days` nullable integer on category + `clear_return_window_days` flag on `UpdateCategory`, consumed by `return` service via `CatalogPolicyClient`)
 - Attribute templates per category
 - Status management (active/inactive)
 
@@ -800,7 +800,7 @@ module gitlab.com/ta-microservices/catalog
 go 1.27.4
 
 require (
-    gitlab.com/ta-microservices/common v1.8.0
+    gitlab.com/ta-microservices/common v1.37.1
     github.com/go-kratos/kratos/v2 v2.9.2
     github.com/redis/go-redis/v9 v9.16.0
     gorm.io/gorm v1.31.1

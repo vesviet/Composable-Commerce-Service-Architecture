@@ -14,12 +14,12 @@ sequenceDiagram
     
     Note over C,A: Phase 1: Return Request Initiation
     C->>F: Request return for order item
-    F->>G: GET /api/v1/orders/{order_id}/return-eligibility
+    F->>G: GET /api/v1/returns/eligibility/{order_id}
     G->>R: CheckReturnEligibility(order_id, item_id)
     R->>O: GetOrderDetails(order_id)
     O-->>R: Order details and status
-    R->>R: Validate return window (30 days)
-    R->>R: Check item return policy
+    R->>R: Fetch category return_window_days via CatalogPolicyClient (fallback default 30 days)
+    R->>R: Check item/category return policy (POST /api/v1/returns/evidence supported)
     R-->>G: Return eligibility result
     G-->>F: Eligibility status
     F-->>C: Display return options
@@ -27,7 +27,7 @@ sequenceDiagram
     Note over C,A: Phase 2: Return Request Submission
     C->>F: Submit return request
     F->>G: POST /api/v1/returns
-    G->>R: CreateReturnRequest(order_id, items, reason)
+    G->>R: CreateReturnRequest(order_id, items, reason, evidence_urls)
     R->>R: Generate return ID
     R->>R: Calculate refund amount
     R->>R: Set return status to "requested"

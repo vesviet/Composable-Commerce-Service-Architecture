@@ -59,12 +59,11 @@ Promotion & Discount process is responsible for managing all promotional activit
 - **Discount calculation:** `promotion/internal/biz/discount_calculator.go`
 - **Free shipping:** `promotion/internal/biz/free_shipping.go`
 
-### Order service integration
+### Checkout & cart service integration
 
-- Cart coupon/promo endpoints:
-  - `order/internal/service/cart.go` → `ApplyCoupon`, `AutoApplyPromotions`
-  - `order/internal/biz/cart/coupon.go`
-  - `order/internal/biz/cart/promotion.go`
+- Cart & checkout coupon/promo integration:
+  - `checkout` service (`checkout/internal/biz/`) → cart coupon application & checkout two-phase promotion reservation (`ReservePromotionsStep` → `ReservePromotion` with TTL, `CreateOrderStep` → `ConfirmPromotionReservation`, rollback → `ReleasePromotionReservation`)
+  - Legacy cart promotion helpers migrated from `order` into `checkout` service.
 
 ---
 
@@ -196,6 +195,6 @@ Promotion returns `ShippingDiscount`, but current implementation calls:
 
 ## 9. Related Docs
 
-- Cart process: `docs/processes/cart-management-process.md`
-- Pricing + tax checklist: `docs/checklists/tax-implementation-checklist-magento-vs-shopify.md`
-- Promotion checklist: `docs/checklists/promotion-service-checklist.md`
+- Cart management flow: [cart-checkout-deep-review.md](../../../10-appendix/checklists/workflow/cart-checkout-deep-review.md)
+- Pricing + tax checklist: [pricing-promotion-tax-review.md](../../../10-appendix/checklists/workflow/pricing-promotion-tax-review.md)
+- Promotion service review: [promotion-service-review.md](../../../10-appendix/checklists/workflow/promotion-service-review.md)

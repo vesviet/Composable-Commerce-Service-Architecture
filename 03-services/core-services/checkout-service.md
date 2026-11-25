@@ -143,7 +143,7 @@ checkout/
 ├── api/checkout/v1/                # PROTO DEFINITIONS
 │   ├── cart.proto                  #    CartService (9 RPCs)
 │   └── checkout.proto              #    CheckoutService (9 RPCs)
-├── migrations/                     # Goose migrations (5 files)
+├── migrations/                     # Goose migrations (9 files)
 └── configs/config.yaml
 ```
 
@@ -222,7 +222,10 @@ ConfirmCheckout(req)
     │     ├─ Delivery zone validation (EDGE-04, fail-open)
     │     └─ Payment method eligibility (EDGE-05)
     │
-    ├─ 4. Acquire Coupon Locks (P2-009)
+    ├─ 4. Reserve Promotions & Coupon Locks (ReservePromotionsStep)
+    │     ├─ Fail-fast on PROMO_EXPIRED
+    │     ├─ Acquire coupon distributed lock & create TTL "reserved" rows
+    │     └─ Rollback releases reservation on pre-order failure
     │
     ├─ 5. Calculate Order Totals (with price revalidation)
     │
@@ -235,11 +238,9 @@ ConfirmCheckout(req)
     ├─ 9. Final Stock Validation + Extend Reservations
     │     └─ Rollback extended TTLs on partial failure
     │
-    ├─ 10. Create Order (via Order service)
-    │      └─ Void payment auth on failure + DLQ
-    │
-    ├─ 11. Apply Promotions (best-effort, errgroup)
-    │      └─ DLQ for failed promo application
+    ├─ 10. Create Order & Confirm Promo Reservation (CreateOrderStep)
+    │      ├─ Passes confirm_reservation semantics to lock in promo usage
+    │      └─ Void payment auth + release_promo_reservation DLQ on failure
     │
     ├─ 12. Finalize (in transaction)
     │      ├─ Save CartConverted event to outbox
@@ -323,7 +324,7 @@ All services use Kubernetes internal DNS for discovery:
 ### Go Module Dependencies (go.mod)
 
 ```
-gitlab.com/ta-microservices/common     v1.16.0
+gitlab.com/ta-microservices/common     v1.37.1
 gitlab.com/ta-microservices/catalog    v1.3.3
 gitlab.com/ta-microservices/customer   v1.2.2
 gitlab.com/ta-microservices/order      v1.1.5

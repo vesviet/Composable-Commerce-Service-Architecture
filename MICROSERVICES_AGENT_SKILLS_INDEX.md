@@ -21,7 +21,7 @@ This workspace uses a two-layer agent skill setup: the portable **Global Enginee
 
 ## Layer 2: Workspace Microservices Skills (`.agent/`)
 
-- **Skills**: `23` (Go 1.27.4 / Kratos v2.9.2 / `common v1.37.0` / Dapr / GitOps)
+- **Skills**: `23` (Go 1.27.4 / Kratos v2.9.2 / `common v1.37.1` / Dapr / GitOps)
 - **Workflows**: `7` executable workflow docs ([`.agent/workflows/`](../.agent/workflows/))
 - **Rule Pack**: [`.agent/rules/microservices.md`](../.agent/rules/microservices.md)
 - **Environment Helper**: [`.agent/config/environment.sh`](../.agent/config/environment.sh)
@@ -58,7 +58,7 @@ This workspace uses a two-layer agent skill setup: the portable **Global Enginee
 
 - [`setup-gitops`](../.agent/skills/setup-gitops/SKILL.md): Configure/update GitOps manifests
 - [`debug-k8s`](../.agent/skills/debug-k8s/SKILL.md): Investigate Kubernetes deployment/runtime issues
-- [`debug-openclaw-telegram`](../.agent/skills/debug-openclaw-telegram/SKILL.md): Debug OpenClaw Telegram bot health, gateway/auth errors, and safe homelab cleanup
+- [`debug-openclaw-telegram`](../.agent/skills/debug-openclaw-telegram/SKILL.md): Debug OpenClaw Telegram bot health, gateway/auth errors, and safe dev server cleanup
 - [`troubleshoot-service`](../.agent/skills/troubleshoot-service/SKILL.md): Debug service runtime failures
 - [`rollback-deployment`](../.agent/skills/rollback-deployment/SKILL.md): Safe rollback process for bad releases
 - [`performance-profiling`](../.agent/skills/performance-profiling/SKILL.md): Profile and optimize service performance

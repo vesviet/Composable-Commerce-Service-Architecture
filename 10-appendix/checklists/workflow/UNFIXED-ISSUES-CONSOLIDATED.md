@@ -1,7 +1,7 @@
 # 🚩 UNFIXED ISSUES — CONSOLIDATED CHECKLIST
 
 **Generated**: 2026-03-07 (verified & synchronized: 2026-11-25)  
-**Source**: All 21 workflow review files in `docs/10-appendix/checklists/workflow/`  
+**Source**: Active canonical workflow review files in `docs/10-appendix/checklists/workflow/` (superseded snapshots in `archive/`)  
 **Purpose**: Single source of truth for unresolved workflow review issues.
 
 ---
@@ -12,7 +12,7 @@
 |----------|---------|----------------|--------|
 | 🔴 P0 — Critical | **7** | **0** ✅ | All P0 blockers resolved & verified |
 | 🟡 P1 — High | **26** | **0** ✅ | All P1 reliability/consistency fixes implemented |
-| 🔵 P2 — Nice to Have | **77** | **0 actionable engineering bugs** (**18 deferred**) | `59/77` P2 items verified `[FIXED ✅]` (`5` prior + `30` audited already fixed + `24` quick fixes applied); remaining `18` deferred pending product/cross-service specs |
+| 🔵 P2 — Nice to Have | **77** | **0 actionable engineering bugs** (**13 deferred**) | `64/77` P2 items verified `[FIXED ✅]` (`5` prior + `30` audited already fixed + `24` quick fixes + `5` cross-service Wave 1 features); remaining `13` deferred pending product/cross-service specs |
 
 ---
 
@@ -49,7 +49,7 @@
 ### ~~P0-05: Loyalty `handleReturnCompleted` method body MISSING — compile blocker~~ [FIXED ✅]
 - **Source**: `return-refund-review.md` RET-P0-04
 - **Service**: loyalty-rewards
-- **File**: `loyalty-rewards/internal/worker/event/consumer.go:72`
+- **File**: `loyalty-rewards/internal/worker/event/consumer.go:100`
 - **Fix Applied**: Created `return_completed_event.go` with full handler implementation
 - [x] Fixed by Agent 3
 
@@ -63,7 +63,7 @@
 ### ~~P0-07: Search ConfigMap promotion topics mismatch (`promotions.*` vs `promotion.*`)~~ [FIXED ✅]
 - **Source**: `search-discovery-review.md` V3-P0-02
 - **Service**: search (GitOps)
-- **File**: `gitops/apps/search/base/configmap.yaml:63-65`
+- **File**: `gitops/apps/search/base/configmap.yaml:61-63`
 - **Fix Applied**: Renamed `promotions.promotion.*` → `promotion.*` in ConfigMap
 - [x] Fixed by Agent 4
 
@@ -155,8 +155,8 @@
 | # | Issue | Source / Status |
 |---|-------|-----------------|
 | ~~P2-07~~ | ~~Loyalty point redemption not in checkout flow~~ [FIXED ✅] | `frontend` `/checkout` + `/api/v1/loyalty/points/redeem` |
-| P2-08 | Promo expiry race between validation and apply *(Deferred — Product / Cross-Service Spec)* | `cart-checkout-deep-review` P2-CC-04 — requires `promotion` TTL reservation RPC + cross-service lifecycle redesign |
-| ~~P2-09~~ | ~~Dual `warehouseClient`/`warehouseInventoryService` interface~~ [FIXED ✅] | `checkout/internal/biz/checkout/usecase.go:27` & `adapter.NewWarehouseAdapter` |
+| ~~P2-08~~ | ~~Promo expiry race between validation and apply~~ [FIXED ✅] | `promotion` TTL reservation (`ReservePromotion`/`ConfirmPromotionReservation`/`ReleasePromotionReservation`, cleanup cron) + `checkout` single-lock `ReservePromotionsStep`, `PROMO_EXPIRED` fail-fast, rollback release & `frontend` recovery UX |
+| ~~P2-09~~ | ~~Dual `warehouseClient`/`warehouseInventoryService` interface~~ [FIXED ✅] | `checkout/internal/biz/checkout/usecase.go:28` & `adapter.NewWarehouseAdapter` |
 | ~~P2-10~~ | ~~`MaxOrderAmount` hardcoded as constant~~ [FIXED ✅] | `checkout/internal/config/config.go`, `usecase.go` (`SetCheckoutConfig` / `getMaxOrderAmount`) |
 | ~~P2-11~~ | ~~`CheckoutSessionCleanupWorker` has no DLQ for failed reservation releases~~ [FIXED ✅] | `checkout/internal/worker/cron/checkout_session_cleanup.go:188-215` writes `model.FailedCompensation` |
 | ~~P2-12~~ | ~~`ReservationCleanupJob` scans ALL cancelled orders every 15 min~~ [FIXED ✅] | `order/internal/worker/cron/reservation_cleanup.go:50-73` uses 30-day cutoff + cursor pagination (`cancelledPageSize = 100`) |
@@ -173,7 +173,7 @@
 | ~~P2-19~~ | ~~Bulk attribute reindex has no cursor/checkpoint~~ [FIXED ✅] | `search/internal/service/product_consumer.go` persists/resumes `attr_reindex_cursor:<attr_id>` in cache |
 | ~~P2-20~~ | ~~ES alias conflict during full re-index~~ [FIXED ✅] | `search/internal/data/elasticsearch/index.go` (`resolveAliasName`) & `search/internal/biz/indexing.go` |
 | P2-21 | `catalog.product.created` → Warehouse init failure is silent *(Deferred — Product / Cross-Service Spec)* | `catalog-product-review` EDGE-06 — closed BY DESIGN in `P1-15`; changing behavior requires reversing `P1-15` policy |
-| P2-22 | Review photo-review bonus points flow undefined *(Deferred — Product / Cross-Service Spec)* | `catalog-product-review` EDGE-07 — requires bonus point rules & anti-abuse spec across `review`/`loyalty-rewards` |
+| ~~P2-22~~ | ~~Review photo-review bonus points flow undefined~~ [FIXED ✅] | `review` enriched snake_case `review.approved`/`review.rejected` + photo validation/re-moderation; `loyalty-rewards` flat bonus + monthly cap/verified check + revocation & Dapr consumers; `gitops` subscriptions + `frontend` UI |
 | ~~P2-23~~ | ~~No automated replay for FAILED outbox rows in Catalog~~ [FIXED ✅] | `catalog/internal/server/http.go` adds admin `GET /admin/outbox/failed` and `POST /admin/outbox/{id}/retry` + tests |
 
 ### Cross-Cutting Concerns
@@ -220,14 +220,14 @@
 ### Common Operations
 | # | Issue | Source / Status |
 |---|-------|-----------------|
-| ~~P2-45~~ | ~~`CancelTask`/`RetryTask` publish with outer `ctx` not `txCtx`~~ [FIXED ✅] | `common-operations/internal/biz/task/task.go:373-459` creates outbox events inside `txManager.WithTransaction` |
+| ~~P2-45~~ | ~~`CancelTask`/`RetryTask` publish with outer `ctx` not `txCtx`~~ [FIXED ✅] | `common-operations/internal/biz/task/task.go:380-472` creates outbox events inside `txManager.WithTransaction` |
 | ~~P2-46~~ | ~~Outbox Publisher Job NOT implemented~~ [FIXED ✅] | `common-operations/internal/worker/cron/outbox_publisher.go` wired in `cmd/worker/wire_gen.go` |
 | ~~P2-47~~ | ~~`TaskProcessorWorker.Process()` returns error for unknown types~~ [FIXED ✅] | `common-operations/internal/worker/task_processor.go` persists `"failed"` and ACKs (`nil`) unsupported task types |
 | P2-48 | `processDataSyncTask` is stub *(Deferred — Product / Cross-Service Spec)* | `remaining-issues-consolidated` E19 — requires sync source/target & cursor product specification |
 | ~~P2-49~~ | ~~Message template variable injection has no HTML escaping~~ [FIXED ✅] | `common-operations/internal/biz/message/message.go` escapes variables via `html.EscapeString` |
 | ~~P2-50~~ | ~~Worker deployment declares unused port 8081~~ [FIXED ✅] | Removed unused `metrics` port `8081` from `gitops/apps/common-operations/base/patch-worker.yaml` |
 | ~~P2-51~~ | ~~Settings + Audit publish are non-transactional~~ [FIXED ✅] | `common-operations/internal/biz/settings/usecase.go` wraps `UpdateWithVersion` + `auditRepo.Record` in `txManager.WithTransaction` |
-| P2-52 | No RBAC enforcement inside biz layer *(Deferred — Product / Cross-Service Spec)* | `remaining-issues-consolidated` E23 — requires biz permission matrix & internal-worker bypass design |
+| ~~P2-52~~ | ~~No RBAC enforcement inside biz layer~~ [FIXED ✅] | `common-operations/internal/biz/authz` guards admin ops in `settings`/`message`/`audit`/`task` usecases with explicit `WithSystemContext` propagation across worker & cron callers |
 
 ### Payment
 | # | Issue | Source / Status |
@@ -256,9 +256,9 @@
 |---|-------|-----------------|
 | ~~P2-67~~ | ~~Migration schema drift (vs GORM model)~~ [FIXED ✅] | `return/migrations/005_reconcile_schema_with_model.sql` reconciles schema with `model/return.go` |
 | P2-68 | Exchange price difference hardcoded to 0 *(Deferred — Product / Cross-Service Spec)* | `return-refund-review` RET-P2-05 — requires Pricing gRPC lookup + extra-charge/partial-refund settlement flow |
-| P2-69 | Evidence upload (photo/video) not implemented *(Deferred — Product / Cross-Service Spec)* | `return-refund-review` RET-P2-06 — requires media storage/presigned-URL contract, migration, proto & UI upload |
+| ~~P2-69~~ | ~~Evidence upload (photo/video) not implemented~~ [FIXED ✅] | `return` authenticated evidence upload/get endpoints & migration + `gateway` 50MB allowlist + `admin` ReturnDetail gallery + `frontend` upload UX |
 | P2-70 | Refund to store credit not implemented *(Deferred — Product / Cross-Service Spec)* | `return-refund-review` RET-P2-07 — requires wallet/store-credit ledger design across `return`/`payment`/`loyalty-rewards` |
-| P2-71 | Return window per category not configurable *(Deferred — Product / Cross-Service Spec)* | `return-refund-review` RET-P2-08 — requires Catalog category policy schema + Return↔Catalog RPC contract |
+| ~~P2-71~~ | ~~Return window per category not configurable~~ [FIXED ✅] | `catalog` category `return_window_days` + `return` category policy lookup & per-item eligibility + `admin` CategoriesPage + `frontend` ReturnRequestModal |
 
 ### Search & Discovery
 | # | Issue | Source / Status |
@@ -288,9 +288,9 @@
 | **Track 6** | Code Hygiene & Comment Rules | ✅ **ALL DONE** | `common-operations` `P2-45..47/49..51`, `review` `P2-24`, `gateway` `P2-27` |
 | **Track 7** | Outbox Pattern Standardization | ✅ **ALL DONE** | Standardized on `common/outbox` across Go services |
 
-> **Remaining open across P0 & P1**: **0 P0 + 0 P1** (all blocking and high-priority items resolved; remaining items in the P2 section are low-priority backlog enhancements/tech debt).
+> **Remaining open across P0 & P1**: **0 P0 + 0 P1** (all blocking and high-priority items resolved; remaining **13** deferred P2 items await product/cross-service specifications and are tracked in the P2 section above).
 
 ---
 
-*Generated from 21 workflow review files + WORKER-EVENT-CRONJOB-REVIEW.md. Each issue links to its source document for full context.*
+*Consolidated across canonical workflow reviews (superseded files archived in `archive/`). Each issue links to its source document for full context.*
 
