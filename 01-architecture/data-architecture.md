@@ -742,29 +742,27 @@ Each service maintains its own schema version:
 
 ---
 
-## ⚡ Redis DB Index Allocation & Isolation
+## ⚡ Redis Topology: 3 Tiers, DB 0 Only, ACL per Service
 
-To prevent cross-service cache key collisions and Dapr PubSub/StateStore stream interference, all dev environments and local stacks strictly partition Redis logical DB indices (`0`–`22`) with zero overlap:
+Redis logical databases are no longer used for isolation. Every tier runs with `--databases 1` (DB `0` only) so PgBouncer-style multiplexing, Redis Cluster/Sentinel migration and Dapr components stay compatible. Isolation is enforced by **Redis 7 ACL users with key patterns** (`user default off`) plus Kubernetes `NetworkPolicy`.
 
-| Redis DB | Owner / Component | Workload |
-|---|---|---|
-| `0` | Dapr `pubsub-redis` | Redis Streams event bus (`*-dev` & dev overlay) |
-| `1` | `auth` | Session state, JWT revocation, lockout counters |
-| `2` | `pricing` | Price lookup & rule caches |
-| `4` | `catalog` | Product & category caches |
-| `6` | `customer` | Customer profile & auth caches |
-| `7` | `order` | Order state caches |
-| `9` | `payment` | Payment & idempotency caches |
-| `10` | `gateway` | API Gateway cache & rate-limit counters |
-| `11` | `fulfillment` | Fulfillment caches |
-| `13` | `shipping` | Shipping rate & tracking caches |
-| `14` | `warehouse` | Inventory & reservation state caches |
-| `15` | Dapr `statestore` | Dapr actor & state management component |
-| `18` | `user` | User RBAC & credential rate-limit state |
-| `19` | `analytics` | Analytics & data quality caches |
-| `20` | `search` | Search query & sync caches |
-| `21` | `return` | Return/exchange workflow caches |
-| `22` | `loyalty-rewards` | Loyalty points & reward caches |
+| Tier | Eviction / Persistence | Consumers | ACL users (key pattern) |
+|---|---|---|---|
+| `redis-cache` | `allkeys-lru`, no persistence | `catalog`, `pricing`, `gateway` (SmartCache, aggregation) | `catalog` (`~catalog:*`), `pricing` (`~pricing:*`), `gateway-cache` (`~gateway:*`) |
+| `redis-state` | `noeviction`, AOF `everysec` | `auth`, `user`, `customer`, `warehouse`, `gateway` (JWT blacklist, rate limiter), Dapr `statestore` | `auth`, `user`, `customer`, `warehouse`, `gateway-state` (`~<service>:*`), `dapr-state` (`~*`) |
+| `redis-pubsub` | `noeviction`, AOF `everysec` | Dapr `pubsub-redis` Streams (events and `dlq.<service>.<topic>`) | `dapr-pubsub` (`~*`, `+@stream`) |
+
+**Rules**
+- Every application key MUST start with `<service>:` (for example `auth:session:*`, `customer:ratelimit:login_ip:*`, `pricing:prices:*`, `warehouse:inventory:bulk:*`, `gateway:rate_limit:*`). `common/utils/rediskey` (`Namespace`, `AuditHook`) builds keys and logs violations.
+- App users get `+@read +@write +@scripting +@connection +ping +info` and are denied `@dangerous`, `FLUSHDB`, `FLUSHALL`, `KEYS`, `SELECT`, `CONFIG`. Scripting is required for Lua rate limiters; `+info` is required by health checks.
+- Services connect with `<SVC>_DATA_REDIS_ADDR`, `_USERNAME`, `_PASSWORD`, `_DB=0`; the gateway uses two clients (`GATEWAY_CACHE_REDIS_*` and `GATEWAY_STATE_REDIS_*`). TLS is opt-in via `*_REDIS_TLS_ENABLED`, `tls_ca_cert_path`, `tls_server_name`.
+- `catalog` no longer holds a gateway Redis client; gateway cache invalidation is event driven.
+- Passwords come from Kubernetes Secrets; plaintext `--requirepass` is blocked by `gitops/scripts/validate-kustomize.sh`.
+- Postgres connections use `PreferSimpleProtocol` so DDL and prepared statements are safe behind PgBouncer transaction pooling.
+
+**Outbox relay**: `auth-worker`, `catalog-worker`, `pricing-worker` poll `outbox_events` (`pending` → `processed`) and publish to `redis-pubsub` through the Dapr sidecar.
+
+**Verification** (`local-k8s/scripts/verify.sh`, `e2e-seed-test.sh`): `NOAUTH` for anonymous clients, `NOPERM` for cross-service keys and for `FLUSHALL`/`SELECT 1`, only `db0` in `INFO keyspace`, `evicted_keys=0` on state and pubsub, zero `ACL LOG` entries during valid traffic.
 
 ---
 

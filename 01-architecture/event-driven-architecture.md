@@ -291,7 +291,8 @@ The following 2-segment topics pre-date this convention. They MUST NOT be rename
 ### PubSub, DLQ & Schema Validation Standards
 
 - **Unified PubSub Component**: All Dapr publishers and subscriber configurations (including `catalog/configs/config.yaml` and GitOps Dapr subscriptions) must target `pubsub-redis` rather than legacy `pubsub`.
-- **Standardized DLQ Naming**: Every Dapr subscription specifies `deadLetterTopic` using `dlq.<service>.<topic>` (e.g., `dlq.customer.orders.order.status_changed`, `dlq.payment.checkout.order.created`, `dlq.loyalty-rewards.orders.order.status_changed`).
+- **Standardized DLQ Naming**: Every Dapr subscription specifies `deadLetterTopic` using `dlq.<service>.<topic>` (e.g., `dlq.customer.orders.order.status_changed`, `dlq.payment.checkout.order.created`, `dlq.loyalty-rewards.orders.order.status_changed`). On the `Subscription` CRD, `deadLetterTopic` is a direct child of `spec:` (not under `spec.metadata`) so it appears in `kubectl get subscriptions.dapr.io -A`.
+- **Event Bus Redis**: Dapr `pubsub-redis` uses the dedicated `redis-pubsub` tier (DB `0`, `noeviction`, ACL user `dapr-pubsub` with `+@stream`); outbox workers relay `outbox_events` into it.
 - **Dapr Sidecar Startup Resilience (`common/events`)**: `dapr_publisher_grpc.go` uses configurable `StartupRetries` (default `5`), `StartupRetryInterval` (default `300ms`, exponential backoff capped at `3s`), and lazy `EnsureClient()` initialization during publish calls to prevent fatal startup races with `daprd`.
 - **Opt-In Strict Schema Validation**: `events/validator.go` provides `NewStrictJSONSchemaValidator()` and `SetStrict(true)` to fail closed when strict schema enforcement is enabled.
 
