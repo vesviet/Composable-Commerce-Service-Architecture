@@ -346,6 +346,35 @@ go run cmd/migrate/main.go down
 
 ---
 
+## ☸️ Local Kubernetes Stack (`docker-desktop`)
+
+The workspace provides a self-contained Core E2E stack under `local-k8s/` targeting Docker Desktop Kubernetes (`--context docker-desktop`), strictly isolated from `homelab-k3s`, `k3d-microservices`, and production `gitops/` manifests. It deploys lightweight PostgreSQL 16, PgBouncer, Redis 7, Consul, Dapr, and 9 core services (`auth`, `user`, `customer`, `catalog`, `pricing`, `warehouse`, `gateway`, `frontend`, `admin`).
+
+```bash
+# 1. Build all 9 local images (local-k8s/<service>:dev via WSL Ubuntu)
+bash /mnt/d/microservices/local-k8s/scripts/build-images.sh
+
+# 2. Deploy infrastructure, run Goose migrations, and start all services
+bash /mnt/d/microservices/local-k8s/scripts/up.sh
+
+# 3. Inspect pod/node status and verify cluster + Redis DB isolation
+bash /mnt/d/microservices/local-k8s/scripts/status.sh
+bash /mnt/d/microservices/local-k8s/scripts/verify.sh
+
+# 4. Run idempotent end-to-end seed & Gateway write/read data-flow checks
+bash /mnt/d/microservices/local-k8s/scripts/e2e-seed-test.sh
+
+# 5. Tear down local namespaces cleanly
+bash /mnt/d/microservices/local-k8s/scripts/down.sh
+```
+
+**Local Endpoints:**
+- **API Gateway**: `http://localhost:8080` (`/health`, `/api/services/health`)
+- **Frontend Storefront**: `http://localhost:3000` (`/health`)
+- **Admin Panel**: `http://localhost:3001` (`/health`)
+
+---
+
 ## 🎯 Next Steps
 
 1. **Explore Services**: Browse through different service directories
@@ -375,6 +404,6 @@ go run cmd/migrate/main.go down
 
 ---
 
-**Last Updated**: February 3, 2026  
+**Last Updated**: 2026-11-28  
 **Review Cycle**: Monthly or when tools change  
 **Maintained By**: Platform Engineering Team

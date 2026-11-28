@@ -614,6 +614,30 @@ kubectl logs -f deployment/auth-service -n production &
 
 ---
 
+## ☸️ Runtime & Local Kubernetes Troubleshooting
+
+### **gRPC Health Probe Returns `Unauthenticated` or False-Green `healthy`**
+- **Cause**: `common/client/grpc_client.go` and Gateway `/api/services/health` probe `grpc.health.v1.Health/Check` directly. Services applying `AuthKratos` or rate-limiting middleware on gRPC (such as `pricing`) fail the probe unless standard gRPC health operations are exempted.
+- **Fix**: Ensure `"/grpc.health.v1.Health/Check"` and `"/grpc.health.v1.Health/Watch"` are listed under both `auth.skip_paths` and `rate_limit.skip_paths`. Do not manually register another `grpc_health_v1.HealthServer` on Kratos gRPC servers (Kratos registers it automatically).
+
+### **PgBouncer `SQLSTATE 0A000: cached plan must not change result type` After Migration**
+- **Cause**: Running an `ALTER TABLE` migration (e.g., adding `parent_id` to `products`) invalidates prepared statement plans cached inside PgBouncer's pooled backend PostgreSQL connections.
+- **Fix**: Roll out or restart PgBouncer and the affected service deployment after schema migrations:
+  ```bash
+  kubectl --context docker-desktop -n infrastructure rollout restart deployment/pgbouncer
+  kubectl --context docker-desktop -n catalog-dev rollout restart deployment/catalog
+  ```
+
+### **Service-to-Service Calls Failing with `Unauthenticated` (`x-service-token`)**
+- **Cause**: Services such as `warehouse` fail closed when `SERVICE_TOKEN` / `INTERNAL_SERVICE_TOKEN` / `WAREHOUSE_SERVICE_TOKEN` or `JWT_SECRET` is missing from service Secrets, rejecting S2S calls (e.g., `catalog` -> `warehouse.GetInventoryByProduct`).
+- **Fix**: Keep `JWT_SECRET`, `SERVICE_TOKEN`, and `INTERNAL_SERVICE_TOKEN` synchronized across all namespace secrets before running E2E requests.
+
+### **Stale `:dev` Container Images Reused Across Rebuilds**
+- **Cause**: On multi-node kind/Docker Desktop clusters, `imagePullPolicy: IfNotPresent` reuses older `:dev` layers cached on worker nodes even after local image rebuilds.
+- **Fix**: Use `imagePullPolicy: Always` for `:dev` local manifests so kubelet resolves the latest local daemon image via the cluster containerd mirror.
+
+---
+
 ## 📚 Related Documentation
 
 ### **Platform Documentation**
@@ -628,6 +652,6 @@ kubectl logs -f deployment/auth-service -n production &
 
 ---
 
-**Last Updated**: 2026-03-02  
+**Last Updated**: 2026-11-28  
 **Review Cycle**: Monthly  
 **Maintained By**: Platform Engineering Team

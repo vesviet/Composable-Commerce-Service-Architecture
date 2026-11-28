@@ -732,13 +732,46 @@ ALTER TABLE orders DROP COLUMN status;
 ALTER TABLE orders RENAME COLUMN new_status TO status;
 ```
 
-### 3. **Schema Versioning**
+### 3. **Schema Versioning & Catalog Alignment**
 
 Each service maintains its own schema version:
 - **Backward Compatible**: Add optional fields, new tables
 - **Breaking Changes**: Require coordinated deployment
-- **Migration Scripts**: Automated and tested
+- **Migration Scripts**: Automated Goose SQL migrations (`catalog_db.products` includes `parent_id UUID REFERENCES products(id) ON DELETE SET NULL` aligned with `model.Product.ParentID` and `idx_products_parent_id`)
 - **Rollback Plans**: For each migration
+
+---
+
+## ⚡ Redis DB Index Allocation & Isolation
+
+To prevent cross-service cache key collisions and Dapr PubSub/StateStore stream interference, all dev environments and local stacks strictly partition Redis logical DB indices (`0`–`22`) with zero overlap:
+
+| Redis DB | Owner / Component | Workload |
+|---|---|---|
+| `0` | Dapr `pubsub-redis` | Redis Streams event bus (`*-dev` & dev overlay) |
+| `1` | `auth` | Session state, JWT revocation, lockout counters |
+| `2` | `pricing` | Price lookup & rule caches |
+| `4` | `catalog` | Product & category caches |
+| `6` | `customer` | Customer profile & auth caches |
+| `7` | `order` | Order state caches |
+| `9` | `payment` | Payment & idempotency caches |
+| `10` | `gateway` | API Gateway cache & rate-limit counters |
+| `11` | `fulfillment` | Fulfillment caches |
+| `13` | `shipping` | Shipping rate & tracking caches |
+| `14` | `warehouse` | Inventory & reservation state caches |
+| `15` | Dapr `statestore` | Dapr actor & state management component |
+| `18` | `user` | User RBAC & credential rate-limit state |
+| `19` | `analytics` | Analytics & data quality caches |
+| `20` | `search` | Search query & sync caches |
+| `21` | `return` | Return/exchange workflow caches |
+| `22` | `loyalty-rewards` | Loyalty points & reward caches |
+
+---
+
+## 📊 Analytics Data Quality & Experiment Integrity
+
+- **Read-Only SQL Data Quality Evaluation**: Analytics Data Quality checks execute parameterized read-only SQL evaluations via `DataQualityQueryExecutor` (`EvaluateDataQualityCheck`, `UpdateDataQualityResult`) across allowlisted tables (`analytics_events`, `processed_events`, `dead_letter_queue`, `customer_journey_events`), updating result records cleanly without duplicate inserts and invalidating `"analytics:data_quality_results:%d"`.
+- **A/B Testing SRM Gate**: `EvaluateABExperimentSRM` runs a Pearson Chi-squared Sample Ratio Mismatch check (`controlCount`, `treatmentCount`, `expectedControlRatio`) and flags traffic allocation skew when `p < 0.001`.
 
 ---
 
@@ -751,6 +784,6 @@ Each service maintains its own schema version:
 
 ---
 
-**Last Updated**: 2026-03-02  
+**Last Updated**: 2026-11-28  
 **Maintained By**: Data Architecture Team  
 **Review Cycle**: Quarterly architecture review

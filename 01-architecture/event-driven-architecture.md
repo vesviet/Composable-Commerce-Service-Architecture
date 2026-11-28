@@ -288,6 +288,13 @@ The following 2-segment topics pre-date this convention. They MUST NOT be rename
 | `auth.password_changed`    | auth        | `auth.credential.password_changed`   |
 | `system.errors`            | fulfillment | `system.error.occurred`              |
 
+### PubSub, DLQ & Schema Validation Standards
+
+- **Unified PubSub Component**: All Dapr publishers and subscriber configurations (including `catalog/configs/config.yaml` and GitOps Dapr subscriptions) must target `pubsub-redis` rather than legacy `pubsub`.
+- **Standardized DLQ Naming**: Every Dapr subscription specifies `deadLetterTopic` using `dlq.<service>.<topic>` (e.g., `dlq.customer.orders.order.status_changed`, `dlq.payment.checkout.order.created`, `dlq.loyalty-rewards.orders.order.status_changed`).
+- **Dapr Sidecar Startup Resilience (`common/events`)**: `dapr_publisher_grpc.go` uses configurable `StartupRetries` (default `5`), `StartupRetryInterval` (default `300ms`, exponential backoff capped at `3s`), and lazy `EnsureClient()` initialization during publish calls to prevent fatal startup races with `daprd`.
+- **Opt-In Strict Schema Validation**: `events/validator.go` provides `NewStrictJSONSchemaValidator()` and `SetStrict(true)` to fail closed when strict schema enforcement is enabled.
+
 ### Guidelines for New Topics
 
 When adding a new event topic:
@@ -313,4 +320,4 @@ TopicReviewApproved  = "review.approved"        // ❌
 ---
 
 *Document generated from code analysis on: 2026-01-10*
-*Last Updated: 2026-03-08*
+*Last Updated: 2026-11-28*
